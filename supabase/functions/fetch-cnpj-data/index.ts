@@ -111,23 +111,38 @@ serve(async (req) => {
       email: brasilAPIData.email || '',
     };
 
-    // Tentar buscar Inscrição Estadual no Sintegra (PR)
+    // Tentar buscar Inscrição Estadual via ReceitaWS
     let sintegraAvailable = false;
     
-    if (brasilAPIData.uf === 'PR') {
-      try {
-        console.log('Tentando buscar Inscrição Estadual no Sintegra PR...');
+    try {
+      console.log('Tentando buscar Inscrição Estadual na ReceitaWS...');
+      
+      const receitaWSResponse = await fetch(
+        `https://www.receitaws.com.br/v1/cnpj/${cleanCNPJ}`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      
+      if (receitaWSResponse.ok) {
+        const receitaWSData = await receitaWSResponse.json();
+        console.log('Dados ReceitaWS:', JSON.stringify(receitaWSData, null, 2));
         
-        // Nota: Sintegra PR pode ter CAPTCHA e não tem API pública oficial
-        // Esta é uma tentativa que pode falhar - adicione lógica específica se necessário
-        // Por enquanto, marcamos como indisponível
-        
-        sintegraAvailable = false;
-        data.state_registration = ''; // Vazio, precisa ser preenchido manualmente
-      } catch (error) {
-        console.error('Erro ao consultar Sintegra:', error);
-        sintegraAvailable = false;
+        // ReceitaWS retorna o campo "inscricao_estadual"
+        if (receitaWSData.inscricao_estadual && receitaWSData.inscricao_estadual !== '') {
+          data.state_registration = receitaWSData.inscricao_estadual;
+          sintegraAvailable = true;
+          console.log('Inscrição Estadual encontrada:', data.state_registration);
+        } else {
+          console.log('Inscrição Estadual não disponível na ReceitaWS');
+          data.state_registration = '';
+        }
+      } else {
+        console.warn('ReceitaWS retornou status:', receitaWSResponse.status);
+        data.state_registration = '';
       }
+    } catch (error) {
+      console.error('Erro ao consultar ReceitaWS para IE:', error);
+      sintegraAvailable = false;
+      data.state_registration = '';
     }
 
     console.log('Retornando dados estruturados');

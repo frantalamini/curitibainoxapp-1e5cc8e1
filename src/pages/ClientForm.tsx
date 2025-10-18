@@ -223,61 +223,88 @@ const ClientForm = () => {
             </RadioGroup>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cpf_cnpj">
-              {documentType === "CPF" ? "CPF" : "CNPJ"} *
-            </Label>
-            <div className="flex gap-2">
-              <InputMask
-                mask={documentType === "CPF" ? "999.999.999-99" : "99.999.999/9999-99"}
-                value={documentValue}
-                onChange={(e) => {
-                  setDocumentValue(e.target.value);
-                  setValue("cpf_cnpj", e.target.value);
-                }}
-              >
-                {(inputProps: any) => (
-                  <Input
-                    {...inputProps}
-                    id="cpf_cnpj"
-                    placeholder={
-                      documentType === "CPF" 
-                        ? "000.000.000-00" 
-                        : "00.000.000/0000-00"
-                    }
-                    className="flex-1"
-                  />
-                )}
-              </InputMask>
-              {documentType === "CNPJ" && (
-                <Button
-                  type="button"
-                  onClick={handleCNPJSearch}
-                  disabled={isLoading || documentValue.replace(/\D/g, "").length !== 14}
-                  variant="secondary"
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="md:col-span-3 space-y-2">
+              <Label htmlFor="cpf_cnpj">
+                {documentType === "CPF" ? "CPF" : "CNPJ"} *
+              </Label>
+              <div className="flex gap-2">
+                <InputMask
+                  mask={documentType === "CPF" ? "999.999.999-99" : "99.999.999/9999-99"}
+                  value={documentValue}
+                  onChange={(e) => {
+                    setDocumentValue(e.target.value);
+                    setValue("cpf_cnpj", e.target.value);
+                  }}
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4" />
+                  {(inputProps: any) => (
+                    <Input
+                      {...inputProps}
+                      id="cpf_cnpj"
+                      placeholder={
+                        documentType === "CPF" 
+                          ? "000.000.000-00" 
+                          : "00.000.000/0000-00"
+                      }
+                      className="flex-1"
+                    />
                   )}
-                  <span className="ml-2">Buscar CNPJ</span>
-                </Button>
+                </InputMask>
+                {documentType === "CNPJ" && (
+                  <Button
+                    type="button"
+                    onClick={handleCNPJSearch}
+                    disabled={isLoading || documentValue.replace(/\D/g, "").length !== 14}
+                    variant="secondary"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    <span className="ml-2">Buscar CNPJ</span>
+                  </Button>
+                )}
+              </div>
+              {errors.cpf_cnpj && (
+                <p className="text-sm text-destructive">{errors.cpf_cnpj.message}</p>
               )}
             </div>
-            {errors.cpf_cnpj && (
-              <p className="text-sm text-destructive">{errors.cpf_cnpj.message}</p>
+
+            {documentType === "CNPJ" && (
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="state_registration">Inscrição Estadual</Label>
+                <Input
+                  id="state_registration"
+                  {...register("state_registration")}
+                  placeholder="Preenchido automaticamente"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Buscado automaticamente via CNPJ
+                </p>
+                {errors.state_registration && (
+                  <p className="text-sm text-destructive">{errors.state_registration.message}</p>
+                )}
+              </div>
             )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone *</Label>
-              <Input
-                id="phone"
-                {...register("phone", { required: "Telefone é obrigatório" })}
-                placeholder="(00) 00000-0000"
-              />
+              <InputMask
+                mask="(99) 99999-9999"
+                value={watch("phone") || ""}
+                onChange={(e) => setValue("phone", e.target.value)}
+              >
+                {(inputProps: any) => (
+                  <Input
+                    {...inputProps}
+                    id="phone"
+                    placeholder="(00) 00000-0000"
+                  />
+                )}
+              </InputMask>
               {errors.phone && (
                 <p className="text-sm text-destructive">{errors.phone.message}</p>
               )}
@@ -338,8 +365,11 @@ const ClientForm = () => {
                   <Input
                     id="street"
                     {...register("street")}
-                    placeholder="Nome da rua"
+                    placeholder="Rua das Calandrinas, Avenida Central, etc"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Incluir o tipo: Rua, Avenida, Alameda, Travessa, etc
+                  </p>
                   {errors.street && (
                     <p className="text-sm text-destructive">{errors.street.message}</p>
                   )}
@@ -405,21 +435,6 @@ const ClientForm = () => {
                     <p className="text-sm text-destructive">{errors.state.message}</p>
                   )}
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="state_registration">Inscrição Estadual</Label>
-                <Input
-                  id="state_registration"
-                  {...register("state_registration")}
-                  placeholder="Inscrição estadual (se aplicável)"
-                />
-                <p className="text-sm text-muted-foreground">
-                  Preenchido automaticamente ao buscar CNPJ (quando disponível)
-                </p>
-                {errors.state_registration && (
-                  <p className="text-sm text-destructive">{errors.state_registration.message}</p>
-                )}
               </div>
             </div>
           </div>
