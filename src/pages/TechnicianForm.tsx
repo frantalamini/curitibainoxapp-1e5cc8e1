@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useTechnicians, type TechnicianInsert } from "@/hooks/useTechnicians";
@@ -46,6 +46,7 @@ const TechnicianForm = () => {
     reset,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<TechnicianInsert>({
     resolver: zodResolver(technicianSchema),
@@ -130,20 +131,26 @@ const TechnicianForm = () => {
 
           <div className="space-y-2">
             <Label htmlFor="phone">Telefone *</Label>
-            <InputMask
-              mask="(99) 99999-9999"
-              {...register("phone")}
-            >
-              {/* @ts-ignore */}
-              {(inputProps: any) => (
-                <Input
-                  {...inputProps}
-                  id="phone"
-                  placeholder="(00) 00000-0000"
-                  type="tel"
-                />
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <InputMask
+                  mask="(99) 99999-9999"
+                  value={field.value}
+                  onChange={field.onChange}
+                >
+                  {(inputProps: any) => (
+                    <Input
+                      {...inputProps}
+                      id="phone"
+                      placeholder="(00) 00000-0000"
+                      type="tel"
+                    />
+                  )}
+                </InputMask>
               )}
-            </InputMask>
+            />
             {errors.phone && (
               <p className="text-sm text-destructive">{errors.phone.message}</p>
             )}
