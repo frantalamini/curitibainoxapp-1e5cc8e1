@@ -36,6 +36,43 @@ interface BrasilAPIResponse {
   email?: string;
 }
 
+// Função para formatar logradouro com tipo de via
+const formatStreet = (logradouro: string): string => {
+  if (!logradouro) return '';
+  
+  // Lista de tipos de logradouro comuns
+  const streetTypes = [
+    'Rua', 'Avenida', 'Alameda', 'Travessa', 'Praça',
+    'Via', 'Rodovia', 'Estrada', 'Caminho', 'Largo',
+    'Beco', 'Viela', 'Quadra', 'Conjunto', 'Passagem',
+    'Ladeira', 'Servidão', 'Viaduto', 'Ponte'
+  ];
+  
+  // Verifica se já tem um tipo de logradouro no início (case-insensitive)
+  const hasType = streetTypes.some(type => 
+    logradouro.toLowerCase().startsWith(type.toLowerCase())
+  );
+  
+  // Se já tem tipo, retorna como está; senão, adiciona "Rua"
+  return hasType ? logradouro : `Rua ${logradouro}`;
+};
+
+// Função para formatar telefone com DDD
+const formatPhone = (phone: string): string => {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  
+  if (digits.length === 11) {
+    // Celular: (XX) 9XXXX-XXXX
+    return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+  } else if (digits.length === 10) {
+    // Fixo: (XX) XXXX-XXXX
+    return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+  }
+  
+  return phone; // Retorna original se formato inválido
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -101,13 +138,13 @@ serve(async (req) => {
       trade_name: brasilAPIData.nome_fantasia || brasilAPIData.razao_social,
       cnpj: brasilAPIData.cnpj,
       cep: formattedCEP,
-      street: brasilAPIData.logradouro,
+      street: formatStreet(brasilAPIData.logradouro),
       number: brasilAPIData.numero || 'S/N',
       complement: brasilAPIData.complemento || '',
       neighborhood: brasilAPIData.bairro,
       city: brasilAPIData.municipio,
       state: brasilAPIData.uf,
-      phone: brasilAPIData.ddd_telefone_1 || '',
+      phone: formatPhone(brasilAPIData.ddd_telefone_1 || ''),
       email: brasilAPIData.email || '',
     };
 

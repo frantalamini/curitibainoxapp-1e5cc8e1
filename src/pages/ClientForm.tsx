@@ -293,7 +293,12 @@ const ClientForm = () => {
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone *</Label>
               <InputMask
-                mask="(99) 99999-9999"
+                mask="(99) 9 9999-9999"
+                formatChars={{
+                  '9': '[0-9]'
+                }}
+                maskChar={null}
+                alwaysShowMask={false}
                 value={watch("phone") || ""}
                 onChange={(e) => setValue("phone", e.target.value)}
               >
