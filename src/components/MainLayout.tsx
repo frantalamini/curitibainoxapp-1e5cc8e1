@@ -9,6 +9,7 @@ import {
   Smartphone,
   Wrench,
   ClipboardList,
+  Calendar,
   Settings,
   LogOut,
   Menu,
@@ -46,7 +47,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/clients", icon: Users, label: "Clientes" },
     { to: "/equipment", icon: Smartphone, label: "Equipamentos" },
     ...(isAdmin ? [{ to: "/technicians", icon: Wrench, label: "Técnicos" }] : []),
-    { to: "/service-orders", icon: ClipboardList, label: "Ordens de Serviço", disabled: true },
+    { to: "/service-calls", icon: ClipboardList, label: "Chamados" },
+    { to: "/schedule", icon: Calendar, label: "Agenda" },
   ];
 
   const NavItems = () => (
@@ -58,9 +60,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           onClick={() => setOpen(false)}
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              item.disabled
-                ? "opacity-50 cursor-not-allowed pointer-events-none"
-                : isActive
+              isActive
                 ? "bg-primary text-primary-foreground"
                 : "hover:bg-muted"
             }`

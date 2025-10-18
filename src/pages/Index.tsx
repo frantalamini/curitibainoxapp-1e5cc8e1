@@ -3,7 +3,7 @@ import { useEquipment } from "@/hooks/useEquipment";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Smartphone, Wrench, Plus } from "lucide-react";
+import { Users, Smartphone, Wrench, Plus, ClipboardList, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 
@@ -89,6 +89,14 @@ const Index = () => {
                 <Button onClick={() => navigate("/technicians/new")}>
                   <Plus className="h-4 w-4 mr-2" />
                   Novo Técnico
+                </Button>
+                <Button onClick={() => navigate("/service-calls/new")} variant="secondary">
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  Novo Chamado Técnico
+                </Button>
+                <Button onClick={() => navigate("/schedule")} variant="secondary">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Agenda Técnica
                 </Button>
               </CardContent>
             </Card>
