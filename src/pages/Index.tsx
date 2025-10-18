@@ -90,11 +90,12 @@ const Index = () => {
                   <Plus className="h-4 w-4 mr-2" />
                   Novo Técnico
                 </Button>
-                <Button onClick={() => navigate("/service-calls/new")} variant="secondary">
+                <Button onClick={() => navigate("/service-calls/new")}>
                   <ClipboardList className="h-4 w-4 mr-2" />
                   Novo Chamado Técnico
                 </Button>
-                <Button onClick={() => navigate("/schedule")} variant="secondary">
+                <Button onClick={() => navigate("/schedule")}>
+
                   <Calendar className="h-4 w-4 mr-2" />
                   Agenda Técnica
                 </Button>
