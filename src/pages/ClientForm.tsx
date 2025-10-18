@@ -293,12 +293,16 @@ const ClientForm = () => {
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone *</Label>
               <InputMask
-                mask="(99) 9 9999-9999"
-                formatChars={{
-                  '9': '[0-9]'
-                }}
+                mask={
+                  (() => {
+                    const phoneDigits = (watch("phone") || "").replace(/\D/g, "");
+                    // Se tem 11 dígitos OU o 3º dígito é 9, usa máscara de celular
+                    return phoneDigits.length >= 11 || phoneDigits.charAt(2) === '9'
+                      ? "(99) 99999-9999"  // Celular
+                      : "(99) 9999-9999";   // Fixo
+                  })()
+                }
                 maskChar={null}
-                alwaysShowMask={false}
                 value={watch("phone") || ""}
                 onChange={(e) => setValue("phone", e.target.value)}
               >
