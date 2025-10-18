@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useClients, type ClientInsert } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +10,42 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
+
+const clientSchema = z.object({
+  full_name: z.string()
+    .trim()
+    .min(3, "Nome deve ter no mínimo 3 caracteres")
+    .max(100, "Nome deve ter no máximo 100 caracteres"),
+  phone: z.string()
+    .trim()
+    .min(10, "Telefone deve ter no mínimo 10 dígitos")
+    .regex(/^[\d\s()-]+$/, "Telefone deve conter apenas números"),
+  email: z.string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email muito longo")
+    .optional()
+    .or(z.literal("")),
+  cpf_cnpj: z.string()
+    .trim()
+    .optional()
+    .refine((val) => {
+      if (!val) return true;
+      const digits = val.replace(/\D/g, "");
+      return digits.length === 11 || digits.length === 14;
+    }, "CPF deve ter 11 dígitos ou CNPJ 14 dígitos")
+    .or(z.literal("")),
+  address: z.string()
+    .trim()
+    .max(500, "Endereço muito longo")
+    .optional()
+    .or(z.literal("")),
+  notes: z.string()
+    .trim()
+    .max(1000, "Observações muito longas (máximo 1000 caracteres)")
+    .optional()
+    .or(z.literal("")),
+});
 
 const ClientForm = () => {
   const navigate = useNavigate();
@@ -20,7 +58,9 @@ const ClientForm = () => {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<ClientInsert>();
+  } = useForm<ClientInsert>({
+    resolver: zodResolver(clientSchema),
+  });
 
   useEffect(() => {
     if (isEdit && clients) {

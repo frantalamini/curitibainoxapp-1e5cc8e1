@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useTechnicians, type TechnicianInsert } from "@/hooks/useTechnicians";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +11,19 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, X } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
+
+const technicianSchema = z.object({
+  user_id: z.string()
+    .trim()
+    .min(1, "ID do usuário é obrigatório")
+    .uuid("ID do usuário deve ser um UUID válido"),
+  specialties: z.array(z.string()
+    .trim()
+    .min(2, "Especialidade deve ter no mínimo 2 caracteres")
+    .max(50, "Especialidade deve ter no máximo 50 caracteres")
+  ).optional(),
+  active: z.boolean().default(true),
+});
 
 const TechnicianForm = () => {
   const navigate = useNavigate();
@@ -26,7 +41,9 @@ const TechnicianForm = () => {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<TechnicianInsert>();
+  } = useForm<TechnicianInsert>({
+    resolver: zodResolver(technicianSchema),
+  });
 
   const active = watch("active");
 
@@ -43,12 +60,25 @@ const TechnicianForm = () => {
   }, [id, technicians, reset, isEdit, setValue]);
 
   const addSpecialty = () => {
-    if (specialtyInput.trim() && !specialties.includes(specialtyInput.trim())) {
-      const newSpecialties = [...specialties, specialtyInput.trim()];
-      setSpecialties(newSpecialties);
-      setValue("specialties", newSpecialties);
-      setSpecialtyInput("");
+    const trimmed = specialtyInput.trim();
+    if (!trimmed) return;
+    
+    if (trimmed.length < 2) {
+      return;
     }
+    
+    if (trimmed.length > 50) {
+      return;
+    }
+    
+    if (specialties.includes(trimmed)) {
+      return;
+    }
+    
+    const newSpecialties = [...specialties, trimmed];
+    setSpecialties(newSpecialties);
+    setValue("specialties", newSpecialties);
+    setSpecialtyInput("");
   };
 
   const removeSpecialty = (spec: string) => {

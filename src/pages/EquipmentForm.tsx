@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useEquipment, type EquipmentInsert } from "@/hooks/useEquipment";
 import { useClients } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,38 @@ import {
 import { ArrowLeft } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 
+const equipmentSchema = z.object({
+  client_id: z.string()
+    .min(1, "Selecione um cliente"),
+  brand: z.string()
+    .trim()
+    .min(2, "Marca deve ter no mínimo 2 caracteres")
+    .max(50, "Marca deve ter no máximo 50 caracteres"),
+  model: z.string()
+    .trim()
+    .min(2, "Modelo deve ter no mínimo 2 caracteres")
+    .max(100, "Modelo deve ter no máximo 100 caracteres"),
+  serial_number: z.string()
+    .trim()
+    .max(100, "Número de série muito longo")
+    .optional()
+    .or(z.literal("")),
+  imei: z.string()
+    .trim()
+    .optional()
+    .refine((val) => {
+      if (!val) return true;
+      const digits = val.replace(/\D/g, "");
+      return digits.length === 15;
+    }, "IMEI deve ter 15 dígitos")
+    .or(z.literal("")),
+  notes: z.string()
+    .trim()
+    .max(1000, "Observações muito longas (máximo 1000 caracteres)")
+    .optional()
+    .or(z.literal("")),
+});
+
 const EquipmentForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -31,9 +65,15 @@ const EquipmentForm = () => {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<EquipmentInsert>();
+  } = useForm<EquipmentInsert>({
+    resolver: zodResolver(equipmentSchema),
+  });
 
   const clientId = watch("client_id");
+
+  useEffect(() => {
+    register("client_id");
+  }, [register]);
 
   useEffect(() => {
     if (isEdit && equipment) {
