@@ -63,11 +63,22 @@ const formatPhone = (phone: string): string => {
   const digits = phone.replace(/\D/g, '');
   
   if (digits.length === 11) {
-    // Celular: (XX) 9XXXX-XXXX
+    // Celular moderno: (XX) 9XXXX-XXXX
     return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
-  } else if (digits.length === 10) {
-    // Fixo: (XX) XXXX-XXXX
-    return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+  } 
+  else if (digits.length === 10) {
+    const ddd = digits.slice(0, 2);
+    const numero = digits.slice(2);
+    const primeiroDigito = numero.charAt(0);
+    
+    // Se começa com 8 ou 9, adiciona o 9 extra (celular antigo)
+    if (primeiroDigito === '8' || primeiroDigito === '9') {
+      // Transforma em: (XX) 9YYYY-ZZZZ mantendo os últimos 4 dígitos fiéis
+      return `(${ddd}) 9${numero.slice(0,4)}-${numero.slice(4)}`;
+    } else {
+      // Telefone fixo normal: (XX) XXXX-XXXX
+      return `(${ddd}) ${numero.slice(0,4)}-${numero.slice(4)}`;
+    }
   }
   
   return phone; // Retorna original se formato inválido
