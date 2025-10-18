@@ -36,7 +36,7 @@ interface BrasilAPIResponse {
   email?: string;
 }
 
-// Função para formatar logradouro com tipo de via
+// Função para formatar logradouro com tipo de via em CAIXA ALTA
 const formatStreet = (logradouro: string): string => {
   if (!logradouro) return '';
   
@@ -49,12 +49,19 @@ const formatStreet = (logradouro: string): string => {
   ];
   
   // Verifica se já tem um tipo de logradouro no início (case-insensitive)
-  const hasType = streetTypes.some(type => 
+  const matchedType = streetTypes.find(type => 
     logradouro.toLowerCase().startsWith(type.toLowerCase())
   );
   
-  // Se já tem tipo, retorna como está; senão, adiciona "Rua"
-  return hasType ? logradouro : `Rua ${logradouro}`;
+  if (matchedType) {
+    // Extrai o tipo e o resto do endereço
+    const restOfAddress = logradouro.slice(matchedType.length).trim();
+    // Retorna com tipo em CAIXA ALTA
+    return `${matchedType.toUpperCase()} ${restOfAddress}`;
+  } else {
+    // Se não tem tipo, adiciona "RUA" em caixa alta
+    return `RUA ${logradouro}`;
+  }
 };
 
 // Função para formatar telefone com DDD
