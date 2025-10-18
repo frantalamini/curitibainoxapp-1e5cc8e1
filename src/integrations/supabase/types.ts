@@ -151,6 +151,66 @@ export type Database = {
         }
         Relationships: []
       }
+      service_calls: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string
+          equipment_description: string
+          id: string
+          notes: string | null
+          scheduled_date: string
+          scheduled_time: string
+          status: Database["public"]["Enums"]["service_status"]
+          technician_id: string
+          updated_at: string
+          urgency: Database["public"]["Enums"]["service_urgency"]
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by: string
+          equipment_description: string
+          id?: string
+          notes?: string | null
+          scheduled_date: string
+          scheduled_time: string
+          status?: Database["public"]["Enums"]["service_status"]
+          technician_id: string
+          updated_at?: string
+          urgency: Database["public"]["Enums"]["service_urgency"]
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          equipment_description?: string
+          id?: string
+          notes?: string | null
+          scheduled_date?: string
+          scheduled_time?: string
+          status?: Database["public"]["Enums"]["service_status"]
+          technician_id?: string
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["service_urgency"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_calls_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_calls_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       technicians: {
         Row: {
           active: boolean
@@ -233,6 +293,8 @@ export type Database = {
         | "waiting_parts"
         | "completed"
         | "cancelled"
+      service_status: "pending" | "in_progress" | "completed" | "cancelled"
+      service_urgency: "corrective" | "preventive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -369,6 +431,8 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      service_status: ["pending", "in_progress", "completed", "cancelled"],
+      service_urgency: ["corrective", "preventive"],
     },
   },
 } as const
