@@ -8,20 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
+import InputMask from "react-input-mask";
 
 const technicianSchema = z.object({
-  user_id: z.string()
+  full_name: z.string()
     .trim()
-    .min(1, "ID do usuário é obrigatório")
-    .uuid("ID do usuário deve ser um UUID válido"),
-  specialties: z.array(z.string()
+    .min(3, "Nome deve ter no mínimo 3 caracteres")
+    .max(100, "Nome deve ter no máximo 100 caracteres"),
+  phone: z.string()
     .trim()
-    .min(2, "Especialidade deve ter no mínimo 2 caracteres")
-    .max(50, "Especialidade deve ter no máximo 50 caracteres")
-  ).optional(),
+    .transform((val) => val.replace(/\D/g, ''))
+    .refine((val) => val.length === 11, "Telefone deve ter 11 dígitos (DDD + 9 dígitos)"),
+  specialty_refrigeration: z.boolean().default(false),
+  specialty_cooking: z.boolean().default(false),
+  additional_notes: z.string()
+    .max(300, "Notas devem ter no máximo 300 caracteres")
+    .optional()
+    .transform((val) => val || undefined),
   active: z.boolean().default(true),
 });
 
@@ -31,8 +38,7 @@ const TechnicianForm = () => {
   const { technicians, createTechnician, updateTechnician } = useTechnicians();
   const isEdit = !!id;
 
-  const [specialties, setSpecialties] = useState<string[]>([]);
-  const [specialtyInput, setSpecialtyInput] = useState("");
+  const [charCount, setCharCount] = useState(0);
 
   const {
     register,
@@ -43,56 +49,45 @@ const TechnicianForm = () => {
     formState: { errors },
   } = useForm<TechnicianInsert>({
     resolver: zodResolver(technicianSchema),
+    defaultValues: {
+      full_name: "",
+      phone: "",
+      specialty_refrigeration: false,
+      specialty_cooking: false,
+      additional_notes: "",
+      active: true,
+    },
   });
 
   const active = watch("active");
+  const specialtyRefrigeration = watch("specialty_refrigeration");
+  const specialtyCooking = watch("specialty_cooking");
+  const additionalNotes = watch("additional_notes");
+  const currentTechnician = technicians?.find((t) => t.id === id);
 
   useEffect(() => {
-    if (isEdit && technicians) {
-      const tech = technicians.find((t) => t.id === id);
-      if (tech) {
-        reset(tech);
-        setSpecialties(tech.specialties || []);
-      }
-    } else {
-      setValue("active", true);
+    if (isEdit && currentTechnician) {
+      reset({
+        full_name: currentTechnician.full_name,
+        phone: currentTechnician.phone,
+        specialty_refrigeration: currentTechnician.specialty_refrigeration,
+        specialty_cooking: currentTechnician.specialty_cooking,
+        additional_notes: currentTechnician.additional_notes || "",
+        active: currentTechnician.active,
+      });
+      setCharCount(currentTechnician.additional_notes?.length || 0);
     }
-  }, [id, technicians, reset, isEdit, setValue]);
+  }, [id, currentTechnician, reset, isEdit]);
 
-  const addSpecialty = () => {
-    const trimmed = specialtyInput.trim();
-    if (!trimmed) return;
-    
-    if (trimmed.length < 2) {
-      return;
-    }
-    
-    if (trimmed.length > 50) {
-      return;
-    }
-    
-    if (specialties.includes(trimmed)) {
-      return;
-    }
-    
-    const newSpecialties = [...specialties, trimmed];
-    setSpecialties(newSpecialties);
-    setValue("specialties", newSpecialties);
-    setSpecialtyInput("");
-  };
-
-  const removeSpecialty = (spec: string) => {
-    const newSpecialties = specialties.filter((s) => s !== spec);
-    setSpecialties(newSpecialties);
-    setValue("specialties", newSpecialties);
-  };
+  useEffect(() => {
+    setCharCount(additionalNotes?.length || 0);
+  }, [additionalNotes]);
 
   const onSubmit = async (data: TechnicianInsert) => {
-    const payload = { ...data, specialties };
     if (isEdit) {
-      await updateTechnician.mutateAsync({ id: id!, ...payload });
+      await updateTechnician.mutateAsync({ id: id!, ...data });
     } else {
-      await createTechnician.mutateAsync(payload);
+      await createTechnician.mutateAsync(data);
     }
     navigate("/technicians");
   };
@@ -110,49 +105,103 @@ const TechnicianForm = () => {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card p-6 rounded-lg border">
+          {isEdit && currentTechnician && (
+            <div className="space-y-2">
+              <Label>ID Técnico</Label>
+              <Input
+                value={currentTechnician.technician_number}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="user_id">ID do Usuário *</Label>
+            <Label htmlFor="full_name">Nome do Técnico *</Label>
             <Input
-              id="user_id"
-              {...register("user_id", { required: "ID do usuário é obrigatório" })}
-              placeholder="UUID do usuário"
-              disabled={isEdit}
+              id="full_name"
+              {...register("full_name")}
+              placeholder="Digite o nome completo"
             />
-            {errors.user_id && (
-              <p className="text-sm text-destructive">{errors.user_id.message}</p>
+            {errors.full_name && (
+              <p className="text-sm text-destructive">{errors.full_name.message}</p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="specialties">Especialidades</Label>
-            <div className="flex gap-2">
-              <Input
-                id="specialties"
-                value={specialtyInput}
-                onChange={(e) => setSpecialtyInput(e.target.value)}
-                placeholder="Digite uma especialidade"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addSpecialty();
-                  }
-                }}
+            <Label htmlFor="phone">Telefone *</Label>
+            <InputMask
+              mask="(99) 99999-9999"
+              {...register("phone")}
+            >
+              {/* @ts-ignore */}
+              {(inputProps: any) => (
+                <Input
+                  {...inputProps}
+                  id="phone"
+                  placeholder="(00) 00000-0000"
+                  type="tel"
+                />
+              )}
+            </InputMask>
+            {errors.phone && (
+              <p className="text-sm text-destructive">{errors.phone.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <Label>Especialidades</Label>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="specialty_refrigeration"
+                checked={specialtyRefrigeration}
+                onCheckedChange={(checked) => 
+                  setValue("specialty_refrigeration", checked as boolean)
+                }
               />
-              <Button type="button" onClick={addSpecialty}>
-                Adicionar
-              </Button>
+              <Label 
+                htmlFor="specialty_refrigeration" 
+                className="font-normal cursor-pointer"
+              >
+                Refrigeração Comercial
+              </Label>
             </div>
-            <div className="flex gap-2 flex-wrap mt-2">
-              {specialties.map((spec) => (
-                <Badge key={spec} variant="secondary" className="gap-1">
-                  {spec}
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => removeSpecialty(spec)}
-                  />
-                </Badge>
-              ))}
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="specialty_cooking"
+                checked={specialtyCooking}
+                onCheckedChange={(checked) => 
+                  setValue("specialty_cooking", checked as boolean)
+                }
+              />
+              <Label 
+                htmlFor="specialty_cooking" 
+                className="font-normal cursor-pointer"
+              >
+                Cocção
+              </Label>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="additional_notes">Informações Adicionais</Label>
+              <span className="text-sm text-muted-foreground">
+                {charCount}/300
+              </span>
+            </div>
+            <Textarea
+              id="additional_notes"
+              {...register("additional_notes")}
+              placeholder="Digite informações adicionais sobre o técnico..."
+              maxLength={300}
+              rows={4}
+            />
+            {errors.additional_notes && (
+              <p className="text-sm text-destructive">{errors.additional_notes.message}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
@@ -166,7 +215,7 @@ const TechnicianForm = () => {
 
           <div className="flex gap-4">
             <Button type="submit" className="flex-1">
-              {isEdit ? "Atualizar" : "Criar"} Técnico
+              {isEdit ? "Atualizar" : "Salvar"} Técnico
             </Button>
             <Button
               type="button"

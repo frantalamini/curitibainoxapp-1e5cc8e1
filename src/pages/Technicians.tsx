@@ -13,25 +13,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 
 const Technicians = () => {
   const navigate = useNavigate();
   const { isAdmin } = useUserRole();
-  const { technicians, isLoading, deleteTechnician } = useTechnicians();
+  const { technicians, isLoading } = useTechnicians();
   const [search, setSearch] = useState("");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   if (!isAdmin) {
     return (
@@ -43,16 +32,15 @@ const Technicians = () => {
     );
   }
 
-  const filteredTechnicians = technicians?.filter((tech) =>
-    tech.specialties?.some((s) => s.toLowerCase().includes(search.toLowerCase()))
-  );
-
-  const handleDelete = () => {
-    if (deleteId) {
-      deleteTechnician.mutate(deleteId);
-      setDeleteId(null);
-    }
-  };
+  const filteredTechnicians = technicians?.filter((tech) => {
+    const searchLower = search.toLowerCase();
+    return (
+      tech.full_name.toLowerCase().includes(searchLower) ||
+      tech.phone.includes(search) ||
+      (tech.specialty_refrigeration && "refrigeração comercial".includes(searchLower)) ||
+      (tech.specialty_cooking && "cocção".includes(searchLower))
+    );
+  });
 
   return (
     <MainLayout>
@@ -69,7 +57,7 @@ const Technicians = () => {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por especialidade..."
+              placeholder="Buscar por nome, telefone ou especialidade..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -86,7 +74,9 @@ const Technicians = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID Usuário</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Telefone</TableHead>
                   <TableHead>Especialidades</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -95,30 +85,42 @@ const Technicians = () => {
               <TableBody>
                 {filteredTechnicians?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Nenhum técnico encontrado
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTechnicians?.map((tech) => (
-                    <TableRow key={tech.id}>
-                      <TableCell className="font-mono text-sm">{tech.user_id.slice(0, 8)}...</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 flex-wrap">
-                          {tech.specialties?.map((spec, idx) => (
-                            <Badge key={idx} variant="secondary">
-                              {spec}
-                            </Badge>
-                          )) || "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={tech.active ? "default" : "secondary"}>
-                          {tech.active ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                  filteredTechnicians?.map((tech) => {
+                    const specialties = [];
+                    if (tech.specialty_refrigeration) specialties.push("Refrigeração Comercial");
+                    if (tech.specialty_cooking) specialties.push("Cocção");
+
+                    const formattedPhone = tech.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+
+                    return (
+                      <TableRow key={tech.id}>
+                        <TableCell className="font-mono text-sm">#{tech.technician_number}</TableCell>
+                        <TableCell className="font-medium">{tech.full_name}</TableCell>
+                        <TableCell>{formattedPhone}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 flex-wrap">
+                            {specialties.length > 0 ? (
+                              specialties.map((spec, idx) => (
+                                <Badge key={idx} variant="secondary">
+                                  {spec}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={tech.active ? "default" : "secondary"}>
+                            {tech.active ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -126,17 +128,10 @@ const Technicians = () => {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteId(tech.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -144,20 +139,6 @@ const Technicians = () => {
         )}
       </div>
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este técnico? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </MainLayout>
   );
 };

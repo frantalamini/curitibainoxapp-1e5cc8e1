@@ -154,27 +154,39 @@ export type Database = {
       technicians: {
         Row: {
           active: boolean
+          additional_notes: string | null
           created_at: string
+          full_name: string
           id: string
-          specialties: string[] | null
+          phone: string
+          specialty_cooking: boolean | null
+          specialty_refrigeration: boolean | null
+          technician_number: number | null
           updated_at: string
-          user_id: string
         }
         Insert: {
           active?: boolean
+          additional_notes?: string | null
           created_at?: string
+          full_name?: string
           id?: string
-          specialties?: string[] | null
+          phone?: string
+          specialty_cooking?: boolean | null
+          specialty_refrigeration?: boolean | null
+          technician_number?: number | null
           updated_at?: string
-          user_id: string
         }
         Update: {
           active?: boolean
+          additional_notes?: string | null
           created_at?: string
+          full_name?: string
           id?: string
-          specialties?: string[] | null
+          phone?: string
+          specialty_cooking?: boolean | null
+          specialty_refrigeration?: boolean | null
+          technician_number?: number | null
           updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }

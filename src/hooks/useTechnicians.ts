@@ -4,14 +4,18 @@ import { toast } from "@/hooks/use-toast";
 
 export type Technician = {
   id: string;
-  user_id: string;
-  specialties?: string[];
+  technician_number: number;
+  full_name: string;
+  phone: string;
+  specialty_refrigeration: boolean;
+  specialty_cooking: boolean;
+  additional_notes?: string;
   active: boolean;
   created_at: string;
   updated_at: string;
 };
 
-export type TechnicianInsert = Omit<Technician, "id" | "created_at" | "updated_at">;
+export type TechnicianInsert = Omit<Technician, "id" | "technician_number" | "created_at" | "updated_at">;
 
 export const useTechnicians = () => {
   const queryClient = useQueryClient();
@@ -22,7 +26,7 @@ export const useTechnicians = () => {
       const { data, error } = await supabase
         .from("technicians")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("technician_number", { ascending: true });
 
       if (error) throw error;
       return data as Technician[];
