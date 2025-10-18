@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          address: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipment: {
+        Row: {
+          brand: string
+          client_id: string
+          created_at: string
+          id: string
+          imei: string | null
+          model: string
+          notes: string | null
+          serial_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          client_id: string
+          created_at?: string
+          id?: string
+          imei?: string | null
+          model: string
+          notes?: string | null
+          serial_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          imei?: string | null
+          model?: string
+          notes?: string | null
+          serial_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
@@ -39,6 +122,33 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      technicians: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          specialties: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          specialties?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          specialties?: string[] | null
           updated_at?: string
           user_id?: string
         }

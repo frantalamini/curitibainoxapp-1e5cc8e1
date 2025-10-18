@@ -9,6 +9,12 @@ import { Session } from "@supabase/supabase-js";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Clients from "./pages/Clients";
+import ClientForm from "./pages/ClientForm";
+import Equipment from "./pages/Equipment";
+import EquipmentForm from "./pages/EquipmentForm";
+import Technicians from "./pages/Technicians";
+import TechnicianForm from "./pages/TechnicianForm";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +61,78 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Index />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clients"
+            element={
+              <ProtectedRoute>
+                <Clients />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clients/new"
+            element={
+              <ProtectedRoute>
+                <ClientForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clients/:id/edit"
+            element={
+              <ProtectedRoute>
+                <ClientForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/equipment"
+            element={
+              <ProtectedRoute>
+                <Equipment />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/equipment/new"
+            element={
+              <ProtectedRoute>
+                <EquipmentForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/equipment/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EquipmentForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/technicians"
+            element={
+              <ProtectedRoute>
+                <Technicians />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/technicians/new"
+            element={
+              <ProtectedRoute>
+                <TechnicianForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/technicians/:id/edit"
+            element={
+              <ProtectedRoute>
+                <TechnicianForm />
               </ProtectedRoute>
             }
           />
