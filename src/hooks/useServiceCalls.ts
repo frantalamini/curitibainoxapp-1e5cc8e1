@@ -15,6 +15,15 @@ export interface ServiceCall {
   created_by: string;
   created_at: string;
   updated_at: string;
+  clients?: {
+    full_name: string;
+    phone: string;
+    address?: string;
+  };
+  technicians?: {
+    full_name: string;
+    phone: string;
+  };
 }
 
 export interface ServiceCallInsert {
@@ -36,7 +45,18 @@ export const useServiceCalls = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_calls")
-        .select("*")
+        .select(`
+          *,
+          clients (
+            full_name,
+            phone,
+            address
+          ),
+          technicians (
+            full_name,
+            phone
+          )
+        `)
         .order("scheduled_date", { ascending: false });
 
       if (error) throw error;
@@ -74,9 +94,64 @@ export const useServiceCalls = () => {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<ServiceCall> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("service_calls")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-calls"] });
+      toast({
+        title: "Sucesso",
+        description: "Chamado técnico atualizado com sucesso",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao atualizar chamado técnico: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("service_calls")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-calls"] });
+      toast({
+        title: "Sucesso",
+        description: "Chamado técnico excluído com sucesso",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao excluir chamado técnico: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     serviceCalls,
     isLoading,
     createServiceCall: createMutation.mutate,
+    updateServiceCall: updateMutation.mutate,
+    deleteServiceCall: deleteMutation.mutate,
   };
 };
