@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, Search, Loader2 } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 
@@ -98,7 +99,8 @@ const ClientForm = () => {
   const { clients, createClient, updateClient } = useClients();
   const { lookupCNPJ, lookupCEP, isLoading } = useCNPJLookup();
   const isEdit = !!id;
-  const [cnpjValue, setCnpjValue] = useState("");
+  const [documentType, setDocumentType] = useState<"CPF" | "CNPJ">("CPF");
+  const [documentValue, setDocumentValue] = useState("");
 
   const {
     register,
@@ -116,19 +118,24 @@ const ClientForm = () => {
       const client = clients.find((c) => c.id === id);
       if (client) {
         reset(client);
-        setCnpjValue(client.cpf_cnpj || "");
+        if (client.cpf_cnpj) {
+          const digits = client.cpf_cnpj.replace(/\D/g, "");
+          if (digits.length === 11) {
+            setDocumentType("CPF");
+          } else if (digits.length === 14) {
+            setDocumentType("CNPJ");
+          }
+          setDocumentValue(client.cpf_cnpj);
+        }
       }
     }
   }, [id, clients, reset, isEdit]);
 
   const handleCNPJSearch = async () => {
-    const cpfCnpj = watch("cpf_cnpj");
-    if (!cpfCnpj) return;
-
-    const digits = cpfCnpj.replace(/\D/g, "");
+    const digits = documentValue.replace(/\D/g, "");
     if (digits.length !== 14) return;
 
-    const data = await lookupCNPJ(cpfCnpj);
+    const data = await lookupCNPJ(documentValue);
     if (data) {
       setValue("full_name", data.company_name);
       setValue("cep", data.cep);
@@ -168,12 +175,6 @@ const ClientForm = () => {
     navigate("/clients");
   };
 
-  const isCNPJ = () => {
-    const cpfCnpj = watch("cpf_cnpj");
-    if (!cpfCnpj) return false;
-    const digits = cpfCnpj.replace(/\D/g, "");
-    return digits.length === 14;
-  };
 
   return (
     <MainLayout>
@@ -201,13 +202,37 @@ const ClientForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
+            <Label>Tipo de Documento *</Label>
+            <RadioGroup 
+              value={documentType} 
+              onValueChange={(value) => {
+                setDocumentType(value as "CPF" | "CNPJ");
+                setDocumentValue("");
+                setValue("cpf_cnpj", "");
+              }}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="CPF" id="cpf" />
+                <Label htmlFor="cpf" className="font-normal cursor-pointer">CPF (Pessoa Física)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="CNPJ" id="cnpj" />
+                <Label htmlFor="cnpj" className="font-normal cursor-pointer">CNPJ (Pessoa Jurídica)</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cpf_cnpj">
+              {documentType === "CPF" ? "CPF" : "CNPJ"} *
+            </Label>
             <div className="flex gap-2">
               <InputMask
-                mask={cnpjValue.replace(/\D/g, "").length > 11 ? "99.999.999/9999-99" : "999.999.999-99"}
-                value={cnpjValue}
+                mask={documentType === "CPF" ? "999.999.999-99" : "99.999.999/9999-99"}
+                value={documentValue}
                 onChange={(e) => {
-                  setCnpjValue(e.target.value);
+                  setDocumentValue(e.target.value);
                   setValue("cpf_cnpj", e.target.value);
                 }}
               >
@@ -215,16 +240,20 @@ const ClientForm = () => {
                   <Input
                     {...inputProps}
                     id="cpf_cnpj"
-                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                    placeholder={
+                      documentType === "CPF" 
+                        ? "000.000.000-00" 
+                        : "00.000.000/0000-00"
+                    }
                     className="flex-1"
                   />
                 )}
               </InputMask>
-              {isCNPJ() && (
+              {documentType === "CNPJ" && (
                 <Button
                   type="button"
                   onClick={handleCNPJSearch}
-                  disabled={isLoading}
+                  disabled={isLoading || documentValue.replace(/\D/g, "").length !== 14}
                   variant="secondary"
                 >
                   {isLoading ? (
