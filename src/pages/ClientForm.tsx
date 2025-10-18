@@ -463,7 +463,7 @@ const ClientForm = () => {
 
           <div className="flex gap-4">
             <Button type="submit" className="flex-1" disabled={isLoading}>
-              {isEdit ? "Atualizar" : "Criar"} Cliente
+              {isEdit ? "Atualizar" : "Salvar"} Cliente
             </Button>
             <Button
               type="button"
