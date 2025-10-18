@@ -17,38 +17,62 @@ export type Database = {
       clients: {
         Row: {
           address: string | null
+          cep: string | null
+          city: string | null
+          complement: string | null
           cpf_cnpj: string | null
           created_at: string
           created_by: string
           email: string | null
           full_name: string
           id: string
+          neighborhood: string | null
           notes: string | null
+          number: string | null
           phone: string
+          state: string | null
+          state_registration: string | null
+          street: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          cep?: string | null
+          city?: string | null
+          complement?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by: string
           email?: string | null
           full_name: string
           id?: string
+          neighborhood?: string | null
           notes?: string | null
+          number?: string | null
           phone: string
+          state?: string | null
+          state_registration?: string | null
+          street?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          cep?: string | null
+          city?: string | null
+          complement?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string
           email?: string | null
           full_name?: string
           id?: string
+          neighborhood?: string | null
           notes?: string | null
+          number?: string | null
           phone?: string
+          state?: string | null
+          state_registration?: string | null
+          street?: string | null
           updated_at?: string
         }
         Relationships: []

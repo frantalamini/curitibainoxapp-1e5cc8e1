@@ -7,7 +7,18 @@ export type Client = {
   full_name: string;
   email?: string;
   phone: string;
-  address?: string;
+  
+  // Campos de endereço detalhado
+  cep?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  state_registration?: string;
+  
+  address?: string; // Legacy - manter para compatibilidade
   cpf_cnpj?: string;
   notes?: string;
   created_by: string;

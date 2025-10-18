@@ -33,7 +33,10 @@ const Clients = () => {
   const filteredClients = clients?.filter((client) =>
     client.full_name.toLowerCase().includes(search.toLowerCase()) ||
     client.phone.includes(search) ||
-    client.email?.toLowerCase().includes(search.toLowerCase())
+    client.email?.toLowerCase().includes(search.toLowerCase()) ||
+    client.city?.toLowerCase().includes(search.toLowerCase()) ||
+    client.state?.toLowerCase().includes(search.toLowerCase()) ||
+    client.cpf_cnpj?.includes(search)
   );
 
   const handleDelete = () => {
@@ -78,51 +81,69 @@ const Clients = () => {
                   <TableHead>Nome</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>CPF/CNPJ</TableHead>
+                  <TableHead>Endereço</TableHead>
+                  <TableHead>Insc. Estadual</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredClients?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Nenhum cliente encontrado
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredClients?.map((client) => (
-                    <TableRow key={client.id}>
-                      <TableCell className="font-medium">{client.full_name}</TableCell>
-                      <TableCell>{client.phone}</TableCell>
-                      <TableCell>{client.email || "-"}</TableCell>
-                      <TableCell>{client.cpf_cnpj || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/clients/${client.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/clients/${client.id}/edit`)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteId(client.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredClients?.map((client) => {
+                    const formatAddress = () => {
+                      if (client.street && client.city) {
+                        const parts = [
+                          client.street,
+                          client.number || "S/N",
+                        ];
+                        if (client.neighborhood) parts.push(client.neighborhood);
+                        return `${parts.join(", ")} - ${client.city}/${client.state}`;
+                      }
+                      return client.address || "-";
+                    };
+
+                    return (
+                      <TableRow key={client.id}>
+                        <TableCell className="font-medium">{client.full_name}</TableCell>
+                        <TableCell>{client.phone}</TableCell>
+                        <TableCell>{client.email || "-"}</TableCell>
+                        <TableCell className="max-w-xs truncate" title={formatAddress()}>
+                          {formatAddress()}
+                        </TableCell>
+                        <TableCell>{client.state_registration || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/clients/${client.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/clients/${client.id}/edit`)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(client.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

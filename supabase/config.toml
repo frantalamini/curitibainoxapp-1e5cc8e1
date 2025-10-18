@@ -1,1 +1,4 @@
 project_id = "kovspviddxhhlsekqlxa"
+
+[functions.fetch-cnpj-data]
+verify_jwt = false
