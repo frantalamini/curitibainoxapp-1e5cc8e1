@@ -587,7 +587,6 @@ const ServiceCallForm = () => {
                         <SelectValue placeholder="Selecione um checklist (opcional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
                         {checklists?.map((checklist) => (
                           <SelectItem key={checklist.id} value={checklist.id}>
                             {checklist.name}
