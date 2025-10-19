@@ -18,6 +18,13 @@ serve(async (req) => {
       throw new Error('No audio data provided');
     }
 
+    // Validar tamanho (máximo 10MB em base64)
+    if (audio.length > 14000000) {
+      throw new Error('Arquivo de áudio muito grande. Máximo: 10MB');
+    }
+
+    console.log('Audio size:', (audio.length / 1024 / 1024).toFixed(2), 'MB (base64)');
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
@@ -32,14 +39,14 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro',
         messages: [
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Transcreva o seguinte áudio para texto em português brasileiro. Retorne APENAS o texto transcrito, sem comentários adicionais ou formatação extra.'
+                text: 'Você é um assistente de transcrição especializado em serviços técnicos de manutenção. Transcreva fielmente o áudio a seguir em português brasileiro, mantendo todos os detalhes técnicos mencionados pelo técnico. Se houver termos técnicos, equipamentos, marcas ou procedimentos, mantenha-os exatamente como foram ditos. Retorne APENAS a transcrição literal do áudio, sem adicionar, interpretar ou modificar nada.'
               },
               {
                 type: 'input_audio',
@@ -72,6 +79,7 @@ serve(async (req) => {
     const transcribedText = result.choices[0].message.content;
     
     console.log('Transcription successful');
+    console.log('Transcribed text preview:', transcribedText.substring(0, 100));
 
     return new Response(
       JSON.stringify({ text: transcribedText }),

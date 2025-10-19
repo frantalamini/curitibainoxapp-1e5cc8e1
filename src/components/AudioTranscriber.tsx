@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mic, Square, Loader2 } from "lucide-react";
+import { Mic, Square, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -81,10 +81,9 @@ export const AudioTranscriber = ({ onTranscriptionComplete, initialText = "" }: 
         }
         
         setTranscribedText(data.text);
-        onTranscriptionComplete(data.text, audioFile);
         toast({
-          title: "Sucesso",
-          description: "Áudio transcrito e salvo automaticamente!",
+          title: "Transcrição Concluída",
+          description: "Revise o texto e clique em 'Confirmar Diagnóstico' para salvar.",
         });
       };
     } catch (error) {
@@ -100,10 +99,10 @@ export const AudioTranscriber = ({ onTranscriptionComplete, initialText = "" }: 
   };
 
   const handleSave = () => {
-    if (!transcribedText.trim()) {
+    if (!transcribedText.trim() && !audioFile) {
       toast({
         title: "Atenção",
-        description: "Por favor, grave ou digite o diagnóstico",
+        description: "Por favor, grave um áudio ou digite o diagnóstico",
         variant: "destructive"
       });
       return;
@@ -112,8 +111,8 @@ export const AudioTranscriber = ({ onTranscriptionComplete, initialText = "" }: 
     onTranscriptionComplete(transcribedText, audioFile);
     
     toast({
-      title: "Sucesso",
-      description: "Diagnóstico atualizado com sucesso",
+      title: "✅ Diagnóstico Confirmado",
+      description: "Diagnóstico salvo com sucesso!",
     });
   };
 
@@ -143,6 +142,13 @@ export const AudioTranscriber = ({ onTranscriptionComplete, initialText = "" }: 
               </div>
             )}
           </div>
+          
+          {audioFile && (
+            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+              <CheckCircle className="h-4 w-4" />
+              Áudio gravado: {audioFile.name} ({(audioFile.size / 1024).toFixed(1)} KB)
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
