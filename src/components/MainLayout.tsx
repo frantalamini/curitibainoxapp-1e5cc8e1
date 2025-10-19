@@ -58,18 +58,6 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     );
   };
 
-  useEffect(() => {
-    const activeSection = menuSections.find(section =>
-      section.items.some(item => {
-        const itemPath = new URL(item.to, window.location.origin);
-        return location.pathname === itemPath.pathname;
-      })
-    );
-    
-    if (activeSection && !expandedSections.includes(activeSection.title)) {
-      setExpandedSections(prev => [...prev, activeSection.title]);
-    }
-  }, [location.pathname]);
 
   const menuSections = [
     {
@@ -97,12 +85,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   ];
 
   const NavItems = () => {
-    const isActiveSection = (section: typeof menuSections[0]) => {
-      return section.items.some(item => {
-        const itemPath = new URL(item.to, window.location.origin);
-        return location.pathname === itemPath.pathname;
-      });
-    };
+    const [activeSection, setActiveSection] = useState<string | null>(null);
 
     const isActiveItem = (itemTo: string) => {
       const itemPath = new URL(itemTo, window.location.origin);
@@ -110,41 +93,74 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
              location.search === itemPath.search;
     };
 
+    const getActiveSection = () => {
+      const section = menuSections.find(s =>
+        s.items.some(item => isActiveItem(item.to))
+      );
+      return section?.title || null;
+    };
+
+    useEffect(() => {
+      const current = getActiveSection();
+      if (current && expandedSections.includes(current)) {
+        setActiveSection(current);
+      }
+    }, [location.pathname, expandedSections]);
+
     return (
-      <>
-        {menuSections.map((section) => {
-          const sectionActive = isActiveSection(section);
-          const isExpanded = expandedSections.includes(section.title);
+      <div className="flex gap-4">
+        {/* COLUNA ESQUERDA: Títulos principais */}
+        <div className="w-48 space-y-2">
+          {menuSections.map((section) => {
+            const isExpanded = expandedSections.includes(section.title);
+            const isCurrent = getActiveSection() === section.title;
 
-          return (
-            <div key={section.title} className="mb-2">
-            <button
-              onClick={() => toggleSection(section.title)}
-              onMouseEnter={() => {
-                if (!expandedSections.includes(section.title)) {
-                  setExpandedSections(prev => [...prev, section.title]);
-                }
-              }}
-              className="w-full text-left px-4 py-3 rounded-lg font-bold text-sm transition-all duration-200 flex items-center justify-between text-foreground hover:text-primary"
-            >
-              <span className="uppercase tracking-wider">{section.title}</span>
-              <ChevronDown 
-                className={`h-4 w-4 transition-transform duration-300 ${
-                  isExpanded ? "rotate-180" : ""
-                }`} 
-              />
-            </button>
-
-              <div
+            return (
+              <button
+                key={section.title}
+                onClick={() => toggleSection(section.title)}
+                onMouseEnter={() => {
+                  if (!expandedSections.includes(section.title)) {
+                    setExpandedSections(prev => [...prev, section.title]);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (!isCurrent) {
+                    setExpandedSections(prev => 
+                      prev.filter(t => t !== section.title)
+                    );
+                  }
+                }}
                 className={`
-                  overflow-hidden transition-all duration-300
-                  ${isExpanded ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0"}
+                  w-full text-left px-4 py-3 rounded-lg font-bold text-sm
+                  transition-all duration-200 flex items-center justify-between
+                  ${isCurrent ? "text-primary" : "text-foreground hover:text-primary"}
                 `}
               >
-                <div className="space-y-1 pl-2">
-                  {section.items.map((item) => {
-                    const itemActive = isActiveItem(item.to);
-                    
+                <span className="uppercase tracking-wider">{section.title}</span>
+                {isExpanded && (
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* COLUNA DIREITA: Sub-itens */}
+        <div className="flex-1">
+          {menuSections.map((section) => {
+            const isExpanded = expandedSections.includes(section.title);
+            
+            if (!isExpanded) return null;
+
+            return (
+              <div 
+                key={section.title}
+                className="space-y-1 animate-fade-in"
+              >
+                {section.items.map((item) => {
+                  const itemActive = isActiveItem(item.to);
+                  
                   return (
                     <NavLink
                       key={item.to}
@@ -163,13 +179,12 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                       <span>{item.label}</span>
                     </NavLink>
                   );
-                  })}
-                </div>
+                })}
               </div>
-            </div>
-          );
-        })}
-      </>
+            );
+          })}
+        </div>
+      </div>
     );
   };
 
@@ -189,7 +204,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center justify-center h-20 border-b px-4">
             <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
           </div>
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav className="flex-1 px-4 py-6">
             <NavItems />
           </nav>
           <div className="p-4 border-t space-y-2">
@@ -229,7 +244,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               <div className="flex items-center justify-center h-20 border-b">
                 <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
               </div>
-              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+              <nav className="flex-1 px-4 py-6 overflow-y-auto">
                 <NavItems />
               </nav>
               <div className="p-4 border-t space-y-2">
