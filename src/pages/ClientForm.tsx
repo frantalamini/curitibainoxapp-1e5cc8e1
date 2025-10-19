@@ -97,11 +97,11 @@ const clientSchema = z.object({
   responsible_financial: z.object({
     name: z.string().trim().max(100, "Nome muito longo").default(""),
     phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
-  }).nullable().default(null),
+  }).default({ name: "", phone: "" }),
   responsible_technical: z.object({
     name: z.string().trim().max(100, "Nome muito longo").default(""),
     phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
-  }).nullable().default(null),
+  }).default({ name: "", phone: "" }),
 });
 
 const ClientForm = () => {
@@ -129,7 +129,14 @@ const ClientForm = () => {
     if (isEdit && clients) {
       const client = clients.find((c) => c.id === id);
       if (client) {
-        reset(client);
+        // Converter null para objeto vazio antes de fazer reset
+        const clientData = {
+          ...client,
+          responsible_financial: client.responsible_financial || { name: "", phone: "" },
+          responsible_technical: client.responsible_technical || { name: "", phone: "" },
+        };
+        reset(clientData);
+        
         if (client.cpf_cnpj) {
           const digits = client.cpf_cnpj.replace(/\D/g, "");
           if (digits.length === 11) {
