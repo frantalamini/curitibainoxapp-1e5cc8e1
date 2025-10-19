@@ -157,14 +157,19 @@ const ServiceCalls = () => {
               <TableBody>
                 {filteredCalls.map((call) => (
                   <TableRow key={call.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{call.clients?.full_name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {call.clients?.phone}
-                        </div>
-                      </div>
-                    </TableCell>
+              <TableCell>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono bg-primary/10 text-primary px-2 py-0.5 rounded">
+                      OS #{call.os_number}
+                    </span>
+                    <span className="font-medium">{call.clients?.full_name}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {call.clients?.phone}
+                  </div>
+                </div>
+              </TableCell>
                     <TableCell>{call.equipment_description}</TableCell>
                     <TableCell>
                       {call.service_types ? (

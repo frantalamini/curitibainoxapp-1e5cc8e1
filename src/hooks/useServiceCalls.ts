@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export interface ServiceCall {
   id: string;
+  os_number: number;
   client_id: string;
   equipment_description: string;
   problem_description?: string;

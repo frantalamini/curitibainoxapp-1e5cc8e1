@@ -204,6 +204,7 @@ export type Database = {
           id: string
           media_urls: string[] | null
           notes: string | null
+          os_number: number
           photos_after_urls: string[] | null
           photos_before_urls: string[] | null
           problem_description: string | null
@@ -238,6 +239,7 @@ export type Database = {
           id?: string
           media_urls?: string[] | null
           notes?: string | null
+          os_number?: number
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null
@@ -272,6 +274,7 @@ export type Database = {
           id?: string
           media_urls?: string[] | null
           notes?: string | null
+          os_number?: number
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null

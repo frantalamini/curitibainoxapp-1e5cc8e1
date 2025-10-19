@@ -68,7 +68,7 @@ const ServiceCallViewDialog = ({
     try {
       setIsGeneratingPDF(true);
       const pdf = await generateServiceCallReport(call);
-      pdf.save(`Relatorio-Chamado-${call.id.substring(0, 8)}.pdf`);
+      pdf.save(`Relatorio-OS-${call.os_number}.pdf`);
       
       // Upload para storage
       const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
@@ -95,7 +95,12 @@ const ServiceCallViewDialog = ({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl">Detalhes do Chamado</DialogTitle>
+            <DialogTitle className="text-2xl flex items-center gap-3">
+              <span className="text-lg font-mono bg-primary/10 text-primary px-3 py-1 rounded">
+                OS #{call.os_number}
+              </span>
+              <span>Detalhes do Chamado</span>
+            </DialogTitle>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"

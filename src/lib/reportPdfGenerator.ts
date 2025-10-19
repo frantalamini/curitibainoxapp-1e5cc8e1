@@ -132,7 +132,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   yPos += 8;
 
   pdf.setFontSize(11);
-  pdf.text(`OS #${call.id.substring(0, 8).toUpperCase()}`, pageWidth / 2, yPos, { align: "center" });
+  pdf.text(`OS #${call.os_number}`, pageWidth / 2, yPos, { align: "center" });
   yPos += 8;
 
   // Linha separadora dupla
