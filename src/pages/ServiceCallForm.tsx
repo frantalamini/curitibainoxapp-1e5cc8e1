@@ -219,8 +219,12 @@ const ServiceCallForm = () => {
         ...data,
         scheduled_date: format(selectedDate, "yyyy-MM-dd"),
         audio_url: audioUrl,
-        media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
+        media_urls: mediaUrls.length > 0 ? mediaUrls : null,
       };
+
+      console.log("📦 Dados que serão salvos:", formattedData);
+      console.log("🎵 Audio URL:", audioUrl);
+      console.log("📸 Media URLs:", mediaUrls);
 
       if (isEditMode && id) {
         updateServiceCall({ id, ...formattedData });
