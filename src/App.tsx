@@ -158,6 +158,14 @@ const App = () => (
             }
           />
           <Route
+            path="/service-calls/edit/:id"
+            element={
+              <ProtectedRoute>
+                <ServiceCallForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/service-types"
             element={
               <ProtectedRoute>
