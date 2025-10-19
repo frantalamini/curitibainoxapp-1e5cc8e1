@@ -32,7 +32,7 @@ import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { useChecklists } from "@/hooks/useChecklists";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { AudioTranscriber } from "@/components/AudioTranscriber";
+
 import { SignaturePad } from "@/components/SignaturePad";
 import { ChecklistSelector } from "@/components/ChecklistSelector";
 import { generateSignaturePDF } from "@/lib/signaturePdfGenerator";
@@ -60,8 +60,6 @@ const ServiceCallForm = () => {
   const [existingAudioUrl, setExistingAudioUrl] = useState<string | null>(null);
   const [existingMediaUrls, setExistingMediaUrls] = useState<string[]>([]);
   const [technicalDiagnosis, setTechnicalDiagnosis] = useState("");
-  const [technicalDiagnosisAudioFile, setTechnicalDiagnosisAudioFile] = useState<File | null>(null);
-  const [existingTechnicalDiagnosisAudioUrl, setExistingTechnicalDiagnosisAudioUrl] = useState<string | null>(null);
   const [photosBeforeFiles, setPhotosBeforeFiles] = useState<File[]>([]);
   const [videoBeforeFile, setVideoBeforeFile] = useState<File | null>(null);
   const [existingPhotosBeforeUrls, setExistingPhotosBeforeUrls] = useState<string[]>([]);
@@ -155,7 +153,6 @@ const ServiceCallForm = () => {
       setExistingAudioUrl(existingCall.audio_url || null);
       setExistingMediaUrls(existingCall.media_urls || []);
       setTechnicalDiagnosis(existingCall.technical_diagnosis || "");
-      setExistingTechnicalDiagnosisAudioUrl(existingCall.technical_diagnosis_audio_url || null);
       setExistingPhotosBeforeUrls(existingCall.photos_before_urls || []);
       setExistingVideoBeforeUrl(existingCall.video_before_url || null);
       setExistingPhotosAfterUrls(existingCall.photos_after_urls || []);
@@ -243,7 +240,6 @@ const ServiceCallForm = () => {
     try {
       let audioUrl: string | null = existingAudioUrl;
       let mediaUrls: string[] = [...existingMediaUrls];
-      let technicalDiagnosisAudioUrl: string | null = existingTechnicalDiagnosisAudioUrl;
       let photosBeforeUrls: string[] = [...existingPhotosBeforeUrls];
       let videoBeforeUrl: string | null = existingVideoBeforeUrl;
       let photosAfterUrls: string[] = [...existingPhotosAfterUrls];
@@ -282,19 +278,6 @@ const ServiceCallForm = () => {
         }
       }
 
-      if (technicalDiagnosisAudioFile) {
-        const audioPath = `technical-audio/${Date.now()}-${technicalDiagnosisAudioFile.name}`;
-        const { error } = await supabase.storage
-          .from('service-call-attachments')
-          .upload(audioPath, technicalDiagnosisAudioFile);
-
-        if (!error) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('service-call-attachments')
-            .getPublicUrl(audioPath);
-          technicalDiagnosisAudioUrl = publicUrl;
-        }
-      }
 
       if (photosBeforeFiles.length > 0) {
         for (const file of photosBeforeFiles) {
@@ -400,7 +383,6 @@ const ServiceCallForm = () => {
         audio_url: audioUrl,
         media_urls: mediaUrls.length > 0 ? mediaUrls : null,
         technical_diagnosis: technicalDiagnosis || null,
-        technical_diagnosis_audio_url: technicalDiagnosisAudioUrl,
         photos_before_urls: photosBeforeUrls.length > 0 ? photosBeforeUrls : null,
         video_before_url: videoBeforeUrl,
         photos_after_urls: photosAfterUrls.length > 0 ? photosAfterUrls : null,
@@ -795,15 +777,15 @@ const ServiceCallForm = () => {
                   <CardTitle>Informações Técnicas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Diagnóstico Técnico */}
+                  {/* Análises e Providências Realizadas */}
                   <div className="space-y-2">
-                    <Label>Diagnóstico Técnico</Label>
-                    <AudioTranscriber
-                      onTranscriptionComplete={(text, file) => {
-                        setTechnicalDiagnosis(text);
-                        setTechnicalDiagnosisAudioFile(file);
-                      }}
-                      initialText={technicalDiagnosis}
+                    <Label>Análises e Providências Realizadas</Label>
+                    <Textarea
+                      value={technicalDiagnosis}
+                      onChange={(e) => setTechnicalDiagnosis(e.target.value)}
+                      placeholder="Descreva as análises realizadas e as providências tomadas durante o atendimento..."
+                      rows={8}
+                      className="resize-none"
                     />
                   </div>
 
