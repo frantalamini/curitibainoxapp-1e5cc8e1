@@ -223,6 +223,7 @@ export type Database = {
           specialty_refrigeration: boolean | null
           technician_number: number | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           active?: boolean
@@ -235,6 +236,7 @@ export type Database = {
           specialty_refrigeration?: boolean | null
           technician_number?: number | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           active?: boolean
@@ -247,6 +249,7 @@ export type Database = {
           specialty_refrigeration?: boolean | null
           technician_number?: number | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
