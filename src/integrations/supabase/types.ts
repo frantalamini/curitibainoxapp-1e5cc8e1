@@ -351,6 +351,30 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          company_name: string | null
+          id: string
+          logo_url: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          id?: string
+          logo_url?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          id?: string
+          logo_url?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       technicians: {
         Row: {
           active: boolean

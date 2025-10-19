@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import {
   Home,
   Users,
@@ -24,15 +25,18 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import logo from "@/assets/logo.png";
+import defaultLogo from "@/assets/curitiba-logo.png";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const { isAdmin, loading: roleLoading } = useUserRole();
+  const { settings } = useSystemSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  
+  const logoUrl = settings?.logo_url || defaultLogo;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -206,7 +210,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       <aside className="hidden lg:flex lg:w-80 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-card">
         <div className="flex flex-col flex-1 overflow-y-auto">
           <div className="flex items-center justify-center h-20 border-b px-4">
-            <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
+            <img src={logoUrl} alt="Curitiba Inox" className="h-16 object-contain" />
           </div>
           <nav className="flex-1 px-4 py-6">
             <NavItems />
@@ -246,7 +250,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           <SheetContent side="left" className="w-80 p-0">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-center h-20 border-b">
-                <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
+                <img src={logoUrl} alt="Curitiba Inox" className="h-16 object-contain" />
               </div>
               <nav className="flex-1 px-4 py-6 overflow-y-auto">
                 <NavItems />
@@ -278,7 +282,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </SheetContent>
         </Sheet>
-        <img src={logo} alt="Curitiba Inox" className="h-10 object-contain" />
+        <img src={logoUrl} alt="Curitiba Inox" className="h-14 object-contain" />
       </header>
 
       {/* Main Content */}

@@ -23,6 +23,7 @@ import ServiceTypeForm from "./pages/ServiceTypeForm";
 import Schedule from "./pages/Schedule";
 import Checklists from "./pages/Checklists";
 import ChecklistForm from "./pages/ChecklistForm";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -229,6 +230,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ChecklistForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />
