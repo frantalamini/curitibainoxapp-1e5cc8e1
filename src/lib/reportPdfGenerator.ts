@@ -3,7 +3,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { supabase } from "@/integrations/supabase/client";
-import logoImage from "@/assets/logo.png";
 
 export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPDF> => {
   // Buscar dados do checklist se houver
@@ -39,101 +38,60 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   // Helper function to add section title
   const addSectionTitle = (title: string, y: number) => {
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.text(title, margin, y);
-    pdf.setFont("helvetica", "normal");
-    pdf.line(margin, y + 2, pageWidth - margin, y + 2);
-    return y + 8;
-  };
-
-  // Helper function para adicionar card com fundo
-  const addCard = (y: number, height: number, color: [number, number, number] = [249, 250, 251]) => {
-    pdf.setFillColor(...color);
-    pdf.roundedRect(margin - 5, y - 5, pageWidth - 2 * margin + 10, height, 3, 3, "F");
-    pdf.setDrawColor(226, 232, 240);
-    pdf.setLineWidth(0.5);
-    pdf.roundedRect(margin - 5, y - 5, pageWidth - 2 * margin + 10, height, 3, 3, "S");
-  };
-
-  // Helper function para seção com card
-  const addSectionTitleWithCard = (title: string, y: number, icon: string = "") => {
-    pdf.setFontSize(11);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(51, 65, 85);
-    pdf.text(`${icon} ${title}`, margin, y);
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(0, 0, 0);
+    // Linha separadora antes
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 5;
     
-    pdf.setDrawColor(59, 130, 246);
-    pdf.setLineWidth(2);
-    pdf.line(margin, y + 2, margin + 40, y + 2);
+    // Título em maiúsculas
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(title.toUpperCase(), margin, y);
     
-    return y + 8;
+    // Linha separadora depois
+    y += 2;
+    pdf.line(margin, y, pageWidth - margin, y);
+    pdf.setFont("helvetica", "normal");
+    
+    return y + 6;
   };
 
-  // HEADER MODERNO COM GRADIENTE
-  pdf.setFillColor(15, 23, 42);
-  pdf.rect(0, 0, pageWidth, 45, "F");
-
-  pdf.setFillColor(30, 41, 59);
-  pdf.rect(0, 35, pageWidth, 10, "F");
-
-  // LOGO (centralizada no topo)
-  try {
-    pdf.addImage(logoImage, "PNG", pageWidth / 2 - 25, 8, 50, 15);
-  } catch (error) {
-    console.error("Error loading logo:", error);
-  }
-
-  // TÍTULO ABAIXO DA LOGO
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(16);
+  // CABEÇALHO SIMPLES
+  pdf.setFontSize(14);
   pdf.setFont("helvetica", "bold");
-  pdf.text("RELATÓRIO DE CHAMADO TÉCNICO", pageWidth / 2, 30, { align: "center" });
+  pdf.text("RELATÓRIO DE CHAMADO TÉCNICO", pageWidth / 2, yPos, { align: "center" });
+  yPos += 8;
 
-  // OS Number em destaque
+  pdf.setFontSize(11);
+  pdf.text(`OS #${call.id.substring(0, 8).toUpperCase()}`, pageWidth / 2, yPos, { align: "center" });
+  yPos += 8;
+
+  // Linha separadora dupla
+  pdf.setLineWidth(0.5);
+  pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 1;
+  pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+
+  pdf.setFont("helvetica", "normal");
   pdf.setFontSize(10);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(`OS #${call.id.substring(0, 8).toUpperCase()}`, pageWidth / 2, 38, { align: "center" });
 
-  pdf.setTextColor(0, 0, 0);
-  pdf.setFont("helvetica", "normal");
-
-  yPos = 55;
-
-  // Status Badge Moderno
-  const statusMap: Record<string, { text: string; color: [number, number, number] }> = {
-    pending: { text: "Aguardando Início", color: [251, 191, 36] },
-    in_progress: { text: "Em Andamento", color: [59, 130, 246] },
-    on_hold: { text: "Com Pendências", color: [234, 179, 8] },
-    completed: { text: "Finalizado", color: [34, 197, 94] },
-    cancelled: { text: "Cancelado", color: [239, 68, 68] },
+  // Status e data
+  const statusMap: Record<string, string> = {
+    pending: "Aguardando Início",
+    in_progress: "Em Andamento",
+    on_hold: "Com Pendências",
+    completed: "Finalizado",
+    cancelled: "Cancelado",
   };
 
-  const status = statusMap[call.status] || { text: call.status, color: [148, 163, 184] };
-
-  pdf.setFillColor(...status.color);
-  pdf.roundedRect(margin - 2, yPos - 4, 60, 8, 2, 2, "F");
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(9);
-  pdf.text(status.text, margin + 2, yPos + 1);
-  pdf.setTextColor(0, 0, 0);
-  pdf.setFont("helvetica", "normal");
-  yPos += 10;
-
-  pdf.setFontSize(9);
-  pdf.setTextColor(100, 100, 100);
+  pdf.text(`Status: ${statusMap[call.status] || call.status}`, margin, yPos);
+  yPos += 6;
   pdf.text(`Data de Emissão: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}`, margin, yPos);
-  pdf.setTextColor(0, 0, 0);
   yPos += 10;
 
-  // CLIENT INFORMATION COM CARD
-  const clientCardStartY = yPos;
-  yPos = addSectionTitleWithCard("INFORMAÇÕES DO CLIENTE", yPos, "👤");
-
-  const clientDataStartY = yPos;
+  // CLIENT INFORMATION
+  yPos = addSectionTitle("INFORMAÇÕES DO CLIENTE", yPos);
   pdf.setFontSize(10);
   pdf.text(`Nome: ${call.clients?.full_name || "N/A"}`, margin, yPos);
   yPos += 6;
@@ -147,30 +105,18 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     yPos = addText(`Endereço: ${call.clients.address}`, margin, yPos, pageWidth - 2 * margin);
     yPos += 4;
   }
-
-  const clientCardHeight = yPos - clientDataStartY + 10;
-  addCard(clientDataStartY - 3, clientCardHeight, [239, 246, 255]);
-
   yPos += 5;
 
-  // TECHNICIAN INFORMATION COM CARD
-  yPos = addSectionTitleWithCard("TÉCNICO RESPONSÁVEL", yPos, "👨‍🔧");
-  
-  const techDataStartY = yPos;
+  // TECHNICIAN INFORMATION
+  yPos = addSectionTitle("TÉCNICO RESPONSÁVEL", yPos);
   pdf.text(`Nome: ${call.technicians?.full_name || "N/A"}`, margin, yPos);
   yPos += 6;
   pdf.text(`Telefone: ${call.technicians?.phone || "N/A"}`, margin, yPos);
   yPos += 6;
-
-  const techCardHeight = yPos - techDataStartY + 10;
-  addCard(techDataStartY - 3, techCardHeight, [254, 249, 195]);
-
   yPos += 5;
 
-  // SCHEDULING COM CARD
-  yPos = addSectionTitleWithCard("AGENDAMENTO", yPos, "📅");
-  
-  const schedDataStartY = yPos;
+  // SCHEDULING
+  yPos = addSectionTitle("AGENDAMENTO", yPos);
   pdf.text(
     `Data: ${format(new Date(call.scheduled_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
     margin,
@@ -191,10 +137,6 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     pdf.text(`Tipo de Serviço: ${call.service_types.name}`, margin, yPos);
     yPos += 6;
   }
-
-  const schedCardHeight = yPos - schedDataStartY + 10;
-  addCard(schedDataStartY - 3, schedCardHeight, [243, 244, 246]);
-
   yPos += 5;
 
   // EQUIPMENT
@@ -223,9 +165,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     
     if (call.technical_diagnosis_audio_url) {
       pdf.setFontSize(9);
-      pdf.setTextColor(59, 130, 246);
-      pdf.text("🔊 Áudio disponível (link no documento digital)", margin, yPos);
-      pdf.setTextColor(0, 0, 0);
+      pdf.text("* Áudio de diagnóstico disponível no sistema", margin, yPos);
       yPos += 6;
     }
     yPos += 5;
@@ -243,7 +183,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     yPos += 6;
     
     if (call.video_before_url) {
-      pdf.text("📹 Vídeo disponível (link no documento digital)", margin, yPos);
+      pdf.text("* Vídeo disponível no sistema", margin, yPos);
       yPos += 6;
     }
     yPos += 5;
@@ -261,22 +201,21 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     yPos += 6;
     
     if (call.video_after_url) {
-      pdf.text("📹 Vídeo disponível (link no documento digital)", margin, yPos);
+      pdf.text("* Vídeo disponível no sistema", margin, yPos);
       yPos += 6;
     }
     yPos += 5;
   }
 
-  // CHECKLIST COM VISUAL MODERNO
+  // CHECKLIST
   if (call.checklist_responses && checklistItems.length > 0) {
     if (yPos > 220) {
       pdf.addPage();
       yPos = 20;
     }
     
-    yPos = addSectionTitleWithCard("CHECKLIST DE VERIFICAÇÃO", yPos, "✓");
+    yPos = addSectionTitle("CHECKLIST DE VERIFICAÇÃO", yPos);
     
-    const checklistDataStartY = yPos;
     pdf.setFontSize(9);
     
     const responses = call.checklist_responses as Record<string, boolean>;
@@ -288,23 +227,17 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
       // Buscar texto da pergunta usando o ID
       const questionText = itemTextMap.get(itemId) || itemId;
       
-      // Símbolo visual
-      if (checked) {
-        pdf.setTextColor(34, 197, 94);
-        pdf.text("✓", margin + 2, yPos);
-      } else {
-        pdf.setTextColor(148, 163, 184);
-        pdf.text("○", margin + 2, yPos);
-      }
-      
-      pdf.setTextColor(0, 0, 0);
+      // Símbolo ASCII simples
+      const symbol = checked ? "[X]" : "[ ]";
       
       // Texto da pergunta com word wrap
-      const maxWidth = pageWidth - 2 * margin - 10;
+      const maxWidth = pageWidth - 2 * margin - 15;
       const lines = pdf.splitTextToSize(questionText, maxWidth);
-      pdf.text(lines, margin + 8, yPos);
       
-      yPos += lines.length * 5;
+      pdf.text(symbol, margin, yPos);
+      pdf.text(lines, margin + 10, yPos);
+      
+      yPos += lines.length * 5 + 2;
       
       // Verificar se precisa de nova página
       if (yPos > 270) {
@@ -313,16 +246,33 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
       }
     });
     
-    // Card de fundo
-    const checklistCardHeight = yPos - checklistDataStartY + 5;
-    addCard(checklistDataStartY - 3, checklistCardHeight, [240, 253, 244]);
-    
     yPos += 5;
   }
 
   // SIGNATURES - New page
   pdf.addPage();
   yPos = 20;
+
+  // Cabeçalho de assinaturas
+  pdf.setLineWidth(0.5);
+  pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 1;
+  pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+
+  pdf.setFontSize(12);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("ASSINATURAS", pageWidth / 2, yPos, { align: "center" });
+  yPos += 8;
+
+  pdf.setLineWidth(0.5);
+  pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 1;
+  pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
 
   // Technician Signature
   if (call.technician_signature_url || call.technician_signature_data) {
