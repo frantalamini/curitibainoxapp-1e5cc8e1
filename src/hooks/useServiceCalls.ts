@@ -19,6 +19,22 @@ export interface ServiceCall {
   updated_at: string;
   started_at?: string;
   service_type_id?: string;
+  technical_diagnosis?: string;
+  technical_diagnosis_audio_url?: string;
+  photos_before_urls?: string[];
+  video_before_url?: string;
+  photos_after_urls?: string[];
+  video_after_url?: string;
+  checklist_id?: string;
+  checklist_responses?: Record<string, boolean>;
+  customer_name?: string;
+  customer_position?: string;
+  technician_signature_url?: string;
+  technician_signature_data?: string;
+  customer_signature_url?: string;
+  customer_signature_data?: string;
+  technician_signature_date?: string;
+  customer_signature_date?: string;
   clients?: {
     full_name: string;
     phone: string;
