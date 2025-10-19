@@ -274,12 +274,11 @@ const Dashboard = () => {
           <div className="text-center py-8">Carregando dados...</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div ref={statusChartRef}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Chamados por Status</CardTitle>
-                </CardHeader>
-              <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>Chamados por Status</CardTitle>
+              </CardHeader>
+              <CardContent ref={statusChartRef}>
                 {statusData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
@@ -318,14 +317,12 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
-            </div>
 
-            <div ref={technicianChartRef}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Chamados por Técnico</CardTitle>
-                </CardHeader>
-              <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>Chamados por Técnico</CardTitle>
+              </CardHeader>
+              <CardContent ref={technicianChartRef}>
                 {technicianData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
@@ -364,14 +361,12 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
-            </div>
 
-            <div ref={serviceTypeChartRef}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Chamados por Tipo de Serviço</CardTitle>
+            <Card>
+              <CardHeader>
+                <CardTitle>Chamados por Tipo de Serviço</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent ref={serviceTypeChartRef}>
                 {serviceTypeData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
@@ -410,14 +405,12 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
-            </div>
 
-            <div ref={equipmentChartRef}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top 5 Equipamentos</CardTitle>
-                </CardHeader>
-              <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>Top 5 Equipamentos</CardTitle>
+              </CardHeader>
+              <CardContent ref={equipmentChartRef}>
                 {equipmentData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
@@ -456,7 +449,6 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
-            </div>
           </div>
         )}
       </div>

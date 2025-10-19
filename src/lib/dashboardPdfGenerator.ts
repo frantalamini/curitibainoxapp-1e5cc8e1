@@ -79,7 +79,7 @@ export const generateDashboardReport = async (
   }
 
   pdf.text(filterText, pageWidth / 2, yPos, { align: "center" });
-  yPos += 10;
+  yPos += 8;
 
   // ========== MÉTRICAS EM LINHA ==========
   const metricWidth = (pageWidth - 2 * margin - 9) / 4;
@@ -107,12 +107,12 @@ export const generateDashboardReport = async (
   });
 
   pdf.setTextColor(0, 0, 0);
-  yPos += metricHeight + 8;
+  yPos += metricHeight + 6;
 
   // ========== GRÁFICOS EM GRID 2x2 ==========
-  const chartWidth = (pageWidth - 2 * margin - 5) / 2;
-  const chartHeight = 55;
-  const chartSpacing = 5;
+  const chartWidth = (pageWidth - 2 * margin - 8) / 2;
+  const chartHeight = 70;
+  const chartSpacing = 8;
 
   const charts = [
     { element: chartElements.statusChart, title: "Status", x: 0, y: 0 },
@@ -127,7 +127,7 @@ export const generateDashboardReport = async (
       charts.map(async (chart) => {
         const canvas = await html2canvas(chart.element, {
           backgroundColor: "#ffffff",
-          scale: 1.5,
+          scale: 2.5,
           logging: false,
         });
         return {
@@ -141,7 +141,7 @@ export const generateDashboardReport = async (
     // Renderizar gráficos no grid
     chartImages.forEach((chart) => {
       const xPos = margin + chart.x * (chartWidth + chartSpacing);
-      const yPosChart = yPos + chart.y * (chartHeight + 8);
+      const yPosChart = yPos + chart.y * (chartHeight + 12);
 
       // Título do gráfico
       pdf.setFontSize(8);
@@ -152,6 +152,11 @@ export const generateDashboardReport = async (
       const imgWidth = chartWidth;
       const imgHeight = (chart.canvas.height * imgWidth) / chart.canvas.width;
       const finalHeight = Math.min(imgHeight, chartHeight - 5);
+
+      // Borda sutil ao redor do gráfico
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.3);
+      pdf.rect(xPos - 1, yPosChart + 2, imgWidth + 2, finalHeight + 2);
 
       pdf.addImage(
         chart.imgData,
