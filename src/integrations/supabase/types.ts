@@ -161,6 +161,7 @@ export type Database = {
           notes: string | null
           scheduled_date: string
           scheduled_time: string
+          service_type_id: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["service_status"]
           technician_id: string
@@ -176,6 +177,7 @@ export type Database = {
           notes?: string | null
           scheduled_date: string
           scheduled_time: string
+          service_type_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           technician_id: string
@@ -191,6 +193,7 @@ export type Database = {
           notes?: string | null
           scheduled_date?: string
           scheduled_time?: string
+          service_type_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           technician_id?: string
@@ -206,6 +209,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "service_calls_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "service_calls_technician_id_fkey"
             columns: ["technician_id"]
             isOneToOne: false
@@ -213,6 +223,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_types: {
+        Row: {
+          active: boolean
+          color: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       technicians: {
         Row: {

@@ -17,6 +17,8 @@ import Technicians from "./pages/Technicians";
 import TechnicianForm from "./pages/TechnicianForm";
 import ServiceCalls from "./pages/ServiceCalls";
 import ServiceCallForm from "./pages/ServiceCallForm";
+import ServiceTypes from "./pages/ServiceTypes";
+import ServiceTypeForm from "./pages/ServiceTypeForm";
 import Schedule from "./pages/Schedule";
 
 const queryClient = new QueryClient();
@@ -152,6 +154,30 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ServiceCallForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/service-types"
+            element={
+              <ProtectedRoute>
+                <ServiceTypes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/service-types/new"
+            element={
+              <ProtectedRoute>
+                <ServiceTypeForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/service-types/:id/edit"
+            element={
+              <ProtectedRoute>
+                <ServiceTypeForm />
               </ProtectedRoute>
             }
           />

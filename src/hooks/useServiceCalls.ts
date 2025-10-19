@@ -16,6 +16,7 @@ export interface ServiceCall {
   created_at: string;
   updated_at: string;
   started_at?: string;
+  service_type_id?: string;
   clients?: {
     full_name: string;
     phone: string;
@@ -24,6 +25,10 @@ export interface ServiceCall {
   technicians?: {
     full_name: string;
     phone: string;
+  };
+  service_types?: {
+    name: string;
+    color: string;
   };
 }
 
@@ -35,6 +40,7 @@ export interface ServiceCallInsert {
   scheduled_date: string;
   scheduled_time: string;
   notes?: string;
+  service_type_id?: string;
 }
 
 export const useServiceCalls = () => {
@@ -56,6 +62,10 @@ export const useServiceCalls = () => {
           technicians (
             full_name,
             phone
+          ),
+          service_types (
+            name,
+            color
           )
         `)
         .order("scheduled_date", { ascending: false });
