@@ -20,6 +20,7 @@ import {
   ChevronDown,
   Tags,
   ClipboardList,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -58,6 +59,12 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
 
   const menuSections = [
+    {
+      title: "ANÁLISES",
+      items: [
+        { to: "/dashboard", icon: BarChart3, label: "Dashboard" },
+      ]
+    },
     {
       title: "CADASTRO",
       items: [
