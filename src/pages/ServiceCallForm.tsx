@@ -29,6 +29,7 @@ import { useTechnicians } from "@/hooks/useTechnicians";
 import { useServiceCalls, ServiceCallInsert } from "@/hooks/useServiceCalls";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ServiceCallForm = () => {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ const ServiceCallForm = () => {
   
   // Estado para previews de mídia
   const [mediaPreviews, setMediaPreviews] = useState<{file: File, url: string, type: 'image' | 'video'}[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const {
     register,
@@ -119,16 +121,101 @@ const ServiceCallForm = () => {
 
   const onSubmit = async (data: ServiceCallInsert) => {
     if (!selectedDate) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma data para o chamado",
+        variant: "destructive"
+      });
       return;
     }
 
-    const formattedData = {
-      ...data,
-      scheduled_date: format(selectedDate, "yyyy-MM-dd"),
-    };
+    setIsUploading(true);
 
-    createServiceCall(formattedData);
-    navigate("/service-calls");
+    try {
+      let audioUrl: string | undefined;
+      let mediaUrls: string[] = [];
+
+      // 1. Upload do áudio (se houver)
+      if (audioFile) {
+        const audioPath = `audio/${Date.now()}-${audioFile.name}`;
+        const { data: audioData, error: audioError } = await supabase.storage
+          .from('service-call-attachments')
+          .upload(audioPath, audioFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (audioError) {
+          console.error('Erro ao enviar áudio:', audioError);
+          toast({
+            title: "Erro",
+            description: "Erro ao enviar o áudio. Tente novamente.",
+            variant: "destructive"
+          });
+          setIsUploading(false);
+          return;
+        }
+
+        // Obter URL pública do áudio
+        const { data: { publicUrl } } = supabase.storage
+          .from('service-call-attachments')
+          .getPublicUrl(audioPath);
+        
+        audioUrl = publicUrl;
+      }
+
+      // 2. Upload das fotos/vídeos (se houver)
+      if (mediaFiles.length > 0) {
+        for (const file of mediaFiles) {
+          const fileExt = file.name.split('.').pop();
+          const filePath = `media/${Date.now()}-${Math.random()}.${fileExt}`;
+          
+          const { data: mediaData, error: mediaError } = await supabase.storage
+            .from('service-call-attachments')
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (mediaError) {
+            console.error('Erro ao enviar mídia:', mediaError);
+            toast({
+              title: "Aviso",
+              description: `Erro ao enviar ${file.name}. Continuando...`,
+              variant: "destructive"
+            });
+            continue;
+          }
+
+          // Obter URL pública da mídia
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-call-attachments')
+            .getPublicUrl(filePath);
+          
+          mediaUrls.push(publicUrl);
+        }
+      }
+
+      // 3. Criar o chamado com as URLs dos arquivos
+      const formattedData: ServiceCallInsert = {
+        ...data,
+        scheduled_date: format(selectedDate, "yyyy-MM-dd"),
+        audio_url: audioUrl,
+        media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
+      };
+
+      createServiceCall(formattedData);
+      navigate("/service-calls");
+    } catch (error) {
+      console.error('Erro ao criar chamado:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao criar o chamado. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -556,8 +643,10 @@ const ServiceCallForm = () => {
           </Card>
 
           <div className="flex gap-4 mt-6">
-            <Button type="submit">Criar Chamado</Button>
-            <Button type="button" variant="outline" onClick={() => navigate("/service-calls")}>
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? "Enviando arquivos..." : "Criar Chamado"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate("/service-calls")} disabled={isUploading}>
               Cancelar
             </Button>
           </div>
