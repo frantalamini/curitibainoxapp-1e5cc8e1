@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -28,8 +28,13 @@ import { useClients } from "@/hooks/useClients";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { useServiceCalls, useServiceCall, ServiceCallInsert } from "@/hooks/useServiceCalls";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
+import { useChecklists, ChecklistItem } from "@/hooks/useChecklists";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { AudioTranscriber } from "@/components/AudioTranscriber";
+import { SignaturePad } from "@/components/SignaturePad";
+import { ChecklistSelector } from "@/components/ChecklistSelector";
+import { generateSignaturePDF } from "@/lib/signaturePdfGenerator";
 
 const ServiceCallForm = () => {
   const { id } = useParams();
@@ -38,9 +43,12 @@ const ServiceCallForm = () => {
   const { clients, isLoading: clientsLoading } = useClients();
   const { technicians, isLoading: techniciansLoading } = useTechnicians();
   const { serviceTypes, isLoading: serviceTypesLoading } = useServiceTypes();
+  const { checklists, isLoading: checklistsLoading } = useChecklists();
   const { data: existingCall, isLoading: isLoadingCall } = useServiceCall(id);
   const isEditMode = !!id;
   const { createServiceCall, updateServiceCall } = useServiceCalls();
+  
+  // Estados básicos
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("");
@@ -52,6 +60,31 @@ const ServiceCallForm = () => {
   // Estados para arquivos existentes
   const [existingAudioUrl, setExistingAudioUrl] = useState<string | null>(null);
   const [existingMediaUrls, setExistingMediaUrls] = useState<string[]>([]);
+  
+  // Estados para Informações Técnicas
+  const [technicalDiagnosis, setTechnicalDiagnosis] = useState("");
+  const [technicalDiagnosisAudioFile, setTechnicalDiagnosisAudioFile] = useState<File | null>(null);
+  const [existingTechnicalDiagnosisAudioUrl, setExistingTechnicalDiagnosisAudioUrl] = useState<string | null>(null);
+  
+  const [photosBeforeFiles, setPhotosBeforeFiles] = useState<File[]>([]);
+  const [videoBeforeFile, setVideoBeforeFile] = useState<File | null>(null);
+  const [existingPhotosBeforeUrls, setExistingPhotosBeforeUrls] = useState<string[]>([]);
+  const [existingVideoBeforeUrl, setExistingVideoBeforeUrl] = useState<string | null>(null);
+  
+  const [photosAfterFiles, setPhotosAfterFiles] = useState<File[]>([]);
+  const [videoAfterFile, setVideoAfterFile] = useState<File | null>(null);
+  const [existingPhotosAfterUrls, setExistingPhotosAfterUrls] = useState<string[]>([]);
+  const [existingVideoAfterUrl, setExistingVideoAfterUrl] = useState<string | null>(null);
+  
+  const [selectedChecklistId, setSelectedChecklistId] = useState<string>("");
+  const [checklistResponses, setChecklistResponses] = useState<Record<string, boolean>>({});
+  
+  const [technicianSignatureData, setTechnicianSignatureData] = useState<string | null>(null);
+  const [customerSignatureData, setCustomerSignatureData] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPosition, setCustomerPosition] = useState("");
+  const [existingTechnicianSignatureUrl, setExistingTechnicianSignatureUrl] = useState<string | null>(null);
+  const [existingCustomerSignatureUrl, setExistingCustomerSignatureUrl] = useState<string | null>(null);
   
   // Estados para gravação de áudio
   const [isRecording, setIsRecording] = useState(false);
@@ -86,6 +119,7 @@ const ServiceCallForm = () => {
   // Preencher formulário quando estiver editando
   useEffect(() => {
     if (existingCall && isEditMode) {
+      // Campos básicos
       setValue("client_id", existingCall.client_id);
       setValue("equipment_description", existingCall.equipment_description);
       setValue("problem_description", existingCall.problem_description || "");
@@ -100,9 +134,23 @@ const ServiceCallForm = () => {
       setSelectedTime(existingCall.scheduled_time);
       setSelectedDate(new Date(existingCall.scheduled_date));
       
-      // Carregar arquivos existentes
+      // Arquivos existentes - aba geral
       setExistingAudioUrl(existingCall.audio_url || null);
       setExistingMediaUrls(existingCall.media_urls || []);
+      
+      // Informações técnicas existentes
+      setTechnicalDiagnosis(existingCall.technical_diagnosis || "");
+      setExistingTechnicalDiagnosisAudioUrl(existingCall.technical_diagnosis_audio_url || null);
+      setExistingPhotosBeforeUrls(existingCall.photos_before_urls || []);
+      setExistingVideoBeforeUrl(existingCall.video_before_url || null);
+      setExistingPhotosAfterUrls(existingCall.photos_after_urls || []);
+      setExistingVideoAfterUrl(existingCall.video_after_url || null);
+      setSelectedChecklistId(existingCall.checklist_id || "");
+      setChecklistResponses(existingCall.checklist_responses || {});
+      setCustomerName(existingCall.customer_name || "");
+      setCustomerPosition(existingCall.customer_position || "");
+      setExistingTechnicianSignatureUrl(existingCall.technician_signature_url || null);
+      setExistingCustomerSignatureUrl(existingCall.customer_signature_url || null);
     }
   }, [existingCall, isEditMode, setValue]);
 
@@ -172,11 +220,18 @@ const ServiceCallForm = () => {
     try {
       let audioUrl: string | null = existingAudioUrl;
       let mediaUrls: string[] = [...existingMediaUrls];
+      let technicalDiagnosisAudioUrl: string | null = existingTechnicalDiagnosisAudioUrl;
+      let photosBeforeUrls: string[] = [...existingPhotosBeforeUrls];
+      let videoBeforeUrl: string | null = existingVideoBeforeUrl;
+      let photosAfterUrls: string[] = [...existingPhotosAfterUrls];
+      let videoAfterUrl: string | null = existingVideoAfterUrl;
+      let technicianSignatureUrl: string | null = existingTechnicianSignatureUrl;
+      let customerSignatureUrl: string | null = existingCustomerSignatureUrl;
 
-      // Upload de novo áudio (se houver)
+      // Upload de novo áudio geral (se houver)
       if (audioFile) {
         const audioPath = `audio/${Date.now()}-${audioFile.name}`;
-        const { data: audioData, error: audioError } = await supabase.storage
+        const { error: audioError } = await supabase.storage
           .from('service-call-attachments')
           .upload(audioPath, audioFile, {
             cacheControl: '3600',
@@ -201,13 +256,13 @@ const ServiceCallForm = () => {
         audioUrl = publicUrl;
       }
 
-      // Upload de novas mídias (se houver)
+      // Upload de novas mídias gerais (se houver)
       if (mediaFiles.length > 0) {
         for (const file of mediaFiles) {
           const fileExt = file.name.split('.').pop();
           const filePath = `media/${Date.now()}-${Math.random()}.${fileExt}`;
           
-          const { data: mediaData, error: mediaError } = await supabase.storage
+          const { error: mediaError } = await supabase.storage
             .from('service-call-attachments')
             .upload(filePath, file, {
               cacheControl: '3600',
@@ -216,11 +271,6 @@ const ServiceCallForm = () => {
 
           if (mediaError) {
             console.error('Erro ao enviar mídia:', mediaError);
-            toast({
-              title: "Aviso",
-              description: `Erro ao enviar ${file.name}. Continuando...`,
-              variant: "destructive"
-            });
             continue;
           }
 
@@ -232,16 +282,147 @@ const ServiceCallForm = () => {
         }
       }
 
+      // Upload de áudio do diagnóstico técnico
+      if (technicalDiagnosisAudioFile) {
+        const audioPath = `technical-audio/${Date.now()}-${technicalDiagnosisAudioFile.name}`;
+        const { error: audioError } = await supabase.storage
+          .from('service-call-attachments')
+          .upload(audioPath, technicalDiagnosisAudioFile);
+
+        if (!audioError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-call-attachments')
+            .getPublicUrl(audioPath);
+          technicalDiagnosisAudioUrl = publicUrl;
+        }
+      }
+
+      // Upload de fotos "antes"
+      if (photosBeforeFiles.length > 0) {
+        for (const file of photosBeforeFiles) {
+          const fileExt = file.name.split('.').pop();
+          const filePath = `photos-before/${Date.now()}-${Math.random()}.${fileExt}`;
+          const { error } = await supabase.storage
+            .from('service-call-attachments')
+            .upload(filePath, file);
+
+          if (!error) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('service-call-attachments')
+              .getPublicUrl(filePath);
+            photosBeforeUrls.push(publicUrl);
+          }
+        }
+      }
+
+      // Upload de vídeo "antes"
+      if (videoBeforeFile) {
+        const fileExt = videoBeforeFile.name.split('.').pop();
+        const filePath = `video-before/${Date.now()}.${fileExt}`;
+        const { error } = await supabase.storage
+          .from('service-call-attachments')
+          .upload(filePath, videoBeforeFile);
+
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-call-attachments')
+            .getPublicUrl(filePath);
+          videoBeforeUrl = publicUrl;
+        }
+      }
+
+      // Upload de fotos "depois"
+      if (photosAfterFiles.length > 0) {
+        for (const file of photosAfterFiles) {
+          const fileExt = file.name.split('.').pop();
+          const filePath = `photos-after/${Date.now()}-${Math.random()}.${fileExt}`;
+          const { error } = await supabase.storage
+            .from('service-call-attachments')
+            .upload(filePath, file);
+
+          if (!error) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('service-call-attachments')
+              .getPublicUrl(filePath);
+            photosAfterUrls.push(publicUrl);
+          }
+        }
+      }
+
+      // Upload de vídeo "depois"
+      if (videoAfterFile) {
+        const fileExt = videoAfterFile.name.split('.').pop();
+        const filePath = `video-after/${Date.now()}.${fileExt}`;
+        const { error } = await supabase.storage
+          .from('service-call-attachments')
+          .upload(filePath, videoAfterFile);
+
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-call-attachments')
+            .getPublicUrl(filePath);
+          videoAfterUrl = publicUrl;
+        }
+      }
+
+      // Gerar e fazer upload da assinatura do técnico
+      if (technicianSignatureData) {
+        const pdfBlob = await generateSignaturePDF(technicianSignatureData, 'technician');
+        const pdfPath = `signatures/tech-${Date.now()}.pdf`;
+        const { error } = await supabase.storage
+          .from('service-call-attachments')
+          .upload(pdfPath, pdfBlob, { contentType: 'application/pdf' });
+
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-call-attachments')
+            .getPublicUrl(pdfPath);
+          technicianSignatureUrl = publicUrl;
+        }
+      }
+
+      // Gerar e fazer upload da assinatura do cliente
+      if (customerSignatureData) {
+        const pdfBlob = await generateSignaturePDF(
+          customerSignatureData, 
+          'customer',
+          { name: customerName, position: customerPosition }
+        );
+        const pdfPath = `signatures/customer-${Date.now()}.pdf`;
+        const { error } = await supabase.storage
+          .from('service-call-attachments')
+          .upload(pdfPath, pdfBlob, { contentType: 'application/pdf' });
+
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-call-attachments')
+            .getPublicUrl(pdfPath);
+          customerSignatureUrl = publicUrl;
+        }
+      }
+
       const formattedData: any = {
         ...data,
         scheduled_date: format(selectedDate, "yyyy-MM-dd"),
         audio_url: audioUrl,
         media_urls: mediaUrls.length > 0 ? mediaUrls : null,
+        technical_diagnosis: technicalDiagnosis || null,
+        technical_diagnosis_audio_url: technicalDiagnosisAudioUrl,
+        photos_before_urls: photosBeforeUrls.length > 0 ? photosBeforeUrls : null,
+        video_before_url: videoBeforeUrl,
+        photos_after_urls: photosAfterUrls.length > 0 ? photosAfterUrls : null,
+        video_after_url: videoAfterUrl,
+        checklist_id: selectedChecklistId || null,
+        checklist_responses: Object.keys(checklistResponses).length > 0 ? checklistResponses : null,
+        technician_signature_data: technicianSignatureData,
+        technician_signature_url: technicianSignatureUrl,
+        customer_signature_data: customerSignatureData,
+        customer_signature_url: customerSignatureUrl,
+        customer_name: customerName || null,
+        customer_position: customerPosition || null,
+        technician_signature_date: technicianSignatureData ? new Date().toISOString() : null,
+        customer_signature_date: customerSignatureData ? new Date().toISOString() : null,
       };
-
-      console.log("📦 Dados que serão salvos:", formattedData);
-      console.log("🎵 Audio URL:", audioUrl);
-      console.log("📸 Media URLs:", mediaUrls);
 
       if (isEditMode && id) {
         updateServiceCall({ id, ...formattedData });
@@ -285,11 +466,18 @@ const ServiceCallForm = () => {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações do Chamado</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <Tabs defaultValue="geral" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="geral">Geral</TabsTrigger>
+              <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="geral">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informações Gerais do Chamado</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
               {/* Cliente */}
               <div className="space-y-2">
                 <Label htmlFor="client">Cliente *</Label>
@@ -487,6 +675,30 @@ const ServiceCallForm = () => {
                     <p className="text-sm text-destructive">Horário é obrigatório</p>
                   )}
                 </div>
+              </div>
+
+              {/* Checklist */}
+              <div className="space-y-2">
+                <Label htmlFor="checklist">Checklist Aplicável</Label>
+                <Select
+                  disabled={checklistsLoading}
+                  value={selectedChecklistId}
+                  onValueChange={setSelectedChecklistId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um checklist (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {checklists?.map((checklist) => (
+                      <SelectItem key={checklist.id} value={checklist.id}>
+                        {checklist.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  O checklist será preenchido na aba "Informações Técnicas"
+                </p>
               </div>
 
               {/* Observações */}
