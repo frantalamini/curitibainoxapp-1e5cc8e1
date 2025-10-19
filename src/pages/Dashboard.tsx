@@ -220,15 +220,15 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 {statusData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
                       <Pie
                         data={statusData}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -236,8 +236,20 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend />
+                      <Tooltip 
+                        formatter={(value: number) => [`${value} chamados`, '']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #ccc',
+                          borderRadius: '4px',
+                          padding: '8px'
+                        }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '20px' }}
+                        layout="horizontal"
+                        align="center"
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -252,15 +264,15 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 {technicianData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
                       <Pie
                         data={technicianData}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -268,8 +280,20 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend />
+                      <Tooltip 
+                        formatter={(value: number) => [`${value} chamados`, '']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #ccc',
+                          borderRadius: '4px',
+                          padding: '8px'
+                        }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '20px' }}
+                        layout="horizontal"
+                        align="center"
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -284,15 +308,15 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 {serviceTypeData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
                       <Pie
                         data={serviceTypeData}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -300,8 +324,20 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend />
+                      <Tooltip 
+                        formatter={(value: number) => [`${value} chamados`, '']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #ccc',
+                          borderRadius: '4px',
+                          padding: '8px'
+                        }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '20px' }}
+                        layout="horizontal"
+                        align="center"
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -316,15 +352,15 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 {equipmentData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
                       <Pie
                         data={equipmentData}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -332,8 +368,20 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend />
+                      <Tooltip 
+                        formatter={(value: number) => [`${value} chamados`, '']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #ccc',
+                          borderRadius: '4px',
+                          padding: '8px'
+                        }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '20px' }}
+                        layout="horizontal"
+                        align="center"
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
