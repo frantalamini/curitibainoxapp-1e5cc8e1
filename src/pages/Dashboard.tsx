@@ -15,6 +15,16 @@ import { cn } from "@/lib/utils";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#A4DE6C", "#D0ED57"];
 
+const TECHNICIAN_COLORS: Record<string, string> = {
+  "José": "#15803d",      // Verde escuro (melhor contraste)
+  "Anderson": "#fbbf24",  // Amarelo (parametrizado)
+  "Matheus": "#3b82f6",   // Azul
+};
+
+const getTechnicianColor = (name: string, fallbackIndex: number): string => {
+  return TECHNICIAN_COLORS[name] || COLORS[fallbackIndex % COLORS.length];
+};
+
 const Dashboard = () => {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -42,7 +52,11 @@ const Dashboard = () => {
       acc[techName] = (acc[techName] || 0) + 1;
       return acc;
     }, {} as Record<string, number>) || {}
-  ).map(([name, value], index) => ({ name, value: value as number, color: COLORS[index % COLORS.length] }));
+  ).map(([name, value], index) => ({ 
+    name, 
+    value: value as number, 
+    color: getTechnicianColor(name, index)
+  }));
 
   const serviceTypeData = Object.entries(
     data?.calls.reduce((acc: any, call: any) => {

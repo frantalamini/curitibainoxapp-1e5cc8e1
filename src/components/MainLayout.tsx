@@ -60,12 +60,6 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
   const menuSections = [
     {
-      title: "ANÁLISES",
-      items: [
-        { to: "/dashboard", icon: BarChart3, label: "Dashboard" },
-      ]
-    },
-    {
       title: "CADASTRO",
       items: [
         ...(isAdmin ? [{ to: "/technicians", icon: Wrench, label: "Técnicos" }] : []),
@@ -88,6 +82,12 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       title: "AGENDA",
       items: [
         { to: "/schedule", icon: Calendar, label: "Calendário" },
+      ]
+    },
+    {
+      title: "RELATÓRIOS",
+      items: [
+        { to: "/dashboard", icon: BarChart3, label: "Dashboard" },
       ]
     }
   ];
