@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { supabase } from "@/integrations/supabase/client";
+import { loadSystemLogoForPdf, addLogoToPdf } from "./pdfLogoHelper";
 
 // Helper function to load images as Base64
 const loadImageAsBase64 = async (url: string): Promise<string | null> => {
@@ -74,6 +75,8 @@ const loadImageAsBase64 = async (url: string): Promise<string | null> => {
 };
 
 export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPDF> => {
+  const logoBase64 = await loadSystemLogoForPdf();
+  
   // Buscar dados do checklist se houver
   let checklistItems: Array<{ id: string; text: string }> = [];
   if (call.checklist_id && call.checklist_responses) {
@@ -96,6 +99,16 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   const pageWidth = pdf.internal.pageSize.getWidth();
   const margin = 20;
   let yPos = 20;
+
+  // Adicionar logo centralizada
+  addLogoToPdf(pdf, logoBase64, {
+    y: 8,
+    width: 40,
+    height: 20,
+    align: 'center',
+  });
+
+  yPos = 32;
 
   // Helper function to add text with word wrap
   const addText = (text: string, x: number, y: number, maxWidth: number, fontSize = 10) => {

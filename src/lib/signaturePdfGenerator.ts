@@ -1,18 +1,30 @@
 import jsPDF from 'jspdf';
+import { loadSystemLogoForPdf, addLogoToPdf } from "./pdfLogoHelper";
 
 export const generateSignaturePDF = async (
   signatureData: string,
   type: 'technician' | 'customer',
   extraData?: { name?: string; position?: string }
 ): Promise<Blob> => {
+  const logoBase64 = await loadSystemLogoForPdf();
+  
   const pdf = new jsPDF();
+  
+  // Adicionar logo pequena no canto superior direito
+  addLogoToPdf(pdf, logoBase64, {
+    x: 20,
+    y: 8,
+    width: 25,
+    height: 12,
+    align: 'right',
+  });
   
   // Título
   pdf.setFontSize(16);
   pdf.text(
     type === 'technician' ? 'Assinatura do Técnico' : 'Assinatura do Cliente',
     105,
-    20,
+    25,
     { align: 'center' }
   );
   

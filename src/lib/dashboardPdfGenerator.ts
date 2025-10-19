@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { loadSystemLogoForPdf, addLogoToPdf } from "./pdfLogoHelper";
 
 interface DashboardData {
   totalClients: number;
@@ -22,50 +23,42 @@ export const generateDashboardReport = async (
     equipmentChart: HTMLElement;
   }
 ): Promise<jsPDF> => {
+  const logoBase64 = await loadSystemLogoForPdf();
+  
   const pdf = new jsPDF();
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 20;
-  let yPos = 20;
+  const margin = 15;
+  let yPos = 15;
 
-  // Helper para adicionar rodapé
-  const addFooter = (pageNum: number) => {
-    pdf.setFontSize(8);
-    pdf.setTextColor(150, 150, 150);
-    pdf.text(
-      `Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-      margin,
-      pageHeight - 10
-    );
-    pdf.text(`Página ${pageNum}`, pageWidth - margin - 20, pageHeight - 10);
-  };
+  // Logo no canto superior esquerdo
+  addLogoToPdf(pdf, logoBase64, {
+    x: margin,
+    y: 10,
+    width: 35,
+    height: 18,
+  });
 
-  // ========== PÁGINA 1: CABEÇALHO + MÉTRICAS ==========
-  
-  // Cabeçalho
-  pdf.setFontSize(16);
+  // ========== CABEÇALHO COMPACTO ==========
+  yPos = 32;
+  pdf.setFontSize(14);
   pdf.setFont("helvetica", "bold");
   pdf.text("RELATÓRIO ANALÍTICO - DASHBOARD", pageWidth / 2, yPos, { align: "center" });
-  yPos += 10;
+  yPos += 7;
 
-  pdf.setFontSize(10);
+  pdf.setFontSize(9);
   pdf.setFont("helvetica", "normal");
   pdf.text("Curitiba Inox", pageWidth / 2, yPos, { align: "center" });
-  yPos += 15;
-
-  // Linha separadora
-  pdf.setLineWidth(0.5);
-  pdf.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 10;
-
-  // Filtros Aplicados
-  pdf.setFontSize(11);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("FILTROS APLICADOS:", margin, yPos);
   yPos += 8;
 
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "normal");
+  // Linha separadora
+  pdf.setLineWidth(0.3);
+  pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 6;
+
+  // Filtros em linha única
+  pdf.setFontSize(8);
+  let filterText = "Filtros: ";
   
   if (data.startDate || data.endDate) {
     const startText = data.startDate 
@@ -74,127 +67,115 @@ export const generateDashboardReport = async (
     const endText = data.endDate 
       ? format(data.endDate, "dd/MM/yyyy", { locale: ptBR }) 
       : "Sem fim";
-    pdf.text(`Período: ${startText} até ${endText}`, margin + 5, yPos);
-    yPos += 6;
+    filterText += `${startText} até ${endText}`;
   } else {
-    pdf.text("Período: Todos os registros", margin + 5, yPos);
-    yPos += 6;
+    filterText += "Todos os registros";
   }
 
   if (data.technicianName) {
-    pdf.text(`Técnico: ${data.technicianName}`, margin + 5, yPos);
-    yPos += 6;
+    filterText += ` | Técnico: ${data.technicianName}`;
   } else {
-    pdf.text("Técnico: Todos", margin + 5, yPos);
-    yPos += 6;
+    filterText += " | Técnico: Todos";
   }
-  
+
+  pdf.text(filterText, pageWidth / 2, yPos, { align: "center" });
   yPos += 10;
 
-  // Seção de Métricas
-  pdf.setFontSize(11);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("INDICADORES PRINCIPAIS:", margin, yPos);
-  yPos += 10;
-
-  // Layout em 2 colunas para as métricas
-  const colWidth = (pageWidth - 3 * margin) / 2;
-  
-  // Coluna 1
-  let col1Y = yPos;
-  pdf.setFillColor(59, 130, 246); // Azul
-  pdf.roundedRect(margin, col1Y, colWidth, 20, 3, 3, 'F');
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(10);
-  pdf.text("Clientes Atendidos", margin + 5, col1Y + 7);
-  pdf.setFontSize(16);
-  pdf.setFont("helvetica", "bold");
-  pdf.text(String(data.totalClients), margin + 5, col1Y + 16);
-  pdf.setFont("helvetica", "normal");
-
-  col1Y += 25;
-  pdf.setFillColor(249, 115, 22); // Laranja
-  pdf.roundedRect(margin, col1Y, colWidth, 20, 3, 3, 'F');
-  pdf.setFontSize(10);
-  pdf.text("Equipamentos", margin + 5, col1Y + 7);
-  pdf.setFontSize(16);
-  pdf.setFont("helvetica", "bold");
-  pdf.text(String(data.totalEquipment), margin + 5, col1Y + 16);
-  pdf.setFont("helvetica", "normal");
-
-  // Coluna 2
-  let col2Y = yPos;
-  const col2X = margin + colWidth + margin;
-  
-  pdf.setFillColor(34, 197, 94); // Verde
-  pdf.roundedRect(col2X, col2Y, colWidth, 20, 3, 3, 'F');
-  pdf.setFontSize(10);
-  pdf.text("Total de Chamados", col2X + 5, col2Y + 7);
-  pdf.setFontSize(16);
-  pdf.setFont("helvetica", "bold");
-  pdf.text(String(data.totalCalls), col2X + 5, col2Y + 16);
-  pdf.setFont("helvetica", "normal");
-
-  col2Y += 25;
-  pdf.setFillColor(168, 85, 247); // Roxo
-  pdf.roundedRect(col2X, col2Y, colWidth, 20, 3, 3, 'F');
-  pdf.setFontSize(10);
-  pdf.text("Taxa de Conclusão", col2X + 5, col2Y + 7);
-  pdf.setFontSize(16);
-  pdf.setFont("helvetica", "bold");
-  pdf.text(`${data.completionRate.toFixed(1)}%`, col2X + 5, col2Y + 16);
-  
-  // Reset cores
-  pdf.setTextColor(0, 0, 0);
-  pdf.setFont("helvetica", "normal");
-
-  addFooter(1);
-
-  // ========== PÁGINAS 2-5: GRÁFICOS ==========
-  
-  const charts = [
-    { element: chartElements.statusChart, title: "CHAMADOS POR STATUS" },
-    { element: chartElements.technicianChart, title: "CHAMADOS POR TÉCNICO" },
-    { element: chartElements.serviceTypeChart, title: "CHAMADOS POR TIPO DE SERVIÇO" },
-    { element: chartElements.equipmentChart, title: "TOP 5 EQUIPAMENTOS" },
+  // ========== MÉTRICAS EM LINHA ==========
+  const metricWidth = (pageWidth - 2 * margin - 9) / 4;
+  const metricHeight = 15;
+  const metrics = [
+    { label: "Clientes", value: String(data.totalClients), color: [59, 130, 246] },
+    { label: "Chamados", value: String(data.totalCalls), color: [34, 197, 94] },
+    { label: "Equipamentos", value: String(data.totalEquipment), color: [249, 115, 22] },
+    { label: "Conclusão", value: `${data.completionRate.toFixed(0)}%`, color: [168, 85, 247] },
   ];
 
-  for (let i = 0; i < charts.length; i++) {
-    pdf.addPage();
-    yPos = 20;
-
-    // Título do gráfico
-    pdf.setFontSize(14);
+  metrics.forEach((metric, index) => {
+    const xPos = margin + index * (metricWidth + 3);
+    pdf.setFillColor(metric.color[0], metric.color[1], metric.color[2]);
+    pdf.roundedRect(xPos, yPos, metricWidth, metricHeight, 2, 2, 'F');
+    
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(7);
+    pdf.text(metric.label, xPos + metricWidth / 2, yPos + 5, { align: "center" });
+    
+    pdf.setFontSize(12);
     pdf.setFont("helvetica", "bold");
-    pdf.text(charts[i].title, pageWidth / 2, yPos, { align: "center" });
-    yPos += 15;
+    pdf.text(metric.value, xPos + metricWidth / 2, yPos + 12, { align: "center" });
+    pdf.setFont("helvetica", "normal");
+  });
 
-    // Capturar gráfico como imagem
-    try {
-      const canvas = await html2canvas(charts[i].element, {
-        backgroundColor: "#ffffff",
-        scale: 2, // Melhor qualidade
-        logging: false,
-      });
+  pdf.setTextColor(0, 0, 0);
+  yPos += metricHeight + 8;
 
-      const imgData = canvas.toDataURL("image/png");
-      
-      // Calcular dimensões mantendo proporção
-      const imgWidth = pageWidth - 2 * margin;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      // Centralizar verticalmente
-      const yOffset = (pageHeight - imgHeight - yPos - 20) / 2;
-      
-      pdf.addImage(imgData, "PNG", margin, yPos + yOffset, imgWidth, imgHeight);
-    } catch (error) {
-      console.error(`Erro ao capturar gráfico ${i + 1}:`, error);
-      pdf.setFontSize(10);
-      pdf.text("Erro ao gerar gráfico", pageWidth / 2, pageHeight / 2, { align: "center" });
-    }
+  // ========== GRÁFICOS EM GRID 2x2 ==========
+  const chartWidth = (pageWidth - 2 * margin - 5) / 2;
+  const chartHeight = 55;
+  const chartSpacing = 5;
 
-    addFooter(i + 2);
+  const charts = [
+    { element: chartElements.statusChart, title: "Status", x: 0, y: 0 },
+    { element: chartElements.technicianChart, title: "Técnicos", x: 1, y: 0 },
+    { element: chartElements.serviceTypeChart, title: "Tipos de Serviço", x: 0, y: 1 },
+    { element: chartElements.equipmentChart, title: "Top 5 Equipamentos", x: 1, y: 1 },
+  ];
+
+  // Capturar todos os gráficos em paralelo
+  try {
+    const chartImages = await Promise.all(
+      charts.map(async (chart) => {
+        const canvas = await html2canvas(chart.element, {
+          backgroundColor: "#ffffff",
+          scale: 1.5,
+          logging: false,
+        });
+        return {
+          ...chart,
+          imgData: canvas.toDataURL("image/png"),
+          canvas,
+        };
+      })
+    );
+
+    // Renderizar gráficos no grid
+    chartImages.forEach((chart) => {
+      const xPos = margin + chart.x * (chartWidth + chartSpacing);
+      const yPosChart = yPos + chart.y * (chartHeight + 8);
+
+      // Título do gráfico
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(chart.title, xPos + chartWidth / 2, yPosChart, { align: "center" });
+
+      // Imagem do gráfico
+      const imgWidth = chartWidth;
+      const imgHeight = (chart.canvas.height * imgWidth) / chart.canvas.width;
+      const finalHeight = Math.min(imgHeight, chartHeight - 5);
+
+      pdf.addImage(
+        chart.imgData,
+        "PNG",
+        xPos,
+        yPosChart + 3,
+        imgWidth,
+        finalHeight
+      );
+    });
+  } catch (error) {
+    console.error("Erro ao capturar gráficos:", error);
+    pdf.setFontSize(10);
+    pdf.text("Erro ao gerar gráficos", pageWidth / 2, yPos + 30, { align: "center" });
   }
+
+  // ========== RODAPÉ ==========
+  pdf.setFontSize(7);
+  pdf.setTextColor(150, 150, 150);
+  pdf.text(
+    `Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+    margin,
+    pageHeight - 8
+  );
 
   return pdf;
 };
