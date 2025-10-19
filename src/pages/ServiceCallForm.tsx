@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,9 +28,11 @@ import { useClients } from "@/hooks/useClients";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { useServiceCalls, ServiceCallInsert } from "@/hooks/useServiceCalls";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
+import { useToast } from "@/hooks/use-toast";
 
 const ServiceCallForm = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { clients, isLoading: clientsLoading } = useClients();
   const { technicians, isLoading: techniciansLoading } = useTechnicians();
   const { serviceTypes, isLoading: serviceTypesLoading } = useServiceTypes();
@@ -42,6 +44,15 @@ const ServiceCallForm = () => {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  
+  // Estados para gravação de áudio
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioURL, setAudioURL] = useState<string>("");
+  
+  // Estado para previews de mídia
+  const [mediaPreviews, setMediaPreviews] = useState<{file: File, url: string, type: 'image' | 'video'}[]>([]);
 
   const {
     register,
@@ -54,6 +65,57 @@ const ServiceCallForm = () => {
   const selectedClient = clients?.find((c) => c.id === selectedClientId);
   const activeTechnicians = technicians?.filter((t) => t.active);
   const activeServiceTypes = serviceTypes?.filter((st) => st.active);
+
+  // Cleanup de URLs ao desmontar
+  useEffect(() => {
+    return () => {
+      if (audioURL) URL.revokeObjectURL(audioURL);
+      mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
+    };
+  }, []);
+
+  // Funções de gravação de áudio
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        setAudioURL(URL.createObjectURL(blob));
+        setAudioFile(new File([blob], 'gravacao.webm', { type: 'audio/webm' }));
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Erro ao acessar microfone:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível acessar o microfone",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+    }
+  };
+
+  const removeAudio = () => {
+    setAudioFile(null);
+    setAudioBlob(null);
+    if (audioURL) URL.revokeObjectURL(audioURL);
+    setAudioURL("");
+  };
 
   const onSubmit = async (data: ServiceCallInsert) => {
     if (!selectedDate) {
@@ -291,15 +353,84 @@ const ServiceCallForm = () => {
                   {...register("notes")}
                   rows={4}
                 />
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById('audio-upload')?.click()}
-                  >
-                    {audioFile ? "Áudio anexado ✓" : "Anexar Áudio"}
-                  </Button>
+                
+                {/* Seção de Áudio */}
+                <div className="space-y-3 pt-2">
+                  <Label>Áudio</Label>
+                  
+                  {/* Botões de ação */}
+                  <div className="flex gap-2">
+                    {!audioFile && !isRecording && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={startRecording}
+                        >
+                          <Mic className="w-4 h-4 mr-2" />
+                          Gravar Áudio
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById('audio-upload')?.click()}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Anexar Áudio
+                        </Button>
+                      </>
+                    )}
+                    
+                    {isRecording && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={stopRecording}
+                      >
+                        <Square className="w-4 h-4 mr-2" />
+                        Parar Gravação
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {/* Preview do áudio anexado */}
+                  {audioFile && (
+                    <Card className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1">
+                          <Volume2 className="w-5 h-5 text-primary" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">Áudio anexado ✓</p>
+                            <p className="text-xs text-muted-foreground">{audioFile.name}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={removeAudio}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Player de áudio */}
+                      {(audioURL || audioFile) && (
+                        <audio 
+                          controls 
+                          className="w-full mt-3"
+                          src={audioURL || URL.createObjectURL(audioFile)}
+                        />
+                      )}
+                    </Card>
+                  )}
+                  
+                  {/* Input hidden para upload */}
                   <input
                     id="audio-upload"
                     type="file"
@@ -307,7 +438,10 @@ const ServiceCallForm = () => {
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) setAudioFile(file);
+                      if (file) {
+                        setAudioFile(file);
+                        setAudioURL(URL.createObjectURL(file));
+                      }
                     }}
                   />
                 </div>
@@ -316,27 +450,107 @@ const ServiceCallForm = () => {
               {/* Fotos e Vídeos */}
               <div className="space-y-2">
                 <Label htmlFor="media">Fotos e Vídeos</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById('media-upload')?.click()}
-                  >
-                    {mediaFiles.length > 0 ? `${mediaFiles.length} arquivo(s) anexado(s)` : "Anexar Fotos/Vídeos"}
-                  </Button>
-                  <input
-                    id="media-upload"
-                    type="file"
-                    accept="image/*,video/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setMediaFiles(files);
-                    }}
-                  />
-                </div>
+                
+                {/* Botão de upload */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('media-upload')?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {mediaFiles.length > 0 ? "Adicionar mais arquivos" : "Anexar Fotos/Vídeos"}
+                </Button>
+                
+                {/* Input hidden */}
+                <input
+                  id="media-upload"
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setMediaFiles(prev => [...prev, ...files]);
+                    
+                    // Criar previews
+                    const newPreviews = files.map(file => ({
+                      file,
+                      url: URL.createObjectURL(file),
+                      type: file.type.startsWith('image/') ? 'image' as const : 'video' as const
+                    }));
+                    setMediaPreviews(prev => [...prev, ...newPreviews]);
+                  }}
+                />
+                
+                {/* Preview dos arquivos anexados */}
+                {mediaPreviews.length > 0 && (
+                  <Card className="p-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-medium">
+                        {mediaPreviews.length} arquivo(s) anexado(s)
+                      </p>
+                    </div>
+                    
+                    {/* Grid de previews */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {mediaPreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          {preview.type === 'image' ? (
+                            // Preview de imagem
+                            <div className="relative aspect-square rounded-lg overflow-hidden border bg-muted">
+                              <img
+                                src={preview.url}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  // Remover arquivo
+                                  URL.revokeObjectURL(preview.url);
+                                  setMediaPreviews(prev => prev.filter((_, i) => i !== index));
+                                  setMediaFiles(prev => prev.filter((_, i) => i !== index));
+                                }}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            // Preview de vídeo
+                            <div className="relative aspect-square rounded-lg overflow-hidden border bg-muted">
+                              <video
+                                src={preview.url}
+                                controls
+                                className="w-full h-full object-cover"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  // Remover arquivo
+                                  URL.revokeObjectURL(preview.url);
+                                  setMediaPreviews(prev => prev.filter((_, i) => i !== index));
+                                  setMediaFiles(prev => prev.filter((_, i) => i !== index));
+                                }}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {preview.file.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
               </div>
             </CardContent>
           </Card>
