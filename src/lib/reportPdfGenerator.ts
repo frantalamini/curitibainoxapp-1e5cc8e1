@@ -4,11 +4,12 @@ import { ptBR } from "date-fns/locale";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { supabase } from "@/integrations/supabase/client";
 import { loadSystemLogoForPdf, addLogoToPdf } from "./pdfLogoHelper";
+import { logger } from "./logger";
 
 // Helper function to load images as Base64
 const loadImageAsBase64 = async (url: string): Promise<string | null> => {
   try {
-    console.log("🔄 Tentando carregar imagem:", url);
+    logger.log("🔄 Tentando carregar imagem:", url);
     
     // Extrair o caminho do arquivo da URL completa
     // URL formato: https://[project].supabase.co/storage/v1/object/public/[bucket]/[path]
@@ -19,7 +20,7 @@ const loadImageAsBase64 = async (url: string): Promise<string | null> => {
       const bucketName = pathParts[1]; // "public" ou nome do bucket
       const filePath = pathParts.slice(2).join('/'); // caminho do arquivo
       
-      console.log("📦 Bucket:", bucketName, "| Arquivo:", filePath);
+      logger.log("📦 Bucket:", bucketName, "| Arquivo:", filePath);
       
       // Baixar usando Supabase SDK (com autenticação automática)
       const { data, error } = await supabase.storage
@@ -27,11 +28,11 @@ const loadImageAsBase64 = async (url: string): Promise<string | null> => {
         .download(filePath);
       
       if (!error && data) {
-        console.log("✅ Imagem baixada via Supabase, tamanho:", data.size, "bytes");
+        logger.log("✅ Imagem baixada via Supabase, tamanho:", data.size, "bytes");
         return new Promise((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => {
-            console.log("✅ Conversão Base64 concluída");
+            logger.log("✅ Conversão Base64 concluída");
             resolve(reader.result as string);
           };
           reader.onerror = (err) => {
@@ -41,12 +42,12 @@ const loadImageAsBase64 = async (url: string): Promise<string | null> => {
           reader.readAsDataURL(data);
         });
       } else if (error) {
-        console.warn("⚠️ Erro ao baixar via Supabase:", error);
+        logger.warn("⚠️ Erro ao baixar via Supabase:", error);
       }
     }
     
     // Fallback: tentar fetch direto
-    console.log("🔄 Tentando fetch direto...");
+    logger.log("🔄 Tentando fetch direto...");
     const response = await fetch(url);
     if (!response.ok) {
       console.error("❌ Fetch falhou:", response.status, response.statusText);
@@ -54,12 +55,12 @@ const loadImageAsBase64 = async (url: string): Promise<string | null> => {
     }
     
     const blob = await response.blob();
-    console.log("✅ Imagem baixada via fetch, tamanho:", blob.size, "bytes");
+    logger.log("✅ Imagem baixada via fetch, tamanho:", blob.size, "bytes");
     
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        console.log("✅ Conversão Base64 concluída");
+        logger.log("✅ Conversão Base64 concluída");
         resolve(reader.result as string);
       };
       reader.onerror = (err) => {
@@ -255,12 +256,12 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   // PHOTOS BEFORE
   if (call.photos_before_urls && call.photos_before_urls.length > 0) {
-    console.log("📸 Processando fotos ANTES:", call.photos_before_urls);
+    logger.log("📸 Processando fotos ANTES:", call.photos_before_urls);
     
     // Validar URLs
     const validUrls = call.photos_before_urls.filter(url => {
       const isValid = url && (url.startsWith('http://') || url.startsWith('https://'));
-      if (!isValid) console.warn("⚠️ URL inválida detectada:", url);
+      if (!isValid) logger.warn("⚠️ URL inválida detectada:", url);
       return isValid;
     });
     
@@ -285,7 +286,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
       let photosInRow = 0;
       
       for (const photoUrl of validUrls) {
-        console.log("🔄 Processando foto:", photoUrl);
+        logger.log("🔄 Processando foto:", photoUrl);
         
         // Verificar se precisa de nova página
         if (yPos + photoHeight > 270) {
@@ -298,7 +299,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
         // Carregar e adicionar imagem
         const imageData = await loadImageAsBase64(photoUrl);
         if (imageData) {
-          console.log("✅ ImageData obtido, tamanho:", imageData.length, "caracteres");
+          logger.log("✅ ImageData obtido, tamanho:", imageData.length, "caracteres");
           try {
             // Detectar formato da imagem
             let format = 'JPEG';
@@ -310,7 +311,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
               format = 'GIF';
             }
             
-            console.log("🖼️ Formato detectado:", format);
+            logger.log("🖼️ Formato detectado:", format);
             
             pdf.addImage(imageData, format, xPos, yPos, photoWidth, photoHeight);
             
@@ -319,7 +320,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
             pdf.setDrawColor(200, 200, 200);
             pdf.rect(xPos, yPos, photoWidth, photoHeight);
             
-            console.log("✅ Imagem adicionada ao PDF com sucesso");
+            logger.log("✅ Imagem adicionada ao PDF com sucesso");
           } catch (error) {
             console.error("❌ Erro ao adicionar imagem ao PDF:", error);
             // Desenhar placeholder se falhar
@@ -380,12 +381,12 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   // PHOTOS AFTER
   if (call.photos_after_urls && call.photos_after_urls.length > 0) {
-    console.log("📸 Processando fotos DEPOIS:", call.photos_after_urls);
+    logger.log("📸 Processando fotos DEPOIS:", call.photos_after_urls);
     
     // Validar URLs
     const validUrls = call.photos_after_urls.filter(url => {
       const isValid = url && (url.startsWith('http://') || url.startsWith('https://'));
-      if (!isValid) console.warn("⚠️ URL inválida detectada:", url);
+      if (!isValid) logger.warn("⚠️ URL inválida detectada:", url);
       return isValid;
     });
     
@@ -410,7 +411,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
       let photosInRow = 0;
       
       for (const photoUrl of validUrls) {
-        console.log("🔄 Processando foto:", photoUrl);
+        logger.log("🔄 Processando foto:", photoUrl);
         
         // Verificar se precisa de nova página
         if (yPos + photoHeight > 270) {
@@ -423,7 +424,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
         // Carregar e adicionar imagem
         const imageData = await loadImageAsBase64(photoUrl);
         if (imageData) {
-          console.log("✅ ImageData obtido, tamanho:", imageData.length, "caracteres");
+          logger.log("✅ ImageData obtido, tamanho:", imageData.length, "caracteres");
           try {
             // Detectar formato da imagem
             let format = 'JPEG';
@@ -435,7 +436,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
               format = 'GIF';
             }
             
-            console.log("🖼️ Formato detectado:", format);
+            logger.log("🖼️ Formato detectado:", format);
             
             pdf.addImage(imageData, format, xPos, yPos, photoWidth, photoHeight);
             
@@ -444,7 +445,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
             pdf.setDrawColor(200, 200, 200);
             pdf.rect(xPos, yPos, photoWidth, photoHeight);
             
-            console.log("✅ Imagem adicionada ao PDF com sucesso");
+            logger.log("✅ Imagem adicionada ao PDF com sucesso");
           } catch (error) {
             console.error("❌ Erro ao adicionar imagem ao PDF:", error);
             // Desenhar placeholder se falhar
@@ -579,12 +580,12 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     // ESTRATÉGIA 1: Tentar URL primeiro (mais confiável)
     if (call.technician_signature_url) {
       try {
-        console.log("🔄 Carregando assinatura do técnico via URL...");
+        logger.log("🔄 Carregando assinatura do técnico via URL...");
         const base64Image = await loadImageAsBase64(call.technician_signature_url);
         
         if (base64Image) {
           pdf.addImage(base64Image, "PNG", margin, yPos, 80, 30);
-          console.log("✅ Assinatura do técnico adicionada via URL");
+          logger.log("✅ Assinatura do técnico adicionada via URL");
           signatureAdded = true;
           yPos += 35;
         }
@@ -596,16 +597,16 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     // ESTRATÉGIA 2: Se URL falhou, tentar Base64 direto
     if (!signatureAdded && call.technician_signature_data) {
       try {
-        console.log("🔄 Tentando assinatura do técnico via Base64 direto...");
+        logger.log("🔄 Tentando assinatura do técnico via Base64 direto...");
         
         // Validar formato Base64
         if (call.technician_signature_data.startsWith('data:image/')) {
           pdf.addImage(call.technician_signature_data, "PNG", margin, yPos, 80, 30);
-          console.log("✅ Assinatura do técnico adicionada via Base64");
+          logger.log("✅ Assinatura do técnico adicionada via Base64");
           signatureAdded = true;
           yPos += 35;
         } else {
-          console.warn("⚠️ Base64 em formato inválido");
+          logger.warn("⚠️ Base64 em formato inválido");
         }
       } catch (error) {
         console.error("❌ Erro ao adicionar via Base64:", error);
@@ -655,12 +656,12 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     // ESTRATÉGIA 1: Tentar URL primeiro (mais confiável)
     if (call.customer_signature_url) {
       try {
-        console.log("🔄 Carregando assinatura do cliente via URL...");
+        logger.log("🔄 Carregando assinatura do cliente via URL...");
         const base64Image = await loadImageAsBase64(call.customer_signature_url);
         
         if (base64Image) {
           pdf.addImage(base64Image, "PNG", margin, yPos, 80, 30);
-          console.log("✅ Assinatura do cliente adicionada via URL");
+          logger.log("✅ Assinatura do cliente adicionada via URL");
           signatureAdded = true;
           yPos += 35;
         }
@@ -672,16 +673,16 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     // ESTRATÉGIA 2: Se URL falhou, tentar Base64 direto
     if (!signatureAdded && call.customer_signature_data) {
       try {
-        console.log("🔄 Tentando assinatura do cliente via Base64 direto...");
+        logger.log("🔄 Tentando assinatura do cliente via Base64 direto...");
         
         // Validar formato Base64
         if (call.customer_signature_data.startsWith('data:image/')) {
           pdf.addImage(call.customer_signature_data, "PNG", margin, yPos, 80, 30);
-          console.log("✅ Assinatura do cliente adicionada via Base64");
+          logger.log("✅ Assinatura do cliente adicionada via Base64");
           signatureAdded = true;
           yPos += 35;
         } else {
-          console.warn("⚠️ Base64 em formato inválido");
+          logger.warn("⚠️ Base64 em formato inválido");
         }
       } catch (error) {
         console.error("❌ Erro ao adicionar via Base64:", error);

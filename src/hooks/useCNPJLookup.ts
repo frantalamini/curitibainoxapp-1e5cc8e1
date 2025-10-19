@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
 export interface CNPJData {
   company_name: string;
@@ -34,7 +35,7 @@ export const useCNPJLookup = () => {
     setError(null);
 
     try {
-      console.log("Buscando dados do CNPJ:", cnpj);
+      logger.log("Buscando dados do CNPJ:", cnpj);
 
       const { data, error: functionError } = await supabase.functions.invoke(
         "fetch-cnpj-data",
@@ -68,7 +69,7 @@ export const useCNPJLookup = () => {
         return null;
       }
 
-      console.log("Dados do CNPJ encontrados:", response.data);
+      logger.log("Dados do CNPJ encontrados:", response.data);
 
       // Mostrar aviso se Sintegra não estava disponível
       if (!response.sintegra_available && response.data.state === "PR") {
@@ -105,7 +106,7 @@ export const useCNPJLookup = () => {
     setError(null);
 
     try {
-      console.log("Buscando endereço pelo CEP:", cep);
+      logger.log("Buscando endereço pelo CEP:", cep);
 
       const cleanCEP = cep.replace(/\D/g, "");
 

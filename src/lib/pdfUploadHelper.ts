@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
+import { logger } from "./logger";
 
 /**
  * Faz upload do PDF para o Supabase Storage e retorna a URL pública
@@ -24,7 +25,7 @@ export const uploadPdfToStorage = async (
     });
   
   if (error) {
-    console.error("Erro ao fazer upload do PDF:", error);
+    logger.error("Erro ao fazer upload do PDF:", error);
     throw new Error("Não foi possível fazer upload do PDF");
   }
   
