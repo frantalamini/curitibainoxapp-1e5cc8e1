@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -223,6 +224,15 @@ const ServiceCallForm = () => {
       toast({
         title: "Erro",
         description: "Selecione uma data para o chamado",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedTime) {
+      toast({
+        title: "Erro",
+        description: "Selecione um horário para o chamado",
         variant: "destructive"
       });
       return;
@@ -568,6 +578,34 @@ const ServiceCallForm = () => {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="checklist_id">Checklist Aplicável</Label>
+                    <Select 
+                      value={selectedChecklistId} 
+                      onValueChange={setSelectedChecklistId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione um checklist (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Nenhum</SelectItem>
+                        {checklists?.map((checklist) => (
+                          <SelectItem key={checklist.id} value={checklist.id}>
+                            {checklist.name}
+                            {checklist.description && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                - {checklist.description}
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      O checklist selecionado estará disponível na aba "Informações Técnicas"
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label>Data e Hora Agendada</Label>
                     <div className="flex gap-2">
                       <Popover>
@@ -579,11 +617,11 @@ const ServiceCallForm = () => {
                               !selectedDate && "text-muted-foreground"
                             )}
                           >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
+                          <CalendarIcon className="mr-2 h-4 w-4" />
                             {selectedDate ? (
-                              format(selectedDate, "PPP")
+                              format(selectedDate, "PPP", { locale: ptBR })
                             ) : (
-                              <span>Pick a date</span>
+                              <span>Selecione uma data</span>
                             )}
                           </Button>
                         </PopoverTrigger>
@@ -600,20 +638,13 @@ const ServiceCallForm = () => {
                         </PopoverContent>
                       </Popover>
 
-                      <Select onValueChange={setSelectedTime}>
-                        <SelectTrigger className="w-[150px]">
-                          <SelectValue placeholder="Selecionar hora" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
-                            <SelectItem key={hour} value={`${hour
-                              .toString()
-                              .padStart(2, "0")}:00`}>
-                              {`${hour.toString().padStart(2, "0")}:00`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        type="time"
+                        value={selectedTime}
+                        onChange={(e) => setSelectedTime(e.target.value)}
+                        className="w-[150px]"
+                        placeholder="Selecionar hora"
+                      />
                     </div>
                     {errors.scheduled_date && (
                       <p className="text-sm text-red-500">
