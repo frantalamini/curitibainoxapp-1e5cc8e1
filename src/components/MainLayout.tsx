@@ -104,20 +104,23 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     }, [location.pathname, expandedSection]);
 
     return (
-      <div className="flex gap-4">
-        {/* COLUNA ESQUERDA: Títulos principais */}
-        <div className="w-48 space-y-2">
-          {menuSections.map((section) => {
-            const isExpanded = expandedSection === section.title;
-            const isCurrent = getActiveSection() === section.title;
+      <div className="space-y-2">
+        {menuSections.map((section) => {
+          const isExpanded = expandedSection === section.title;
+          const isCurrent = getActiveSection() === section.title;
 
-            return (
+          return (
+            <div
+              key={section.title}
+              className={`
+                rounded-lg transition-all duration-200
+                ${isExpanded ? 'bg-white shadow-sm' : ''}
+              `}
+            >
+              {/* TÍTULO PRINCIPAL */}
               <button
-                key={section.title}
                 onClick={() => toggleSection(section.title)}
-                onMouseEnter={() => {
-                  setExpandedSection(section.title);
-                }}
+                onMouseEnter={() => setExpandedSection(section.title)}
                 onMouseLeave={() => {
                   if (!isCurrent) {
                     setExpandedSection(null);
@@ -134,48 +137,37 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                   <div className="w-2 h-2 rounded-full bg-primary" />
                 )}
               </button>
-            );
-          })}
-        </div>
 
-        {/* COLUNA DIREITA: Sub-itens */}
-        <div className="flex-1">
-          {menuSections.map((section) => {
-            const isExpanded = expandedSection === section.title;
-            
-            if (!isExpanded) return null;
-
-            return (
-              <div 
-                key={section.title}
-                className="space-y-1 animate-fade-in"
-              >
-                {section.items.map((item) => {
-                  const itemActive = isActiveItem(item.to);
-                  
-                  return (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      onClick={() => setOpen(false)}
-                      className={`
-                        flex items-center gap-3 px-4 py-2.5 rounded-lg 
-                        transition-all text-sm
-                        ${itemActive
-                          ? "text-primary font-bold"
-                          : "text-foreground hover:text-primary"
-                        }
-                      `}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
+              {/* SUB-ITENS */}
+              {isExpanded && (
+                <div className="px-4 pb-3 space-y-1 animate-fade-in">
+                  {section.items.map((item) => {
+                    const itemActive = isActiveItem(item.to);
+                    
+                    return (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setOpen(false)}
+                        className={`
+                          flex items-center gap-3 px-4 py-2.5 rounded-lg 
+                          transition-all text-sm
+                          ${itemActive
+                            ? "text-primary font-bold bg-primary/5"
+                            : "text-foreground hover:text-primary hover:bg-primary/5"
+                          }
+                        `}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -191,10 +183,10 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex w-full bg-background">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:w-80 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-card">
+      <aside className="hidden lg:flex lg:w-80 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-primary/10">
         <div className="flex flex-col flex-1 overflow-y-auto">
-          <div className="flex items-center justify-center h-20 border-b px-4">
-            <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
+          <div className="flex items-center justify-center h-24 border-b px-4">
+            <img src={logo} alt="Curitiba Inox" className="h-16 object-contain" />
           </div>
           <nav className="flex-1 px-4 py-6">
             <NavItems />
@@ -266,7 +258,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </SheetContent>
         </Sheet>
-        <img src={logo} alt="Curitiba Inox" className="h-10 object-contain" />
+        <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
       </header>
 
       {/* Main Content */}
