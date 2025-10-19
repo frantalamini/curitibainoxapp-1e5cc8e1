@@ -49,6 +49,10 @@ const ServiceCallForm = () => {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   
+  // Estados para arquivos existentes
+  const [existingAudioUrl, setExistingAudioUrl] = useState<string | null>(null);
+  const [existingMediaUrls, setExistingMediaUrls] = useState<string[]>([]);
+  
   // Estados para gravação de áudio
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -95,6 +99,10 @@ const ServiceCallForm = () => {
       setSelectedServiceTypeId(existingCall.service_type_id || "");
       setSelectedTime(existingCall.scheduled_time);
       setSelectedDate(new Date(existingCall.scheduled_date));
+      
+      // Carregar arquivos existentes
+      setExistingAudioUrl(existingCall.audio_url || null);
+      setExistingMediaUrls(existingCall.media_urls || []);
     }
   }, [existingCall, isEditMode, setValue]);
 
@@ -141,6 +149,14 @@ const ServiceCallForm = () => {
     setAudioURL("");
   };
 
+  const removeExistingAudio = () => {
+    setExistingAudioUrl(null);
+  };
+
+  const removeExistingMedia = (urlToRemove: string) => {
+    setExistingMediaUrls(prev => prev.filter(url => url !== urlToRemove));
+  };
+
   const onSubmit = async (data: ServiceCallInsert) => {
     if (!selectedDate) {
       toast({
@@ -154,10 +170,10 @@ const ServiceCallForm = () => {
     setIsUploading(true);
 
     try {
-      let audioUrl: string | undefined = isEditMode ? existingCall?.audio_url : undefined;
-      let mediaUrls: string[] = isEditMode ? (existingCall?.media_urls || []) : [];
+      let audioUrl: string | null = existingAudioUrl;
+      let mediaUrls: string[] = [...existingMediaUrls];
 
-      // Upload de novos arquivos (se houver)
+      // Upload de novo áudio (se houver)
       if (audioFile) {
         const audioPath = `audio/${Date.now()}-${audioFile.name}`;
         const { data: audioData, error: audioError } = await supabase.storage
@@ -185,6 +201,7 @@ const ServiceCallForm = () => {
         audioUrl = publicUrl;
       }
 
+      // Upload de novas mídias (se houver)
       if (mediaFiles.length > 0) {
         for (const file of mediaFiles) {
           const fileExt = file.name.split('.').pop();
@@ -486,6 +503,32 @@ const ServiceCallForm = () => {
                 <div className="space-y-3 pt-2">
                   <Label>Áudio</Label>
                   
+                  {/* Áudio existente */}
+                  {existingAudioUrl && !audioFile && (
+                    <Card className="p-3 border-primary/20 bg-primary/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Volume2 className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium">Áudio salvo</span>
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Existente</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeExistingAudio}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <audio 
+                        controls 
+                        className="w-full"
+                        src={existingAudioUrl}
+                      />
+                    </Card>
+                  )}
+                  
                   {/* Botões de ação */}
                   <div className="flex gap-2">
                     {!audioFile && !isRecording && (
@@ -506,7 +549,7 @@ const ServiceCallForm = () => {
                           onClick={() => document.getElementById('audio-upload')?.click()}
                         >
                           <Upload className="w-4 h-4 mr-2" />
-                          Anexar Áudio
+                          {existingAudioUrl ? "Substituir Áudio" : "Anexar Áudio"}
                         </Button>
                       </>
                     )}
@@ -524,37 +567,36 @@ const ServiceCallForm = () => {
                     )}
                   </div>
                   
-                  {/* Preview do áudio anexado */}
+                  {/* Preview do novo áudio anexado */}
                   {audioFile && (
-                    <Card className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1">
-                          <Volume2 className="w-5 h-5 text-primary" />
+                    <Card className="p-3 border-green-500/20 bg-green-500/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Volume2 className="w-4 h-4 text-green-600" />
                           <div className="flex-1">
-                            <p className="text-sm font-medium">Áudio anexado ✓</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">Novo áudio</span>
+                              <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded">Novo</span>
+                            </div>
                             <p className="text-xs text-muted-foreground">{audioFile.name}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={removeAudio}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeAudio}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                       </div>
                       
                       {/* Player de áudio */}
-                      {(audioURL || audioFile) && (
-                        <audio 
-                          controls 
-                          className="w-full mt-3"
-                          src={audioURL || URL.createObjectURL(audioFile)}
-                        />
-                      )}
+                      <audio 
+                        controls 
+                        className="w-full"
+                        src={audioURL || URL.createObjectURL(audioFile)}
+                      />
                     </Card>
                   )}
                   
@@ -587,7 +629,7 @@ const ServiceCallForm = () => {
                   onClick={() => document.getElementById('media-upload')?.click()}
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  {mediaFiles.length > 0 ? "Adicionar mais arquivos" : "Anexar Fotos/Vídeos"}
+                  {(existingMediaUrls.length > 0 || mediaFiles.length > 0) ? "Adicionar mais arquivos" : "Anexar Fotos/Vídeos"}
                 </Button>
                 
                 {/* Input hidden */}
@@ -611,66 +653,94 @@ const ServiceCallForm = () => {
                   }}
                 />
                 
-                {/* Preview dos arquivos anexados */}
-                {mediaPreviews.length > 0 && (
+                {/* Preview dos arquivos (existentes + novos) */}
+                {(existingMediaUrls.length > 0 || mediaPreviews.length > 0) && (
                   <Card className="p-3">
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-sm font-medium">
-                        {mediaPreviews.length} arquivo(s) anexado(s)
+                        {existingMediaUrls.length + mediaPreviews.length} arquivo(s) total
                       </p>
                     </div>
                     
                     {/* Grid de previews */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {mediaPreviews.map((preview, index) => (
-                        <div key={index} className="relative group">
-                          {preview.type === 'image' ? (
-                            // Preview de imagem
-                            <div className="relative aspect-square rounded-lg overflow-hidden border bg-muted">
-                              <img
-                                src={preview.url}
-                                alt={`Preview ${index + 1}`}
-                                className="w-full h-full object-cover"
-                              />
+                      {/* Arquivos existentes */}
+                      {existingMediaUrls.map((url, index) => {
+                        const isVideo = url.includes('/media/') && (url.toLowerCase().includes('.mp4') || url.toLowerCase().includes('.webm') || url.toLowerCase().includes('.mov'));
+                        return (
+                          <div key={`existing-${index}`} className="relative group">
+                            <div className="relative aspect-square rounded-lg overflow-hidden border border-primary/20 bg-primary/5">
+                              {isVideo ? (
+                                <video
+                                  src={url}
+                                  controls
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <img
+                                  src={url}
+                                  alt={`Mídia existente ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                              <div className="absolute top-1 left-1">
+                                <span className="text-xs bg-primary/90 text-primary-foreground px-2 py-0.5 rounded">
+                                  Existente
+                                </span>
+                              </div>
                               <Button
                                 type="button"
                                 variant="destructive"
                                 size="icon"
                                 className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => {
-                                  // Remover arquivo
-                                  URL.revokeObjectURL(preview.url);
-                                  setMediaPreviews(prev => prev.filter((_, i) => i !== index));
-                                  setMediaFiles(prev => prev.filter((_, i) => i !== index));
-                                }}
+                                onClick={() => removeExistingMedia(url)}
                               >
                                 <X className="w-4 h-4" />
                               </Button>
                             </div>
-                          ) : (
-                            // Preview de vídeo
-                            <div className="relative aspect-square rounded-lg overflow-hidden border bg-muted">
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
+                              {isVideo ? 'Vídeo' : 'Foto'} #{index + 1}
+                            </p>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Novos arquivos */}
+                      {mediaPreviews.map((preview, index) => (
+                        <div key={`new-${index}`} className="relative group">
+                          <div className="relative aspect-square rounded-lg overflow-hidden border border-green-500/20 bg-green-500/5">
+                            {preview.type === 'image' ? (
+                              <img
+                                src={preview.url}
+                                alt={`Novo preview ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
                               <video
                                 src={preview.url}
                                 controls
                                 className="w-full h-full object-cover"
                               />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => {
-                                  // Remover arquivo
-                                  URL.revokeObjectURL(preview.url);
-                                  setMediaPreviews(prev => prev.filter((_, i) => i !== index));
-                                  setMediaFiles(prev => prev.filter((_, i) => i !== index));
-                                }}
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
+                            )}
+                            <div className="absolute top-1 left-1">
+                              <span className="text-xs bg-green-500/90 text-white px-2 py-0.5 rounded">
+                                Novo
+                              </span>
                             </div>
-                          )}
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => {
+                                URL.revokeObjectURL(preview.url);
+                                setMediaPreviews(prev => prev.filter((_, i) => i !== index));
+                                setMediaFiles(prev => prev.filter((_, i) => i !== index));
+                              }}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                           <p className="text-xs text-muted-foreground mt-1 truncate">
                             {preview.file.name}
                           </p>
