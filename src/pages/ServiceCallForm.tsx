@@ -28,7 +28,7 @@ import { useClients } from "@/hooks/useClients";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { useServiceCalls, useServiceCall, ServiceCallInsert } from "@/hooks/useServiceCalls";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
-import { useChecklists, ChecklistItem } from "@/hooks/useChecklists";
+import { useChecklists } from "@/hooks/useChecklists";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AudioTranscriber } from "@/components/AudioTranscriber";
@@ -48,7 +48,6 @@ const ServiceCallForm = () => {
   const isEditMode = !!id;
   const { createServiceCall, updateServiceCall } = useServiceCalls();
   
-  // Estados básicos
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("");
@@ -56,43 +55,31 @@ const ServiceCallForm = () => {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  
-  // Estados para arquivos existentes
   const [existingAudioUrl, setExistingAudioUrl] = useState<string | null>(null);
   const [existingMediaUrls, setExistingMediaUrls] = useState<string[]>([]);
-  
-  // Estados para Informações Técnicas
   const [technicalDiagnosis, setTechnicalDiagnosis] = useState("");
   const [technicalDiagnosisAudioFile, setTechnicalDiagnosisAudioFile] = useState<File | null>(null);
   const [existingTechnicalDiagnosisAudioUrl, setExistingTechnicalDiagnosisAudioUrl] = useState<string | null>(null);
-  
   const [photosBeforeFiles, setPhotosBeforeFiles] = useState<File[]>([]);
   const [videoBeforeFile, setVideoBeforeFile] = useState<File | null>(null);
   const [existingPhotosBeforeUrls, setExistingPhotosBeforeUrls] = useState<string[]>([]);
   const [existingVideoBeforeUrl, setExistingVideoBeforeUrl] = useState<string | null>(null);
-  
   const [photosAfterFiles, setPhotosAfterFiles] = useState<File[]>([]);
   const [videoAfterFile, setVideoAfterFile] = useState<File | null>(null);
   const [existingPhotosAfterUrls, setExistingPhotosAfterUrls] = useState<string[]>([]);
   const [existingVideoAfterUrl, setExistingVideoAfterUrl] = useState<string | null>(null);
-  
   const [selectedChecklistId, setSelectedChecklistId] = useState<string>("");
   const [checklistResponses, setChecklistResponses] = useState<Record<string, boolean>>({});
-  
   const [technicianSignatureData, setTechnicianSignatureData] = useState<string | null>(null);
   const [customerSignatureData, setCustomerSignatureData] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPosition, setCustomerPosition] = useState("");
   const [existingTechnicianSignatureUrl, setExistingTechnicianSignatureUrl] = useState<string | null>(null);
   const [existingCustomerSignatureUrl, setExistingCustomerSignatureUrl] = useState<string | null>(null);
-  
-  // Estados para gravação de áudio
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioURL, setAudioURL] = useState<string>("");
-  
-  // Estado para previews de mídia
   const [mediaPreviews, setMediaPreviews] = useState<{file: File, url: string, type: 'image' | 'video'}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -107,8 +94,39 @@ const ServiceCallForm = () => {
   const selectedClient = clients?.find((c) => c.id === selectedClientId);
   const activeTechnicians = technicians?.filter((t) => t.active);
   const activeServiceTypes = serviceTypes?.filter((st) => st.active);
+  const selectedChecklist = checklists?.find((c) => c.id === selectedChecklistId);
 
-  // Cleanup de URLs ao desmontar
+  useEffect(() => {
+    register("client_id");
+    register("technician_id");
+    register("service_type_id");
+    register("scheduled_time");
+  }, [register]);
+
+  useEffect(() => {
+    if (selectedClientId) {
+      setValue("client_id", selectedClientId);
+    }
+  }, [selectedClientId, setValue]);
+
+  useEffect(() => {
+    if (selectedTechnicianId) {
+      setValue("technician_id", selectedTechnicianId);
+    }
+  }, [selectedTechnicianId, setValue]);
+
+  useEffect(() => {
+    if (selectedServiceTypeId) {
+      setValue("service_type_id", selectedServiceTypeId);
+    }
+  }, [selectedServiceTypeId, setValue]);
+
+  useEffect(() => {
+    if (selectedTime) {
+      setValue("scheduled_time", selectedTime);
+    }
+  }, [selectedTime, setValue]);
+
   useEffect(() => {
     return () => {
       if (audioURL) URL.revokeObjectURL(audioURL);
@@ -116,10 +134,8 @@ const ServiceCallForm = () => {
     };
   }, []);
 
-  // Preencher formulário quando estiver editando
   useEffect(() => {
     if (existingCall && isEditMode) {
-      // Campos básicos
       setValue("client_id", existingCall.client_id);
       setValue("equipment_description", existingCall.equipment_description);
       setValue("problem_description", existingCall.problem_description || "");
@@ -133,12 +149,8 @@ const ServiceCallForm = () => {
       setSelectedServiceTypeId(existingCall.service_type_id || "");
       setSelectedTime(existingCall.scheduled_time);
       setSelectedDate(new Date(existingCall.scheduled_date));
-      
-      // Arquivos existentes - aba geral
       setExistingAudioUrl(existingCall.audio_url || null);
       setExistingMediaUrls(existingCall.media_urls || []);
-      
-      // Informações técnicas existentes
       setTechnicalDiagnosis(existingCall.technical_diagnosis || "");
       setExistingTechnicalDiagnosisAudioUrl(existingCall.technical_diagnosis_audio_url || null);
       setExistingPhotosBeforeUrls(existingCall.photos_before_urls || []);
@@ -154,7 +166,6 @@ const ServiceCallForm = () => {
     }
   }, [existingCall, isEditMode, setValue]);
 
-  // Funções de gravação de áudio
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -228,68 +239,44 @@ const ServiceCallForm = () => {
       let technicianSignatureUrl: string | null = existingTechnicianSignatureUrl;
       let customerSignatureUrl: string | null = existingCustomerSignatureUrl;
 
-      // Upload de novo áudio geral (se houver)
       if (audioFile) {
         const audioPath = `audio/${Date.now()}-${audioFile.name}`;
         const { error: audioError } = await supabase.storage
           .from('service-call-attachments')
-          .upload(audioPath, audioFile, {
-            cacheControl: '3600',
-            upsert: false
-          });
+          .upload(audioPath, audioFile);
 
-        if (audioError) {
-          console.error('Erro ao enviar áudio:', audioError);
-          toast({
-            title: "Erro",
-            description: "Erro ao enviar o áudio. Tente novamente.",
-            variant: "destructive"
-          });
-          setIsUploading(false);
-          return;
+        if (!audioError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-call-attachments')
+            .getPublicUrl(audioPath);
+          audioUrl = publicUrl;
         }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('service-call-attachments')
-          .getPublicUrl(audioPath);
-        
-        audioUrl = publicUrl;
       }
 
-      // Upload de novas mídias gerais (se houver)
       if (mediaFiles.length > 0) {
         for (const file of mediaFiles) {
           const fileExt = file.name.split('.').pop();
           const filePath = `media/${Date.now()}-${Math.random()}.${fileExt}`;
-          
-          const { error: mediaError } = await supabase.storage
+          const { error } = await supabase.storage
             .from('service-call-attachments')
-            .upload(filePath, file, {
-              cacheControl: '3600',
-              upsert: false
-            });
+            .upload(filePath, file);
 
-          if (mediaError) {
-            console.error('Erro ao enviar mídia:', mediaError);
-            continue;
+          if (!error) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('service-call-attachments')
+              .getPublicUrl(filePath);
+            mediaUrls.push(publicUrl);
           }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('service-call-attachments')
-            .getPublicUrl(filePath);
-          
-          mediaUrls.push(publicUrl);
         }
       }
 
-      // Upload de áudio do diagnóstico técnico
       if (technicalDiagnosisAudioFile) {
         const audioPath = `technical-audio/${Date.now()}-${technicalDiagnosisAudioFile.name}`;
-        const { error: audioError } = await supabase.storage
+        const { error } = await supabase.storage
           .from('service-call-attachments')
           .upload(audioPath, technicalDiagnosisAudioFile);
 
-        if (!audioError) {
+        if (!error) {
           const { data: { publicUrl } } = supabase.storage
             .from('service-call-attachments')
             .getPublicUrl(audioPath);
@@ -297,7 +284,6 @@ const ServiceCallForm = () => {
         }
       }
 
-      // Upload de fotos "antes"
       if (photosBeforeFiles.length > 0) {
         for (const file of photosBeforeFiles) {
           const fileExt = file.name.split('.').pop();
@@ -315,7 +301,6 @@ const ServiceCallForm = () => {
         }
       }
 
-      // Upload de vídeo "antes"
       if (videoBeforeFile) {
         const fileExt = videoBeforeFile.name.split('.').pop();
         const filePath = `video-before/${Date.now()}.${fileExt}`;
@@ -331,7 +316,6 @@ const ServiceCallForm = () => {
         }
       }
 
-      // Upload de fotos "depois"
       if (photosAfterFiles.length > 0) {
         for (const file of photosAfterFiles) {
           const fileExt = file.name.split('.').pop();
@@ -349,7 +333,6 @@ const ServiceCallForm = () => {
         }
       }
 
-      // Upload de vídeo "depois"
       if (videoAfterFile) {
         const fileExt = videoAfterFile.name.split('.').pop();
         const filePath = `video-after/${Date.now()}.${fileExt}`;
@@ -365,7 +348,6 @@ const ServiceCallForm = () => {
         }
       }
 
-      // Gerar e fazer upload da assinatura do técnico
       if (technicianSignatureData) {
         const pdfBlob = await generateSignaturePDF(technicianSignatureData, 'technician');
         const pdfPath = `signatures/tech-${Date.now()}.pdf`;
@@ -381,7 +363,6 @@ const ServiceCallForm = () => {
         }
       }
 
-      // Gerar e fazer upload da assinatura do cliente
       if (customerSignatureData) {
         const pdfBlob = await generateSignaturePDF(
           customerSignatureData, 
@@ -478,498 +459,399 @@ const ServiceCallForm = () => {
                   <CardTitle>Informações Gerais do Chamado</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-              {/* Cliente */}
-              <div className="space-y-2">
-                <Label htmlFor="client">Cliente *</Label>
-                <Select
-                  disabled={clientsLoading}
-                  value={selectedClientId}
-                  onValueChange={(value) => {
-                    setSelectedClientId(value);
-                    setValue("client_id", value);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients?.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.client_id && (
-                  <p className="text-sm text-destructive">Cliente é obrigatório</p>
-                )}
-
-                {selectedClient && (
-                  <Card className="mt-2">
-                    <CardContent className="pt-4 space-y-1">
-                      <p className="text-sm">
-                        <span className="font-medium">Nome:</span> {selectedClient.full_name}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Telefone:</span> {selectedClient.phone}
-                      </p>
-                      {selectedClient.address && (
-                        <p className="text-sm">
-                          <span className="font-medium">Endereço:</span>{" "}
-                          {selectedClient.street && `${selectedClient.street}, `}
-                          {selectedClient.number && `${selectedClient.number}, `}
-                          {selectedClient.neighborhood && `${selectedClient.neighborhood}, `}
-                          {selectedClient.city && `${selectedClient.city} - `}
-                          {selectedClient.state}
+                  <div className="space-y-2">
+                    <Label htmlFor="client_id">Cliente</Label>
+                    <Select onValueChange={setSelectedClientId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione um cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients?.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedClient && (
+                      <div className="mt-2">
+                        <p className="font-semibold">
+                          {selectedClient.full_name}
                         </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+                        <p className="text-sm text-muted-foreground">
+                          Telefone: {selectedClient.phone}
+                        </p>
+                        {selectedClient.address && (
+                          <p className="text-sm text-muted-foreground">
+                            Endereço: {selectedClient.address}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {errors.client_id && (
+                      <p className="text-sm text-red-500">
+                        Selecione um cliente
+                      </p>
+                    )}
+                  </div>
 
-              {/* Equipamento */}
-              <div className="space-y-2">
-                <Label htmlFor="equipment_description">Equipamento *</Label>
-                <Input
-                  id="equipment_description"
-                  placeholder="Descreva o equipamento"
-                  {...register("equipment_description", { required: true })}
-                />
-                {errors.equipment_description && (
-                  <p className="text-sm text-destructive">Equipamento é obrigatório</p>
-                )}
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="equipment_description">
+                      Equipamento
+                    </Label>
+                    <Input
+                      id="equipment_description"
+                      type="text"
+                      placeholder="Ex: Ar condicionado split 12000 BTU"
+                      {...register("equipment_description", { required: true })}
+                    />
+                    {errors.equipment_description && (
+                      <p className="text-sm text-red-500">
+                        Informe o equipamento
+                      </p>
+                    )}
+                  </div>
 
-              {/* Descrição do Problema */}
-              <div className="space-y-2">
-                <Label htmlFor="problem_description">Descrição do Problema</Label>
-                <Textarea
-                  id="problem_description"
-                  placeholder="Descreva o problema relatado pelo cliente"
-                  {...register("problem_description")}
-                  rows={3}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="problem_description">
+                      Descrição do Problema
+                    </Label>
+                    <Textarea
+                      id="problem_description"
+                      placeholder="Descreva o problema relatado pelo cliente"
+                      {...register("problem_description")}
+                    />
+                  </div>
 
-              {/* Tipo de Chamado */}
-              <div className="space-y-2">
-                <Label htmlFor="service_type">Tipo de Chamado *</Label>
-                <Select
-                  disabled={serviceTypesLoading}
-                  value={selectedServiceTypeId}
-                  onValueChange={(value) => {
-                    setSelectedServiceTypeId(value);
-                    setValue("service_type_id", value);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo de chamado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeServiceTypes?.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: type.color }}
+                  <div className="space-y-2">
+                    <Label htmlFor="technician_id">Técnico Responsável</Label>
+                    <Select onValueChange={setSelectedTechnicianId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione um técnico" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeTechnicians?.map((technician) => (
+                          <SelectItem key={technician.id} value={technician.id}>
+                            {technician.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.technician_id && (
+                      <p className="text-sm text-red-500">
+                        Selecione um técnico
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="service_type_id">Tipo de Serviço</Label>
+                    <Select onValueChange={setSelectedServiceTypeId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione o tipo de serviço" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeServiceTypes?.map((serviceType) => (
+                          <SelectItem key={serviceType.id} value={serviceType.id}>
+                            {serviceType.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.service_type_id && (
+                      <p className="text-sm text-red-500">
+                        Selecione um tipo de serviço
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Data e Hora Agendada</Label>
+                    <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-[240px] justify-start text-left font-normal",
+                              !selectedDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDate ? (
+                              format(selectedDate, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            disabled={(date) =>
+                              date < new Date()
+                            }
+                            initialFocus
                           />
-                          {type.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.service_type_id && (
-                  <p className="text-sm text-destructive">Tipo de chamado é obrigatório</p>
-                )}
-              </div>
+                        </PopoverContent>
+                      </Popover>
 
-              {/* Técnico */}
-              <div className="space-y-2">
-                <Label htmlFor="technician">Técnico Responsável *</Label>
-                <Select
-                  disabled={techniciansLoading}
-                  value={selectedTechnicianId}
-                  onValueChange={(value) => {
-                    setSelectedTechnicianId(value);
-                    setValue("technician_id", value);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um técnico" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeTechnicians?.map((tech) => (
-                      <SelectItem key={tech.id} value={tech.id}>
-                        {tech.full_name}
-                        {tech.specialty_cooking && " - Cocção"}
-                        {tech.specialty_refrigeration && " - Refrigeração"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.technician_id && (
-                  <p className="text-sm text-destructive">Técnico é obrigatório</p>
-                )}
-              </div>
+                      <Select onValueChange={setSelectedTime}>
+                        <SelectTrigger className="w-[150px]">
+                          <SelectValue placeholder="Selecionar hora" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                            <SelectItem key={hour} value={`${hour
+                              .toString()
+                              .padStart(2, "0")}:00`}>
+                              {`${hour.toString().padStart(2, "0")}:00`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {errors.scheduled_date && (
+                      <p className="text-sm text-red-500">
+                        Informe a data e hora
+                      </p>
+                    )}
+                  </div>
 
-              {/* Data e Horário */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Data */}
-                <div className="space-y-2">
-                  <Label>Data do Agendamento *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Anotações</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Anotações sobre o chamado"
+                      {...register("notes")}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Gravação de Áudio</Label>
+                    {!audioURL && !existingAudioUrl ? (
                       <Button
                         type="button"
                         variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !selectedDate && "text-muted-foreground"
-                        )}
+                        onClick={isRecording ? stopRecording : startRecording}
+                        disabled={isUploading}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? (
-                          format(selectedDate, "dd/MM/yyyy")
+                        {isRecording ? (
+                          <>
+                            <Square className="mr-2 h-4 w-4 animate-pulse" />
+                            Parar de gravar
+                          </>
                         ) : (
-                          <span>Selecione a data</span>
+                          <>
+                            <Mic className="mr-2 h-4 w-4" />
+                            Gravar áudio
+                          </>
                         )}
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => {
-                          setSelectedDate(date);
-                        }}
-                        onDayClick={(date) => {
-                          setSelectedDate(date);
-                          setTimeout(() => document.body.click(), 100);
-                        }}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {!selectedDate && (
-                    <p className="text-sm text-destructive">Data é obrigatória</p>
-                  )}
-                </div>
-
-                {/* Horário */}
-                <div className="space-y-2">
-                  <Label htmlFor="scheduled_time">Horário *</Label>
-                  <Input
-                    type="time"
-                    className="w-full"
-                    value={selectedTime}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setSelectedTime(value);
-                      setValue("scheduled_time", value);
-                    }}
-                  />
-                  {errors.scheduled_time && (
-                    <p className="text-sm text-destructive">Horário é obrigatório</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Checklist */}
-              <div className="space-y-2">
-                <Label htmlFor="checklist">Checklist Aplicável</Label>
-                <Select
-                  disabled={checklistsLoading}
-                  value={selectedChecklistId}
-                  onValueChange={setSelectedChecklistId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um checklist (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {checklists?.map((checklist) => (
-                      <SelectItem key={checklist.id} value={checklist.id}>
-                        {checklist.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  O checklist será preenchido na aba "Informações Técnicas"
-                </p>
-              </div>
-
-              {/* Observações */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Observações</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Observações adicionais sobre o chamado"
-                  {...register("notes")}
-                  rows={4}
-                />
-                
-                {/* Seção de Áudio */}
-                <div className="space-y-3 pt-2">
-                  <Label>Áudio</Label>
-                  
-                  {/* Áudio existente */}
-                  {existingAudioUrl && !audioFile && (
-                    <Card className="p-3 border-primary/20 bg-primary/5">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Volume2 className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-medium">Áudio salvo</span>
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Existente</span>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={removeExistingAudio}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <audio 
-                        controls 
-                        className="w-full"
-                        src={existingAudioUrl}
-                      />
-                    </Card>
-                  )}
-                  
-                  {/* Botões de ação */}
-                  <div className="flex gap-2">
-                    {!audioFile && !isRecording && (
-                      <>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={startRecording}
-                        >
-                          <Mic className="w-4 h-4 mr-2" />
-                          Gravar Áudio
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => document.getElementById('audio-upload')?.click()}
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          {existingAudioUrl ? "Substituir Áudio" : "Anexar Áudio"}
-                        </Button>
-                      </>
-                    )}
-                    
-                    {isRecording && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={stopRecording}
-                      >
-                        <Square className="w-4 h-4 mr-2" />
-                        Parar Gravação
-                      </Button>
-                    )}
-                  </div>
-                  
-                  {/* Preview do novo áudio anexado */}
-                  {audioFile && (
-                    <Card className="p-3 border-green-500/20 bg-green-500/5">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Volume2 className="w-4 h-4 text-green-600" />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">Novo áudio</span>
-                              <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded">Novo</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{audioFile.name}</p>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={removeAudio}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      
-                      {/* Player de áudio */}
-                      <audio 
-                        controls 
-                        className="w-full"
-                        src={audioURL || URL.createObjectURL(audioFile)}
-                      />
-                    </Card>
-                  )}
-                  
-                  {/* Input hidden para upload */}
-                  <input
-                    id="audio-upload"
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setAudioFile(file);
-                        setAudioURL(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Fotos e Vídeos */}
-              <div className="space-y-2">
-                <Label htmlFor="media">Fotos e Vídeos</Label>
-                
-                {/* Botão de upload */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById('media-upload')?.click()}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {(existingMediaUrls.length > 0 || mediaFiles.length > 0) ? "Adicionar mais arquivos" : "Anexar Fotos/Vídeos"}
-                </Button>
-                
-                {/* Input hidden */}
-                <input
-                  id="media-upload"
-                  type="file"
-                  accept="image/*,video/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setMediaFiles(prev => [...prev, ...files]);
-                    
-                    // Criar previews
-                    const newPreviews = files.map(file => ({
-                      file,
-                      url: URL.createObjectURL(file),
-                      type: file.type.startsWith('image/') ? 'image' as const : 'video' as const
-                    }));
-                    setMediaPreviews(prev => [...prev, ...newPreviews]);
-                  }}
-                />
-                
-                {/* Preview dos arquivos (existentes + novos) */}
-                {(existingMediaUrls.length > 0 || mediaPreviews.length > 0) && (
-                  <Card className="p-3">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-medium">
-                        {existingMediaUrls.length + mediaPreviews.length} arquivo(s) total
-                      </p>
-                    </div>
-                    
-                    {/* Grid de previews */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {/* Arquivos existentes */}
-                      {existingMediaUrls.map((url, index) => {
-                        const isVideo = url.includes('/media/') && (url.toLowerCase().includes('.mp4') || url.toLowerCase().includes('.webm') || url.toLowerCase().includes('.mov'));
-                        return (
-                          <div key={`existing-${index}`} className="relative group">
-                            <div className="relative aspect-square rounded-lg overflow-hidden border border-primary/20 bg-primary/5">
-                              {isVideo ? (
-                                <video
-                                  src={url}
-                                  controls
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <img
-                                  src={url}
-                                  alt={`Mídia existente ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              )}
-                              <div className="absolute top-1 left-1">
-                                <span className="text-xs bg-primary/90 text-primary-foreground px-2 py-0.5 rounded">
-                                  Existente
-                                </span>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => removeExistingMedia(url)}
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1 truncate">
-                              {isVideo ? 'Vídeo' : 'Foto'} #{index + 1}
-                            </p>
-                          </div>
-                        );
-                      })}
-                      
-                      {/* Novos arquivos */}
-                      {mediaPreviews.map((preview, index) => (
-                        <div key={`new-${index}`} className="relative group">
-                          <div className="relative aspect-square rounded-lg overflow-hidden border border-green-500/20 bg-green-500/5">
-                            {preview.type === 'image' ? (
-                              <img
-                                src={preview.url}
-                                alt={`Novo preview ${index + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <video
-                                src={preview.url}
-                                controls
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                            <div className="absolute top-1 left-1">
-                              <span className="text-xs bg-green-500/90 text-white px-2 py-0.5 rounded">
-                                Novo
-                              </span>
-                            </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {audioURL && (
+                          <>
+                            <audio src={audioURL} controls />
                             <Button
                               type="button"
                               variant="destructive"
                               size="icon"
-                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => {
-                                URL.revokeObjectURL(preview.url);
-                                setMediaPreviews(prev => prev.filter((_, i) => i !== index));
-                                setMediaFiles(prev => prev.filter((_, i) => i !== index));
-                              }}
+                              onClick={removeAudio}
                             >
-                              <X className="w-4 h-4" />
+                              <X className="h-4 w-4" />
                             </Button>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {preview.file.name}
-                          </p>
+                          </>
+                        )}
+                        {existingAudioUrl && (
+                          <>
+                            <audio src={existingAudioUrl} controls />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              onClick={removeExistingAudio}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>
+                      Mídia (Fotos/Vídeos)
+                    </Label>
+                    <Input
+                      type="file"
+                      multiple
+                      accept="image/*, video/*"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        const newMediaFiles = [...mediaFiles, ...files];
+                        setMediaFiles(newMediaFiles);
+
+                        files.forEach(file => {
+                          const url = URL.createObjectURL(file);
+                          const type = file.type.startsWith('image/') ? 'image' : 'video';
+                          setMediaPreviews(prev => [...prev, { file, url, type }]);
+                        });
+                      }}
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {mediaPreviews.map((preview, index) => (
+                        <div key={index} className="relative">
+                          {preview.type === 'image' ? (
+                            <img
+                              src={preview.url}
+                              alt={preview.file.name}
+                              className="w-32 h-32 object-cover rounded-md"
+                            />
+                          ) : (
+                            <video
+                              src={preview.url}
+                              controls
+                              className="w-32 h-32 object-cover rounded-md"
+                            />
+                          )}
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-0 right-0"
+                            onClick={() => {
+                              setMediaFiles(prev => prev.filter(f => f !== preview.file));
+                              setMediaPreviews(prev => prev.filter(p => p.file !== preview.file));
+                              URL.revokeObjectURL(preview.url);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      {existingMediaUrls.map((url, index) => (
+                        <div key={`existing-${index}`} className="relative">
+                          <img
+                            src={url}
+                            alt={`Existing Media ${index}`}
+                            className="w-32 h-32 object-cover rounded-md"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-0 right-0"
+                            onClick={() => removeExistingMedia(url)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
-                  </Card>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tecnicas">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informações Técnicas</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Diagnóstico Técnico */}
+                  <div className="space-y-2">
+                    <Label>Diagnóstico Técnico</Label>
+                    <AudioTranscriber
+                      onTranscriptionComplete={(text, file) => {
+                        setTechnicalDiagnosis(text);
+                        setTechnicalDiagnosisAudioFile(file);
+                      }}
+                      initialText={technicalDiagnosis}
+                    />
+                  </div>
+
+                  {/* Fotos/Vídeo Antes */}
+                  <div className="space-y-2">
+                    <Label>Fotos/Vídeo Antes da Manutenção</Label>
+                    <p className="text-xs text-muted-foreground">Máximo: 5 fotos OU 1 vídeo</p>
+                    <Input
+                      type="file"
+                      accept="image/*,video/*"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        const images = files.filter(f => f.type.startsWith('image/'));
+                        const videos = files.filter(f => f.type.startsWith('video/'));
+                        if (images.length > 0) setPhotosBeforeFiles(prev => [...prev, ...images].slice(0, 5));
+                        if (videos.length > 0) setVideoBeforeFile(videos[0]);
+                      }}
+                    />
+                  </div>
+
+                  {/* Fotos/Vídeo Depois */}
+                  <div className="space-y-2">
+                    <Label>Fotos/Vídeo Depois da Manutenção</Label>
+                    <p className="text-xs text-muted-foreground">Máximo: 5 fotos OU 1 vídeo</p>
+                    <Input
+                      type="file"
+                      accept="image/*,video/*"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        const images = files.filter(f => f.type.startsWith('image/'));
+                        const videos = files.filter(f => f.type.startsWith('video/'));
+                        if (images.length > 0) setPhotosAfterFiles(prev => [...prev, ...images].slice(0, 5));
+                        if (videos.length > 0) setVideoAfterFile(videos[0]);
+                      }}
+                    />
+                  </div>
+
+                  {/* Checklist */}
+                  {selectedChecklistId && selectedChecklist && (
+                    <ChecklistSelector
+                      items={selectedChecklist.items}
+                      onChange={setChecklistResponses}
+                      initialResponses={checklistResponses}
+                    />
+                  )}
+
+                  {/* Assinatura Técnico */}
+                  <SignaturePad
+                    title="Assinatura do Técnico"
+                    onSave={(signatureData) => setTechnicianSignatureData(signatureData)}
+                  />
+
+                  {/* Assinatura Cliente */}
+                  <SignaturePad
+                    title="Assinatura do Responsável (Cliente)"
+                    showExtraFields
+                    onSave={(signatureData, extraFields) => {
+                      setCustomerSignatureData(signatureData);
+                      if (extraFields) {
+                        setCustomerName(extraFields.name || "");
+                        setCustomerPosition(extraFields.position || "");
+                      }
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
           <div className="flex gap-4 mt-6">
-            <Button type="submit" disabled={isUploading || isLoadingCall}>
-              {isUploading ? "Enviando arquivos..." : isEditMode ? "Atualizar Chamado" : "Criar Chamado"}
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? "Salvando..." : isEditMode ? "Atualizar Chamado" : "Criar Chamado"}
             </Button>
-            <Button type="button" variant="outline" onClick={() => navigate("/service-calls")} disabled={isUploading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/service-calls")}
+            >
               Cancelar
             </Button>
           </div>
