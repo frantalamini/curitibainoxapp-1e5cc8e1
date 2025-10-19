@@ -60,6 +60,8 @@ export type Database = {
           notes: string | null
           number: string | null
           phone: string
+          responsible_financial: Json | null
+          responsible_technical: Json | null
           state: string | null
           state_registration: string | null
           street: string | null
@@ -80,6 +82,8 @@ export type Database = {
           notes?: string | null
           number?: string | null
           phone: string
+          responsible_financial?: Json | null
+          responsible_technical?: Json | null
           state?: string | null
           state_registration?: string | null
           street?: string | null
@@ -100,6 +104,8 @@ export type Database = {
           notes?: string | null
           number?: string | null
           phone?: string
+          responsible_financial?: Json | null
+          responsible_technical?: Json | null
           state?: string | null
           state_registration?: string | null
           street?: string | null

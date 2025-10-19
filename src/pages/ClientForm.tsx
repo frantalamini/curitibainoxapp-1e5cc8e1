@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Search, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Loader2, DollarSign, Wrench } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { useToast } from "@/hooks/use-toast";
 
@@ -92,6 +92,18 @@ const clientSchema = z.object({
     .max(1000, "Observações muito longas (máximo 1000 caracteres)")
     .optional()
     .or(z.literal("")),
+  
+  // Responsáveis no estabelecimento
+  responsible_financial: z.object({
+    name: z.string().trim().max(100, "Nome muito longo").optional().or(z.literal("")),
+    role: z.string().trim().max(100, "Cargo muito longo").optional().or(z.literal("")),
+    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").optional().or(z.literal("")),
+  }).optional(),
+  responsible_technical: z.object({
+    name: z.string().trim().max(100, "Nome muito longo").optional().or(z.literal("")),
+    role: z.string().trim().max(100, "Cargo muito longo").optional().or(z.literal("")),
+    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").optional().or(z.literal("")),
+  }).optional(),
 });
 
 const ClientForm = () => {
@@ -469,6 +481,100 @@ const ClientForm = () => {
             {errors.notes && (
               <p className="text-sm text-destructive">{errors.notes.message}</p>
             )}
+          </div>
+
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold mb-4">Responsáveis no Estabelecimento</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* RESPONSÁVEL FINANCEIRO */}
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <h4 className="font-semibold text-base flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                  FINANCEIRO
+                </h4>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_financial.name">Nome</Label>
+                  <Input
+                    id="responsible_financial.name"
+                    {...register("responsible_financial.name")}
+                    placeholder="Nome do responsável financeiro"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_financial.role">Cargo</Label>
+                  <Input
+                    id="responsible_financial.role"
+                    {...register("responsible_financial.role")}
+                    placeholder="Ex: Gerente Financeiro, Contador"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_financial.phone">Telefone</Label>
+                  <InputMask
+                    mask="(99) 99999-9999"
+                    maskChar={null}
+                    value={watch("responsible_financial.phone") || ""}
+                    onChange={(e) => setValue("responsible_financial.phone", e.target.value)}
+                  >
+                    {(inputProps: any) => (
+                      <Input
+                        {...inputProps}
+                        id="responsible_financial.phone"
+                        placeholder="(00) 00000-0000"
+                      />
+                    )}
+                  </InputMask>
+                </div>
+              </div>
+
+              {/* RESPONSÁVEL ACOMPANHAMENTO TÉCNICO */}
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <h4 className="font-semibold text-base flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-blue-600" />
+                  ACOMPANHAMENTO TÉCNICO
+                </h4>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_technical.name">Nome</Label>
+                  <Input
+                    id="responsible_technical.name"
+                    {...register("responsible_technical.name")}
+                    placeholder="Nome do responsável técnico"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_technical.role">Cargo</Label>
+                  <Input
+                    id="responsible_technical.role"
+                    {...register("responsible_technical.role")}
+                    placeholder="Ex: Supervisor de Manutenção"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_technical.phone">Telefone</Label>
+                  <InputMask
+                    mask="(99) 99999-9999"
+                    maskChar={null}
+                    value={watch("responsible_technical.phone") || ""}
+                    onChange={(e) => setValue("responsible_technical.phone", e.target.value)}
+                  >
+                    {(inputProps: any) => (
+                      <Input
+                        {...inputProps}
+                        id="responsible_technical.phone"
+                        placeholder="(00) 00000-0000"
+                      />
+                    )}
+                  </InputMask>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-4">

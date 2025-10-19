@@ -21,6 +21,19 @@ export type Client = {
   address?: string; // Legacy - manter para compatibilidade
   cpf_cnpj?: string;
   notes?: string;
+  
+  // Responsáveis no estabelecimento
+  responsible_financial?: {
+    name?: string;
+    role?: string;
+    phone?: string;
+  };
+  responsible_technical?: {
+    name?: string;
+    role?: string;
+    phone?: string;
+  };
+  
   created_by: string;
   created_at: string;
   updated_at: string;
