@@ -7,16 +7,68 @@ import { supabase } from "@/integrations/supabase/client";
 // Helper function to load images as Base64
 const loadImageAsBase64 = async (url: string): Promise<string | null> => {
   try {
+    console.log("🔄 Tentando carregar imagem:", url);
+    
+    // Extrair o caminho do arquivo da URL completa
+    // URL formato: https://[project].supabase.co/storage/v1/object/public/[bucket]/[path]
+    const urlParts = url.split('/storage/v1/object/');
+    if (urlParts.length >= 2) {
+      const fullPath = urlParts[1];
+      const pathParts = fullPath.split('/');
+      const bucketName = pathParts[1]; // "public" ou nome do bucket
+      const filePath = pathParts.slice(2).join('/'); // caminho do arquivo
+      
+      console.log("📦 Bucket:", bucketName, "| Arquivo:", filePath);
+      
+      // Baixar usando Supabase SDK (com autenticação automática)
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .download(filePath);
+      
+      if (!error && data) {
+        console.log("✅ Imagem baixada via Supabase, tamanho:", data.size, "bytes");
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            console.log("✅ Conversão Base64 concluída");
+            resolve(reader.result as string);
+          };
+          reader.onerror = (err) => {
+            console.error("❌ Erro ao converter para Base64:", err);
+            resolve(null);
+          };
+          reader.readAsDataURL(data);
+        });
+      } else if (error) {
+        console.warn("⚠️ Erro ao baixar via Supabase:", error);
+      }
+    }
+    
+    // Fallback: tentar fetch direto
+    console.log("🔄 Tentando fetch direto...");
     const response = await fetch(url);
+    if (!response.ok) {
+      console.error("❌ Fetch falhou:", response.status, response.statusText);
+      return null;
+    }
+    
     const blob = await response.blob();
+    console.log("✅ Imagem baixada via fetch, tamanho:", blob.size, "bytes");
+    
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
+      reader.onloadend = () => {
+        console.log("✅ Conversão Base64 concluída");
+        resolve(reader.result as string);
+      };
+      reader.onerror = (err) => {
+        console.error("❌ Erro ao converter para Base64:", err);
+        resolve(null);
+      };
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error("Erro ao carregar imagem:", error);
+    console.error("❌ Erro geral ao carregar imagem:", error);
     return null;
   }
 };
@@ -190,76 +242,107 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   // PHOTOS BEFORE
   if (call.photos_before_urls && call.photos_before_urls.length > 0) {
-    if (yPos > 240) {
-      pdf.addPage();
-      yPos = 20;
-    }
+    console.log("📸 Processando fotos ANTES:", call.photos_before_urls);
     
-    yPos = addSectionTitle("REGISTRO FOTOGRÁFICO - ANTES", yPos);
-    pdf.setFontSize(9);
-    pdf.text(`${call.photos_before_urls.length} foto(s)`, margin, yPos);
-    yPos += 10;
+    // Validar URLs
+    const validUrls = call.photos_before_urls.filter(url => {
+      const isValid = url && (url.startsWith('http://') || url.startsWith('https://'));
+      if (!isValid) console.warn("⚠️ URL inválida detectada:", url);
+      return isValid;
+    });
     
-    // Layout: 2 fotos por linha, dimensão 80x60mm cada
-    const photoWidth = 80;
-    const photoHeight = 60;
-    const photoSpacing = 10;
-    let xPos = margin;
-    let photosInRow = 0;
-    
-    for (const photoUrl of call.photos_before_urls) {
-      // Verificar se precisa de nova página
-      if (yPos + photoHeight > 270) {
+    if (validUrls.length === 0) {
+      console.error("❌ Nenhuma URL válida encontrada em photos_before_urls!");
+    } else {
+      if (yPos > 240) {
         pdf.addPage();
         yPos = 20;
-        xPos = margin;
-        photosInRow = 0;
       }
       
-      // Carregar e adicionar imagem
-      const imageData = await loadImageAsBase64(photoUrl);
-      if (imageData) {
-        try {
-          pdf.addImage(imageData, 'JPEG', xPos, yPos, photoWidth, photoHeight);
-          
-          // Adicionar borda ao redor da foto
-          pdf.setLineWidth(0.2);
-          pdf.setDrawColor(200, 200, 200);
-          pdf.rect(xPos, yPos, photoWidth, photoHeight);
-        } catch (error) {
-          console.error("Erro ao adicionar imagem ao PDF:", error);
-          // Desenhar placeholder se falhar
+      yPos = addSectionTitle("REGISTRO FOTOGRÁFICO - ANTES", yPos);
+      pdf.setFontSize(9);
+      pdf.text(`${validUrls.length} foto(s)`, margin, yPos);
+      yPos += 10;
+      
+      // Layout: 2 fotos por linha, dimensão 80x60mm cada
+      const photoWidth = 80;
+      const photoHeight = 60;
+      const photoSpacing = 10;
+      let xPos = margin;
+      let photosInRow = 0;
+      
+      for (const photoUrl of validUrls) {
+        console.log("🔄 Processando foto:", photoUrl);
+        
+        // Verificar se precisa de nova página
+        if (yPos + photoHeight > 270) {
+          pdf.addPage();
+          yPos = 20;
+          xPos = margin;
+          photosInRow = 0;
+        }
+        
+        // Carregar e adicionar imagem
+        const imageData = await loadImageAsBase64(photoUrl);
+        if (imageData) {
+          console.log("✅ ImageData obtido, tamanho:", imageData.length, "caracteres");
+          try {
+            // Detectar formato da imagem
+            let format = 'JPEG';
+            if (imageData.startsWith('data:image/png')) {
+              format = 'PNG';
+            } else if (imageData.startsWith('data:image/webp')) {
+              format = 'WEBP';
+            } else if (imageData.startsWith('data:image/gif')) {
+              format = 'GIF';
+            }
+            
+            console.log("🖼️ Formato detectado:", format);
+            
+            pdf.addImage(imageData, format, xPos, yPos, photoWidth, photoHeight);
+            
+            // Adicionar borda ao redor da foto
+            pdf.setLineWidth(0.2);
+            pdf.setDrawColor(200, 200, 200);
+            pdf.rect(xPos, yPos, photoWidth, photoHeight);
+            
+            console.log("✅ Imagem adicionada ao PDF com sucesso");
+          } catch (error) {
+            console.error("❌ Erro ao adicionar imagem ao PDF:", error);
+            // Desenhar placeholder se falhar
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
+            pdf.setFontSize(8);
+            pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
+          }
+        } else {
+          console.error("❌ Falha ao carregar imageData para:", photoUrl);
+          // Desenhar placeholder cinza se não carregar
           pdf.setFillColor(240, 240, 240);
           pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
           pdf.setFontSize(8);
           pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
         }
-      } else {
-        // Desenhar placeholder cinza se não carregar
-        pdf.setFillColor(240, 240, 240);
-        pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
-        pdf.setFontSize(8);
-        pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
+        
+        photosInRow++;
+        
+        // 2 fotos por linha
+        if (photosInRow === 2) {
+          yPos += photoHeight + photoSpacing;
+          xPos = margin;
+          photosInRow = 0;
+        } else {
+          xPos += photoWidth + photoSpacing;
+        }
       }
       
-      photosInRow++;
-      
-      // 2 fotos por linha
-      if (photosInRow === 2) {
+      // Ajustar posição se última linha ficou incompleta
+      if (photosInRow > 0) {
         yPos += photoHeight + photoSpacing;
-        xPos = margin;
-        photosInRow = 0;
-      } else {
-        xPos += photoWidth + photoSpacing;
       }
+      
+      yPos += 5;
     }
-    
-    // Ajustar posição se última linha ficou incompleta
-    if (photosInRow > 0) {
-      yPos += photoHeight + photoSpacing;
-    }
-    
-    yPos += 5;
   }
   
   // Indicador de vídeo ANTES
@@ -284,76 +367,107 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   // PHOTOS AFTER
   if (call.photos_after_urls && call.photos_after_urls.length > 0) {
-    if (yPos > 240) {
-      pdf.addPage();
-      yPos = 20;
-    }
+    console.log("📸 Processando fotos DEPOIS:", call.photos_after_urls);
     
-    yPos = addSectionTitle("REGISTRO FOTOGRÁFICO - DEPOIS", yPos);
-    pdf.setFontSize(9);
-    pdf.text(`${call.photos_after_urls.length} foto(s)`, margin, yPos);
-    yPos += 10;
+    // Validar URLs
+    const validUrls = call.photos_after_urls.filter(url => {
+      const isValid = url && (url.startsWith('http://') || url.startsWith('https://'));
+      if (!isValid) console.warn("⚠️ URL inválida detectada:", url);
+      return isValid;
+    });
     
-    // Layout: 2 fotos por linha, dimensão 80x60mm cada
-    const photoWidth = 80;
-    const photoHeight = 60;
-    const photoSpacing = 10;
-    let xPos = margin;
-    let photosInRow = 0;
-    
-    for (const photoUrl of call.photos_after_urls) {
-      // Verificar se precisa de nova página
-      if (yPos + photoHeight > 270) {
+    if (validUrls.length === 0) {
+      console.error("❌ Nenhuma URL válida encontrada em photos_after_urls!");
+    } else {
+      if (yPos > 240) {
         pdf.addPage();
         yPos = 20;
-        xPos = margin;
-        photosInRow = 0;
       }
       
-      // Carregar e adicionar imagem
-      const imageData = await loadImageAsBase64(photoUrl);
-      if (imageData) {
-        try {
-          pdf.addImage(imageData, 'JPEG', xPos, yPos, photoWidth, photoHeight);
-          
-          // Adicionar borda ao redor da foto
-          pdf.setLineWidth(0.2);
-          pdf.setDrawColor(200, 200, 200);
-          pdf.rect(xPos, yPos, photoWidth, photoHeight);
-        } catch (error) {
-          console.error("Erro ao adicionar imagem ao PDF:", error);
-          // Desenhar placeholder se falhar
+      yPos = addSectionTitle("REGISTRO FOTOGRÁFICO - DEPOIS", yPos);
+      pdf.setFontSize(9);
+      pdf.text(`${validUrls.length} foto(s)`, margin, yPos);
+      yPos += 10;
+      
+      // Layout: 2 fotos por linha, dimensão 80x60mm cada
+      const photoWidth = 80;
+      const photoHeight = 60;
+      const photoSpacing = 10;
+      let xPos = margin;
+      let photosInRow = 0;
+      
+      for (const photoUrl of validUrls) {
+        console.log("🔄 Processando foto:", photoUrl);
+        
+        // Verificar se precisa de nova página
+        if (yPos + photoHeight > 270) {
+          pdf.addPage();
+          yPos = 20;
+          xPos = margin;
+          photosInRow = 0;
+        }
+        
+        // Carregar e adicionar imagem
+        const imageData = await loadImageAsBase64(photoUrl);
+        if (imageData) {
+          console.log("✅ ImageData obtido, tamanho:", imageData.length, "caracteres");
+          try {
+            // Detectar formato da imagem
+            let format = 'JPEG';
+            if (imageData.startsWith('data:image/png')) {
+              format = 'PNG';
+            } else if (imageData.startsWith('data:image/webp')) {
+              format = 'WEBP';
+            } else if (imageData.startsWith('data:image/gif')) {
+              format = 'GIF';
+            }
+            
+            console.log("🖼️ Formato detectado:", format);
+            
+            pdf.addImage(imageData, format, xPos, yPos, photoWidth, photoHeight);
+            
+            // Adicionar borda ao redor da foto
+            pdf.setLineWidth(0.2);
+            pdf.setDrawColor(200, 200, 200);
+            pdf.rect(xPos, yPos, photoWidth, photoHeight);
+            
+            console.log("✅ Imagem adicionada ao PDF com sucesso");
+          } catch (error) {
+            console.error("❌ Erro ao adicionar imagem ao PDF:", error);
+            // Desenhar placeholder se falhar
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
+            pdf.setFontSize(8);
+            pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
+          }
+        } else {
+          console.error("❌ Falha ao carregar imageData para:", photoUrl);
+          // Desenhar placeholder cinza se não carregar
           pdf.setFillColor(240, 240, 240);
           pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
           pdf.setFontSize(8);
           pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
         }
-      } else {
-        // Desenhar placeholder cinza se não carregar
-        pdf.setFillColor(240, 240, 240);
-        pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
-        pdf.setFontSize(8);
-        pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
+        
+        photosInRow++;
+        
+        // 2 fotos por linha
+        if (photosInRow === 2) {
+          yPos += photoHeight + photoSpacing;
+          xPos = margin;
+          photosInRow = 0;
+        } else {
+          xPos += photoWidth + photoSpacing;
+        }
       }
       
-      photosInRow++;
-      
-      // 2 fotos por linha
-      if (photosInRow === 2) {
+      // Ajustar posição se última linha ficou incompleta
+      if (photosInRow > 0) {
         yPos += photoHeight + photoSpacing;
-        xPos = margin;
-        photosInRow = 0;
-      } else {
-        xPos += photoWidth + photoSpacing;
       }
+      
+      yPos += 5;
     }
-    
-    // Ajustar posição se última linha ficou incompleta
-    if (photosInRow > 0) {
-      yPos += photoHeight + photoSpacing;
-    }
-    
-    yPos += 5;
   }
   
   // Indicador de vídeo DEPOIS
