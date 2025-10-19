@@ -59,22 +59,19 @@ export const generateWhatsAppLink = (data: WhatsAppMessageData): string => {
 export const generateWhatsAppLinkWithPdf = (
   data: WhatsAppPdfMessageData
 ): string => {
-  const { phoneNumber, clientName, osNumber, pdfUrl, reportDate } = data;
+  const { phoneNumber, clientName, osNumber, pdfUrl } = data;
   
   const cleanPhone = phoneNumber.replace(/\D/g, '');
   
-  let message = `Olá ${clientName}!\n\n`;
-  message += `✅ O relatório da OS #${osNumber} está pronto!\n\n`;
-  
-  if (reportDate) {
-    message += `📅 Data do relatório: ${reportDate}\n`;
-  }
+  // Mensagem simplificada sem emojis complexos
+  let message = `Ola ${clientName}!\n\n`;
+  message += `O relatorio da OS #${osNumber} esta pronto.\n\n`;
   
   if (pdfUrl) {
-    message += `\n📄 Acesse o relatório completo aqui:\n${pdfUrl}\n`;
+    message += `Acesse aqui:\n${pdfUrl}\n`;
   }
   
-  message += `\nQualquer dúvida, estou à disposição!`;
+  message += `\nDuvidas? Estou a disposicao!`;
   
   const encodedMessage = encodeURIComponent(message);
   
