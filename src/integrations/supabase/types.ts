@@ -161,6 +161,7 @@ export type Database = {
           notes: string | null
           scheduled_date: string
           scheduled_time: string
+          started_at: string | null
           status: Database["public"]["Enums"]["service_status"]
           technician_id: string
           updated_at: string
@@ -175,6 +176,7 @@ export type Database = {
           notes?: string | null
           scheduled_date: string
           scheduled_time: string
+          started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           technician_id: string
           updated_at?: string
@@ -189,6 +191,7 @@ export type Database = {
           notes?: string | null
           scheduled_date?: string
           scheduled_time?: string
+          started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           technician_id?: string
           updated_at?: string

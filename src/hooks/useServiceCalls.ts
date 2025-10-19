@@ -15,6 +15,7 @@ export interface ServiceCall {
   created_by: string;
   created_at: string;
   updated_at: string;
+  started_at?: string;
   clients?: {
     full_name: string;
     phone: string;

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -70,6 +70,14 @@ const ServiceCalls = () => {
 
   const handleStatusChange = (callId: string, newStatus: string) => {
     updateServiceCall({ id: callId, status: newStatus as any });
+  };
+
+  const handleExecuteTask = (callId: string) => {
+    updateServiceCall({ 
+      id: callId, 
+      status: "in_progress",
+      started_at: new Date().toISOString()
+    });
   };
 
   return (
@@ -180,15 +188,26 @@ const ServiceCalls = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/service-calls/edit/${call.id}`)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    {call.status === 'pending' && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleExecuteTask(call.id)}
+                        title="Iniciar atendimento"
+                      >
+                        <Play className="h-4 w-4 mr-1" />
+                        Executar
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/service-calls/edit/${call.id}`)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="sm">
