@@ -118,29 +118,22 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
           return (
             <div key={section.title} className="mb-2">
-              <button
-                onClick={() => toggleSection(section.title)}
-                onMouseEnter={() => {
-                  if (!expandedSections.includes(section.title)) {
-                    setExpandedSections(prev => [...prev, section.title]);
-                  }
-                }}
-                className={`
-                  w-full text-left px-4 py-3 rounded-lg font-semibold text-sm
-                  transition-all duration-200 flex items-center justify-between
-                  ${sectionActive 
-                    ? "bg-primary/50 text-primary-foreground" 
-                    : "text-muted-foreground hover:bg-primary/10"
-                  }
-                `}
-              >
-                <span className="uppercase tracking-wider">{section.title}</span>
-                <ChevronDown 
-                  className={`h-4 w-4 transition-transform duration-300 ${
-                    isExpanded ? "rotate-180" : ""
-                  }`} 
-                />
-              </button>
+            <button
+              onClick={() => toggleSection(section.title)}
+              onMouseEnter={() => {
+                if (!expandedSections.includes(section.title)) {
+                  setExpandedSections(prev => [...prev, section.title]);
+                }
+              }}
+              className="w-full text-left px-4 py-3 rounded-lg font-bold text-sm transition-all duration-200 flex items-center justify-between text-foreground hover:text-primary"
+            >
+              <span className="uppercase tracking-wider">{section.title}</span>
+              <ChevronDown 
+                className={`h-4 w-4 transition-transform duration-300 ${
+                  isExpanded ? "rotate-180" : ""
+                }`} 
+              />
+            </button>
 
               <div
                 className={`
@@ -152,24 +145,24 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                   {section.items.map((item) => {
                     const itemActive = isActiveItem(item.to);
                     
-                    return (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setOpen(false)}
-                        className={`
-                          flex items-center gap-3 px-4 py-2.5 rounded-lg 
-                          transition-all text-sm
-                          ${itemActive
-                            ? "bg-primary/50 text-primary-foreground font-medium"
-                            : "hover:bg-primary/10 text-foreground"
-                          }
-                        `}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </NavLink>
-                    );
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setOpen(false)}
+                      className={`
+                        flex items-center gap-3 px-4 py-2.5 rounded-lg 
+                        transition-all text-sm
+                        ${itemActive
+                          ? "text-primary font-bold"
+                          : "text-foreground hover:text-primary"
+                        }
+                      `}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  );
                   })}
                 </div>
               </div>
