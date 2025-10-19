@@ -63,11 +63,6 @@ const ServiceCalls = () => {
     return statusMap[status as keyof typeof statusMap] || statusMap.pending;
   };
 
-  const getUrgencyBadge = (urgency: string) => {
-    return urgency === "corrective" 
-      ? { label: "Corretiva", variant: "destructive" as const }
-      : { label: "Preventiva", variant: "secondary" as const };
-  };
 
   const filteredCalls = serviceCalls?.filter((call) => {
     const matchesSearch = 
@@ -148,7 +143,7 @@ const ServiceCalls = () => {
                 <TableRow>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Equipamento</TableHead>
-                  <TableHead>Urgência</TableHead>
+                  <TableHead>Tipo de Chamado</TableHead>
                   <TableHead>Técnico</TableHead>
                   <TableHead>Data/Hora</TableHead>
                   <TableHead>Status</TableHead>
@@ -168,9 +163,20 @@ const ServiceCalls = () => {
                     </TableCell>
                     <TableCell>{call.equipment_description}</TableCell>
                     <TableCell>
-                      <Badge variant={getUrgencyBadge(call.urgency).variant}>
-                        {getUrgencyBadge(call.urgency).label}
-                      </Badge>
+                      {call.service_types ? (
+                        <span 
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                          style={{ 
+                            backgroundColor: call.service_types.color + '20',
+                            color: call.service_types.color,
+                            border: `1px solid ${call.service_types.color}`
+                          }}
+                        >
+                          {call.service_types.name}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>{call.technicians?.full_name}</TableCell>
                     <TableCell>
