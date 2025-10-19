@@ -199,7 +199,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex w-full bg-background">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-card">
+      <aside className="hidden lg:flex lg:w-80 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-card">
         <div className="flex flex-col flex-1 overflow-y-auto">
           <div className="flex items-center justify-center h-20 border-b px-4">
             <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
@@ -239,7 +239,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0">
+          <SheetContent side="left" className="w-80 p-0">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-center h-20 border-b">
                 <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
@@ -278,7 +278,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 lg:pl-64 pt-16 lg:pt-0">
+      <main className="flex-1 lg:pl-80 pt-16 lg:pt-0">
         <div className="p-6">{children}</div>
       </main>
     </div>
