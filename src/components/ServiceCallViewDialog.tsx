@@ -35,7 +35,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
-import { generateWhatsAppLinkWithPdf, WhatsAppPdfMessageData } from "@/lib/whatsapp-templates";
+import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 
 interface ServiceCallViewDialogProps {
@@ -119,16 +119,24 @@ const ServiceCallViewDialog = ({
               📄 PDF gerado com sucesso! Envie para o cliente via WhatsApp:
             </p>
             <Button
-              onClick={() => {
-                const whatsappData: WhatsAppPdfMessageData = {
-                  phoneNumber: call.clients!.phone,
-                  clientName: call.clients!.full_name,
-                  osNumber: call.id.substring(0, 8),
-                  pdfUrl: pdfUrl,
-                  reportDate: format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
-                };
-                const link = generateWhatsAppLinkWithPdf(whatsappData);
-                window.open(link, '_blank');
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(pdfUrl);
+                  const link = generateSimpleWhatsAppLink(call.clients!.phone);
+                  window.open(link, '_blank');
+                  
+                  toast({
+                    title: "Link copiado!",
+                    description: "Cole o link do PDF na conversa do WhatsApp",
+                  });
+                } catch (error) {
+                  console.error("Erro ao copiar link:", error);
+                  toast({
+                    title: "Erro",
+                    description: "Não foi possível copiar o link",
+                    variant: "destructive",
+                  });
+                }
               }}
               className="w-full bg-green-600 hover:bg-green-700"
             >

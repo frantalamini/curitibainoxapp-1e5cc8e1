@@ -79,6 +79,15 @@ export const generateWhatsAppLinkWithPdf = (
 };
 
 /**
+ * Gera link do WhatsApp simples (sem mensagem pré-formatada)
+ * Abre conversa para o usuário digitar manualmente
+ */
+export const generateSimpleWhatsAppLink = (phoneNumber: string): string => {
+  const cleanPhone = phoneNumber.replace(/\D/g, '');
+  return `https://wa.me/${cleanPhone}`;
+};
+
+/**
  * Status messages in Portuguese for OS updates
  */
 export const STATUS_MESSAGES: Record<string, string> = {

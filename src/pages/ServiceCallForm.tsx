@@ -38,7 +38,7 @@ import { ChecklistSelector } from "@/components/ChecklistSelector";
 import { generateSignaturePDF } from "@/lib/signaturePdfGenerator";
 import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
-import { generateWhatsAppLinkWithPdf, WhatsAppPdfMessageData } from "@/lib/whatsapp-templates";
+import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 
 const ServiceCallForm = () => {
   const { id } = useParams();
@@ -910,16 +910,24 @@ const ServiceCallForm = () => {
                 {generatedPdfUrl && existingCall.clients && (
                   <Button
                     type="button"
-                    onClick={() => {
-                      const whatsappData: WhatsAppPdfMessageData = {
-                        phoneNumber: existingCall.clients!.phone,
-                        clientName: existingCall.clients!.full_name,
-                        osNumber: existingCall.id.substring(0, 8),
-                        pdfUrl: generatedPdfUrl,
-                        reportDate: format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
-                      };
-                      const link = generateWhatsAppLinkWithPdf(whatsappData);
-                      window.open(link, '_blank');
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(generatedPdfUrl);
+                        const link = generateSimpleWhatsAppLink(existingCall.clients!.phone);
+                        window.open(link, '_blank');
+                        
+                        toast({
+                          title: "Link copiado!",
+                          description: "Cole o link do PDF na conversa do WhatsApp",
+                        });
+                      } catch (error) {
+                        console.error("Erro ao copiar link:", error);
+                        toast({
+                          title: "Erro",
+                          description: "Não foi possível copiar o link",
+                          variant: "destructive",
+                        });
+                      }
                     }}
                     className="bg-green-600 hover:bg-green-700"
                   >
