@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface SignaturePadProps {
   title: string;
@@ -16,15 +17,24 @@ export const SignaturePad = ({ title, onSave, showExtraFields = false }: Signatu
   const [customerName, setCustomerName] = useState("");
   const [customerPosition, setCustomerPosition] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const { toast } = useToast();
 
   const clear = () => {
     sigPadRef.current?.clear();
     setIsSaved(false);
+    toast({
+      title: "Assinatura Limpa",
+      description: "Você pode fazer uma nova assinatura.",
+    });
   };
 
   const save = () => {
     if (sigPadRef.current?.isEmpty()) {
-      alert("Por favor, assine antes de salvar.");
+      toast({
+        title: "Atenção",
+        description: "Por favor, assine antes de salvar.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -32,12 +42,24 @@ export const SignaturePad = ({ title, onSave, showExtraFields = false }: Signatu
     
     if (showExtraFields) {
       if (!customerName || !customerPosition) {
-        alert("Por favor, preencha nome e cargo.");
+        toast({
+          title: "Campos Obrigatórios",
+          description: "Por favor, preencha nome e cargo antes de salvar.",
+          variant: "destructive"
+        });
         return;
       }
       onSave(dataURL, { name: customerName, position: customerPosition });
+      toast({
+        title: "✅ Assinatura Salva",
+        description: "Assinatura do responsável salva com sucesso!",
+      });
     } else {
       onSave(dataURL);
+      toast({
+        title: "✅ Assinatura Salva",
+        description: "Assinatura do técnico salva com sucesso!",
+      });
     }
     
     setIsSaved(true);

@@ -401,10 +401,18 @@ const ServiceCallForm = () => {
 
       if (isEditMode && id) {
         updateServiceCall({ id, ...formattedData });
+        toast({
+          title: "✅ Chamado Atualizado",
+          description: "As alterações foram salvas com sucesso!",
+        });
       } else {
         createServiceCall(formattedData);
+        toast({
+          title: "✅ Chamado Criado",
+          description: "Novo chamado criado com sucesso!",
+        });
       }
-      
+
       navigate("/service-calls");
     } catch (error) {
       console.error('Erro ao salvar chamado:', error);
