@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Plus } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { SignaturePad } from "@/components/SignaturePad";
 import { ChecklistSelector } from "@/components/ChecklistSelector";
+import { ClientFormDialog } from "@/components/ClientFormDialog";
 import { generateSignaturePDF } from "@/lib/signaturePdfGenerator";
 import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
@@ -86,6 +87,7 @@ const ServiceCallForm = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
+  const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
 
   const {
     register,
@@ -465,12 +467,24 @@ const ServiceCallForm = () => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="client_id">Cliente</Label>
-                    <Select onValueChange={setSelectedClientId}>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="client_id">Cliente</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsClientDialogOpen(true)}
+                        className="text-xs"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Novo Cliente
+                      </Button>
+                    </div>
+                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Selecione um cliente" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-[300px]">
                         {clients?.map((client) => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.full_name}
@@ -479,16 +493,17 @@ const ServiceCallForm = () => {
                       </SelectContent>
                     </Select>
                     {selectedClient && (
-                      <div className="mt-2">
+                      <div className="mt-2 p-3 bg-muted rounded-md">
                         <p className="font-semibold">
                           {selectedClient.full_name}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Telefone: {selectedClient.phone}
                         </p>
-                        {selectedClient.address && (
+                        {selectedClient.street && (
                           <p className="text-sm text-muted-foreground">
-                            Endereço: {selectedClient.address}
+                            {selectedClient.street}, {selectedClient.number}
+                            {selectedClient.city && ` - ${selectedClient.city}`}
                           </p>
                         )}
                       </div>
@@ -946,6 +961,17 @@ const ServiceCallForm = () => {
             </Button>
           </div>
         </form>
+
+        {/* Dialog de criação de cliente */}
+        <ClientFormDialog
+          open={isClientDialogOpen}
+          onOpenChange={setIsClientDialogOpen}
+          onClientCreated={(newClientId) => {
+            setSelectedClientId(newClientId);
+            setValue("client_id", newClientId);
+            setIsClientDialogOpen(false);
+          }}
+        />
       </div>
     </MainLayout>
   );
