@@ -4,6 +4,23 @@ import { ptBR } from "date-fns/locale";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { supabase } from "@/integrations/supabase/client";
 
+// Helper function to load images as Base64
+const loadImageAsBase64 = async (url: string): Promise<string | null> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Erro ao carregar imagem:", error);
+    return null;
+  }
+};
+
 export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPDF> => {
   // Buscar dados do checklist se houver
   let checklistItems: Array<{ id: string; text: string }> = [];
@@ -177,16 +194,92 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
       pdf.addPage();
       yPos = 20;
     }
+    
     yPos = addSectionTitle("REGISTRO FOTOGRÁFICO - ANTES", yPos);
     pdf.setFontSize(9);
-    pdf.text(`Total de fotos: ${call.photos_before_urls.length}`, margin, yPos);
-    yPos += 6;
+    pdf.text(`${call.photos_before_urls.length} foto(s)`, margin, yPos);
+    yPos += 10;
     
-    if (call.video_before_url) {
-      pdf.text("* Vídeo disponível no sistema", margin, yPos);
-      yPos += 6;
+    // Layout: 2 fotos por linha, dimensão 80x60mm cada
+    const photoWidth = 80;
+    const photoHeight = 60;
+    const photoSpacing = 10;
+    let xPos = margin;
+    let photosInRow = 0;
+    
+    for (const photoUrl of call.photos_before_urls) {
+      // Verificar se precisa de nova página
+      if (yPos + photoHeight > 270) {
+        pdf.addPage();
+        yPos = 20;
+        xPos = margin;
+        photosInRow = 0;
+      }
+      
+      // Carregar e adicionar imagem
+      const imageData = await loadImageAsBase64(photoUrl);
+      if (imageData) {
+        try {
+          pdf.addImage(imageData, 'JPEG', xPos, yPos, photoWidth, photoHeight);
+          
+          // Adicionar borda ao redor da foto
+          pdf.setLineWidth(0.2);
+          pdf.setDrawColor(200, 200, 200);
+          pdf.rect(xPos, yPos, photoWidth, photoHeight);
+        } catch (error) {
+          console.error("Erro ao adicionar imagem ao PDF:", error);
+          // Desenhar placeholder se falhar
+          pdf.setFillColor(240, 240, 240);
+          pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
+          pdf.setFontSize(8);
+          pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
+        }
+      } else {
+        // Desenhar placeholder cinza se não carregar
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
+        pdf.setFontSize(8);
+        pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
+      }
+      
+      photosInRow++;
+      
+      // 2 fotos por linha
+      if (photosInRow === 2) {
+        yPos += photoHeight + photoSpacing;
+        xPos = margin;
+        photosInRow = 0;
+      } else {
+        xPos += photoWidth + photoSpacing;
+      }
     }
+    
+    // Ajustar posição se última linha ficou incompleta
+    if (photosInRow > 0) {
+      yPos += photoHeight + photoSpacing;
+    }
+    
     yPos += 5;
+  }
+  
+  // Indicador de vídeo ANTES
+  if (call.video_before_url) {
+    if (yPos > 260) {
+      pdf.addPage();
+      yPos = 20;
+    }
+    
+    pdf.setFillColor(230, 230, 250);
+    pdf.rect(margin, yPos, pageWidth - 2*margin, 20, 'F');
+    
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("▶ VÍDEO DISPONÍVEL", margin + 5, yPos + 8);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.text("Acesse o sistema para visualizar o vídeo completo", margin + 5, yPos + 15);
+    
+    yPos += 25;
   }
 
   // PHOTOS AFTER
@@ -195,16 +288,92 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
       pdf.addPage();
       yPos = 20;
     }
+    
     yPos = addSectionTitle("REGISTRO FOTOGRÁFICO - DEPOIS", yPos);
     pdf.setFontSize(9);
-    pdf.text(`Total de fotos: ${call.photos_after_urls.length}`, margin, yPos);
-    yPos += 6;
+    pdf.text(`${call.photos_after_urls.length} foto(s)`, margin, yPos);
+    yPos += 10;
     
-    if (call.video_after_url) {
-      pdf.text("* Vídeo disponível no sistema", margin, yPos);
-      yPos += 6;
+    // Layout: 2 fotos por linha, dimensão 80x60mm cada
+    const photoWidth = 80;
+    const photoHeight = 60;
+    const photoSpacing = 10;
+    let xPos = margin;
+    let photosInRow = 0;
+    
+    for (const photoUrl of call.photos_after_urls) {
+      // Verificar se precisa de nova página
+      if (yPos + photoHeight > 270) {
+        pdf.addPage();
+        yPos = 20;
+        xPos = margin;
+        photosInRow = 0;
+      }
+      
+      // Carregar e adicionar imagem
+      const imageData = await loadImageAsBase64(photoUrl);
+      if (imageData) {
+        try {
+          pdf.addImage(imageData, 'JPEG', xPos, yPos, photoWidth, photoHeight);
+          
+          // Adicionar borda ao redor da foto
+          pdf.setLineWidth(0.2);
+          pdf.setDrawColor(200, 200, 200);
+          pdf.rect(xPos, yPos, photoWidth, photoHeight);
+        } catch (error) {
+          console.error("Erro ao adicionar imagem ao PDF:", error);
+          // Desenhar placeholder se falhar
+          pdf.setFillColor(240, 240, 240);
+          pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
+          pdf.setFontSize(8);
+          pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
+        }
+      } else {
+        // Desenhar placeholder cinza se não carregar
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(xPos, yPos, photoWidth, photoHeight, 'F');
+        pdf.setFontSize(8);
+        pdf.text("Imagem não disponível", xPos + photoWidth/2, yPos + photoHeight/2, { align: "center" });
+      }
+      
+      photosInRow++;
+      
+      // 2 fotos por linha
+      if (photosInRow === 2) {
+        yPos += photoHeight + photoSpacing;
+        xPos = margin;
+        photosInRow = 0;
+      } else {
+        xPos += photoWidth + photoSpacing;
+      }
     }
+    
+    // Ajustar posição se última linha ficou incompleta
+    if (photosInRow > 0) {
+      yPos += photoHeight + photoSpacing;
+    }
+    
     yPos += 5;
+  }
+  
+  // Indicador de vídeo DEPOIS
+  if (call.video_after_url) {
+    if (yPos > 260) {
+      pdf.addPage();
+      yPos = 20;
+    }
+    
+    pdf.setFillColor(230, 230, 250);
+    pdf.rect(margin, yPos, pageWidth - 2*margin, 20, 'F');
+    
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("▶ VÍDEO DISPONÍVEL", margin + 5, yPos + 8);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.text("Acesse o sistema para visualizar o vídeo completo", margin + 5, yPos + 15);
+    
+    yPos += 25;
   }
 
   // CHECKLIST
