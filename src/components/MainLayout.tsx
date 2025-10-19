@@ -29,7 +29,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<string[]>([]);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -51,11 +51,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   const toggleSection = (title: string) => {
-    setExpandedSections(prev =>
-      prev.includes(title)
-        ? prev.filter(t => t !== title)
-        : [...prev, title]
-    );
+    setExpandedSection(prev => prev === title ? null : title);
   };
 
 
@@ -102,17 +98,17 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
       const current = getActiveSection();
-      if (current && expandedSections.includes(current)) {
+      if (current && expandedSection === current) {
         setActiveSection(current);
       }
-    }, [location.pathname, expandedSections]);
+    }, [location.pathname, expandedSection]);
 
     return (
       <div className="flex gap-4">
         {/* COLUNA ESQUERDA: Títulos principais */}
         <div className="w-48 space-y-2">
           {menuSections.map((section) => {
-            const isExpanded = expandedSections.includes(section.title);
+            const isExpanded = expandedSection === section.title;
             const isCurrent = getActiveSection() === section.title;
 
             return (
@@ -120,15 +116,11 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                 key={section.title}
                 onClick={() => toggleSection(section.title)}
                 onMouseEnter={() => {
-                  if (!expandedSections.includes(section.title)) {
-                    setExpandedSections(prev => [...prev, section.title]);
-                  }
+                  setExpandedSection(section.title);
                 }}
                 onMouseLeave={() => {
                   if (!isCurrent) {
-                    setExpandedSections(prev => 
-                      prev.filter(t => t !== section.title)
-                    );
+                    setExpandedSection(null);
                   }
                 }}
                 className={`
@@ -149,7 +141,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
         {/* COLUNA DIREITA: Sub-itens */}
         <div className="flex-1">
           {menuSections.map((section) => {
-            const isExpanded = expandedSections.includes(section.title);
+            const isExpanded = expandedSection === section.title;
             
             if (!isExpanded) return null;
 
