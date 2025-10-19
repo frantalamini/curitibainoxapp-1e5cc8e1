@@ -145,31 +145,42 @@ const ServiceCalls = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
+                  <TableHead className="w-24">Nº OS</TableHead>
+                  <TableHead className="w-32">Data/Hora</TableHead>
+                  <TableHead className="w-48">Cliente</TableHead>
                   <TableHead>Equipamento</TableHead>
-                  <TableHead>Tipo de Chamado</TableHead>
-                  <TableHead>Técnico</TableHead>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="w-40">Tipo de Chamado</TableHead>
+                  <TableHead className="w-36">Técnico</TableHead>
+                  <TableHead className="w-32">Status</TableHead>
+                  <TableHead className="text-right w-24">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCalls.map((call) => (
                   <TableRow key={call.id}>
-              <TableCell>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono bg-primary/10 text-primary px-2 py-0.5 rounded">
-                      OS #{call.os_number}
-                    </span>
-                    <span className="font-medium">{call.clients?.full_name}</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {call.clients?.phone}
-                  </div>
-                </div>
-              </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-lg font-semibold">
+                        {call.os_number}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="text-sm">
+                          {format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {call.scheduled_time}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{call.clients?.full_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {call.clients?.phone}
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell>{call.equipment_description}</TableCell>
                     <TableCell>
                       {call.service_types ? (
@@ -188,16 +199,6 @@ const ServiceCalls = () => {
                       )}
                     </TableCell>
                     <TableCell>{call.technicians?.full_name}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">
-                          {format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {call.scheduled_time}
-                        </div>
-                      </div>
-                    </TableCell>
                     <TableCell>
                       <Select
                         value={call.status}
