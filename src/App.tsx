@@ -20,6 +20,8 @@ import ServiceCallForm from "./pages/ServiceCallForm";
 import ServiceTypes from "./pages/ServiceTypes";
 import ServiceTypeForm from "./pages/ServiceTypeForm";
 import Schedule from "./pages/Schedule";
+import Checklists from "./pages/Checklists";
+import ChecklistForm from "./pages/ChecklistForm";
 
 const queryClient = new QueryClient();
 
@@ -194,6 +196,30 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Schedule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checklists"
+            element={
+              <ProtectedRoute>
+                <Checklists />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checklists/new"
+            element={
+              <ProtectedRoute>
+                <ChecklistForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checklists/edit/:id"
+            element={
+              <ProtectedRoute>
+                <ChecklistForm />
               </ProtectedRoute>
             }
           />

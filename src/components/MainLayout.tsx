@@ -19,6 +19,7 @@ import {
   Menu,
   ChevronDown,
   Tags,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -63,6 +64,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
         ...(isAdmin ? [{ to: "/technicians", icon: Wrench, label: "Técnicos" }] : []),
         { to: "/clients", icon: Building2, label: "Clientes / Fornecedores" },
         { to: "/service-types", icon: Tags, label: "Tipos de Serviço" },
+        { to: "/checklists", icon: ClipboardList, label: "Checklists" },
       ]
     },
     {

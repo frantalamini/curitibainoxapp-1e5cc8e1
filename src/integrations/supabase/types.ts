@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      checklists: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          description: string | null
+          id: string
+          items: Json
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          items?: Json
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          items?: Json
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -154,59 +184,114 @@ export type Database = {
       service_calls: {
         Row: {
           audio_url: string | null
+          checklist_id: string | null
+          checklist_responses: Json | null
           client_id: string
           created_at: string
           created_by: string
+          customer_name: string | null
+          customer_position: string | null
+          customer_signature_data: string | null
+          customer_signature_date: string | null
+          customer_signature_url: string | null
           equipment_description: string
           id: string
           media_urls: string[] | null
           notes: string | null
+          photos_after_urls: string[] | null
+          photos_before_urls: string[] | null
           problem_description: string | null
           scheduled_date: string
           scheduled_time: string
           service_type_id: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["service_status"]
+          technical_diagnosis: string | null
+          technical_diagnosis_audio_url: string | null
           technician_id: string
+          technician_signature_data: string | null
+          technician_signature_date: string | null
+          technician_signature_url: string | null
           updated_at: string
+          video_after_url: string | null
+          video_before_url: string | null
         }
         Insert: {
           audio_url?: string | null
+          checklist_id?: string | null
+          checklist_responses?: Json | null
           client_id: string
           created_at?: string
           created_by: string
+          customer_name?: string | null
+          customer_position?: string | null
+          customer_signature_data?: string | null
+          customer_signature_date?: string | null
+          customer_signature_url?: string | null
           equipment_description: string
           id?: string
           media_urls?: string[] | null
           notes?: string | null
+          photos_after_urls?: string[] | null
+          photos_before_urls?: string[] | null
           problem_description?: string | null
           scheduled_date: string
           scheduled_time: string
           service_type_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
+          technical_diagnosis?: string | null
+          technical_diagnosis_audio_url?: string | null
           technician_id: string
+          technician_signature_data?: string | null
+          technician_signature_date?: string | null
+          technician_signature_url?: string | null
           updated_at?: string
+          video_after_url?: string | null
+          video_before_url?: string | null
         }
         Update: {
           audio_url?: string | null
+          checklist_id?: string | null
+          checklist_responses?: Json | null
           client_id?: string
           created_at?: string
           created_by?: string
+          customer_name?: string | null
+          customer_position?: string | null
+          customer_signature_data?: string | null
+          customer_signature_date?: string | null
+          customer_signature_url?: string | null
           equipment_description?: string
           id?: string
           media_urls?: string[] | null
           notes?: string | null
+          photos_after_urls?: string[] | null
+          photos_before_urls?: string[] | null
           problem_description?: string | null
           scheduled_date?: string
           scheduled_time?: string
           service_type_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
+          technical_diagnosis?: string | null
+          technical_diagnosis_audio_url?: string | null
           technician_id?: string
+          technician_signature_data?: string | null
+          technician_signature_date?: string | null
+          technician_signature_url?: string | null
           updated_at?: string
+          video_after_url?: string | null
+          video_before_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "service_calls_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "checklists"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_calls_client_id_fkey"
             columns: ["client_id"]
