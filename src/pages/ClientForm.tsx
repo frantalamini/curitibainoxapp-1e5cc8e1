@@ -95,13 +95,13 @@ const clientSchema = z.object({
   
   // Responsáveis no estabelecimento
   responsible_financial: z.object({
-    name: z.string().trim().max(100, "Nome muito longo").optional().or(z.literal("")),
-    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").optional().or(z.literal("")),
-  }).optional().nullable(),
+    name: z.string().trim().max(100, "Nome muito longo").default(""),
+    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
+  }).nullable().default(null),
   responsible_technical: z.object({
-    name: z.string().trim().max(100, "Nome muito longo").optional().or(z.literal("")),
-    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").optional().or(z.literal("")),
-  }).optional().nullable(),
+    name: z.string().trim().max(100, "Nome muito longo").default(""),
+    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
+  }).nullable().default(null),
 });
 
 const ClientForm = () => {
@@ -178,21 +178,54 @@ const ClientForm = () => {
     }
   };
 
-  const onSubmit = async (data: ClientInsert) => {
-    if (isEdit) {
-      await updateClient.mutateAsync({ id: id!, ...data });
-      toast({
-        title: "✅ Cliente Atualizado",
-        description: "As alterações foram salvas com sucesso!",
-      });
-    } else {
-      await createClient.mutateAsync(data);
-      toast({
-        title: "✅ Cliente Criado",
-        description: "Novo cliente criado com sucesso!",
-      });
+  const cleanEmptyObjects = (data: ClientInsert): ClientInsert => {
+    const cleaned = { ...data };
+    
+    // Limpar responsible_financial se estiver vazio
+    if (cleaned.responsible_financial) {
+      const hasFinancialData = cleaned.responsible_financial.name || cleaned.responsible_financial.phone;
+      if (!hasFinancialData) {
+        cleaned.responsible_financial = null;
+      }
     }
-    navigate("/clients");
+    
+    // Limpar responsible_technical se estiver vazio
+    if (cleaned.responsible_technical) {
+      const hasTechnicalData = cleaned.responsible_technical.name || cleaned.responsible_technical.phone;
+      if (!hasTechnicalData) {
+        cleaned.responsible_technical = null;
+      }
+    }
+    
+    return cleaned;
+  };
+
+  const onSubmit = async (formData: ClientInsert) => {
+    try {
+      const data = cleanEmptyObjects(formData);
+      
+      if (isEdit) {
+        await updateClient.mutateAsync({ id: id!, ...data });
+        toast({
+          title: "✅ Cliente Atualizado",
+          description: "As alterações foram salvas com sucesso!",
+        });
+      } else {
+        await createClient.mutateAsync(data);
+        toast({
+          title: "✅ Cliente Criado",
+          description: "Novo cliente criado com sucesso!",
+        });
+      }
+      navigate("/clients");
+    } catch (error) {
+      toast({
+        title: "❌ Erro ao salvar",
+        description: "Não foi possível salvar os dados do cliente. Tente novamente.",
+        variant: "destructive",
+      });
+      console.error("Erro ao salvar cliente:", error);
+    }
   };
 
 
