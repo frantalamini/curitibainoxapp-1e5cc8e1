@@ -96,14 +96,12 @@ const clientSchema = z.object({
   // Responsáveis no estabelecimento
   responsible_financial: z.object({
     name: z.string().trim().max(100, "Nome muito longo").optional().or(z.literal("")),
-    role: z.string().trim().max(100, "Cargo muito longo").optional().or(z.literal("")),
     phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").optional().or(z.literal("")),
-  }).optional(),
+  }).optional().nullable(),
   responsible_technical: z.object({
     name: z.string().trim().max(100, "Nome muito longo").optional().or(z.literal("")),
-    role: z.string().trim().max(100, "Cargo muito longo").optional().or(z.literal("")),
     phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").optional().or(z.literal("")),
-  }).optional(),
+  }).optional().nullable(),
 });
 
 const ClientForm = () => {
@@ -504,15 +502,6 @@ const ClientForm = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="responsible_financial.role">Cargo</Label>
-                  <Input
-                    id="responsible_financial.role"
-                    {...register("responsible_financial.role")}
-                    placeholder="Ex: Gerente Financeiro, Contador"
-                  />
-                </div>
-                
-                <div className="space-y-2">
                   <Label htmlFor="responsible_financial.phone">Telefone</Label>
                   <InputMask
                     mask="(99) 99999-9999"
@@ -544,15 +533,6 @@ const ClientForm = () => {
                     id="responsible_technical.name"
                     {...register("responsible_technical.name")}
                     placeholder="Nome do responsável técnico"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="responsible_technical.role">Cargo</Label>
-                  <Input
-                    id="responsible_technical.role"
-                    {...register("responsible_technical.role")}
-                    placeholder="Ex: Supervisor de Manutenção"
                   />
                 </div>
                 

@@ -25,14 +25,12 @@ export type Client = {
   // Responsáveis no estabelecimento
   responsible_financial?: {
     name?: string;
-    role?: string;
     phone?: string;
-  };
+  } | null;
   responsible_technical?: {
     name?: string;
-    role?: string;
     phone?: string;
-  };
+  } | null;
   
   created_by: string;
   created_at: string;
