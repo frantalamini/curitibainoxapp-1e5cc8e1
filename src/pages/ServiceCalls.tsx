@@ -47,6 +47,8 @@ const ServiceCalls = () => {
     const statusParam = searchParams.get("status");
     if (statusParam) {
       setStatusFilter(statusParam);
+    } else {
+      setStatusFilter("all");
     }
   }, [searchParams]);
 

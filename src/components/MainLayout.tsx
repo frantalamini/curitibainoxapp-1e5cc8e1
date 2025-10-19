@@ -66,6 +66,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     {
       title: "CHAMADOS",
       items: [
+        { to: "/service-calls", icon: Package, label: "Todos os Chamados" },
         { to: "/service-calls?status=pending", icon: Clock, label: "Aguardando Início" },
         { to: "/service-calls?status=in_progress", icon: Activity, label: "Em Andamento" },
         { to: "/service-calls?status=on_hold", icon: AlertCircle, label: "Com Pendências" },
