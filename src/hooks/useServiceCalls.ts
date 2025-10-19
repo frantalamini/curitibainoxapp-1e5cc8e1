@@ -47,6 +47,40 @@ export interface ServiceCallInsert {
   service_type_id?: string;
 }
 
+export const useServiceCall = (id?: string) => {
+  return useQuery({
+    queryKey: ["service-call", id],
+    queryFn: async () => {
+      if (!id) return null;
+      
+      const { data, error } = await supabase
+        .from("service_calls")
+        .select(`
+          *,
+          clients (
+            full_name,
+            phone,
+            address
+          ),
+          technicians (
+            full_name,
+            phone
+          ),
+          service_types (
+            name,
+            color
+          )
+        `)
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      return data as ServiceCall;
+    },
+    enabled: !!id,
+  });
+};
+
 export const useServiceCalls = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();

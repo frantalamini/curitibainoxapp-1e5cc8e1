@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { CalendarIcon, Mic, Upload, Square, Volume2, X } from "lucide-react";
@@ -26,18 +26,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
 import { useTechnicians } from "@/hooks/useTechnicians";
-import { useServiceCalls, ServiceCallInsert } from "@/hooks/useServiceCalls";
+import { useServiceCalls, useServiceCall, ServiceCallInsert } from "@/hooks/useServiceCalls";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const ServiceCallForm = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { clients, isLoading: clientsLoading } = useClients();
   const { technicians, isLoading: techniciansLoading } = useTechnicians();
   const { serviceTypes, isLoading: serviceTypesLoading } = useServiceTypes();
-  const { createServiceCall } = useServiceCalls();
+  const { data: existingCall, isLoading: isLoadingCall } = useServiceCall(id);
+  const isEditMode = !!id;
+  const { createServiceCall, updateServiceCall } = useServiceCalls();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("");
@@ -75,6 +78,25 @@ const ServiceCallForm = () => {
       mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
     };
   }, []);
+
+  // Preencher formulário quando estiver editando
+  useEffect(() => {
+    if (existingCall && isEditMode) {
+      setValue("client_id", existingCall.client_id);
+      setValue("equipment_description", existingCall.equipment_description);
+      setValue("problem_description", existingCall.problem_description || "");
+      setValue("technician_id", existingCall.technician_id);
+      setValue("scheduled_time", existingCall.scheduled_time);
+      setValue("notes", existingCall.notes || "");
+      setValue("service_type_id", existingCall.service_type_id || "");
+      
+      setSelectedClientId(existingCall.client_id);
+      setSelectedTechnicianId(existingCall.technician_id);
+      setSelectedServiceTypeId(existingCall.service_type_id || "");
+      setSelectedTime(existingCall.scheduled_time);
+      setSelectedDate(new Date(existingCall.scheduled_date));
+    }
+  }, [existingCall, isEditMode, setValue]);
 
   // Funções de gravação de áudio
   const startRecording = async () => {
@@ -132,10 +154,10 @@ const ServiceCallForm = () => {
     setIsUploading(true);
 
     try {
-      let audioUrl: string | undefined;
-      let mediaUrls: string[] = [];
+      let audioUrl: string | undefined = isEditMode ? existingCall?.audio_url : undefined;
+      let mediaUrls: string[] = isEditMode ? (existingCall?.media_urls || []) : [];
 
-      // 1. Upload do áudio (se houver)
+      // Upload de novos arquivos (se houver)
       if (audioFile) {
         const audioPath = `audio/${Date.now()}-${audioFile.name}`;
         const { data: audioData, error: audioError } = await supabase.storage
@@ -156,7 +178,6 @@ const ServiceCallForm = () => {
           return;
         }
 
-        // Obter URL pública do áudio
         const { data: { publicUrl } } = supabase.storage
           .from('service-call-attachments')
           .getPublicUrl(audioPath);
@@ -164,7 +185,6 @@ const ServiceCallForm = () => {
         audioUrl = publicUrl;
       }
 
-      // 2. Upload das fotos/vídeos (se houver)
       if (mediaFiles.length > 0) {
         for (const file of mediaFiles) {
           const fileExt = file.name.split('.').pop();
@@ -187,7 +207,6 @@ const ServiceCallForm = () => {
             continue;
           }
 
-          // Obter URL pública da mídia
           const { data: { publicUrl } } = supabase.storage
             .from('service-call-attachments')
             .getPublicUrl(filePath);
@@ -196,21 +215,25 @@ const ServiceCallForm = () => {
         }
       }
 
-      // 3. Criar o chamado com as URLs dos arquivos
-      const formattedData: ServiceCallInsert = {
+      const formattedData: any = {
         ...data,
         scheduled_date: format(selectedDate, "yyyy-MM-dd"),
         audio_url: audioUrl,
         media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
       };
 
-      createServiceCall(formattedData);
+      if (isEditMode && id) {
+        updateServiceCall({ id, ...formattedData });
+      } else {
+        createServiceCall(formattedData);
+      }
+      
       navigate("/service-calls");
     } catch (error) {
-      console.error('Erro ao criar chamado:', error);
+      console.error('Erro ao salvar chamado:', error);
       toast({
         title: "Erro",
-        description: "Erro ao criar o chamado. Tente novamente.",
+        description: "Erro ao salvar o chamado. Tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -218,12 +241,26 @@ const ServiceCallForm = () => {
     }
   };
 
+  if (isLoadingCall && isEditMode) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center py-8">
+          <div>Carregando dados do chamado...</div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Novo Chamado Técnico</h1>
-          <p className="text-muted-foreground">Criar novo chamado de serviço</p>
+          <h1 className="text-3xl font-bold">
+            {isEditMode ? "Editar Chamado Técnico" : "Novo Chamado Técnico"}
+          </h1>
+          <p className="text-muted-foreground">
+            {isEditMode ? "Editar informações do chamado de serviço" : "Criar novo chamado de serviço"}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -643,8 +680,8 @@ const ServiceCallForm = () => {
           </Card>
 
           <div className="flex gap-4 mt-6">
-            <Button type="submit" disabled={isUploading}>
-              {isUploading ? "Enviando arquivos..." : "Criar Chamado"}
+            <Button type="submit" disabled={isUploading || isLoadingCall}>
+              {isUploading ? "Enviando arquivos..." : isEditMode ? "Atualizar Chamado" : "Criar Chamado"}
             </Button>
             <Button type="button" variant="outline" onClick={() => navigate("/service-calls")} disabled={isUploading}>
               Cancelar
