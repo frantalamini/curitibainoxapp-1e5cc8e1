@@ -36,7 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SignaturePad } from "@/components/SignaturePad";
 import { ChecklistSelector } from "@/components/ChecklistSelector";
 import { ClientFormDialog } from "@/components/ClientFormDialog";
-import { generateSignaturePDF } from "@/lib/signaturePdfGenerator";
+
 import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
@@ -349,35 +349,31 @@ const ServiceCallForm = () => {
       }
 
       if (technicianSignatureData) {
-        const pdfBlob = await generateSignaturePDF(technicianSignatureData, 'technician');
-        const pdfPath = `signatures/tech-${Date.now()}.pdf`;
+        const blob = await fetch(technicianSignatureData).then(r => r.blob());
+        const pngPath = `signatures/tech-${Date.now()}.png`;
         const { error } = await supabase.storage
           .from('service-call-attachments')
-          .upload(pdfPath, pdfBlob, { contentType: 'application/pdf' });
+          .upload(pngPath, blob, { contentType: 'image/png' });
 
         if (!error) {
           const { data: { publicUrl } } = supabase.storage
             .from('service-call-attachments')
-            .getPublicUrl(pdfPath);
+            .getPublicUrl(pngPath);
           technicianSignatureUrl = publicUrl;
         }
       }
 
       if (customerSignatureData) {
-        const pdfBlob = await generateSignaturePDF(
-          customerSignatureData, 
-          'customer',
-          { name: customerName, position: customerPosition }
-        );
-        const pdfPath = `signatures/customer-${Date.now()}.pdf`;
+        const blob = await fetch(customerSignatureData).then(r => r.blob());
+        const pngPath = `signatures/customer-${Date.now()}.png`;
         const { error } = await supabase.storage
           .from('service-call-attachments')
-          .upload(pdfPath, pdfBlob, { contentType: 'application/pdf' });
+          .upload(pngPath, blob, { contentType: 'image/png' });
 
         if (!error) {
           const { data: { publicUrl } } = supabase.storage
             .from('service-call-attachments')
-            .getPublicUrl(pdfPath);
+            .getPublicUrl(pngPath);
           customerSignatureUrl = publicUrl;
         }
       }

@@ -522,7 +522,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     
     Object.entries(responses).forEach(([itemId, checked]) => {
       // Buscar texto da pergunta usando o ID
-      const questionText = itemTextMap.get(itemId) || itemId;
+      const questionText = itemTextMap.get(itemId) || `Item não encontrado (ID: ${itemId})`;
       
       // Símbolo ASCII simples
       const symbol = checked ? "[X]" : "[ ]";
