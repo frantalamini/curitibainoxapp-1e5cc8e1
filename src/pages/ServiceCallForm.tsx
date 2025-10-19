@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,8 @@ import { SignaturePad } from "@/components/SignaturePad";
 import { ChecklistSelector } from "@/components/ChecklistSelector";
 import { generateSignaturePDF } from "@/lib/signaturePdfGenerator";
 import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
+import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
+import { generateWhatsAppLinkWithPdf, WhatsAppPdfMessageData } from "@/lib/whatsapp-templates";
 
 const ServiceCallForm = () => {
   const { id } = useParams();
@@ -83,6 +85,7 @@ const ServiceCallForm = () => {
   const [mediaPreviews, setMediaPreviews] = useState<{file: File, url: string, type: 'image' | 'video'}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
 
   const {
     register,
@@ -870,34 +873,61 @@ const ServiceCallForm = () => {
               {isUploading ? "Salvando..." : isEditMode ? "Atualizar Chamado" : "Criar Chamado"}
             </Button>
             {isEditMode && existingCall && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    setIsGeneratingPDF(true);
-                    const pdf = await generateServiceCallReport(existingCall);
-                    pdf.save(`Relatorio-Chamado-${existingCall.id.substring(0, 8)}.pdf`);
-                    toast({
-                      title: "PDF Gerado!",
-                      description: "O relatório foi baixado com sucesso.",
-                    });
-                  } catch (error) {
-                    console.error("Error generating PDF:", error);
-                    toast({
-                      title: "Erro ao gerar PDF",
-                      description: "Ocorreu um erro ao gerar o relatório.",
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setIsGeneratingPDF(false);
-                  }
-                }}
-                disabled={isGeneratingPDF}
-              >
-                <FileDown className="w-4 h-4 mr-2" />
-                {isGeneratingPDF ? "Gerando..." : "Gerar PDF"}
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      setIsGeneratingPDF(true);
+                      const pdf = await generateServiceCallReport(existingCall);
+                      pdf.save(`Relatorio-Chamado-${existingCall.id.substring(0, 8)}.pdf`);
+                      
+                      // Upload para storage
+                      const uploadedUrl = await uploadPdfToStorage(pdf, existingCall.id);
+                      setGeneratedPdfUrl(uploadedUrl);
+                      
+                      toast({
+                        title: "PDF Gerado!",
+                        description: "O relatório foi baixado e está pronto para envio.",
+                      });
+                    } catch (error) {
+                      console.error("Error generating PDF:", error);
+                      toast({
+                        title: "Erro ao gerar PDF",
+                        description: "Ocorreu um erro ao gerar o relatório.",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setIsGeneratingPDF(false);
+                    }
+                  }}
+                  disabled={isGeneratingPDF}
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  {isGeneratingPDF ? "Gerando..." : "Gerar PDF"}
+                </Button>
+                {generatedPdfUrl && existingCall.clients && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const whatsappData: WhatsAppPdfMessageData = {
+                        phoneNumber: existingCall.clients!.phone,
+                        clientName: existingCall.clients!.full_name,
+                        osNumber: existingCall.id.substring(0, 8),
+                        pdfUrl: generatedPdfUrl,
+                        reportDate: format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+                      };
+                      const link = generateWhatsAppLinkWithPdf(whatsappData);
+                      window.open(link, '_blank');
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Enviar via WhatsApp
+                  </Button>
+                )}
+              </>
             )}
             <Button
               type="button"

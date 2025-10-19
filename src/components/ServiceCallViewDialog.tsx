@@ -30,9 +30,12 @@ import {
   CheckCircle2,
   XCircle,
   PenTool,
+  MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
+import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
+import { generateWhatsAppLinkWithPdf, WhatsAppPdfMessageData } from "@/lib/whatsapp-templates";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 
 interface ServiceCallViewDialogProps {
@@ -48,6 +51,7 @@ const ServiceCallViewDialog = ({
 }: ServiceCallViewDialogProps) => {
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
@@ -66,9 +70,13 @@ const ServiceCallViewDialog = ({
       const pdf = await generateServiceCallReport(call);
       pdf.save(`Relatorio-Chamado-${call.id.substring(0, 8)}.pdf`);
       
+      // Upload para storage
+      const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
+      setPdfUrl(uploadedUrl);
+      
       toast({
         title: "PDF Gerado!",
-        description: "O relatório foi baixado com sucesso.",
+        description: "O relatório foi baixado e está pronto para envio.",
       });
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -104,6 +112,31 @@ const ServiceCallViewDialog = ({
             </div>
           </div>
         </DialogHeader>
+        
+        {pdfUrl && call.clients && (
+          <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+            <p className="text-sm text-green-800 dark:text-green-200 mb-3">
+              📄 PDF gerado com sucesso! Envie para o cliente via WhatsApp:
+            </p>
+            <Button
+              onClick={() => {
+                const whatsappData: WhatsAppPdfMessageData = {
+                  phoneNumber: call.clients!.phone,
+                  clientName: call.clients!.full_name,
+                  osNumber: call.id.substring(0, 8),
+                  pdfUrl: pdfUrl,
+                  reportDate: format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+                };
+                const link = generateWhatsAppLinkWithPdf(whatsappData);
+                window.open(link, '_blank');
+              }}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Enviar Relatório via WhatsApp
+            </Button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           {/* Informações do Cliente */}

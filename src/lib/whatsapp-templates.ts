@@ -12,6 +12,11 @@ export interface WhatsAppMessageData {
   status?: string;
 }
 
+export interface WhatsAppPdfMessageData extends WhatsAppMessageData {
+  pdfUrl?: string;
+  reportDate?: string;
+}
+
 /**
  * Generates a WhatsApp link with pre-filled message
  * @param data - Message data including phone number and OS details
@@ -45,6 +50,34 @@ export const generateWhatsAppLink = (data: WhatsAppMessageData): string => {
   const encodedMessage = encodeURIComponent(message);
   
   // Return wa.me link
+  return `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+};
+
+/**
+ * Gera link do WhatsApp com PDF do relatório
+ */
+export const generateWhatsAppLinkWithPdf = (
+  data: WhatsAppPdfMessageData
+): string => {
+  const { phoneNumber, clientName, osNumber, pdfUrl, reportDate } = data;
+  
+  const cleanPhone = phoneNumber.replace(/\D/g, '');
+  
+  let message = `Olá ${clientName}!\n\n`;
+  message += `✅ O relatório da OS #${osNumber} está pronto!\n\n`;
+  
+  if (reportDate) {
+    message += `📅 Data do relatório: ${reportDate}\n`;
+  }
+  
+  if (pdfUrl) {
+    message += `\n📄 Acesse o relatório completo aqui:\n${pdfUrl}\n`;
+  }
+  
+  message += `\nQualquer dúvida, estou à disposição!`;
+  
+  const encodedMessage = encodeURIComponent(message);
+  
   return `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 };
 
