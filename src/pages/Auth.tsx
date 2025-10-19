@@ -49,16 +49,29 @@ const signupSchema = loginSchema.extend({
     .or(z.literal("")),
 });
 
+// Schema de validação para recuperação de senha
+const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email muito longo"),
+});
+
 type LoginFormData = z.infer<typeof loginSchema>;
 type SignupFormData = z.infer<typeof signupSchema>;
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const form = useForm<LoginFormData | SignupFormData>({
-    resolver: zodResolver(isLogin ? loginSchema : signupSchema),
+  const form = useForm<LoginFormData | SignupFormData | ForgotPasswordFormData>({
+    resolver: zodResolver(
+      isForgotPassword ? forgotPasswordSchema : isLogin ? loginSchema : signupSchema
+    ),
     defaultValues: {
       email: "",
       password: "",
@@ -76,12 +89,27 @@ const Auth = () => {
     });
   }, [navigate]);
 
-  const handleAuth = async (values: LoginFormData | SignupFormData) => {
+  const handleAuth = async (values: LoginFormData | SignupFormData | ForgotPasswordFormData) => {
     try {
-      if (isLogin) {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Email enviado!",
+          description: "Verifique sua caixa de entrada para redefinir sua senha.",
+        });
+
+        setIsForgotPassword(false);
+        setIsLogin(true);
+        form.reset();
+      } else if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email: values.email,
-          password: values.password,
+          password: (values as LoginFormData).password,
         });
 
         if (error) throw error;
@@ -129,9 +157,13 @@ const Auth = () => {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>{isLogin ? "Login" : "Cadastro"}</CardTitle>
+          <CardTitle>
+            {isForgotPassword ? "Recuperar Senha" : isLogin ? "Login" : "Cadastro"}
+          </CardTitle>
           <CardDescription>
-            {isLogin
+            {isForgotPassword
+              ? "Digite seu email para receber instruções"
+              : isLogin
               ? "Entre com suas credenciais"
               : "Crie sua conta para começar"}
           </CardDescription>
@@ -139,7 +171,7 @@ const Auth = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleAuth)} className="space-y-4">
-              {!isLogin && (
+              {!isLogin && !isForgotPassword && (
                 <>
                   <FormField
                     control={form.control}
@@ -184,24 +216,26 @@ const Auth = () => {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Senha</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="password" />
-                    </FormControl>
-                    <FormMessage />
-                    {!isLogin && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial
-                      </p>
-                    )}
-                  </FormItem>
-                )}
-              />
+              {!isForgotPassword && (
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Senha</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" />
+                      </FormControl>
+                      <FormMessage />
+                      {!isLogin && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial
+                        </p>
+                      )}
+                    </FormItem>
+                  )}
+                />
+              )}
               
               <Button 
                 type="submit" 
@@ -210,24 +244,55 @@ const Auth = () => {
               >
                 {form.formState.isSubmitting 
                   ? "Carregando..." 
+                  : isForgotPassword 
+                  ? "Enviar link de recuperação"
                   : isLogin ? "Entrar" : "Cadastrar"}
               </Button>
             </form>
           </Form>
           
-          <div className="mt-4 text-center text-sm">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                form.reset();
-              }}
-              className="text-primary hover:underline"
-            >
-              {isLogin
-                ? "Não tem conta? Cadastre-se"
-                : "Já tem conta? Faça login"}
-            </button>
+          <div className="mt-4 text-center text-sm space-y-2">
+            {!isForgotPassword && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    form.reset();
+                  }}
+                  className="text-primary hover:underline block w-full"
+                >
+                  {isLogin
+                    ? "Não tem conta? Cadastre-se"
+                    : "Já tem conta? Faça login"}
+                </button>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      form.reset();
+                    }}
+                    className="text-primary hover:underline block w-full"
+                  >
+                    Esqueci minha senha
+                  </button>
+                )}
+              </>
+            )}
+            {isForgotPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setIsLogin(true);
+                  form.reset();
+                }}
+                className="text-primary hover:underline block w-full"
+              >
+                Voltar para login
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>
