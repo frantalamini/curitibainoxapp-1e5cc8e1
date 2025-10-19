@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ import { AudioTranscriber } from "@/components/AudioTranscriber";
 import { SignaturePad } from "@/components/SignaturePad";
 import { ChecklistSelector } from "@/components/ChecklistSelector";
 import { generateSignaturePDF } from "@/lib/signaturePdfGenerator";
+import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
 
 const ServiceCallForm = () => {
   const { id } = useParams();
@@ -82,6 +83,7 @@ const ServiceCallForm = () => {
   const [audioURL, setAudioURL] = useState<string>("");
   const [mediaPreviews, setMediaPreviews] = useState<{file: File, url: string, type: 'image' | 'video'}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const {
     register,
@@ -847,6 +849,36 @@ const ServiceCallForm = () => {
             <Button type="submit" disabled={isUploading}>
               {isUploading ? "Salvando..." : isEditMode ? "Atualizar Chamado" : "Criar Chamado"}
             </Button>
+            {isEditMode && existingCall && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    setIsGeneratingPDF(true);
+                    const pdf = await generateServiceCallReport(existingCall);
+                    pdf.save(`Relatorio-Chamado-${existingCall.id.substring(0, 8)}.pdf`);
+                    toast({
+                      title: "PDF Gerado!",
+                      description: "O relatório foi baixado com sucesso.",
+                    });
+                  } catch (error) {
+                    console.error("Error generating PDF:", error);
+                    toast({
+                      title: "Erro ao gerar PDF",
+                      description: "Ocorreu um erro ao gerar o relatório.",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setIsGeneratingPDF(false);
+                  }
+                }}
+                disabled={isGeneratingPDF}
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                {isGeneratingPDF ? "Gerando..." : "Gerar PDF"}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
