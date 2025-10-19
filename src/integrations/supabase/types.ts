@@ -299,7 +299,12 @@ export type Database = {
         | "waiting_parts"
         | "completed"
         | "cancelled"
-      service_status: "pending" | "in_progress" | "completed" | "cancelled"
+      service_status:
+        | "pending"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+        | "on_hold"
       service_urgency: "corrective" | "preventive"
     }
     CompositeTypes: {
@@ -437,7 +442,13 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
-      service_status: ["pending", "in_progress", "completed", "cancelled"],
+      service_status: [
+        "pending",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "on_hold",
+      ],
       service_urgency: ["corrective", "preventive"],
     },
   },

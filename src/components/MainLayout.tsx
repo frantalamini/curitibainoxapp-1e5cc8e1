@@ -6,9 +6,13 @@ import { useUserRole } from "@/hooks/useUserRole";
 import {
   Home,
   Users,
-  Smartphone,
+  Building2,
+  Package,
   Wrench,
-  ClipboardList,
+  Clock,
+  Activity,
+  AlertCircle,
+  CheckCircle,
   Calendar,
   Settings,
   LogOut,
@@ -16,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import logo from "@/assets/logo.png";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -42,33 +47,58 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     navigate("/auth");
   };
 
-  const menuItems = [
-    { to: "/", icon: Home, label: "Dashboard" },
-    { to: "/clients", icon: Users, label: "Clientes" },
-    { to: "/equipment", icon: Smartphone, label: "Equipamentos" },
-    ...(isAdmin ? [{ to: "/technicians", icon: Wrench, label: "Técnicos" }] : []),
-    { to: "/service-calls", icon: ClipboardList, label: "Chamados" },
-    { to: "/schedule", icon: Calendar, label: "Agenda" },
+  const menuSections = [
+    {
+      title: "CADASTRO",
+      items: [
+        ...(isAdmin ? [{ to: "/technicians", icon: Wrench, label: "Técnicos" }] : []),
+        { to: "/clients", icon: Building2, label: "Clientes / Fornecedores" },
+      ]
+    },
+    {
+      title: "CHAMADOS",
+      items: [
+        { to: "/service-calls?status=pending", icon: Clock, label: "Aguardando Início" },
+        { to: "/service-calls?status=in_progress", icon: Activity, label: "Em Andamento" },
+        { to: "/service-calls?status=on_hold", icon: AlertCircle, label: "Com Pendências" },
+        { to: "/service-calls?status=completed", icon: CheckCircle, label: "Finalizados" },
+      ]
+    },
+    {
+      title: "AGENDA",
+      items: [
+        { to: "/schedule", icon: Calendar, label: "Calendário" },
+      ]
+    }
   ];
 
   const NavItems = () => (
     <>
-      {menuItems.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          onClick={() => setOpen(false)}
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              isActive
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
-            }`
-          }
-        >
-          <item.icon className="h-5 w-5" />
-          <span>{item.label}</span>
-        </NavLink>
+      {menuSections.map((section) => (
+        <div key={section.title} className="mb-6">
+          <h3 className="text-xs font-bold text-muted-foreground mb-2 px-4 uppercase tracking-wider">
+            {section.title}
+          </h3>
+          <div className="space-y-1">
+            {section.items.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                    isActive
+                      ? "bg-primary text-primary-foreground font-medium shadow-sm"
+                      : "hover:bg-primary/10 text-foreground"
+                  }`
+                }
+              >
+                <item.icon className="h-4 w-4" />
+                <span className="text-sm">{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </div>
       ))}
     </>
   );
@@ -86,8 +116,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-card">
         <div className="flex flex-col flex-1 overflow-y-auto">
-          <div className="flex items-center justify-center h-16 border-b px-4">
-            <h1 className="text-xl font-bold">Sistema OS</h1>
+          <div className="flex items-center justify-center h-20 border-b px-4">
+            <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
           </div>
           <nav className="flex-1 px-4 py-6 space-y-2">
             <NavItems />
@@ -117,7 +147,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       </aside>
 
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 border-b bg-card z-50 flex items-center px-4">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 border-b bg-card z-50 flex items-center justify-between px-4">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -126,8 +156,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
             <div className="flex flex-col h-full">
-              <div className="flex items-center justify-center h-16 border-b">
-                <h1 className="text-xl font-bold">Sistema OS</h1>
+              <div className="flex items-center justify-center h-20 border-b">
+                <img src={logo} alt="Curitiba Inox" className="h-12 object-contain" />
               </div>
               <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                 <NavItems />
@@ -159,7 +189,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </SheetContent>
         </Sheet>
-        <h1 className="ml-4 text-xl font-bold">Sistema OS</h1>
+        <img src={logo} alt="Curitiba Inox" className="h-10 object-contain" />
       </header>
 
       {/* Main Content */}

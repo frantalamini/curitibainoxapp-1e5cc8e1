@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, Search, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -37,15 +37,25 @@ import { ptBR } from "date-fns/locale";
 
 const ServiceCalls = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { serviceCalls, isLoading, deleteServiceCall, updateServiceCall } = useServiceCalls();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
+  // Auto-filter based on URL query params
+  useEffect(() => {
+    const statusParam = searchParams.get("status");
+    if (statusParam) {
+      setStatusFilter(statusParam);
+    }
+  }, [searchParams]);
+
   const getStatusBadge = (status: string) => {
     const statusMap = {
-      pending: { label: "Pendente", variant: "secondary" as const },
+      pending: { label: "Aguardando Início", variant: "secondary" as const },
       in_progress: { label: "Em Andamento", variant: "default" as const },
-      completed: { label: "Concluído", variant: "outline" as const },
+      on_hold: { label: "Com Pendências", variant: "outline" as const },
+      completed: { label: "Finalizado", variant: "outline" as const },
       cancelled: { label: "Cancelado", variant: "destructive" as const },
     };
     return statusMap[status as keyof typeof statusMap] || statusMap.pending;
@@ -107,9 +117,10 @@ const ServiceCalls = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
+              <SelectItem value="pending">Aguardando Início</SelectItem>
               <SelectItem value="in_progress">Em Andamento</SelectItem>
-              <SelectItem value="completed">Concluído</SelectItem>
+              <SelectItem value="on_hold">Com Pendências</SelectItem>
+              <SelectItem value="completed">Finalizado</SelectItem>
               <SelectItem value="cancelled">Cancelado</SelectItem>
             </SelectContent>
           </Select>
@@ -181,9 +192,10 @@ const ServiceCalls = () => {
                           </Badge>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pending">Pendente</SelectItem>
+                          <SelectItem value="pending">Aguardando Início</SelectItem>
                           <SelectItem value="in_progress">Em Andamento</SelectItem>
-                          <SelectItem value="completed">Concluído</SelectItem>
+                          <SelectItem value="on_hold">Com Pendências</SelectItem>
+                          <SelectItem value="completed">Finalizado</SelectItem>
                           <SelectItem value="cancelled">Cancelado</SelectItem>
                         </SelectContent>
                       </Select>
