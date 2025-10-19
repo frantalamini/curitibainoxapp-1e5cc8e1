@@ -1,21 +1,71 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+// Schema de validação para login
+const loginSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email muito longo"),
+  password: z
+    .string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .regex(/[A-Z]/, "Senha deve conter ao menos 1 letra maiúscula")
+    .regex(/[a-z]/, "Senha deve conter ao menos 1 letra minúscula")
+    .regex(/[0-9]/, "Senha deve conter ao menos 1 número")
+    .regex(/[^A-Za-z0-9]/, "Senha deve conter ao menos 1 caractere especial (!@#$%)")
+    .max(100, "Senha muito longa"),
+});
+
+// Schema de validação para cadastro
+const signupSchema = loginSchema.extend({
+  fullName: z
+    .string()
+    .trim()
+    .min(3, "Nome deve ter no mínimo 3 caracteres")
+    .max(100, "Nome muito longo")
+    .regex(/^[A-Za-zÀ-ÿ\s]+$/, "Nome deve conter apenas letras"),
+  phone: z
+    .string()
+    .regex(/^\(\d{2}\) \d{4,5}-\d{4}$/, "Telefone inválido. Use: (11) 99999-9999")
+    .optional()
+    .or(z.literal("")),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const form = useForm<LoginFormData | SignupFormData>({
+    resolver: zodResolver(isLogin ? loginSchema : signupSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      fullName: "",
+      phone: "",
+    },
+  });
 
   useEffect(() => {
     // Check if user is already logged in
@@ -26,15 +76,12 @@ const Auth = () => {
     });
   }, [navigate]);
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const handleAuth = async (values: LoginFormData | SignupFormData) => {
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: values.email,
+          password: values.password,
         });
 
         if (error) throw error;
@@ -46,13 +93,14 @@ const Auth = () => {
 
         navigate("/");
       } else {
+        const signupValues = values as SignupFormData;
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: signupValues.email,
+          password: signupValues.password,
           options: {
             data: {
-              full_name: fullName,
-              phone: phone,
+              full_name: signupValues.fullName,
+              phone: signupValues.phone || "",
             },
             emailRedirectTo: `${window.location.origin}/`,
           },
@@ -66,6 +114,7 @@ const Auth = () => {
         });
 
         setIsLogin(true);
+        form.reset();
       }
     } catch (error: any) {
       toast({
@@ -73,8 +122,6 @@ const Auth = () => {
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -90,60 +137,91 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
-            {!isLogin && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nome Completo</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleAuth)} className="space-y-4">
+              {!isLogin && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome Completo</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="João da Silva" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="(11) 99999-9999"
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefone (opcional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="(11) 99999-9999" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                </>
+              )}
+              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="password" />
+                    </FormControl>
+                    <FormMessage />
+                    {!isLogin && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial
+                      </p>
+                    )}
+                  </FormItem>
+                )}
               />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Carregando..." : isLogin ? "Entrar" : "Cadastrar"}
-            </Button>
-          </form>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={form.formState.isSubmitting}
+              >
+                {form.formState.isSubmitting 
+                  ? "Carregando..." 
+                  : isLogin ? "Entrar" : "Cadastrar"}
+              </Button>
+            </form>
+          </Form>
+          
           <div className="mt-4 text-center text-sm">
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                form.reset();
+              }}
               className="text-primary hover:underline"
             >
               {isLogin
