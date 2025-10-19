@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -31,6 +32,7 @@ const ServiceTypeForm = () => {
   const { id } = useParams();
   const { serviceTypes, createServiceType, updateServiceType } = useServiceTypes();
   const [previewColor, setPreviewColor] = useState("#3b82f6");
+  const { toast } = useToast();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -58,11 +60,19 @@ const ServiceTypeForm = () => {
   const onSubmit = (data: FormData) => {
     if (id) {
       updateServiceType({ id, ...data });
+      toast({
+        title: "✅ Tipo de Serviço Atualizado",
+        description: "As alterações foram salvas com sucesso!",
+      });
     } else {
       createServiceType({
         name: data.name,
         color: data.color,
         active: data.active,
+      });
+      toast({
+        title: "✅ Tipo de Serviço Criado",
+        description: "Novo tipo de serviço criado com sucesso!",
       });
     }
     navigate("/service-types");

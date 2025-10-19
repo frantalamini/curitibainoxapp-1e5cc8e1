@@ -11,12 +11,14 @@ import { useChecklists, ChecklistItem } from "@/hooks/useChecklists";
 import { Plus, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const ChecklistForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { createChecklist, updateChecklist } = useChecklists();
   const isEditMode = !!id;
+  const { toast } = useToast();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -76,17 +78,29 @@ const ChecklistForm = () => {
     e.preventDefault();
 
     if (!name.trim()) {
-      alert("Nome do checklist é obrigatório");
+      toast({
+        title: "Campo Obrigatório",
+        description: "Nome do checklist é obrigatório",
+        variant: "destructive"
+      });
       return;
     }
 
     if (items.length === 0) {
-      alert("Adicione pelo menos um item ao checklist");
+      toast({
+        title: "Atenção",
+        description: "Adicione pelo menos um item ao checklist",
+        variant: "destructive"
+      });
       return;
     }
 
     if (items.some((item) => !item.text.trim())) {
-      alert("Todos os itens devem ter um texto");
+      toast({
+        title: "Campos Incompletos",
+        description: "Todos os itens devem ter um texto",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -98,8 +112,16 @@ const ChecklistForm = () => {
 
     if (isEditMode && id) {
       updateChecklist({ id, ...checklistData });
+      toast({
+        title: "✅ Checklist Atualizado",
+        description: "As alterações foram salvas com sucesso!",
+      });
     } else {
       createChecklist(checklistData);
+      toast({
+        title: "✅ Checklist Criado",
+        description: "Novo checklist criado com sucesso!",
+      });
     }
 
     navigate("/checklists");

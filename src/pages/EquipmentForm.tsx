@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
+import { useToast } from "@/hooks/use-toast";
 
 const equipmentSchema = z.object({
   client_id: z.string()
@@ -57,6 +58,7 @@ const EquipmentForm = () => {
   const { equipment, createEquipment, updateEquipment } = useEquipment();
   const { clients } = useClients();
   const isEdit = !!id;
+  const { toast } = useToast();
 
   const {
     register,
@@ -87,8 +89,16 @@ const EquipmentForm = () => {
   const onSubmit = async (data: EquipmentInsert) => {
     if (isEdit) {
       await updateEquipment.mutateAsync({ id: id!, ...data });
+      toast({
+        title: "✅ Equipamento Atualizado",
+        description: "As alterações foram salvas com sucesso!",
+      });
     } else {
       await createEquipment.mutateAsync(data);
+      toast({
+        title: "✅ Equipamento Criado",
+        description: "Novo equipamento criado com sucesso!",
+      });
     }
     navigate("/equipment");
   };

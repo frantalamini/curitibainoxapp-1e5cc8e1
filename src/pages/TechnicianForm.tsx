@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import InputMask from "react-input-mask";
+import { useToast } from "@/hooks/use-toast";
 
 const technicianSchema = z.object({
   full_name: z.string()
@@ -39,6 +40,7 @@ const TechnicianForm = () => {
   const isEdit = !!id;
 
   const [charCount, setCharCount] = useState(0);
+  const { toast } = useToast();
 
   const {
     register,
@@ -87,8 +89,16 @@ const TechnicianForm = () => {
   const onSubmit = async (data: TechnicianInsert) => {
     if (isEdit) {
       await updateTechnician.mutateAsync({ id: id!, ...data });
+      toast({
+        title: "✅ Técnico Atualizado",
+        description: "As alterações foram salvas com sucesso!",
+      });
     } else {
       await createTechnician.mutateAsync(data);
+      toast({
+        title: "✅ Técnico Criado",
+        description: "Novo técnico criado com sucesso!",
+      });
     }
     navigate("/technicians");
   };

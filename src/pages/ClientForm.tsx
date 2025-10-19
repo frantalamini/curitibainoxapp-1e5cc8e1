@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, Search, Loader2 } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
+import { useToast } from "@/hooks/use-toast";
 
 const clientSchema = z.object({
   full_name: z.string()
@@ -101,6 +102,7 @@ const ClientForm = () => {
   const isEdit = !!id;
   const [documentType, setDocumentType] = useState<"CPF" | "CNPJ">("CPF");
   const [documentValue, setDocumentValue] = useState("");
+  const { toast } = useToast();
 
   const {
     register,
@@ -169,8 +171,16 @@ const ClientForm = () => {
   const onSubmit = async (data: ClientInsert) => {
     if (isEdit) {
       await updateClient.mutateAsync({ id: id!, ...data });
+      toast({
+        title: "✅ Cliente Atualizado",
+        description: "As alterações foram salvas com sucesso!",
+      });
     } else {
       await createClient.mutateAsync(data);
+      toast({
+        title: "✅ Cliente Criado",
+        description: "Novo cliente criado com sucesso!",
+      });
     }
     navigate("/clients");
   };
