@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Users, ClipboardList, Wrench, TrendingUp, X } from "lucide-react";
+import { CalendarIcon, Users, ClipboardList, Wrench, TrendingUp, X, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
@@ -12,6 +12,8 @@ import MainLayout from "@/components/MainLayout";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { cn } from "@/lib/utils";
+import { generateDashboardReport } from "@/lib/dashboardPdfGenerator";
+import { toast } from "sonner";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#A4DE6C", "#D0ED57"];
 
@@ -30,6 +32,11 @@ const Dashboard = () => {
   const [endDate, setEndDate] = useState<Date>();
   const [selectedTechnician, setSelectedTechnician] = useState<string>();
 
+  const statusChartRef = useRef<HTMLDivElement>(null);
+  const technicianChartRef = useRef<HTMLDivElement>(null);
+  const serviceTypeChartRef = useRef<HTMLDivElement>(null);
+  const equipmentChartRef = useRef<HTMLDivElement>(null);
+
   const { data, isLoading } = useDashboardData(startDate, endDate, selectedTechnician);
   const { technicians } = useTechnicians();
 
@@ -37,6 +44,53 @@ const Dashboard = () => {
     setStartDate(undefined);
     setEndDate(undefined);
     setSelectedTechnician(undefined);
+  };
+
+  const handleExportPdf = async () => {
+    if (!statusChartRef.current || !technicianChartRef.current || 
+        !serviceTypeChartRef.current || !equipmentChartRef.current) {
+      toast.error("Aguarde os gráficos carregarem completamente");
+      return;
+    }
+
+    try {
+      toast.loading("Gerando PDF do dashboard...");
+
+      // Buscar nome do técnico se filtro aplicado
+      let technicianName: string | undefined;
+      if (selectedTechnician) {
+        const tech = technicians?.find(t => t.id === selectedTechnician);
+        technicianName = tech?.full_name;
+      }
+
+      const pdf = await generateDashboardReport(
+        {
+          totalClients: data?.totalClients || 0,
+          totalCalls: data?.totalCalls || 0,
+          totalEquipment: data?.totalEquipment || 0,
+          completionRate: data?.completionRate || 0,
+          startDate,
+          endDate,
+          technicianName,
+        },
+        {
+          statusChart: statusChartRef.current,
+          technicianChart: technicianChartRef.current,
+          serviceTypeChart: serviceTypeChartRef.current,
+          equipmentChart: equipmentChartRef.current,
+        }
+      );
+
+      const fileName = `dashboard-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`;
+      pdf.save(fileName);
+      
+      toast.dismiss();
+      toast.success("PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.dismiss();
+      toast.error("Erro ao gerar PDF do dashboard");
+    }
   };
 
   const statusData = [
@@ -118,9 +172,15 @@ const Dashboard = () => {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard Analítico</h1>
-          <p className="text-muted-foreground">Visão completa dos chamados técnicos</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard Analítico</h1>
+            <p className="text-muted-foreground">Visão completa dos chamados técnicos</p>
+          </div>
+          <Button onClick={handleExportPdf} variant="default">
+            <Download className="mr-2 h-4 w-4" />
+            Exportar PDF
+          </Button>
         </div>
 
         <Card>
@@ -214,10 +274,11 @@ const Dashboard = () => {
           <div className="text-center py-8">Carregando dados...</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Chamados por Status</CardTitle>
-              </CardHeader>
+            <div ref={statusChartRef}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Chamados por Status</CardTitle>
+                </CardHeader>
               <CardContent>
                 {statusData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
@@ -257,11 +318,13 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Chamados por Técnico</CardTitle>
-              </CardHeader>
+            <div ref={technicianChartRef}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Chamados por Técnico</CardTitle>
+                </CardHeader>
               <CardContent>
                 {technicianData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
@@ -301,10 +364,12 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Chamados por Tipo de Serviço</CardTitle>
+            <div ref={serviceTypeChartRef}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Chamados por Tipo de Serviço</CardTitle>
               </CardHeader>
               <CardContent>
                 {serviceTypeData.length > 0 ? (
@@ -345,11 +410,13 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Top 5 Equipamentos</CardTitle>
-              </CardHeader>
+            <div ref={equipmentChartRef}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top 5 Equipamentos</CardTitle>
+                </CardHeader>
               <CardContent>
                 {equipmentData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
@@ -389,6 +456,7 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
+            </div>
           </div>
         )}
       </div>
