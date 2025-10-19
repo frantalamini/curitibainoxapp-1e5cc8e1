@@ -166,7 +166,6 @@ export type Database = {
           status: Database["public"]["Enums"]["service_status"]
           technician_id: string
           updated_at: string
-          urgency: Database["public"]["Enums"]["service_urgency"]
         }
         Insert: {
           client_id: string
@@ -182,7 +181,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["service_status"]
           technician_id: string
           updated_at?: string
-          urgency: Database["public"]["Enums"]["service_urgency"]
         }
         Update: {
           client_id?: string
@@ -198,7 +196,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["service_status"]
           technician_id?: string
           updated_at?: string
-          urgency?: Database["public"]["Enums"]["service_urgency"]
         }
         Relationships: [
           {

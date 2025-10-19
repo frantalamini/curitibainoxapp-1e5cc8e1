@@ -6,7 +6,6 @@ export interface ServiceCall {
   id: string;
   client_id: string;
   equipment_description: string;
-  urgency: "corrective" | "preventive";
   technician_id: string;
   scheduled_date: string;
   scheduled_time: string;
@@ -35,7 +34,6 @@ export interface ServiceCall {
 export interface ServiceCallInsert {
   client_id: string;
   equipment_description: string;
-  urgency: "corrective" | "preventive";
   technician_id: string;
   scheduled_date: string;
   scheduled_time: string;
