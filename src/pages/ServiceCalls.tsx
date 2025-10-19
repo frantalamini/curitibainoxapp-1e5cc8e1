@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Search, Play } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Play, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -34,6 +34,8 @@ import MainLayout from "@/components/MainLayout";
 import { useServiceCalls } from "@/hooks/useServiceCalls";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import ServiceCallViewDialog from "@/components/ServiceCallViewDialog";
+import type { ServiceCall } from "@/hooks/useServiceCalls";
 
 const ServiceCalls = () => {
   const navigate = useNavigate();
@@ -41,6 +43,8 @@ const ServiceCalls = () => {
   const { serviceCalls, isLoading, deleteServiceCall, updateServiceCall } = useServiceCalls();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedCall, setSelectedCall] = useState<ServiceCall | null>(null);
 
   // Auto-filter based on URL query params
   useEffect(() => {
@@ -224,6 +228,17 @@ const ServiceCalls = () => {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => {
+                        setSelectedCall(call);
+                        setViewDialogOpen(true);
+                      }}
+                      title="Visualizar chamado"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => navigate(`/service-calls/edit/${call.id}`)}
                     >
                       <Pencil className="h-4 w-4" />
@@ -258,6 +273,14 @@ const ServiceCalls = () => {
           </div>
         )}
       </div>
+
+      {selectedCall && (
+        <ServiceCallViewDialog
+          call={selectedCall}
+          open={viewDialogOpen}
+          onOpenChange={setViewDialogOpen}
+        />
+      )}
     </MainLayout>
   );
 };
