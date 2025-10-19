@@ -81,16 +81,17 @@ export const AudioTranscriber = ({ onTranscriptionComplete, initialText = "" }: 
         }
         
         setTranscribedText(data.text);
+        onTranscriptionComplete(data.text, audioFile);
         toast({
           title: "Sucesso",
-          description: "Áudio transcrito com sucesso!",
+          description: "Áudio transcrito e salvo automaticamente!",
         });
       };
     } catch (error) {
       console.error('Transcription error:', error);
       toast({
-        title: "Erro",
-        description: "Erro ao transcrever o áudio. Você pode digitar o texto manualmente.",
+        title: "Erro ao Transcrever",
+        description: "A transcrição automática falhou. Por favor, digite o diagnóstico manualmente ou clique em 'Confirmar Diagnóstico' para salvar apenas o áudio.",
         variant: "destructive"
       });
     } finally {
@@ -112,7 +113,7 @@ export const AudioTranscriber = ({ onTranscriptionComplete, initialText = "" }: 
     
     toast({
       title: "Sucesso",
-      description: "Diagnóstico técnico salvo",
+      description: "Diagnóstico atualizado com sucesso",
     });
   };
 
