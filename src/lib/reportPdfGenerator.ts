@@ -574,23 +574,60 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   if (call.technician_signature_url || call.technician_signature_data) {
     yPos = addSectionTitle("ASSINATURA DO TÉCNICO", yPos);
     
-    // Try to add signature image
-    try {
-      const signatureUrl = call.technician_signature_data || call.technician_signature_url;
-      if (signatureUrl) {
-        pdf.addImage(signatureUrl, "PNG", margin, yPos, 80, 30);
-        yPos += 35;
+    let signatureAdded = false;
+    
+    // ESTRATÉGIA 1: Tentar URL primeiro (mais confiável)
+    if (call.technician_signature_url) {
+      try {
+        console.log("🔄 Carregando assinatura do técnico via URL...");
+        const base64Image = await loadImageAsBase64(call.technician_signature_url);
+        
+        if (base64Image) {
+          pdf.addImage(base64Image, "PNG", margin, yPos, 80, 30);
+          console.log("✅ Assinatura do técnico adicionada via URL");
+          signatureAdded = true;
+          yPos += 35;
+        }
+      } catch (error) {
+        console.error("❌ Erro ao adicionar via URL:", error);
       }
-    } catch (error) {
-      console.error("Error adding technician signature:", error);
-      pdf.text("[Assinatura não disponível para impressão]", margin, yPos);
+    }
+    
+    // ESTRATÉGIA 2: Se URL falhou, tentar Base64 direto
+    if (!signatureAdded && call.technician_signature_data) {
+      try {
+        console.log("🔄 Tentando assinatura do técnico via Base64 direto...");
+        
+        // Validar formato Base64
+        if (call.technician_signature_data.startsWith('data:image/')) {
+          pdf.addImage(call.technician_signature_data, "PNG", margin, yPos, 80, 30);
+          console.log("✅ Assinatura do técnico adicionada via Base64");
+          signatureAdded = true;
+          yPos += 35;
+        } else {
+          console.warn("⚠️ Base64 em formato inválido");
+        }
+      } catch (error) {
+        console.error("❌ Erro ao adicionar via Base64:", error);
+      }
+    }
+    
+    // Se todas as estratégias falharam
+    if (!signatureAdded) {
+      console.error("❌ Não foi possível adicionar assinatura do técnico");
+      pdf.setFontSize(9);
+      pdf.setTextColor(200, 0, 0);
+      pdf.text("[Assinatura não disponível - erro ao processar imagem]", margin, yPos);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(10);
       yPos += 10;
     }
     
-    pdf.setFontSize(10);
+    // Nome do técnico
     pdf.text(call.technicians?.full_name || "N/A", margin, yPos);
     yPos += 6;
     
+    // Data da assinatura
     if (call.technician_signature_date) {
       pdf.setFontSize(9);
       pdf.setTextColor(100, 100, 100);
@@ -613,31 +650,69 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     }
     yPos = addSectionTitle("ASSINATURA DO CLIENTE", yPos);
     
-    // Try to add signature image
-    try {
-      const signatureUrl = call.customer_signature_data || call.customer_signature_url;
-      if (signatureUrl) {
-        pdf.addImage(signatureUrl, "PNG", margin, yPos, 80, 30);
-        yPos += 35;
+    let signatureAdded = false;
+    
+    // ESTRATÉGIA 1: Tentar URL primeiro (mais confiável)
+    if (call.customer_signature_url) {
+      try {
+        console.log("🔄 Carregando assinatura do cliente via URL...");
+        const base64Image = await loadImageAsBase64(call.customer_signature_url);
+        
+        if (base64Image) {
+          pdf.addImage(base64Image, "PNG", margin, yPos, 80, 30);
+          console.log("✅ Assinatura do cliente adicionada via URL");
+          signatureAdded = true;
+          yPos += 35;
+        }
+      } catch (error) {
+        console.error("❌ Erro ao adicionar via URL:", error);
       }
-    } catch (error) {
-      console.error("Error adding customer signature:", error);
-      pdf.text("[Assinatura não disponível para impressão]", margin, yPos);
+    }
+    
+    // ESTRATÉGIA 2: Se URL falhou, tentar Base64 direto
+    if (!signatureAdded && call.customer_signature_data) {
+      try {
+        console.log("🔄 Tentando assinatura do cliente via Base64 direto...");
+        
+        // Validar formato Base64
+        if (call.customer_signature_data.startsWith('data:image/')) {
+          pdf.addImage(call.customer_signature_data, "PNG", margin, yPos, 80, 30);
+          console.log("✅ Assinatura do cliente adicionada via Base64");
+          signatureAdded = true;
+          yPos += 35;
+        } else {
+          console.warn("⚠️ Base64 em formato inválido");
+        }
+      } catch (error) {
+        console.error("❌ Erro ao adicionar via Base64:", error);
+      }
+    }
+    
+    // Se todas as estratégias falharam
+    if (!signatureAdded) {
+      console.error("❌ Não foi possível adicionar assinatura do cliente");
+      pdf.setFontSize(9);
+      pdf.setTextColor(200, 0, 0);
+      pdf.text("[Assinatura não disponível - erro ao processar imagem]", margin, yPos);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(10);
       yPos += 10;
     }
     
-    pdf.setFontSize(10);
+    // Nome do cliente
     if (call.customer_name) {
       pdf.text(call.customer_name, margin, yPos);
       yPos += 6;
     }
     
+    // Cargo
     if (call.customer_position) {
       pdf.setFontSize(9);
       pdf.text(`Cargo: ${call.customer_position}`, margin, yPos);
       yPos += 6;
     }
     
+    // Data da assinatura
     if (call.customer_signature_date) {
       pdf.setFontSize(9);
       pdf.setTextColor(100, 100, 100);
