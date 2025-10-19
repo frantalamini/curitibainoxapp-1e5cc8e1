@@ -153,12 +153,15 @@ export type Database = {
       }
       service_calls: {
         Row: {
+          audio_url: string | null
           client_id: string
           created_at: string
           created_by: string
           equipment_description: string
           id: string
+          media_urls: string[] | null
           notes: string | null
+          problem_description: string | null
           scheduled_date: string
           scheduled_time: string
           service_type_id: string | null
@@ -168,12 +171,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audio_url?: string | null
           client_id: string
           created_at?: string
           created_by: string
           equipment_description: string
           id?: string
+          media_urls?: string[] | null
           notes?: string | null
+          problem_description?: string | null
           scheduled_date: string
           scheduled_time: string
           service_type_id?: string | null
@@ -183,12 +189,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audio_url?: string | null
           client_id?: string
           created_at?: string
           created_by?: string
           equipment_description?: string
           id?: string
+          media_urls?: string[] | null
           notes?: string | null
+          problem_description?: string | null
           scheduled_date?: string
           scheduled_time?: string
           service_type_id?: string | null

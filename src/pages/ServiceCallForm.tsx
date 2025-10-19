@@ -40,7 +40,8 @@ const ServiceCallForm = () => {
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("");
   const [selectedServiceTypeId, setSelectedServiceTypeId] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
-  const [manualDate, setManualDate] = useState<string>("");
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
 
   const {
     register,
@@ -145,6 +146,17 @@ const ServiceCallForm = () => {
                 )}
               </div>
 
+              {/* Descrição do Problema */}
+              <div className="space-y-2">
+                <Label htmlFor="problem_description">Descrição do Problema</Label>
+                <Textarea
+                  id="problem_description"
+                  placeholder="Descreva o problema relatado pelo cliente"
+                  {...register("problem_description")}
+                  rows={3}
+                />
+              </div>
+
               {/* Tipo de Chamado */}
               <div className="space-y-2">
                 <Label htmlFor="service_type">Tipo de Chamado *</Label>
@@ -207,17 +219,18 @@ const ServiceCallForm = () => {
                 )}
               </div>
 
-              {/* Data */}
-              <div className="space-y-2">
-                <Label>Data do Agendamento *</Label>
-                <div className="flex gap-2">
+              {/* Data e Horário */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Data */}
+                <div className="space-y-2">
+                  <Label>Data do Agendamento *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         type="button"
                         variant="outline"
                         className={cn(
-                          "flex-1 justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal",
                           !selectedDate && "text-muted-foreground"
                         )}
                       >
@@ -235,59 +248,27 @@ const ServiceCallForm = () => {
                         selected={selectedDate}
                         onSelect={(date) => {
                           setSelectedDate(date);
-                          if (date) {
-                            setManualDate(format(date, "dd/MM/yyyy"));
-                          }
-                          // Fechar o popover
-                          setTimeout(() => document.body.click(), 0);
+                        }}
+                        onDayClick={(date) => {
+                          setSelectedDate(date);
+                          setTimeout(() => document.body.click(), 100);
                         }}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
-                  
-                  <Input
-                    type="text"
-                    placeholder="DD/MM/AAAA"
-                    className="w-32"
-                    value={manualDate}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      let masked = value.replace(/\D/g, "");
-                      
-                      if (masked.length >= 2) {
-                        masked = masked.slice(0, 2) + "/" + masked.slice(2);
-                      }
-                      if (masked.length >= 5) {
-                        masked = masked.slice(0, 5) + "/" + masked.slice(5, 9);
-                      }
-                      
-                      setManualDate(masked);
-                      
-                      if (masked.length === 10) {
-                        const [day, month, year] = masked.split("/").map(Number);
-                        const date = new Date(year, month - 1, day);
-                        if (!isNaN(date.getTime()) && day >= 1 && day <= 31 && month >= 1 && month <= 12) {
-                          setSelectedDate(date);
-                        }
-                      }
-                    }}
-                    maxLength={10}
-                  />
+                  {!selectedDate && (
+                    <p className="text-sm text-destructive">Data é obrigatória</p>
+                  )}
                 </div>
-                {!selectedDate && (
-                  <p className="text-sm text-destructive">Data é obrigatória</p>
-                )}
-              </div>
 
-              {/* Horário */}
-              <div className="space-y-2">
-                <Label htmlFor="scheduled_time">Horário *</Label>
-                <div className="flex gap-2">
+                {/* Horário */}
+                <div className="space-y-2">
+                  <Label htmlFor="scheduled_time">Horário *</Label>
                   <Input
                     type="time"
-                    className="flex-1"
+                    className="w-full"
                     value={selectedTime}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -295,35 +276,10 @@ const ServiceCallForm = () => {
                       setValue("scheduled_time", value);
                     }}
                   />
-                  
-                  <Input
-                    type="text"
-                    placeholder="HH:MM"
-                    className="w-24"
-                    value={selectedTime}
-                    onChange={(e) => {
-                      let value = e.target.value.replace(/\D/g, "");
-                      
-                      if (value.length >= 2) {
-                        value = value.slice(0, 2) + ":" + value.slice(2, 4);
-                      }
-                      
-                      if (value.length === 5) {
-                        const [hours, minutes] = value.split(":").map(Number);
-                        if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
-                          setSelectedTime(value);
-                          setValue("scheduled_time", value);
-                        }
-                      } else if (value.length < 5) {
-                        setSelectedTime(value);
-                      }
-                    }}
-                    maxLength={5}
-                  />
+                  {errors.scheduled_time && (
+                    <p className="text-sm text-destructive">Horário é obrigatório</p>
+                  )}
                 </div>
-                {errors.scheduled_time && (
-                  <p className="text-sm text-destructive">Horário é obrigatório</p>
-                )}
               </div>
 
               {/* Observações */}
@@ -335,6 +291,52 @@ const ServiceCallForm = () => {
                   {...register("notes")}
                   rows={4}
                 />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('audio-upload')?.click()}
+                  >
+                    {audioFile ? "Áudio anexado ✓" : "Anexar Áudio"}
+                  </Button>
+                  <input
+                    id="audio-upload"
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setAudioFile(file);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Fotos e Vídeos */}
+              <div className="space-y-2">
+                <Label htmlFor="media">Fotos e Vídeos</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('media-upload')?.click()}
+                  >
+                    {mediaFiles.length > 0 ? `${mediaFiles.length} arquivo(s) anexado(s)` : "Anexar Fotos/Vídeos"}
+                  </Button>
+                  <input
+                    id="media-upload"
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setMediaFiles(files);
+                    }}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

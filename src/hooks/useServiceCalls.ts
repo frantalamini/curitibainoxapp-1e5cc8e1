@@ -6,11 +6,14 @@ export interface ServiceCall {
   id: string;
   client_id: string;
   equipment_description: string;
+  problem_description?: string;
   technician_id: string;
   scheduled_date: string;
   scheduled_time: string;
   status: "pending" | "in_progress" | "completed" | "cancelled";
   notes?: string;
+  audio_url?: string;
+  media_urls?: string[];
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -34,10 +37,13 @@ export interface ServiceCall {
 export interface ServiceCallInsert {
   client_id: string;
   equipment_description: string;
+  problem_description?: string;
   technician_id: string;
   scheduled_date: string;
   scheduled_time: string;
   notes?: string;
+  audio_url?: string;
+  media_urls?: string[];
   service_type_id?: string;
 }
 
