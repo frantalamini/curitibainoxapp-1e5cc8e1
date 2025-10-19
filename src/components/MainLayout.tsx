@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -17,6 +17,7 @@ import {
   Settings,
   LogOut,
   Menu,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -26,7 +27,9 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const { isAdmin, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -46,6 +49,27 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
     navigate("/auth");
   };
+
+  const toggleSection = (title: string) => {
+    setExpandedSections(prev =>
+      prev.includes(title)
+        ? prev.filter(t => t !== title)
+        : [...prev, title]
+    );
+  };
+
+  useEffect(() => {
+    const activeSection = menuSections.find(section =>
+      section.items.some(item => {
+        const itemPath = new URL(item.to, window.location.origin);
+        return location.pathname === itemPath.pathname;
+      })
+    );
+    
+    if (activeSection && !expandedSections.includes(activeSection.title)) {
+      setExpandedSections(prev => [...prev, activeSection.title]);
+    }
+  }, [location.pathname]);
 
   const menuSections = [
     {
@@ -72,36 +96,89 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     }
   ];
 
-  const NavItems = () => (
-    <>
-      {menuSections.map((section) => (
-        <div key={section.title} className="mb-6">
-          <h3 className="text-xs font-bold text-muted-foreground mb-2 px-4 uppercase tracking-wider">
-            {section.title}
-          </h3>
-          <div className="space-y-1">
-            {section.items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-                    isActive
-                      ? "bg-primary text-primary-foreground font-medium shadow-sm"
-                      : "hover:bg-primary/10 text-foreground"
-                  }`
-                }
+  const NavItems = () => {
+    const isActiveSection = (section: typeof menuSections[0]) => {
+      return section.items.some(item => {
+        const itemPath = new URL(item.to, window.location.origin);
+        return location.pathname === itemPath.pathname;
+      });
+    };
+
+    const isActiveItem = (itemTo: string) => {
+      const itemPath = new URL(itemTo, window.location.origin);
+      return location.pathname === itemPath.pathname && 
+             location.search === itemPath.search;
+    };
+
+    return (
+      <>
+        {menuSections.map((section) => {
+          const sectionActive = isActiveSection(section);
+          const isExpanded = expandedSections.includes(section.title);
+
+          return (
+            <div key={section.title} className="mb-2">
+              <button
+                onClick={() => toggleSection(section.title)}
+                onMouseEnter={() => {
+                  if (!expandedSections.includes(section.title)) {
+                    setExpandedSections(prev => [...prev, section.title]);
+                  }
+                }}
+                className={`
+                  w-full text-left px-4 py-3 rounded-lg font-semibold text-sm
+                  transition-all duration-200 flex items-center justify-between
+                  ${sectionActive 
+                    ? "bg-primary/50 text-primary-foreground" 
+                    : "text-muted-foreground hover:bg-primary/10"
+                  }
+                `}
               >
-                <item.icon className="h-4 w-4" />
-                <span className="text-sm">{item.label}</span>
-              </NavLink>
-            ))}
-          </div>
-        </div>
-      ))}
-    </>
-  );
+                <span className="uppercase tracking-wider">{section.title}</span>
+                <ChevronDown 
+                  className={`h-4 w-4 transition-transform duration-300 ${
+                    isExpanded ? "rotate-180" : ""
+                  }`} 
+                />
+              </button>
+
+              <div
+                className={`
+                  overflow-hidden transition-all duration-300
+                  ${isExpanded ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0"}
+                `}
+              >
+                <div className="space-y-1 pl-2">
+                  {section.items.map((item) => {
+                    const itemActive = isActiveItem(item.to);
+                    
+                    return (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setOpen(false)}
+                        className={`
+                          flex items-center gap-3 px-4 py-2.5 rounded-lg 
+                          transition-all text-sm
+                          ${itemActive
+                            ? "bg-primary/50 text-primary-foreground font-medium"
+                            : "hover:bg-primary/10 text-foreground"
+                          }
+                        `}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </>
+    );
+  };
 
   if (roleLoading) {
     return (
