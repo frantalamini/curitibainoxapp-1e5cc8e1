@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Users,
@@ -49,6 +49,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>("Cadastros");
+  const [isPinned, setIsPinned] = useState(false);
+  const [isHoveringRail, setIsHoveringRail] = useState(false);
+  const [isHoveringSubmenu, setIsHoveringSubmenu] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { role } = useUserRole();
   const { settings } = useSystemSettings();
 
@@ -132,6 +136,19 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     }
   }, [location.pathname]);
 
+  // Fechar overlay ao pressionar ESC
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isPinned) {
+        setIsPinned(false);
+        setActiveSection(null);
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isPinned]);
+
   const activeMenuSection = menuSections.find((section) => section.title === activeSection);
 
   return (
@@ -211,10 +228,23 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           </span>
         </header>
 
-        {/* Desktop Sidebar - Two Column Layout */}
-        <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30">
-          {/* Column 1: Main Menu (90px) */}
-          <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
+        {/* Desktop Sidebar - Rail + Overlay */}
+        <aside className="hidden lg:block fixed left-0 top-0 bottom-0 z-30">
+          {/* Main Rail (72px) */}
+          <div 
+            className="w-18 flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent h-screen"
+            onMouseEnter={() => setIsHoveringRail(true)}
+            onMouseLeave={() => {
+              setIsHoveringRail(false);
+              if (!isPinned && !isHoveringSubmenu) {
+                hoverTimeoutRef.current = setTimeout(() => {
+                  if (!isHoveringSubmenu) {
+                    setActiveSection(null);
+                  }
+                }, 200);
+              }
+            }}
+          >
             {/* Logo */}
             <img src={logoUrl} alt="Logo" className="w-16 h-16 mb-6" />
 
@@ -224,7 +254,17 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 <Tooltip key={section.title}>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => setActiveSection(section.title)}
+                      onClick={() => {
+                        if (activeSection === section.title && isPinned) {
+                          // Se já está pinned, desfixar
+                          setIsPinned(false);
+                          setActiveSection(null);
+                        } else {
+                          // Fixar a seção
+                          setActiveSection(section.title);
+                          setIsPinned(true);
+                        }
+                      }}
                       className={cn(
                         "w-16 h-16 flex items-center justify-center rounded-lg transition-all duration-200",
                         activeSection === section.title
@@ -273,54 +313,86 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               </Tooltip>
             </div>
           </div>
-
-          {/* Column 2: Submenu Panel (Flexible width) */}
-          <div
-            className={cn(
-              "bg-white border-r border-border transition-all duration-[250ms] ease-in-out overflow-hidden",
-              activeSection ? "w-64 opacity-100" : "w-0 opacity-0"
-            )}
-          >
-            {activeMenuSection && (
-              <ScrollArea className="h-full">
-                <div className="p-6">
-                  {/* Section Title */}
-                  <h2 className="text-base font-semibold text-[#152752] mb-4 uppercase">
-                    {activeMenuSection.title}
-                  </h2>
-
-                  {/* Submenu Items */}
-                  <nav className="space-y-1">
-                    {activeMenuSection.items.map((item) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
-                          isActive(item.to)
-                            ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
-                            : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
-                        )}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </Link>
-                    ))}
-                  </nav>
-                </div>
-              </ScrollArea>
-            )}
-          </div>
         </aside>
 
+        {/* Submenu Overlay - INDEPENDENTE */}
+        {activeSection && activeMenuSection && (isHoveringRail || isHoveringSubmenu || isPinned) && (
+          <div
+            className="hidden lg:block fixed top-0 left-18 h-screen w-75 bg-white z-60 border-r border-border shadow-2xl animate-slide-in-right"
+            onMouseEnter={() => {
+              if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+              setIsHoveringSubmenu(true);
+            }}
+            onMouseLeave={() => {
+              setIsHoveringSubmenu(false);
+              if (!isPinned) {
+                hoverTimeoutRef.current = setTimeout(() => {
+                  if (!isHoveringRail) {
+                    setActiveSection(null);
+                  }
+                }, 200);
+              }
+            }}
+          >
+            <ScrollArea className="h-full">
+              <div className="p-6">
+                {/* Header com Título e Botão Fechar */}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-semibold text-[#152752] uppercase">
+                    {activeMenuSection.title}
+                  </h2>
+                  
+                  {isPinned && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setIsPinned(false);
+                        setActiveSection(null);
+                      }}
+                      className="h-8 w-8"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Submenu Items */}
+                <nav className="space-y-1">
+                  {activeMenuSection.items.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
+                        isActive(item.to)
+                          ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
+                          : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+
+        {/* Backdrop invisível quando pinned */}
+        {isPinned && activeSection && (
+          <div
+            className="hidden lg:block fixed inset-0 z-55"
+            onClick={() => {
+              setIsPinned(false);
+              setActiveSection(null);
+            }}
+          />
+        )}
+
         {/* Main Content */}
-        <main
-          className={cn(
-            "flex-1 transition-all duration-[250ms]",
-            "pt-16 lg:pt-0",
-            activeSection ? "lg:ml-[346px]" : "lg:ml-[90px]"
-          )}
-        >
+        <main className="flex-1 pt-16 lg:pt-0 lg:ml-18">
           <div className="container mx-auto p-6">{children}</div>
         </main>
       </div>
