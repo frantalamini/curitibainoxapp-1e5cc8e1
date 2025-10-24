@@ -25,6 +25,7 @@ import Schedule from "./pages/Schedule";
 import Checklists from "./pages/Checklists";
 import ChecklistForm from "./pages/ChecklistForm";
 import Settings from "./pages/Settings";
+import CadastrosClientesFornecedores from "./pages/CadastrosClientesFornecedores";
 
 const queryClient = new QueryClient();
 
@@ -83,11 +84,43 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route
+          <Route
             path="/clients"
             element={
               <ProtectedRoute>
                 <Clients />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cadastros/clientes"
+            element={
+              <ProtectedRoute>
+                <CadastrosClientesFornecedores />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cadastros/novo"
+            element={
+              <ProtectedRoute>
+                <ClientForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cadastros/:id"
+            element={
+              <ProtectedRoute>
+                <ClientForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cadastros/:id/editar"
+            element={
+              <ProtectedRoute>
+                <ClientForm />
               </ProtectedRoute>
             }
           />

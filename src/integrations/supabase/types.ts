@@ -57,6 +57,7 @@ export type Database = {
           full_name: string
           id: string
           neighborhood: string | null
+          nome_fantasia: string | null
           notes: string | null
           number: string | null
           phone: string
@@ -65,6 +66,7 @@ export type Database = {
           state: string | null
           state_registration: string | null
           street: string | null
+          tipo: Database["public"]["Enums"]["cadastro_tipo"] | null
           updated_at: string
         }
         Insert: {
@@ -79,6 +81,7 @@ export type Database = {
           full_name: string
           id?: string
           neighborhood?: string | null
+          nome_fantasia?: string | null
           notes?: string | null
           number?: string | null
           phone: string
@@ -87,6 +90,7 @@ export type Database = {
           state?: string | null
           state_registration?: string | null
           street?: string | null
+          tipo?: Database["public"]["Enums"]["cadastro_tipo"] | null
           updated_at?: string
         }
         Update: {
@@ -101,6 +105,7 @@ export type Database = {
           full_name?: string
           id?: string
           neighborhood?: string | null
+          nome_fantasia?: string | null
           notes?: string | null
           number?: string | null
           phone?: string
@@ -109,6 +114,7 @@ export type Database = {
           state?: string | null
           state_registration?: string | null
           street?: string | null
+          tipo?: Database["public"]["Enums"]["cadastro_tipo"] | null
           updated_at?: string
         }
         Relationships: []
@@ -454,6 +460,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "technician" | "client"
       attachment_type: "image" | "document" | "video"
+      cadastro_tipo:
+        | "cliente"
+        | "fornecedor"
+        | "transportador"
+        | "funcionario"
+        | "outro"
       os_status:
         | "pending"
         | "in_progress"
@@ -596,6 +608,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "technician", "client"],
       attachment_type: ["image", "document", "video"],
+      cadastro_tipo: [
+        "cliente",
+        "fornecedor",
+        "transportador",
+        "funcionario",
+        "outro",
+      ],
       os_status: [
         "pending",
         "in_progress",
