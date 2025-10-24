@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/curitiba-logo.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
@@ -47,15 +48,14 @@ interface MenuItem {
 export const MainLayout = ({ children }: MainLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { role } = useUserRole();
-  const { settings } = useSystemSettings();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [mobileActiveSection, setMobileActiveSection] = useState<string | null>(null);
-  const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
-  const [pinnedSection, setPinnedSection] = useState<string | null>(null);
+  const [isHoveringMenu, setIsHoveringMenu] = useState(false);
   const [isHoveringSubmenu, setIsHoveringSubmenu] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { role } = useUserRole();
+  const { settings } = useSystemSettings();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -71,19 +71,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     };
   }, [navigate]);
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && (pinnedSection || isOverlayOpen)) {
-        setPinnedSection(null);
-        setHoveredSection(null);
-        setIsOverlayOpen(false);
-      }
-    };
-    
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [pinnedSection, isOverlayOpen]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -141,45 +128,42 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     },
   ];
 
-  const handleRailMouseLeave = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    hoverTimeoutRef.current = setTimeout(() => {
-      if (!isHoveringSubmenu && !pinnedSection) {
-        setIsOverlayOpen(false);
-        setHoveredSection(null);
-      }
-    }, 200);
+  const getActiveSectionFromRoute = () => {
+    return menuSections.find((section) =>
+      section.items.some((item) => isActive(item.to))
+    );
   };
 
-  const handleOverlayMouseEnter = () => {
+  const handleSectionMouseEnter = (sectionTitle: string) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setHoveredSection(sectionTitle);
+  };
+
+  const handleMenuMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      if (!isPinned && !isHoveringSubmenu) {
+        setHoveredSection(null);
+      }
+    }, 150);
+  };
+
+  const handleSubmenuMouseEnter = () => {
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     setIsHoveringSubmenu(true);
   };
 
-  const handleOverlayMouseLeave = () => {
+  const handleSubmenuMouseLeave = () => {
     setIsHoveringSubmenu(false);
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     hoverTimeoutRef.current = setTimeout(() => {
-      if (!pinnedSection) {
-        setIsOverlayOpen(false);
+      if (!isPinned && !isHoveringMenu) {
         setHoveredSection(null);
       }
-    }, 200);
+    }, 150);
   };
 
-  const handleSectionClick = (sectionTitle: string) => {
-    if (pinnedSection === sectionTitle) {
-      setPinnedSection(null);
-      setIsOverlayOpen(false);
-      setHoveredSection(null);
-    } else {
-      setPinnedSection(sectionTitle);
-      setIsOverlayOpen(true);
-    }
-  };
-
-  const activeOverlaySection = pinnedSection || hoveredSection;
-  const shouldShowOverlay = isOverlayOpen && activeOverlaySection !== null;
+  const activeSection = getActiveSectionFromRoute();
+  const isMenuExpanded = isPinned || isHoveringMenu;
+  const shouldShowSubmenu = hoveredSection || (isPinned && activeSection);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -213,10 +197,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 
                       return (
                         <div key={section.title} className="space-y-1">
-                          <button
-                            onClick={() => setMobileActiveSection(section.title)}
+                          <div
                             className={cn(
-                              "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium w-full",
+                              "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium",
                               isSectionActive
                                 ? "bg-white text-sidebar-primary shadow-sm"
                                 : "text-muted-foreground"
@@ -224,7 +207,25 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                           >
                             <section.icon className="h-5 w-5" />
                             <span>{section.title}</span>
-                          </button>
+                          </div>
+                          <div className="ml-4 space-y-1">
+                            {section.items.map((item) => (
+                              <Link
+                                key={item.to}
+                                to={item.to}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={cn(
+                                  "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
+                                  isActive(item.to)
+                                    ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
+                                    : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
+                                )}
+                              >
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.label}</span>
+                              </Link>
+                            ))}
+                          </div>
                         </div>
                       );
                     })}
@@ -261,11 +262,17 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           </span>
         </header>
 
-        {/* Desktop Rail - Fixed 72px */}
+        {/* Desktop Sidebar */}
         <aside
-          className="hidden lg:flex fixed left-0 top-0 bottom-0 w-18 bg-sidebar z-50"
-          onMouseEnter={() => setIsOverlayOpen(true)}
-          onMouseLeave={handleRailMouseLeave}
+          className={cn(
+            "hidden lg:flex fixed left-0 top-0 bottom-0 bg-sidebar transition-all duration-300 ease-in-out z-40",
+            isMenuExpanded ? "w-60" : "w-18"
+          )}
+          onMouseEnter={() => setIsHoveringMenu(true)}
+          onMouseLeave={() => {
+            setIsHoveringMenu(false);
+            handleMenuMouseLeave();
+          }}
         >
           <div className="flex flex-col w-full h-full">
             {/* Logo */}
@@ -273,146 +280,161 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               <img
                 src={logoUrl}
                 alt="Logo"
-                className="h-10 w-10 object-contain"
+                className={cn(
+                  "transition-all duration-300",
+                  isMenuExpanded ? "h-12" : "h-10"
+                )}
               />
             </div>
 
-            {/* Menu Items */}
+            {/* Menu Principal */}
             <ScrollArea className="flex-1">
               <nav className="p-3 space-y-2" role="menu">
                 {menuSections.map((section) => {
-                  const isSectionActive = section.items.some(item => isActive(item.to));
-                  
+                  const isSectionActive = section.items.some((item) =>
+                    isActive(item.to)
+                  );
+
                   return (
                     <Tooltip key={section.title}>
                       <TooltipTrigger asChild>
                         <button
                           role="menuitem"
                           aria-haspopup="true"
-                          aria-expanded={activeOverlaySection === section.title}
+                          aria-expanded={hoveredSection === section.title}
                           aria-label={section.title}
-                          onMouseEnter={() => setHoveredSection(section.title)}
-                          onClick={() => handleSectionClick(section.title)}
+                          onMouseEnter={() => handleSectionMouseEnter(section.title)}
                           className={cn(
-                            "flex items-center justify-center w-full h-14 rounded-lg",
-                            "transition-colors duration-200",
-                            isSectionActive || pinnedSection === section.title
-                              ? "bg-white text-sidebar-primary shadow-sm"
+                            "flex items-center gap-3 w-full rounded-lg text-sm font-medium transition-all duration-200",
+                            isMenuExpanded ? "px-4 py-3" : "px-0 py-3 justify-center",
+                            isSectionActive
+                              ? "bg-white text-sidebar-primary border-l-[3px] border-sidebar-primary shadow-sm"
                               : "text-[#64748B] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
                           )}
                         >
-                          <section.icon className="h-6 w-6" />
+                          <section.icon className="h-5 w-5 flex-shrink-0" />
+                          {isMenuExpanded && <span>{section.title}</span>}
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>{section.title}</p>
-                      </TooltipContent>
+                      {!isMenuExpanded && (
+                        <TooltipContent side="right">
+                          {section.title}
+                        </TooltipContent>
+                      )}
                     </Tooltip>
                   );
                 })}
               </nav>
             </ScrollArea>
 
-            {/* Footer */}
+            {/* Footer: Fixar Menu + Configurações + Sair */}
             <div className="p-3 border-t border-sidebar-accent space-y-2">
+              {/* Toggle Fixar Menu */}
+              <div className={cn(
+                "flex items-center gap-2 px-2 py-2",
+                isMenuExpanded ? "justify-start" : "justify-center"
+              )}>
+                <Switch
+                  checked={isPinned}
+                  onCheckedChange={setIsPinned}
+                  id="pin-menu"
+                  className="data-[state=checked]:bg-sidebar-primary"
+                />
+                {isMenuExpanded && (
+                  <label
+                    htmlFor="pin-menu"
+                    className="text-xs text-[#64748B] cursor-pointer whitespace-nowrap"
+                  >
+                    Fixar menu
+                  </label>
+                )}
+              </div>
+
               {role === "admin" && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
-                      size="icon"
-                      className="w-full h-14"
+                      size={isMenuExpanded ? "default" : "icon"}
+                      className={cn(
+                        "w-full transition-all duration-200",
+                        isMenuExpanded ? "justify-start gap-3" : "justify-center"
+                      )}
                       onClick={() => navigate("/settings")}
                     >
-                      <Settings className="h-5 w-5" />
+                      <Settings className="h-5 w-5 flex-shrink-0" />
+                      {isMenuExpanded && <span>Configurações</span>}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>Configurações</p>
-                  </TooltipContent>
+                  {!isMenuExpanded && (
+                    <TooltipContent side="right">Configurações</TooltipContent>
+                  )}
                 </Tooltip>
               )}
-              
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="w-full h-14"
+                    size={isMenuExpanded ? "default" : "icon"}
+                    className={cn(
+                      "w-full transition-all duration-200",
+                      isMenuExpanded ? "justify-start gap-3" : "justify-center"
+                    )}
                     onClick={handleLogout}
                   >
-                    <LogOut className="h-5 w-5" />
+                    <LogOut className="h-5 w-5 flex-shrink-0" />
+                    {isMenuExpanded && <span>Sair</span>}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Sair</p>
-                </TooltipContent>
+                {!isMenuExpanded && (
+                  <TooltipContent side="right">Sair</TooltipContent>
+                )}
               </Tooltip>
             </div>
           </div>
         </aside>
 
-        {/* Backdrop - apenas quando pinnedSection está ativo */}
-        {pinnedSection && (
+        {/* Submenu Panel */}
+        {shouldShowSubmenu && (
           <div
-            className="hidden lg:block fixed inset-0 z-55"
-            onClick={() => {
-              setPinnedSection(null);
-              setHoveredSection(null);
-              setIsOverlayOpen(false);
-            }}
-          />
-        )}
-
-        {/* Desktop Overlay - Independent */}
-        {shouldShowOverlay && (
-          <div
-            className="hidden lg:block fixed top-0 left-18 h-screen w-75 bg-white z-60 border-r border-border overlay-shadow animate-slide-in-right"
-            onMouseEnter={handleOverlayMouseEnter}
-            onMouseLeave={handleOverlayMouseLeave}
+            className={cn(
+              "hidden lg:block fixed top-0 bottom-0 bg-white border-r border-border submenu-panel submenu-shadow z-30",
+              "w-70",
+              isMenuExpanded ? "left-60" : "left-18"
+            )}
+            onMouseEnter={handleSubmenuMouseEnter}
+            onMouseLeave={handleSubmenuMouseLeave}
           >
             <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="h-20 border-b border-border flex items-center justify-between px-6">
+              {/* Header com título */}
+              <div className="h-20 border-b border-border flex items-center px-6">
                 <h2 className="text-base font-semibold text-[#152752] uppercase">
-                  {activeOverlaySection}
+                  {hoveredSection || activeSection?.title}
                 </h2>
-                
-                {/* Botão X - apenas quando pinnedSection está ativo */}
-                {pinnedSection && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setPinnedSection(null);
-                      setHoveredSection(null);
-                      setIsOverlayOpen(false);
-                    }}
-                    className="h-8 w-8"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
               </div>
 
               {/* Lista de Subitens */}
               <ScrollArea className="flex-1">
                 <nav className="p-4 space-y-1">
                   {menuSections
-                    .find(section => section.title === activeOverlaySection)
+                    .find(
+                      (section) =>
+                        section.title === hoveredSection ||
+                        section.title === activeSection?.title
+                    )
                     ?.items.map((item) => (
                       <Link
                         key={item.to}
                         to={item.to}
                         className={cn(
-                          "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm",
-                          "transition-colors duration-200",
+                          "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200",
                           isActive(item.to)
                             ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
-                            : "text-[#434247] hover:bg-[#F5F6F8] hover:text-sidebar-primary"
+                            : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
                         )}
                       >
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
                         <span>{item.label}</span>
                       </Link>
                     ))}
@@ -422,65 +444,20 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           </div>
         )}
 
-        {/* Mobile Submenu Overlay */}
-        {mobileActiveSection && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="lg:hidden fixed inset-0 bg-black/60 z-60"
-              onClick={() => setMobileActiveSection(null)}
-            />
-            
-            {/* Overlay */}
-            <div className="lg:hidden fixed right-0 top-0 bottom-0 w-[80%] bg-white z-70 shadow-2xl animate-slide-in-right">
-              <div className="flex flex-col h-full">
-                {/* Header com X */}
-                <div className="h-16 border-b border-border flex items-center justify-between px-6">
-                  <h2 className="text-base font-semibold text-[#152752] uppercase">
-                    {mobileActiveSection}
-                  </h2>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setMobileActiveSection(null)}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-                
-                {/* Lista de subitens */}
-                <ScrollArea className="flex-1">
-                  <nav className="p-4 space-y-1">
-                    {menuSections
-                      .find(section => section.title === mobileActiveSection)
-                      ?.items.map((item) => (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          onClick={() => setMobileActiveSection(null)}
-                          className={cn(
-                            "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm",
-                            isActive(item.to)
-                              ? "bg-[#F5F6F8] text-sidebar-primary font-medium"
-                              : "text-[#434247] hover:bg-[#F5F6F8]"
-                          )}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.label}</span>
-                        </Link>
-                      ))}
-                  </nav>
-                </ScrollArea>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Main Content - Fixed margin */}
-        <main className="flex-1 pt-16 lg:pt-0 lg:ml-18">
-          <div className="container mx-auto p-6">
-            {children}
-          </div>
+        {/* Main Content */}
+        <main
+          className={cn(
+            "flex-1 transition-all duration-300 pt-16 lg:pt-0",
+            isMenuExpanded
+              ? shouldShowSubmenu
+                ? "lg:ml-[520px]"
+                : "lg:ml-60"
+              : shouldShowSubmenu
+              ? "lg:ml-[352px]"
+              : "lg:ml-18"
+          )}
+        >
+          <div className="container mx-auto p-6">{children}</div>
         </main>
       </div>
     </TooltipProvider>
