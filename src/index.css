@@ -38,20 +38,13 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 216 100% 34%;
-
+    --sidebar-background: 216 18% 97%; /* #F5F6F8 */
+    --sidebar-foreground: 215 15% 40%; /* #64748B */
+    --sidebar-primary: 204 92% 29%; /* #18487A */
     --sidebar-primary-foreground: 0 0% 100%;
-
-    --sidebar-accent: 216 100% 95%;
-
-    --sidebar-accent-foreground: 216 100% 34%;
-
+    --sidebar-accent: 210 14% 93%; /* #ECEFF1 */
+    --sidebar-accent-foreground: 204 92% 29%;
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 216 100% 42%;
   }
 
@@ -102,4 +95,29 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Sidebar Custom Styles */
+.bg-sidebar {
+  background-color: hsl(var(--sidebar-background));
+}
+
+.text-sidebar-primary {
+  color: hsl(var(--sidebar-primary));
+}
+
+.sidebar-item {
+  color: hsl(var(--sidebar-foreground));
+}
+
+.sidebar-item:hover {
+  background-color: hsl(var(--sidebar-accent));
+  color: hsl(var(--sidebar-primary));
+}
+
+.sidebar-item-active {
+  background-color: hsl(var(--background));
+  color: hsl(var(--sidebar-primary));
+  border-left: 3px solid hsl(var(--sidebar-primary));
+  font-weight: 500;
 }

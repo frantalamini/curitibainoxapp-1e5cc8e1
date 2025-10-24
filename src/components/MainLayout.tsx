@@ -1,293 +1,297 @@
-import { useEffect, useState } from "react";
-import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { ReactNode, useEffect, useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import {
+  Users,
+  ClipboardList,
+  Calendar,
+  BarChart3,
+  Menu,
+  LogOut,
+  Wrench,
+  Package,
+  Building2,
+  FileText,
+  Settings,
+  Tags,
+  FileCheck,
+  Activity,
+  DollarSign,
+  ChevronDown,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import logoUrl from "@/assets/curitiba-logo.png";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import {
-  Home,
-  Users,
-  Building2,
-  Package,
-  Wrench,
-  Clock,
-  Activity,
-  AlertCircle,
-  CheckCircle,
-  Calendar,
-  Settings,
-  LogOut,
-  Menu,
-  ChevronDown,
-  Tags,
-  ClipboardList,
-  BarChart3,
-} from "lucide-react";
-import { Button } from "./ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import defaultLogo from "@/assets/curitiba-logo.png";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
-const MainLayout = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const { isAdmin, loading: roleLoading } = useUserRole();
-  const { settings } = useSystemSettings();
+interface MainLayoutProps {
+  children: ReactNode;
+}
+
+interface MenuSection {
+  title: string;
+  icon: any;
+  items: MenuItem[];
+}
+
+interface MenuItem {
+  to: string;
+  icon: any;
+  label: string;
+}
+
+export const MainLayout = ({ children }: MainLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [open, setOpen] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  
-  const logoUrl = settings?.logo_url || defaultLogo;
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<string[]>(["Cadastros"]);
+  const { role } = useUserRole();
+  const { settings } = useSystemSettings();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_OUT") {
+          navigate("/auth");
+        }
+      }
+    );
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
   };
 
-  const toggleSection = (title: string) => {
-    setExpandedSection(prev => prev === title ? null : title);
+  const isActive = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
   };
 
+  const toggleSection = (title: string) => {
+    setExpandedSections(prev =>
+      prev.includes(title)
+        ? prev.filter(t => t !== title)
+        : [...prev, title]
+    );
+  };
 
-  const menuSections = [
+  const menuSections: MenuSection[] = [
     {
-      title: "CADASTRO",
+      title: "Cadastros",
+      icon: Users,
       items: [
-        ...(isAdmin ? [{ to: "/technicians", icon: Wrench, label: "Técnicos" }] : []),
-        { to: "/clients", icon: Building2, label: "Clientes / Fornecedores" },
-        { to: "/service-types", icon: Tags, label: "Tipos de Serviço" },
-        { to: "/checklists", icon: ClipboardList, label: "Checklists" },
-      ]
+        { icon: Building2, label: "Clientes e Fornecedores", to: "/clients" },
+        { icon: Package, label: "Produtos", to: "/equipment" },
+        { icon: Wrench, label: "Serviços", to: "/service-types" },
+        { icon: Tags, label: "Categorias dos Produtos", to: "/categories" },
+        { icon: Users, label: "Vendedores", to: "/sellers" },
+        { icon: Package, label: "Embalagens", to: "/packaging" },
+        ...(role === "admin"
+          ? [{ icon: Users, label: "Técnicos", to: "/technicians" }]
+          : []),
+        { icon: FileText, label: "Checklists", to: "/checklists" },
+      ],
     },
     {
-      title: "CHAMADOS",
+      title: "Serviços",
+      icon: Wrench,
       items: [
-        { to: "/service-calls", icon: Package, label: "Todos os Chamados" },
-        { to: "/service-calls?status=pending", icon: Clock, label: "Aguardando Início" },
-        { to: "/service-calls?status=in_progress", icon: Activity, label: "Em Andamento" },
-        { to: "/service-calls?status=on_hold", icon: AlertCircle, label: "Com Pendências" },
-        { to: "/service-calls?status=completed", icon: CheckCircle, label: "Finalizados" },
-      ]
+        { icon: FileText, label: "Contratos", to: "/contracts" },
+        { icon: ClipboardList, label: "Ordens de Serviço", to: "/service-calls" },
+        { icon: FileCheck, label: "Notas de Serviço", to: "/service-notes" },
+        { icon: BarChart3, label: "Relatórios", to: "/service-reports" },
+      ],
     },
     {
-      title: "AGENDA",
+      title: "Agenda",
+      icon: Calendar,
       items: [
-        { to: "/schedule", icon: Calendar, label: "Calendário" },
-      ]
+        { icon: Calendar, label: "Compromissos", to: "/schedule" },
+        { icon: Wrench, label: "Técnicos em Campo", to: "/technicians" },
+      ],
     },
     {
-      title: "RELATÓRIOS",
+      title: "Relatórios",
+      icon: BarChart3,
       items: [
-        { to: "/dashboard", icon: BarChart3, label: "Dashboard" },
-      ]
-    }
+        { icon: BarChart3, label: "Dashboard", to: "/dashboard" },
+        { icon: Activity, label: "Indicadores Técnicos", to: "/technical-indicators" },
+        { icon: DollarSign, label: "Financeiro", to: "/financial" },
+      ],
+    },
   ];
 
-  const NavItems = () => {
-    const [activeSection, setActiveSection] = useState<string | null>(null);
-
-    const isActiveItem = (itemTo: string) => {
-      const itemPath = new URL(itemTo, window.location.origin);
-      return location.pathname === itemPath.pathname && 
-             location.search === itemPath.search;
-    };
-
-    const getActiveSection = () => {
-      const section = menuSections.find(s =>
-        s.items.some(item => isActiveItem(item.to))
-      );
-      return section?.title || null;
-    };
-
-    useEffect(() => {
-      const current = getActiveSection();
-      if (current && expandedSection === current) {
-        setActiveSection(current);
+  // Verificar se algum item da seção está ativo e expandir automaticamente
+  useEffect(() => {
+    menuSections.forEach(section => {
+      const hasActiveItem = section.items.some(item => isActive(item.to));
+      if (hasActiveItem && !expandedSections.includes(section.title)) {
+        setExpandedSections(prev => [...prev, section.title]);
       }
-    }, [location.pathname, expandedSection]);
+    });
+  }, [location.pathname]);
 
-    return (
-      <div className="flex gap-4">
-        {/* COLUNA ESQUERDA: Títulos principais */}
-        <div className="w-48 space-y-2">
+  const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="flex items-center justify-center py-6 px-4">
+        <img 
+          src={logoUrl} 
+          alt="Curitiba Inox" 
+          className={cn(
+            "transition-all duration-200",
+            isCollapsed && !mobile ? "w-10" : "w-40"
+          )}
+        />
+      </div>
+
+      {/* Menu */}
+      <ScrollArea className="flex-1 px-3">
+        <nav className="space-y-2">
           {menuSections.map((section) => {
-            const isExpanded = expandedSection === section.title;
-            const isCurrent = getActiveSection() === section.title;
-
-            return (
-              <button
-                key={section.title}
-                onClick={() => toggleSection(section.title)}
-                onMouseEnter={() => {
-                  setExpandedSection(section.title);
-                }}
-                onMouseLeave={() => {
-                  if (!isCurrent) {
-                    setExpandedSection(null);
-                  }
-                }}
-                className={`
-                  w-full text-left px-4 py-3 rounded-lg font-bold text-sm
-                  transition-all duration-200 flex items-center justify-between
-                  ${isCurrent ? "text-primary" : "text-foreground hover:text-primary"}
-                `}
-              >
-                <span className="uppercase tracking-wider">{section.title}</span>
-                {isExpanded && (
-                  <div className="w-2 h-2 rounded-full bg-primary" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* COLUNA DIREITA: Sub-itens */}
-        <div className="flex-1">
-          {menuSections.map((section) => {
-            const isExpanded = expandedSection === section.title;
+            const isExpanded = expandedSections.includes(section.title);
+            const hasActiveItem = section.items.some(item => isActive(item.to));
             
-            if (!isExpanded) return null;
-
             return (
-              <div 
-                key={section.title}
-                className="space-y-1 animate-fade-in"
-              >
-                {section.items.map((item) => {
-                  const itemActive = isActiveItem(item.to);
-                  
-                  return (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      onClick={() => setOpen(false)}
-                      className={`
-                        flex items-center gap-3 px-4 py-2.5 rounded-lg 
-                        transition-all text-sm
-                        ${itemActive
-                          ? "text-primary font-bold"
-                          : "text-foreground hover:text-primary"
-                        }
-                      `}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  );
-                })}
+              <div key={section.title} className="space-y-1">
+                {/* Section Header */}
+                <button
+                  onClick={() => toggleSection(section.title)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-4 py-3 rounded-lg",
+                    "font-medium transition-all duration-200 sidebar-item",
+                    hasActiveItem && "text-sidebar-primary"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <section.icon className="h-5 w-5 flex-shrink-0" />
+                    {(!isCollapsed || mobile) && (
+                      <span className="text-sm">{section.title}</span>
+                    )}
+                  </div>
+                  {(!isCollapsed || mobile) && (
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        isExpanded && "rotate-180"
+                      )}
+                    />
+                  )}
+                </button>
+
+                {/* Section Items */}
+                {isExpanded && (!isCollapsed || mobile) && (
+                  <div className="space-y-1 pl-3">
+                    {section.items.map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => mobile && setIsMobileMenuOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 rounded-lg",
+                          "text-sm transition-all duration-200 sidebar-item",
+                          isActive(item.to) && "sidebar-item-active"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        <span>{item.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
-        </div>
-      </div>
-    );
-  };
+        </nav>
+      </ScrollArea>
 
-  if (roleLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div>Carregando...</div>
+      {/* Footer */}
+      <div className="p-4 space-y-3 border-t border-sidebar-border">
+        {(!isCollapsed || mobile) && (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground">Expandir menu</span>
+            <Switch
+              checked={!isCollapsed}
+              onCheckedChange={(checked) => setIsCollapsed(!checked)}
+            />
+          </div>
+        )}
+        
+        {role === "admin" && (
+          <Link to="/settings">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-2",
+                isCollapsed && !mobile && "justify-center px-2"
+              )}
+            >
+              <Settings className="h-4 w-4" />
+              {(!isCollapsed || mobile) && <span>Configurações</span>}
+            </Button>
+          </Link>
+        )}
+        
+        <Button
+          onClick={handleLogout}
+          variant="ghost"
+          className={cn(
+            "w-full justify-start gap-2 text-destructive hover:text-destructive",
+            isCollapsed && !mobile && "justify-center px-2"
+          )}
+        >
+          <LogOut className="h-4 w-4" />
+          {(!isCollapsed || mobile) && <span>Sair</span>}
+        </Button>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
+    <div className="min-h-screen bg-background flex w-full">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:w-80 lg:flex-col lg:fixed lg:inset-y-0 border-r bg-card">
-        <div className="flex flex-col flex-1 overflow-y-auto">
-          <div className="flex items-center justify-center h-20 border-b px-4">
-            <img src={logoUrl} alt="Curitiba Inox" className="h-16 object-contain" />
-          </div>
-          <nav className="flex-1 px-4 py-6">
-            <NavItems />
-          </nav>
-          <div className="p-4 border-t space-y-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => navigate("/settings")}
-            >
-              <Settings className="h-5 w-5 mr-3" />
-              Configurações
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-5 w-5 mr-3" />
-              Sair
-            </Button>
-            <div className="text-sm text-muted-foreground px-4 pt-2">
-              {user?.email}
-            </div>
-          </div>
-        </div>
+      <aside
+        className={cn(
+          "hidden lg:flex flex-col bg-sidebar transition-all duration-200",
+          isCollapsed ? "w-16" : "w-70"
+        )}
+      >
+        <SidebarContent />
       </aside>
 
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 border-b bg-card z-50 flex items-center justify-between px-4">
-        <Sheet open={open} onOpenChange={setOpen}>
+      {/* Mobile Header + Sheet */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 border-b bg-card">
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0">
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-center h-20 border-b">
-                <img src={logoUrl} alt="Curitiba Inox" className="h-16 object-contain" />
-              </div>
-              <nav className="flex-1 px-4 py-6 overflow-y-auto">
-                <NavItems />
-              </nav>
-              <div className="p-4 border-t space-y-2">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setOpen(false);
-                    navigate("/settings");
-                  }}
-                >
-                  <Settings className="h-5 w-5 mr-3" />
-                  Configurações
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-5 w-5 mr-3" />
-                  Sair
-                </Button>
-                <div className="text-sm text-muted-foreground px-4 pt-2">
-                  {user?.email}
-                </div>
-              </div>
-            </div>
+          <SheetContent side="left" className="w-80 p-0 bg-sidebar">
+            <SidebarContent mobile />
           </SheetContent>
         </Sheet>
-        <img src={logoUrl} alt="Curitiba Inox" className="h-14 object-contain" />
-      </header>
+        <h1 className="text-lg font-semibold">
+          {settings?.company_name || "Curitiba Inox"}
+        </h1>
+      </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:pl-80 pt-16 lg:pt-0">
-        <div className="p-6">{children}</div>
+      <main className={cn(
+        "flex-1 overflow-auto",
+        "pt-16 lg:pt-0"
+      )}>
+        <div className="container mx-auto p-6">{children}</div>
       </main>
     </div>
   );
