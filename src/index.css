@@ -133,12 +133,12 @@ All colors MUST be HSL.
 /* Slide animation for submenu panel */
 @keyframes slide-in-right {
   from {
-    transform: translateX(-100%);
     opacity: 0;
+    transform: translateX(-20px);
   }
   to {
-    transform: translateX(0);
     opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -147,5 +147,10 @@ All colors MUST be HSL.
 }
 
 .submenu-panel {
-  transition: width 0.25s ease-in-out, opacity 0.25s ease-in-out;
+  animation: slide-in-right 0.2s ease-in-out;
+}
+
+/* Submenu shadow */
+.submenu-shadow {
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.08);
 }
