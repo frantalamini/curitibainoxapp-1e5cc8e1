@@ -14,11 +14,14 @@ export default {
     },
       extend: {
         width: {
+          '18': '72px',
+          '60': '240px',
           '70': '280px',
           '22.5': '90px',
         },
         transitionDuration: {
           '250': '250ms',
+          '300': '300ms',
         },
         colors: {
           border: "hsl(var(--border))",

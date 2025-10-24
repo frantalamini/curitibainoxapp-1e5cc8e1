@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Users,
@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/curitiba-logo.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
@@ -48,7 +49,11 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<string | null>("Cadastros");
+  const [isPinned, setIsPinned] = useState(false);
+  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
+  const [isHoveringMenu, setIsHoveringMenu] = useState(false);
+  const [isHoveringSubmenu, setIsHoveringSubmenu] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { role } = useUserRole();
   const { settings } = useSystemSettings();
 
@@ -63,6 +68,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 
     return () => {
       subscription.unsubscribe();
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     };
   }, [navigate]);
 
@@ -122,17 +128,42 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     },
   ];
 
-  // Auto-activate section containing active route
-  useEffect(() => {
-    const active = menuSections.find((section) =>
+  const getActiveSectionFromRoute = () => {
+    return menuSections.find((section) =>
       section.items.some((item) => isActive(item.to))
     );
-    if (active) {
-      setActiveSection(active.title);
-    }
-  }, [location.pathname]);
+  };
 
-  const activeMenuSection = menuSections.find((section) => section.title === activeSection);
+  const handleSectionMouseEnter = (sectionTitle: string) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setHoveredSection(sectionTitle);
+  };
+
+  const handleMenuMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      if (!isPinned && !isHoveringSubmenu) {
+        setHoveredSection(null);
+      }
+    }, 150);
+  };
+
+  const handleSubmenuMouseEnter = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setIsHoveringSubmenu(true);
+  };
+
+  const handleSubmenuMouseLeave = () => {
+    setIsHoveringSubmenu(false);
+    hoverTimeoutRef.current = setTimeout(() => {
+      if (!isPinned && !isHoveringMenu) {
+        setHoveredSection(null);
+      }
+    }, 150);
+  };
+
+  const activeSection = getActiveSectionFromRoute();
+  const isMenuExpanded = isPinned || isHoveringMenu;
+  const shouldShowSubmenu = hoveredSection || (isPinned && activeSection);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -145,63 +176,83 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-80">
-              {/* Mobile Sidebar Content */}
-              <div className="flex h-full bg-sidebar">
-                {/* Main Menu Column */}
-                <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
-                  <img src={logoUrl} alt="Logo" className="w-16 h-16 mb-6" />
-                  <nav className="flex flex-col gap-2.5 flex-1">
-                    {menuSections.map((section) => (
-                      <Tooltip key={section.title}>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => setActiveSection(section.title)}
+            <SheetContent side="left" className="p-0 w-[80%]">
+              <div className="flex flex-col h-full bg-sidebar">
+                <div className="p-6 border-b border-sidebar-accent flex items-center justify-between">
+                  <img src={logoUrl} alt="Logo" className="h-12" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+                <ScrollArea className="flex-1">
+                  <nav className="p-4 space-y-2">
+                    {menuSections.map((section) => {
+                      const isSectionActive = section.items.some((item) =>
+                        isActive(item.to)
+                      );
+
+                      return (
+                        <div key={section.title} className="space-y-1">
+                          <div
                             className={cn(
-                              "w-16 h-16 flex items-center justify-center rounded-lg transition-all duration-200",
-                              activeSection === section.title
+                              "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium",
+                              isSectionActive
                                 ? "bg-white text-sidebar-primary shadow-sm"
-                                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
+                                : "text-muted-foreground"
                             )}
                           >
-                            <section.icon className="h-6 w-6" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">{section.title}</TooltipContent>
-                      </Tooltip>
-                    ))}
+                            <section.icon className="h-5 w-5" />
+                            <span>{section.title}</span>
+                          </div>
+                          <div className="ml-4 space-y-1">
+                            {section.items.map((item) => (
+                              <Link
+                                key={item.to}
+                                to={item.to}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={cn(
+                                  "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
+                                  isActive(item.to)
+                                    ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
+                                    : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
+                                )}
+                              >
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.label}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </nav>
-                </div>
-
-                {/* Submenu Column */}
-                <div className="flex-1 bg-white">
-                  {activeMenuSection && (
-                    <ScrollArea className="h-full">
-                      <div className="p-6">
-                        <h2 className="text-base font-semibold text-[#152752] mb-4 uppercase">
-                          {activeMenuSection.title}
-                        </h2>
-                        <nav className="space-y-1">
-                          {activeMenuSection.items.map((item) => (
-                            <Link
-                              key={item.to}
-                              to={item.to}
-                              onClick={() => setIsMobileMenuOpen(false)}
-                              className={cn(
-                                "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
-                                isActive(item.to)
-                                  ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
-                                  : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
-                              )}
-                            >
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.label}</span>
-                            </Link>
-                          ))}
-                        </nav>
-                      </div>
-                    </ScrollArea>
+                </ScrollArea>
+                <div className="p-4 border-t border-sidebar-accent space-y-2">
+                  {role === "admin" && (
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3"
+                      onClick={() => {
+                        navigate("/settings");
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <Settings className="h-5 w-5" />
+                      <span>Configurações</span>
+                    </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span>Sair</span>
+                  </Button>
                 </div>
               </div>
             </SheetContent>
@@ -211,50 +262,113 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           </span>
         </header>
 
-        {/* Desktop Sidebar - Two Column Layout */}
-        <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30">
-          {/* Column 1: Main Menu (90px) */}
-          <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
+        {/* Desktop Sidebar */}
+        <aside
+          className={cn(
+            "hidden lg:flex fixed left-0 top-0 bottom-0 bg-sidebar transition-all duration-300 ease-in-out z-40",
+            isMenuExpanded ? "w-60" : "w-18"
+          )}
+          onMouseEnter={() => setIsHoveringMenu(true)}
+          onMouseLeave={() => {
+            setIsHoveringMenu(false);
+            handleMenuMouseLeave();
+          }}
+        >
+          <div className="flex flex-col w-full h-full">
             {/* Logo */}
-            <img src={logoUrl} alt="Logo" className="w-16 h-16 mb-6" />
+            <div className="flex items-center justify-center h-20 border-b border-sidebar-accent">
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className={cn(
+                  "transition-all duration-300",
+                  isMenuExpanded ? "h-12" : "h-10"
+                )}
+              />
+            </div>
 
-            {/* Main Menu Icons */}
-            <nav className="flex flex-col gap-2.5 flex-1">
-              {menuSections.map((section) => (
-                <Tooltip key={section.title}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => setActiveSection(section.title)}
-                      className={cn(
-                        "w-16 h-16 flex items-center justify-center rounded-lg transition-all duration-200",
-                        activeSection === section.title
-                          ? "bg-white text-sidebar-primary shadow-sm"
-                          : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
+            {/* Menu Principal */}
+            <ScrollArea className="flex-1">
+              <nav className="p-3 space-y-2" role="menu">
+                {menuSections.map((section) => {
+                  const isSectionActive = section.items.some((item) =>
+                    isActive(item.to)
+                  );
+
+                  return (
+                    <Tooltip key={section.title}>
+                      <TooltipTrigger asChild>
+                        <button
+                          role="menuitem"
+                          aria-haspopup="true"
+                          aria-expanded={hoveredSection === section.title}
+                          aria-label={section.title}
+                          onMouseEnter={() => handleSectionMouseEnter(section.title)}
+                          className={cn(
+                            "flex items-center gap-3 w-full rounded-lg text-sm font-medium transition-all duration-200",
+                            isMenuExpanded ? "px-4 py-3" : "px-0 py-3 justify-center",
+                            isSectionActive
+                              ? "bg-white text-sidebar-primary border-l-[3px] border-sidebar-primary shadow-sm"
+                              : "text-[#64748B] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
+                          )}
+                        >
+                          <section.icon className="h-5 w-5 flex-shrink-0" />
+                          {isMenuExpanded && <span>{section.title}</span>}
+                        </button>
+                      </TooltipTrigger>
+                      {!isMenuExpanded && (
+                        <TooltipContent side="right">
+                          {section.title}
+                        </TooltipContent>
                       )}
-                    >
-                      <section.icon className="h-6 w-6" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">{section.title}</TooltipContent>
-                </Tooltip>
-              ))}
-            </nav>
+                    </Tooltip>
+                  );
+                })}
+              </nav>
+            </ScrollArea>
 
-            {/* Footer: Settings and Logout */}
-            <div className="mt-auto space-y-2">
+            {/* Footer: Fixar Menu + Configurações + Sair */}
+            <div className="p-3 border-t border-sidebar-accent space-y-2">
+              {/* Toggle Fixar Menu */}
+              <div className={cn(
+                "flex items-center gap-2 px-2 py-2",
+                isMenuExpanded ? "justify-start" : "justify-center"
+              )}>
+                <Switch
+                  checked={isPinned}
+                  onCheckedChange={setIsPinned}
+                  id="pin-menu"
+                  className="data-[state=checked]:bg-sidebar-primary"
+                />
+                {isMenuExpanded && (
+                  <label
+                    htmlFor="pin-menu"
+                    className="text-xs text-[#64748B] cursor-pointer whitespace-nowrap"
+                  >
+                    Fixar menu
+                  </label>
+                )}
+              </div>
+
               {role === "admin" && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size={isMenuExpanded ? "default" : "icon"}
+                      className={cn(
+                        "w-full transition-all duration-200",
+                        isMenuExpanded ? "justify-start gap-3" : "justify-center"
+                      )}
                       onClick={() => navigate("/settings")}
-                      className="h-12 w-12"
                     >
-                      <Settings className="h-5 w-5" />
+                      <Settings className="h-5 w-5 flex-shrink-0" />
+                      {isMenuExpanded && <span>Configurações</span>}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">Configurações</TooltipContent>
+                  {!isMenuExpanded && (
+                    <TooltipContent side="right">Configurações</TooltipContent>
+                  )}
                 </Tooltip>
               )}
 
@@ -262,63 +376,85 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
+                    size={isMenuExpanded ? "default" : "icon"}
+                    className={cn(
+                      "w-full transition-all duration-200",
+                      isMenuExpanded ? "justify-start gap-3" : "justify-center"
+                    )}
                     onClick={handleLogout}
-                    className="h-12 w-12"
                   >
-                    <LogOut className="h-5 w-5" />
+                    <LogOut className="h-5 w-5 flex-shrink-0" />
+                    {isMenuExpanded && <span>Sair</span>}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right">Sair</TooltipContent>
+                {!isMenuExpanded && (
+                  <TooltipContent side="right">Sair</TooltipContent>
+                )}
               </Tooltip>
             </div>
           </div>
+        </aside>
 
-          {/* Column 2: Submenu Panel (Flexible width) */}
+        {/* Submenu Panel */}
+        {shouldShowSubmenu && (
           <div
             className={cn(
-              "bg-white border-r border-border transition-all duration-[250ms] ease-in-out overflow-hidden",
-              activeSection ? "w-64 opacity-100" : "w-0 opacity-0"
+              "hidden lg:block fixed top-0 bottom-0 bg-white border-r border-border submenu-panel submenu-shadow z-30",
+              "w-70",
+              isMenuExpanded ? "left-60" : "left-18"
             )}
+            onMouseEnter={handleSubmenuMouseEnter}
+            onMouseLeave={handleSubmenuMouseLeave}
           >
-            {activeMenuSection && (
-              <ScrollArea className="h-full">
-                <div className="p-6">
-                  {/* Section Title */}
-                  <h2 className="text-base font-semibold text-[#152752] mb-4 uppercase">
-                    {activeMenuSection.title}
-                  </h2>
+            <div className="flex flex-col h-full">
+              {/* Header com título */}
+              <div className="h-20 border-b border-border flex items-center px-6">
+                <h2 className="text-base font-semibold text-[#152752] uppercase">
+                  {hoveredSection || activeSection?.title}
+                </h2>
+              </div>
 
-                  {/* Submenu Items */}
-                  <nav className="space-y-1">
-                    {activeMenuSection.items.map((item) => (
+              {/* Lista de Subitens */}
+              <ScrollArea className="flex-1">
+                <nav className="p-4 space-y-1">
+                  {menuSections
+                    .find(
+                      (section) =>
+                        section.title === hoveredSection ||
+                        section.title === activeSection?.title
+                    )
+                    ?.items.map((item) => (
                       <Link
                         key={item.to}
                         to={item.to}
                         className={cn(
-                          "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
+                          "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200",
                           isActive(item.to)
                             ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
                             : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
                         )}
                       >
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
                         <span>{item.label}</span>
                       </Link>
                     ))}
-                  </nav>
-                </div>
+                </nav>
               </ScrollArea>
-            )}
+            </div>
           </div>
-        </aside>
+        )}
 
         {/* Main Content */}
         <main
           className={cn(
-            "flex-1 transition-all duration-[250ms]",
-            "pt-16 lg:pt-0",
-            activeSection ? "lg:ml-[346px]" : "lg:ml-[90px]"
+            "flex-1 transition-all duration-300 pt-16 lg:pt-0",
+            isMenuExpanded
+              ? shouldShowSubmenu
+                ? "lg:ml-[520px]"
+                : "lg:ml-60"
+              : shouldShowSubmenu
+              ? "lg:ml-[352px]"
+              : "lg:ml-18"
           )}
         >
           <div className="container mx-auto p-6">{children}</div>
