@@ -16,13 +16,13 @@ import {
   FileCheck,
   Activity,
   DollarSign,
-  ChevronDown,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/curitiba-logo.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -48,8 +48,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<string[]>(["Cadastros"]);
+  const [activeSection, setActiveSection] = useState<string | null>("Cadastros");
   const { role } = useUserRole();
   const { settings } = useSystemSettings();
 
@@ -75,14 +74,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
-  };
-
-  const toggleSection = (title: string) => {
-    setExpandedSections(prev =>
-      prev.includes(title)
-        ? prev.filter(t => t !== title)
-        : [...prev, title]
-    );
   };
 
   const menuSections: MenuSection[] = [
@@ -131,169 +122,209 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     },
   ];
 
-  // Verificar se algum item da seção está ativo e expandir automaticamente
+  // Auto-activate section containing active route
   useEffect(() => {
-    menuSections.forEach(section => {
-      const hasActiveItem = section.items.some(item => isActive(item.to));
-      if (hasActiveItem && !expandedSections.includes(section.title)) {
-        setExpandedSections(prev => [...prev, section.title]);
-      }
-    });
+    const active = menuSections.find((section) =>
+      section.items.some((item) => isActive(item.to))
+    );
+    if (active) {
+      setActiveSection(active.title);
+    }
   }, [location.pathname]);
 
-  const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="flex items-center justify-center py-6 px-4">
-        <img 
-          src={logoUrl} 
-          alt="Curitiba Inox" 
-          className={cn(
-            "transition-all duration-200",
-            isCollapsed && !mobile ? "w-10" : "w-40"
-          )}
-        />
-      </div>
+  const activeMenuSection = menuSections.find((section) => section.title === activeSection);
 
-      {/* Menu */}
-      <ScrollArea className="flex-1 px-3">
-        <nav className="space-y-2">
-          {menuSections.map((section) => {
-            const isExpanded = expandedSections.includes(section.title);
-            const hasActiveItem = section.items.some(item => isActive(item.to));
-            
-            return (
-              <div key={section.title} className="space-y-1">
-                {/* Section Header */}
-                <button
-                  onClick={() => toggleSection(section.title)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 rounded-lg",
-                    "font-medium transition-all duration-200 sidebar-item",
-                    hasActiveItem && "text-sidebar-primary"
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div className="min-h-screen bg-background flex w-full">
+        {/* Mobile Header */}
+        <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-border z-50 flex items-center px-4">
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 w-80">
+              {/* Mobile Sidebar Content */}
+              <div className="flex h-full bg-sidebar">
+                {/* Main Menu Column */}
+                <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
+                  <img src={logoUrl} alt="Logo" className="w-16 h-16 mb-6" />
+                  <nav className="flex flex-col gap-2.5 flex-1">
+                    {menuSections.map((section) => (
+                      <Tooltip key={section.title}>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setActiveSection(section.title)}
+                            className={cn(
+                              "w-16 h-16 flex items-center justify-center rounded-lg transition-all duration-200",
+                              activeSection === section.title
+                                ? "bg-white text-sidebar-primary shadow-sm"
+                                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
+                            )}
+                          >
+                            <section.icon className="h-6 w-6" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">{section.title}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </nav>
+                </div>
+
+                {/* Submenu Column */}
+                <div className="flex-1 bg-white">
+                  {activeMenuSection && (
+                    <ScrollArea className="h-full">
+                      <div className="p-6">
+                        <h2 className="text-base font-semibold text-[#152752] mb-4 uppercase">
+                          {activeMenuSection.title}
+                        </h2>
+                        <nav className="space-y-1">
+                          {activeMenuSection.items.map((item) => (
+                            <Link
+                              key={item.to}
+                              to={item.to}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className={cn(
+                                "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
+                                isActive(item.to)
+                                  ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
+                                  : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
+                              )}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.label}</span>
+                            </Link>
+                          ))}
+                        </nav>
+                      </div>
+                    </ScrollArea>
                   )}
-                >
-                  <div className="flex items-center gap-3">
-                    <section.icon className="h-5 w-5 flex-shrink-0" />
-                    {(!isCollapsed || mobile) && (
-                      <span className="text-sm">{section.title}</span>
-                    )}
-                  </div>
-                  {(!isCollapsed || mobile) && (
-                    <ChevronDown
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+          <span className="ml-4 font-semibold text-lg">
+            {settings?.company_name || "Curitiba Inox"}
+          </span>
+        </header>
+
+        {/* Desktop Sidebar - Two Column Layout */}
+        <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30">
+          {/* Column 1: Main Menu (90px) */}
+          <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
+            {/* Logo */}
+            <img src={logoUrl} alt="Logo" className="w-16 h-16 mb-6" />
+
+            {/* Main Menu Icons */}
+            <nav className="flex flex-col gap-2.5 flex-1">
+              {menuSections.map((section) => (
+                <Tooltip key={section.title}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setActiveSection(section.title)}
                       className={cn(
-                        "h-4 w-4 transition-transform duration-200",
-                        isExpanded && "rotate-180"
+                        "w-16 h-16 flex items-center justify-center rounded-lg transition-all duration-200",
+                        activeSection === section.title
+                          ? "bg-white text-sidebar-primary shadow-sm"
+                          : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
                       )}
-                    />
-                  )}
-                </button>
+                    >
+                      <section.icon className="h-6 w-6" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{section.title}</TooltipContent>
+                </Tooltip>
+              ))}
+            </nav>
 
-                {/* Section Items */}
-                {isExpanded && (!isCollapsed || mobile) && (
-                  <div className="space-y-1 pl-3">
-                    {section.items.map((item) => (
+            {/* Footer: Settings and Logout */}
+            <div className="mt-auto space-y-2">
+              {role === "admin" && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate("/settings")}
+                      className="h-12 w-12"
+                    >
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Configurações</TooltipContent>
+                </Tooltip>
+              )}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleLogout}
+                    className="h-12 w-12"
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Sair</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* Column 2: Submenu Panel (Flexible width) */}
+          <div
+            className={cn(
+              "bg-white border-r border-border transition-all duration-[250ms] ease-in-out overflow-hidden",
+              activeSection ? "w-64 opacity-100" : "w-0 opacity-0"
+            )}
+          >
+            {activeMenuSection && (
+              <ScrollArea className="h-full">
+                <div className="p-6">
+                  {/* Section Title */}
+                  <h2 className="text-base font-semibold text-[#152752] mb-4 uppercase">
+                    {activeMenuSection.title}
+                  </h2>
+
+                  {/* Submenu Items */}
+                  <nav className="space-y-1">
+                    {activeMenuSection.items.map((item) => (
                       <Link
                         key={item.to}
                         to={item.to}
-                        onClick={() => mobile && setIsMobileMenuOpen(false)}
                         className={cn(
-                          "flex items-center gap-3 px-4 py-3 rounded-lg",
-                          "text-sm transition-all duration-200 sidebar-item",
-                          isActive(item.to) && "sidebar-item-active"
+                          "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
+                          isActive(item.to)
+                            ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
+                            : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
                         )}
                       >
-                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        <item.icon className="h-4 w-4" />
                         <span>{item.label}</span>
                       </Link>
                     ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-      </ScrollArea>
-
-      {/* Footer */}
-      <div className="p-4 space-y-3 border-t border-sidebar-border">
-        {(!isCollapsed || mobile) && (
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground">Expandir menu</span>
-            <Switch
-              checked={!isCollapsed}
-              onCheckedChange={(checked) => setIsCollapsed(!checked)}
-            />
+                  </nav>
+                </div>
+              </ScrollArea>
+            )}
           </div>
-        )}
-        
-        {role === "admin" && (
-          <Link to="/settings">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start gap-2",
-                isCollapsed && !mobile && "justify-center px-2"
-              )}
-            >
-              <Settings className="h-4 w-4" />
-              {(!isCollapsed || mobile) && <span>Configurações</span>}
-            </Button>
-          </Link>
-        )}
-        
-        <Button
-          onClick={handleLogout}
-          variant="ghost"
+        </aside>
+
+        {/* Main Content */}
+        <main
           className={cn(
-            "w-full justify-start gap-2 text-destructive hover:text-destructive",
-            isCollapsed && !mobile && "justify-center px-2"
+            "flex-1 transition-all duration-[250ms]",
+            "pt-16 lg:pt-0",
+            activeSection ? "lg:ml-[346px]" : "lg:ml-[90px]"
           )}
         >
-          <LogOut className="h-4 w-4" />
-          {(!isCollapsed || mobile) && <span>Sair</span>}
-        </Button>
+          <div className="container mx-auto p-6">{children}</div>
+        </main>
       </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-background flex w-full">
-      {/* Desktop Sidebar */}
-      <aside
-        className={cn(
-          "hidden lg:flex flex-col bg-sidebar transition-all duration-200",
-          isCollapsed ? "w-16" : "w-70"
-        )}
-      >
-        <SidebarContent />
-      </aside>
-
-      {/* Mobile Header + Sheet */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 border-b bg-card">
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0 bg-sidebar">
-            <SidebarContent mobile />
-          </SheetContent>
-        </Sheet>
-        <h1 className="text-lg font-semibold">
-          {settings?.company_name || "Curitiba Inox"}
-        </h1>
-      </div>
-
-      {/* Main Content */}
-      <main className={cn(
-        "flex-1 overflow-auto",
-        "pt-16 lg:pt-0"
-      )}>
-        <div className="container mx-auto p-6">{children}</div>
-      </main>
-    </div>
+    </TooltipProvider>
   );
 };
 

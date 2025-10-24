@@ -121,3 +121,31 @@ All colors MUST be HSL.
   border-left: 3px solid hsl(var(--sidebar-primary));
   font-weight: 500;
 }
+
+/* Submenu item styles */
+.submenu-item-active {
+  background-color: #F5F6F8;
+  color: #18487A;
+  border-left: 3px solid #18487A;
+  font-weight: 500;
+}
+
+/* Slide animation for submenu panel */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s ease-in-out;
+}
+
+.submenu-panel {
+  transition: width 0.25s ease-in-out, opacity 0.25s ease-in-out;
+}
