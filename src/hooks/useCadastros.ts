@@ -6,7 +6,7 @@ export type CadastroTipo =
   | 'cliente' 
   | 'fornecedor' 
   | 'transportador' 
-  | 'funcionario' 
+  | 'colaborador' 
   | 'outro';
 
 export type Cadastro = {
@@ -15,10 +15,12 @@ export type Cadastro = {
   nome_fantasia?: string;
   email?: string;
   phone: string;
+  phone_2?: string;
   cpf_cnpj?: string;
   city?: string;
   state?: string;
   tipo: CadastroTipo;
+  tipos: CadastroTipo[];
   created_at: string;
   updated_at: string;
   cep?: string;
@@ -31,6 +33,7 @@ export type Cadastro = {
   notes?: string;
   responsible_financial?: { name?: string; phone?: string; } | null;
   responsible_technical?: { name?: string; phone?: string; } | null;
+  responsible_legal?: { name?: string; phone?: string; email?: string; } | null;
   created_by: string;
 };
 
@@ -66,9 +69,9 @@ export const useCadastros = (params: UseCadastrosParams = {}) => {
         .from('clients')
         .select('*', { count: 'exact' });
 
-      // Filtro por tipo
+      // Filtro por tipo (usando array contains)
       if (tipo !== 'todos') {
-        query = query.eq('tipo', tipo);
+        query = query.contains('tipos', [tipo]);
       }
 
       // Busca geral (nome, email, cpf_cnpj, nome_fantasia)
@@ -109,7 +112,7 @@ export const useCadastros = (params: UseCadastrosParams = {}) => {
         'cliente',
         'fornecedor',
         'transportador',
-        'funcionario',
+        'colaborador',
         'outro'
       ];
 
@@ -118,7 +121,7 @@ export const useCadastros = (params: UseCadastrosParams = {}) => {
           const { count } = await supabase
             .from('clients')
             .select('*', { count: 'exact', head: true })
-            .eq('tipo', t);
+            .contains('tipos', [t]);
           return { tipo: t, count: count || 0 };
         })
       );

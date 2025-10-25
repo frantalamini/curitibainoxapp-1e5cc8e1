@@ -10,7 +10,7 @@ type CadastrosTabsProps = {
     cliente?: number;
     fornecedor?: number;
     transportador?: number;
-    funcionario?: number;
+    colaborador?: number;
     outro?: number;
   };
 };
@@ -21,7 +21,7 @@ export const CadastrosTabs = ({ activeTab, onTabChange, counters }: CadastrosTab
     { value: 'cliente', label: 'Cliente', count: counters?.cliente || 0 },
     { value: 'fornecedor', label: 'Fornecedor', count: counters?.fornecedor || 0 },
     { value: 'transportador', label: 'Transportador', count: counters?.transportador || 0 },
-    { value: 'funcionario', label: 'Funcionário', count: counters?.funcionario || 0 },
+    { value: 'colaborador', label: 'Colaborador', count: counters?.colaborador || 0 },
     { value: 'outro', label: 'Outro', count: counters?.outro || 0 },
   ];
 

@@ -13,6 +13,7 @@ type CadastrosTableProps = {
   onEdit: (id: string) => void;
   onView: (id: string) => void;
   onDelete: (id: string) => void;
+  onNameHover: (id: string) => void;
   orderBy: 'full_name' | 'created_at';
   orderDirection: 'asc' | 'desc';
   onSort: (field: 'full_name' | 'created_at') => void;
@@ -26,6 +27,7 @@ export const CadastrosTable = ({
   onEdit,
   onView,
   onDelete,
+  onNameHover,
   orderBy,
   orderDirection,
   onSort,
@@ -89,11 +91,14 @@ export const CadastrosTable = ({
                   aria-label={`Selecionar ${cadastro.full_name}`}
                 />
               </TableCell>
-              <TableCell>
+              <TableCell 
+                className="max-w-[250px] cursor-pointer hover:bg-accent transition-colors"
+                onMouseEnter={() => onNameHover(cadastro.id)}
+              >
                 <div className="flex flex-col">
-                  <span className="font-medium text-sm">{cadastro.full_name}</span>
+                  <span className="font-medium text-sm truncate">{cadastro.full_name}</span>
                   {cadastro.nome_fantasia && (
-                    <span className="text-xs text-muted-foreground">{cadastro.nome_fantasia}</span>
+                    <span className="text-xs text-muted-foreground truncate">{cadastro.nome_fantasia}</span>
                   )}
                 </div>
               </TableCell>

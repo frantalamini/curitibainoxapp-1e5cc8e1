@@ -61,12 +61,15 @@ export type Database = {
           notes: string | null
           number: string | null
           phone: string
+          phone_2: string | null
           responsible_financial: Json | null
+          responsible_legal: Json | null
           responsible_technical: Json | null
           state: string | null
           state_registration: string | null
           street: string | null
           tipo: Database["public"]["Enums"]["cadastro_tipo"] | null
+          tipos: Database["public"]["Enums"]["cadastro_tipo"][] | null
           updated_at: string
         }
         Insert: {
@@ -85,12 +88,15 @@ export type Database = {
           notes?: string | null
           number?: string | null
           phone: string
+          phone_2?: string | null
           responsible_financial?: Json | null
+          responsible_legal?: Json | null
           responsible_technical?: Json | null
           state?: string | null
           state_registration?: string | null
           street?: string | null
           tipo?: Database["public"]["Enums"]["cadastro_tipo"] | null
+          tipos?: Database["public"]["Enums"]["cadastro_tipo"][] | null
           updated_at?: string
         }
         Update: {
@@ -109,12 +115,15 @@ export type Database = {
           notes?: string | null
           number?: string | null
           phone?: string
+          phone_2?: string | null
           responsible_financial?: Json | null
+          responsible_legal?: Json | null
           responsible_technical?: Json | null
           state?: string | null
           state_registration?: string | null
           street?: string | null
           tipo?: Database["public"]["Enums"]["cadastro_tipo"] | null
+          tipos?: Database["public"]["Enums"]["cadastro_tipo"][] | null
           updated_at?: string
         }
         Relationships: []
@@ -466,6 +475,7 @@ export type Database = {
         | "transportador"
         | "funcionario"
         | "outro"
+        | "colaborador"
       os_status:
         | "pending"
         | "in_progress"
@@ -614,6 +624,7 @@ export const Constants = {
         "transportador",
         "funcionario",
         "outro",
+        "colaborador",
       ],
       os_status: [
         "pending",

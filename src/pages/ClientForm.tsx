@@ -11,19 +11,30 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Search, Loader2, DollarSign, Wrench } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ArrowLeft, Search, Loader2, DollarSign, Wrench, Scale } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { useToast } from "@/hooks/use-toast";
+import { CadastroTipo } from "@/hooks/useCadastros";
 
 const clientSchema = z.object({
   full_name: z.string()
     .trim()
     .min(3, "Nome deve ter no mínimo 3 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres"),
+  tipos: z.array(z.enum(['cliente', 'fornecedor', 'transportador', 'colaborador', 'outro']))
+    .min(1, "Selecione ao menos um tipo de cadastro"),
   phone: z.string()
     .trim()
     .min(10, "Telefone deve ter no mínimo 10 dígitos")
     .regex(/^[\d\s()-]+$/, "Telefone deve conter apenas números"),
+  phone_2: z.string()
+    .trim()
+    .regex(/^[\d\s()-]*$/, "Telefone inválido")
+    .optional()
+    .or(z.literal("")),
   email: z.string()
     .trim()
     .email("Email inválido")
@@ -92,6 +103,11 @@ const clientSchema = z.object({
     .max(1000, "Observações muito longas (máximo 1000 caracteres)")
     .optional()
     .or(z.literal("")),
+  nome_fantasia: z.string()
+    .trim()
+    .max(100, "Nome fantasia muito longo")
+    .optional()
+    .or(z.literal("")),
   
   // Responsáveis no estabelecimento
   responsible_financial: z.object({
@@ -102,6 +118,11 @@ const clientSchema = z.object({
     name: z.string().trim().max(100, "Nome muito longo").default(""),
     phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
   }).default({ name: "", phone: "" }),
+  responsible_legal: z.object({
+    name: z.string().trim().max(100, "Nome muito longo").default(""),
+    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
+    email: z.string().trim().email("Email inválido").optional().or(z.literal("")).default(""),
+  }).default({ name: "", phone: "", email: "" }),
 });
 
 const ClientForm = () => {
@@ -132,8 +153,11 @@ const ClientForm = () => {
         // Converter null para objeto vazio antes de fazer reset
         const clientData = {
           ...client,
+          tipos: (client as any).tipos || ['cliente'],
+          phone_2: (client as any).phone_2 || "",
           responsible_financial: client.responsible_financial || { name: "", phone: "" },
           responsible_technical: client.responsible_technical || { name: "", phone: "" },
+          responsible_legal: (client as any).responsible_legal || { name: "", phone: "", email: "" },
         };
         reset(clientData);
         
@@ -204,6 +228,14 @@ const ClientForm = () => {
       }
     }
     
+    // Limpar responsible_legal se estiver vazio
+    if ((cleaned as any).responsible_legal) {
+      const hasLegalData = (cleaned as any).responsible_legal.name || (cleaned as any).responsible_legal.phone || (cleaned as any).responsible_legal.email;
+      if (!hasLegalData) {
+        (cleaned as any).responsible_legal = null;
+      }
+    }
+    
     return cleaned;
   };
 
@@ -244,7 +276,7 @@ const ClientForm = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-3xl font-bold">
-            {isEdit ? "Editar Cliente" : "Novo Cliente"}
+            {isEdit ? "Editar Cadastro" : "Novo Cadastro"}
           </h1>
         </div>
 
@@ -258,6 +290,18 @@ const ClientForm = () => {
             />
             {errors.full_name && (
               <p className="text-sm text-destructive">{errors.full_name.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
+            <Input
+              id="nome_fantasia"
+              {...register("nome_fantasia")}
+              placeholder="Nome fantasia (opcional)"
+            />
+            {(errors as any).nome_fantasia && (
+              <p className="text-sm text-destructive">{(errors as any).nome_fantasia.message}</p>
             )}
           </div>
 
@@ -331,6 +375,56 @@ const ClientForm = () => {
               )}
             </div>
 
+            <div className="md:col-span-2 space-y-2">
+              <Label>Tipo de Cadastro *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-auto min-h-[40px] py-2"
+                  >
+                    {watch("tipos")?.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {watch("tipos").map((tipo) => (
+                          <Badge key={tipo} variant="secondary">
+                            {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">Selecione...</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px]">
+                  <div className="space-y-2">
+                    {['cliente', 'fornecedor', 'transportador', 'colaborador', 'outro'].map((tipo) => (
+                      <div key={tipo} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`tipo-${tipo}`}
+                          checked={watch("tipos")?.includes(tipo as CadastroTipo)}
+                          onCheckedChange={(checked) => {
+                            const current = watch("tipos") || [];
+                            if (checked) {
+                              setValue("tipos", [...current, tipo as CadastroTipo]);
+                            } else {
+                              setValue("tipos", current.filter(t => t !== tipo));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`tipo-${tipo}`} className="font-normal cursor-pointer">
+                          {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {(errors as any).tipos && (
+                <p className="text-sm text-destructive">{(errors as any).tipos.message}</p>
+              )}
+            </div>
+
             {documentType === "CNPJ" && (
               <div className="md:col-span-2 space-y-2">
                 <Label htmlFor="state_registration">Inscrição Estadual</Label>
@@ -351,7 +445,7 @@ const ClientForm = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone *</Label>
+              <Label htmlFor="phone">Telefone 1 *</Label>
               <InputMask
                 mask={
                   (() => {
@@ -380,17 +474,45 @@ const ClientForm = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                {...register("email")}
-                placeholder="email@exemplo.com"
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
+              <Label htmlFor="phone_2">Telefone 2</Label>
+              <InputMask
+                mask={
+                  (() => {
+                    const phoneDigits = (watch("phone_2") || "").replace(/\D/g, "");
+                    return phoneDigits.length >= 11 || phoneDigits.charAt(2) === '9'
+                      ? "(99) 99999-9999"
+                      : "(99) 9999-9999";
+                  })()
+                }
+                maskChar={null}
+                value={watch("phone_2") || ""}
+                onChange={(e) => setValue("phone_2", e.target.value)}
+              >
+                {(inputProps: any) => (
+                  <Input
+                    {...inputProps}
+                    id="phone_2"
+                    placeholder="(00) 00000-0000"
+                  />
+                )}
+              </InputMask>
+              {(errors as any).phone_2 && (
+                <p className="text-sm text-destructive">{(errors as any).phone_2.message}</p>
               )}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              {...register("email")}
+              placeholder="email@exemplo.com"
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
           </div>
 
           <div className="border-t pt-6">
@@ -524,7 +646,7 @@ const ClientForm = () => {
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-4">Responsáveis no Estabelecimento</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* RESPONSÁVEL FINANCEIRO */}
               <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
                 <h4 className="font-semibold text-base flex items-center gap-2">
@@ -594,17 +716,62 @@ const ClientForm = () => {
                   </InputMask>
                 </div>
               </div>
+
+              {/* RESPONSÁVEL LEGAL */}
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <h4 className="font-semibold text-base flex items-center gap-2">
+                  <Scale className="h-5 w-5 text-purple-600" />
+                  RESPONSÁVEL LEGAL
+                </h4>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_legal.name">Nome</Label>
+                  <Input
+                    id="responsible_legal.name"
+                    {...register("responsible_legal.name")}
+                    placeholder="Nome do responsável legal"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_legal.phone">Telefone</Label>
+                  <InputMask
+                    mask="(99) 99999-9999"
+                    maskChar={null}
+                    value={watch("responsible_legal.phone") || ""}
+                    onChange={(e) => setValue("responsible_legal.phone", e.target.value)}
+                  >
+                    {(inputProps: any) => (
+                      <Input
+                        {...inputProps}
+                        id="responsible_legal.phone"
+                        placeholder="(00) 00000-0000"
+                      />
+                    )}
+                  </InputMask>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_legal.email">E-mail</Label>
+                  <Input
+                    id="responsible_legal.email"
+                    type="email"
+                    {...register("responsible_legal.email")}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="flex gap-4">
             <Button type="submit" className="flex-1" disabled={isLoading}>
-              {isEdit ? "Atualizar" : "Salvar"} Cliente
+              {isEdit ? "Atualizar" : "Salvar"} Cadastro
             </Button>
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/clients")}
+              onClick={() => navigate("/cadastros/clientes")}
             >
               Cancelar
             </Button>

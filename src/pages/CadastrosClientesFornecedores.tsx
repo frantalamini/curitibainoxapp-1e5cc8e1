@@ -11,6 +11,7 @@ import { CadastrosTable } from "@/components/CadastrosTable";
 import { CadastrosMobileCard } from "@/components/CadastrosMobileCard";
 import { CadastrosPagination } from "@/components/CadastrosPagination";
 import { CadastrosEmptyState } from "@/components/CadastrosEmptyState";
+import { CadastroViewSheet } from "@/components/CadastroViewSheet";
 import { useCadastros, CadastroTipo } from "@/hooks/useCadastros";
 import { Plus, Printer, MoreVertical, Search } from "lucide-react";
 
@@ -28,6 +29,8 @@ export default function CadastrosClientesFornecedores() {
   // Estados de seleção
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewSheetCadastroId, setViewSheetCadastroId] = useState<string | null>(null);
+  const [viewSheetOpen, setViewSheetOpen] = useState(false);
 
   // Hook de dados
   const { 
@@ -103,6 +106,11 @@ export default function CadastrosClientesFornecedores() {
     setSearchTerm('');
     setActiveTab('todos');
     setPage(1);
+  };
+
+  const handleNameHover = (id: string) => {
+    setViewSheetCadastroId(id);
+    setViewSheetOpen(true);
   };
 
   return (
@@ -199,6 +207,7 @@ export default function CadastrosClientesFornecedores() {
               onEdit={(id) => navigate(`/cadastros/${id}/editar`)}
               onView={(id) => navigate(`/cadastros/${id}`)}
               onDelete={(id) => setDeleteId(id)}
+              onNameHover={handleNameHover}
               orderBy={orderBy}
               orderDirection={orderDirection}
               onSort={handleSort}
@@ -249,6 +258,17 @@ export default function CadastrosClientesFornecedores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Sheet de visualização rápida */}
+      <CadastroViewSheet
+        cadastroId={viewSheetCadastroId}
+        open={viewSheetOpen}
+        onOpenChange={setViewSheetOpen}
+        onEdit={(id) => {
+          navigate(`/cadastros/${id}/editar`);
+          setViewSheetOpen(false);
+        }}
+      />
       </div>
     </MainLayout>
   );
