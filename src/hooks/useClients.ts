@@ -1,12 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { CadastroTipo } from "./useCadastros";
 
 export type Client = {
   id: string;
   full_name: string;
+  nome_fantasia?: string;
   email?: string;
   phone: string;
+  phone_2?: string;
+  tipos?: CadastroTipo[];
   
   // Campos de endereço detalhado
   cep?: string;
@@ -30,6 +34,11 @@ export type Client = {
   responsible_technical?: {
     name?: string;
     phone?: string;
+  } | null;
+  responsible_legal?: {
+    name?: string;
+    phone?: string;
+    email?: string;
   } | null;
   
   created_by: string;

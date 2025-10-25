@@ -135,6 +135,13 @@ const ClientForm = () => {
   const [documentValue, setDocumentValue] = useState("");
   const { toast } = useToast();
 
+  // Helper para extrair mensagens de erro type-safe
+  const getErrorMessage = (error: any): string => {
+    if (typeof error === 'string') return error;
+    if (error?.message) return String(error.message);
+    return '';
+  };
+
   const {
     register,
     handleSubmit,
@@ -142,8 +149,14 @@ const ClientForm = () => {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<ClientInsert>({
+  } = useForm<any>({
     resolver: zodResolver(clientSchema),
+    defaultValues: {
+      tipos: ['cliente'],
+      responsible_financial: { name: "", phone: "" },
+      responsible_technical: { name: "", phone: "" },
+      responsible_legal: { name: "", phone: "", email: "" },
+    },
   });
 
   useEffect(() => {
@@ -153,13 +166,14 @@ const ClientForm = () => {
         // Converter null para objeto vazio antes de fazer reset
         const clientData = {
           ...client,
-          tipos: (client as any).tipos || ['cliente'],
-          phone_2: (client as any).phone_2 || "",
+          tipos: client.tipos || ['cliente'],
+          phone_2: client.phone_2 || "",
+          nome_fantasia: client.nome_fantasia || "",
           responsible_financial: client.responsible_financial || { name: "", phone: "" },
           responsible_technical: client.responsible_technical || { name: "", phone: "" },
-          responsible_legal: (client as any).responsible_legal || { name: "", phone: "", email: "" },
+          responsible_legal: client.responsible_legal || { name: "", phone: "", email: "" },
         };
-        reset(clientData);
+        reset(clientData as any);
         
         if (client.cpf_cnpj) {
           const digits = client.cpf_cnpj.replace(/\D/g, "");
@@ -171,6 +185,14 @@ const ClientForm = () => {
           setDocumentValue(client.cpf_cnpj);
         }
       }
+    } else if (!isEdit) {
+      // Definir valores padrão para novo cadastro
+      reset({
+        tipos: ['cliente'],
+        responsible_financial: { name: "", phone: "" },
+        responsible_technical: { name: "", phone: "" },
+        responsible_legal: { name: "", phone: "", email: "" },
+      } as any);
     }
   }, [id, clients, reset, isEdit]);
 
@@ -209,7 +231,7 @@ const ClientForm = () => {
     }
   };
 
-  const cleanEmptyObjects = (data: ClientInsert): ClientInsert => {
+  const cleanEmptyObjects = (data: any): any => {
     const cleaned = { ...data };
     
     // Limpar responsible_financial se estiver vazio
@@ -229,41 +251,41 @@ const ClientForm = () => {
     }
     
     // Limpar responsible_legal se estiver vazio
-    if ((cleaned as any).responsible_legal) {
-      const hasLegalData = (cleaned as any).responsible_legal.name || (cleaned as any).responsible_legal.phone || (cleaned as any).responsible_legal.email;
+    if (cleaned.responsible_legal) {
+      const hasLegalData = cleaned.responsible_legal.name || cleaned.responsible_legal.phone || cleaned.responsible_legal.email;
       if (!hasLegalData) {
-        (cleaned as any).responsible_legal = null;
+        cleaned.responsible_legal = null;
       }
     }
     
     return cleaned;
   };
 
-  const onSubmit = async (formData: ClientInsert) => {
+  const onSubmit = async (formData: any) => {
     try {
       const data = cleanEmptyObjects(formData);
       
       if (isEdit) {
         await updateClient.mutateAsync({ id: id!, ...data });
         toast({
-          title: "✅ Cliente Atualizado",
+          title: "✅ Cadastro Atualizado",
           description: "As alterações foram salvas com sucesso!",
         });
       } else {
         await createClient.mutateAsync(data);
         toast({
-          title: "✅ Cliente Criado",
-          description: "Novo cliente criado com sucesso!",
+          title: "✅ Cadastro Criado",
+          description: "Novo cadastro criado com sucesso!",
         });
       }
-      navigate("/clients");
+      navigate("/cadastros/clientes");
     } catch (error) {
       toast({
         title: "❌ Erro ao salvar",
-        description: "Não foi possível salvar os dados do cliente. Tente novamente.",
+        description: "Não foi possível salvar os dados. Tente novamente.",
         variant: "destructive",
       });
-      console.error("Erro ao salvar cliente:", error);
+      console.error("Erro ao salvar:", error);
     }
   };
 
@@ -289,7 +311,7 @@ const ClientForm = () => {
               placeholder="Digite o nome completo ou razão social"
             />
             {errors.full_name && (
-              <p className="text-sm text-destructive">{errors.full_name.message}</p>
+              <p className="text-sm text-destructive">{getErrorMessage(errors.full_name)}</p>
             )}
           </div>
 
@@ -300,8 +322,8 @@ const ClientForm = () => {
               {...register("nome_fantasia")}
               placeholder="Nome fantasia (opcional)"
             />
-            {(errors as any).nome_fantasia && (
-              <p className="text-sm text-destructive">{(errors as any).nome_fantasia.message}</p>
+            {errors.nome_fantasia && (
+              <p className="text-sm text-destructive">{getErrorMessage(errors.nome_fantasia)}</p>
             )}
           </div>
 
@@ -371,7 +393,7 @@ const ClientForm = () => {
                 )}
               </div>
               {errors.cpf_cnpj && (
-                <p className="text-sm text-destructive">{errors.cpf_cnpj.message}</p>
+                <p className="text-sm text-destructive">{getErrorMessage(errors.cpf_cnpj)}</p>
               )}
             </div>
 
@@ -383,9 +405,9 @@ const ClientForm = () => {
                     variant="outline"
                     className="w-full justify-start h-auto min-h-[40px] py-2"
                   >
-                    {watch("tipos")?.length > 0 ? (
+                    {(watch("tipos") as CadastroTipo[])?.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
-                        {watch("tipos").map((tipo) => (
+                        {(watch("tipos") as CadastroTipo[]).map((tipo: CadastroTipo) => (
                           <Badge key={tipo} variant="secondary">
                             {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
                           </Badge>
@@ -398,15 +420,15 @@ const ClientForm = () => {
                 </PopoverTrigger>
                 <PopoverContent className="w-[300px]">
                   <div className="space-y-2">
-                    {['cliente', 'fornecedor', 'transportador', 'colaborador', 'outro'].map((tipo) => (
+                    {(['cliente', 'fornecedor', 'transportador', 'colaborador', 'outro'] as CadastroTipo[]).map((tipo) => (
                       <div key={tipo} className="flex items-center space-x-2">
                         <Checkbox
                           id={`tipo-${tipo}`}
-                          checked={watch("tipos")?.includes(tipo as CadastroTipo)}
+                          checked={(watch("tipos") as CadastroTipo[])?.includes(tipo)}
                           onCheckedChange={(checked) => {
-                            const current = watch("tipos") || [];
+                            const current = (watch("tipos") as CadastroTipo[]) || [];
                             if (checked) {
-                              setValue("tipos", [...current, tipo as CadastroTipo]);
+                              setValue("tipos", [...current, tipo]);
                             } else {
                               setValue("tipos", current.filter(t => t !== tipo));
                             }
@@ -420,8 +442,8 @@ const ClientForm = () => {
                   </div>
                 </PopoverContent>
               </Popover>
-              {(errors as any).tipos && (
-                <p className="text-sm text-destructive">{(errors as any).tipos.message}</p>
+              {errors.tipos && (
+                <p className="text-sm text-destructive">{getErrorMessage(errors.tipos)}</p>
               )}
             </div>
 
@@ -437,7 +459,7 @@ const ClientForm = () => {
                   Buscado automaticamente via CNPJ
                 </p>
                 {errors.state_registration && (
-                  <p className="text-sm text-destructive">{errors.state_registration.message}</p>
+                  <p className="text-sm text-destructive">{getErrorMessage(errors.state_registration)}</p>
                 )}
               </div>
             )}
@@ -469,7 +491,7 @@ const ClientForm = () => {
                 )}
               </InputMask>
               {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone.message}</p>
+                <p className="text-sm text-destructive">{getErrorMessage(errors.phone)}</p>
               )}
             </div>
 
@@ -478,14 +500,14 @@ const ClientForm = () => {
               <InputMask
                 mask={
                   (() => {
-                    const phoneDigits = (watch("phone_2") || "").replace(/\D/g, "");
+                    const phoneDigits = ((watch("phone_2") as string) || "").replace(/\D/g, "");
                     return phoneDigits.length >= 11 || phoneDigits.charAt(2) === '9'
                       ? "(99) 99999-9999"
                       : "(99) 9999-9999";
                   })()
                 }
                 maskChar={null}
-                value={watch("phone_2") || ""}
+                value={(watch("phone_2") as string) || ""}
                 onChange={(e) => setValue("phone_2", e.target.value)}
               >
                 {(inputProps: any) => (
@@ -496,8 +518,8 @@ const ClientForm = () => {
                   />
                 )}
               </InputMask>
-              {(errors as any).phone_2 && (
-                <p className="text-sm text-destructive">{(errors as any).phone_2.message}</p>
+              {errors.phone_2 && (
+                <p className="text-sm text-destructive">{getErrorMessage(errors.phone_2)}</p>
               )}
             </div>
           </div>
@@ -511,7 +533,7 @@ const ClientForm = () => {
               placeholder="email@exemplo.com"
             />
             {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
+              <p className="text-sm text-destructive">{getErrorMessage(errors.email)}</p>
             )}
           </div>
 
@@ -529,7 +551,7 @@ const ClientForm = () => {
                     maxLength={9}
                   />
                   {errors.cep && (
-                    <p className="text-sm text-destructive">{errors.cep.message}</p>
+                    <p className="text-sm text-destructive">{getErrorMessage(errors.cep)}</p>
                   )}
                 </div>
                 <div className="flex items-end">
@@ -562,7 +584,7 @@ const ClientForm = () => {
                     Incluir o tipo: Rua, Avenida, Alameda, Travessa, etc
                   </p>
                   {errors.street && (
-                    <p className="text-sm text-destructive">{errors.street.message}</p>
+                    <p className="text-sm text-destructive">{getErrorMessage(errors.street)}</p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -573,7 +595,7 @@ const ClientForm = () => {
                     placeholder="123"
                   />
                   {errors.number && (
-                    <p className="text-sm text-destructive">{errors.number.message}</p>
+                    <p className="text-sm text-destructive">{getErrorMessage(errors.number)}</p>
                   )}
                 </div>
               </div>
@@ -586,7 +608,7 @@ const ClientForm = () => {
                   placeholder="Apto, Sala, Bloco..."
                 />
                 {errors.complement && (
-                  <p className="text-sm text-destructive">{errors.complement.message}</p>
+                  <p className="text-sm text-destructive">{getErrorMessage(errors.complement)}</p>
                 )}
               </div>
 
@@ -599,7 +621,7 @@ const ClientForm = () => {
                     placeholder="Nome do bairro"
                   />
                   {errors.neighborhood && (
-                    <p className="text-sm text-destructive">{errors.neighborhood.message}</p>
+                    <p className="text-sm text-destructive">{getErrorMessage(errors.neighborhood)}</p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -610,7 +632,7 @@ const ClientForm = () => {
                     placeholder="Nome da cidade"
                   />
                   {errors.city && (
-                    <p className="text-sm text-destructive">{errors.city.message}</p>
+                    <p className="text-sm text-destructive">{getErrorMessage(errors.city)}</p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -623,7 +645,7 @@ const ClientForm = () => {
                     className="uppercase"
                   />
                   {errors.state && (
-                    <p className="text-sm text-destructive">{errors.state.message}</p>
+                    <p className="text-sm text-destructive">{getErrorMessage(errors.state)}</p>
                   )}
                 </div>
               </div>
@@ -639,7 +661,7 @@ const ClientForm = () => {
               rows={3}
             />
             {errors.notes && (
-              <p className="text-sm text-destructive">{errors.notes.message}</p>
+              <p className="text-sm text-destructive">{getErrorMessage(errors.notes)}</p>
             )}
           </div>
 
@@ -738,7 +760,7 @@ const ClientForm = () => {
                   <InputMask
                     mask="(99) 99999-9999"
                     maskChar={null}
-                    value={watch("responsible_legal.phone") || ""}
+                    value={((watch("responsible_legal") as any)?.phone) || ""}
                     onChange={(e) => setValue("responsible_legal.phone", e.target.value)}
                   >
                     {(inputProps: any) => (
