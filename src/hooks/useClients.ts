@@ -30,10 +30,12 @@ export type Client = {
   responsible_financial?: {
     name?: string;
     phone?: string;
+    email?: string;
   } | null;
   responsible_technical?: {
     name?: string;
     phone?: string;
+    email?: string;
   } | null;
   responsible_legal?: {
     name?: string;

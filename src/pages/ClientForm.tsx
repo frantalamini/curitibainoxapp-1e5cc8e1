@@ -68,10 +68,9 @@ const clientSchema = z.object({
     .optional()
     .or(z.literal("")),
   complement: z.string()
-    .trim()
-    .max(100, "Complemento muito longo")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   neighborhood: z.string()
     .trim()
     .max(100, "Bairro muito longo")
@@ -99,10 +98,9 @@ const clientSchema = z.object({
     .optional()
     .or(z.literal("")), // Legacy
   notes: z.string()
-    .trim()
-    .max(1000, "Observações muito longas (máximo 1000 caracteres)")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   nome_fantasia: z.string()
     .trim()
     .max(100, "Nome fantasia muito longo")
@@ -111,18 +109,20 @@ const clientSchema = z.object({
   
   // Responsáveis no estabelecimento
   responsible_financial: z.object({
-    name: z.string().trim().max(100, "Nome muito longo").default(""),
-    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
-  }).default({ name: "", phone: "" }),
+    name: z.string().optional().nullable().transform(val => val ?? ""),
+    phone: z.string().optional().nullable().transform(val => val ?? ""),
+    email: z.string().email("Email inválido").optional().or(z.literal("")).nullable().transform(val => val ?? ""),
+  }).optional().nullable(),
   responsible_technical: z.object({
-    name: z.string().trim().max(100, "Nome muito longo").default(""),
-    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
-  }).default({ name: "", phone: "" }),
+    name: z.string().optional().nullable().transform(val => val ?? ""),
+    phone: z.string().optional().nullable().transform(val => val ?? ""),
+    email: z.string().email("Email inválido").optional().or(z.literal("")).nullable().transform(val => val ?? ""),
+  }).optional().nullable(),
   responsible_legal: z.object({
-    name: z.string().trim().max(100, "Nome muito longo").default(""),
-    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
-    email: z.string().trim().email("Email inválido").optional().or(z.literal("")).default(""),
-  }).default({ name: "", phone: "", email: "" }),
+    name: z.string().optional().nullable().transform(val => val ?? ""),
+    phone: z.string().optional().nullable().transform(val => val ?? ""),
+    email: z.string().email("Email inválido").optional().or(z.literal("")).nullable().transform(val => val ?? ""),
+  }).optional().nullable(),
 });
 
 const ClientForm = () => {
@@ -153,8 +153,10 @@ const ClientForm = () => {
     resolver: zodResolver(clientSchema),
     defaultValues: {
       tipos: ['cliente'],
-      responsible_financial: { name: "", phone: "" },
-      responsible_technical: { name: "", phone: "" },
+      complement: "",
+      notes: "",
+      responsible_financial: { name: "", phone: "", email: "" },
+      responsible_technical: { name: "", phone: "", email: "" },
       responsible_legal: { name: "", phone: "", email: "" },
     },
   });
@@ -169,8 +171,10 @@ const ClientForm = () => {
           tipos: client.tipos || ['cliente'],
           phone_2: client.phone_2 || "",
           nome_fantasia: client.nome_fantasia || "",
-          responsible_financial: client.responsible_financial || { name: "", phone: "" },
-          responsible_technical: client.responsible_technical || { name: "", phone: "" },
+          complement: client.complement || "",
+          notes: client.notes || "",
+          responsible_financial: client.responsible_financial || { name: "", phone: "", email: "" },
+          responsible_technical: client.responsible_technical || { name: "", phone: "", email: "" },
           responsible_legal: client.responsible_legal || { name: "", phone: "", email: "" },
         };
         reset(clientData as any);
@@ -189,8 +193,10 @@ const ClientForm = () => {
       // Definir valores padrão para novo cadastro
       reset({
         tipos: ['cliente'],
-        responsible_financial: { name: "", phone: "" },
-        responsible_technical: { name: "", phone: "" },
+        complement: "",
+        notes: "",
+        responsible_financial: { name: "", phone: "", email: "" },
+        responsible_technical: { name: "", phone: "", email: "" },
         responsible_legal: { name: "", phone: "", email: "" },
       } as any);
     }
@@ -236,7 +242,7 @@ const ClientForm = () => {
     
     // Limpar responsible_financial se estiver vazio
     if (cleaned.responsible_financial) {
-      const hasFinancialData = cleaned.responsible_financial.name || cleaned.responsible_financial.phone;
+      const hasFinancialData = cleaned.responsible_financial.name || cleaned.responsible_financial.phone || cleaned.responsible_financial.email;
       if (!hasFinancialData) {
         cleaned.responsible_financial = null;
       }
@@ -244,7 +250,7 @@ const ClientForm = () => {
     
     // Limpar responsible_technical se estiver vazio
     if (cleaned.responsible_technical) {
-      const hasTechnicalData = cleaned.responsible_technical.name || cleaned.responsible_technical.phone;
+      const hasTechnicalData = cleaned.responsible_technical.name || cleaned.responsible_technical.phone || cleaned.responsible_technical.email;
       if (!hasTechnicalData) {
         cleaned.responsible_technical = null;
       }
@@ -668,10 +674,10 @@ const ClientForm = () => {
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-4">Responsáveis no Estabelecimento</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* RESPONSÁVEL FINANCEIRO */}
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                <h4 className="font-semibold text-base flex items-center gap-2">
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                <h4 className="font-semibold text-base flex items-center gap-2 pb-2 border-b">
                   <DollarSign className="h-5 w-5 text-green-600" />
                   FINANCEIRO
                 </h4>
@@ -702,11 +708,21 @@ const ClientForm = () => {
                     )}
                   </InputMask>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_financial.email">E-mail</Label>
+                  <Input
+                    id="responsible_financial.email"
+                    type="email"
+                    {...register("responsible_financial.email")}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
               </div>
 
               {/* RESPONSÁVEL ACOMPANHAMENTO TÉCNICO */}
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                <h4 className="font-semibold text-base flex items-center gap-2">
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                <h4 className="font-semibold text-base flex items-center gap-2 pb-2 border-b">
                   <Wrench className="h-5 w-5 text-blue-600" />
                   ACOMPANHAMENTO TÉCNICO
                 </h4>
@@ -737,11 +753,21 @@ const ClientForm = () => {
                     )}
                   </InputMask>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="responsible_technical.email">E-mail</Label>
+                  <Input
+                    id="responsible_technical.email"
+                    type="email"
+                    {...register("responsible_technical.email")}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
               </div>
 
               {/* RESPONSÁVEL LEGAL */}
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                <h4 className="font-semibold text-base flex items-center gap-2">
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                <h4 className="font-semibold text-base flex items-center gap-2 pb-2 border-b">
                   <Scale className="h-5 w-5 text-purple-600" />
                   RESPONSÁVEL LEGAL
                 </h4>
