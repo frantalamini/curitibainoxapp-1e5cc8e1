@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { MainLayout } from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -7,11 +9,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Pencil, Phone, Mail, MapPin, FileText, Building2, User } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useClients } from "@/hooks/useClients";
+import { useToast } from "@/hooks/use-toast";
+import { useCNPJLookup } from "@/hooks/useCNPJLookup";
+import { ArrowLeft, Pencil, Phone, Mail, MapPin, FileText, Building2, User, X } from "lucide-react";
+import { CadastroTipo } from "@/hooks/useCadastros";
 
 export default function CadastroDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { updateClient } = useClients();
+  const { lookupCNPJ, isLoading: cnpjLoading } = useCNPJLookup();
+  
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalData, setOriginalData] = useState<any>(null);
 
   const { data: cadastro, isLoading } = useQuery({
     queryKey: ['cadastro-detail', id],
@@ -27,6 +44,17 @@ export default function CadastroDetail() {
     enabled: !!id,
   });
 
+  const { register, handleSubmit, reset, watch, setValue } = useForm<any>({
+    defaultValues: cadastro || {},
+  });
+
+  useEffect(() => {
+    if (cadastro) {
+      reset(cadastro);
+      setOriginalData(cadastro);
+    }
+  }, [cadastro, reset]);
+
   const handleBack = () => {
     if (window.history.length > 2) {
       navigate(-1);
@@ -34,11 +62,66 @@ export default function CadastroDetail() {
       navigate('/cadastros/clientes');
     }
     
-    // Garantir limpeza de overlays
     setTimeout(() => {
       document.body.classList.remove('overflow-hidden');
       document.body.style.removeProperty('pointer-events');
     }, 100);
+  };
+
+  const handleCancel = () => {
+    reset(originalData);
+    setIsEditMode(false);
+  };
+
+  const handleSave = handleSubmit(async (formData) => {
+    try {
+      // Remover campos read-only e converter tipos
+      const { created_at, updated_at, created_by, id: _id, ...dataToUpdate } = formData;
+      
+      // Garantir que tipos seja um array válido de CadastroTipo
+      if (dataToUpdate.tipos) {
+        const validTipos: CadastroTipo[] = ['cliente', 'fornecedor', 'transportador', 'colaborador', 'outro'];
+        dataToUpdate.tipos = (dataToUpdate.tipos as string[]).filter(
+          (t): t is CadastroTipo => validTipos.includes(t as CadastroTipo)
+        );
+      }
+      
+      await updateClient.mutateAsync({ id: id!, ...dataToUpdate } as any);
+      setOriginalData(formData);
+      setIsEditMode(false);
+      queryClient.invalidateQueries({ queryKey: ['cadastro-detail', id] });
+      toast({
+        title: "✅ Salvo com sucesso",
+        description: "As alterações foram salvas.",
+      });
+    } catch (error) {
+      toast({
+        title: "❌ Erro ao salvar",
+        description: "Não foi possível salvar as alterações.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleCNPJLookup = async () => {
+    const cnpj = watch('cpf_cnpj');
+    if (!cnpj) return;
+    
+    const data = await lookupCNPJ(cnpj);
+    if (data) {
+      setValue('full_name', data.company_name);
+      setValue('nome_fantasia', data.trade_name);
+      setValue('cep', data.cep);
+      setValue('street', data.street);
+      setValue('number', data.number);
+      setValue('complement', data.complement);
+      setValue('neighborhood', data.neighborhood);
+      setValue('city', data.city);
+      setValue('state', data.state);
+      if (data.phone) setValue('phone', data.phone);
+      if (data.email) setValue('email', data.email);
+      if (data.state_registration) setValue('state_registration', data.state_registration);
+    }
   };
 
   const getTipoLabel = (tipo: string) => {
@@ -52,6 +135,16 @@ export default function CadastroDetail() {
     return labels[tipo] || tipo;
   };
 
+  const tiposOptions = [
+    { value: 'cliente', label: 'Cliente' },
+    { value: 'fornecedor', label: 'Fornecedor' },
+    { value: 'transportador', label: 'Transportador' },
+    { value: 'colaborador', label: 'Colaborador' },
+    { value: 'outro', label: 'Outro' },
+  ];
+
+  const selectedTipos = watch('tipos') || [];
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
@@ -63,23 +156,36 @@ export default function CadastroDetail() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Detalhes do Cadastro</h1>
-                {cadastro && (
+                <h1 className="text-2xl font-bold">
+                  {isEditMode ? 'Editar Cadastro' : 'Detalhes do Cadastro'}
+                </h1>
+                {cadastro && !isEditMode && (
                   <p className="text-sm text-muted-foreground">{cadastro.full_name}</p>
                 )}
               </div>
             </div>
             
-            {cadastro && (
-              <Button onClick={() => navigate(`/cadastros/${id}/editar`)}>
+            {cadastro && !isEditMode && (
+              <Button onClick={() => setIsEditMode(true)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Editar
               </Button>
             )}
+            
+            {isEditMode && (
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleCancel}>
+                  <X className="h-4 w-4 mr-2" />
+                  Cancelar
+                </Button>
+                <Button onClick={handleSave}>
+                  Salvar
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Cards de informações (read-only) */}
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-32 w-full" />
@@ -88,6 +194,150 @@ export default function CadastroDetail() {
           </div>
         ) : cadastro ? (
           <div className="space-y-6">
+            {isEditMode ? (
+              /* Modo EDIÇÃO - Form com inputs */
+              <form className="space-y-6">
+                {/* Card: Informações Básicas - EDIT */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Informações Básicas</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
+                        <div className="flex gap-2">
+                          <Input id="cpf_cnpj" {...register('cpf_cnpj')} placeholder="000.000.000-00" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCNPJLookup}
+                            disabled={cnpjLoading}
+                          >
+                            {cnpjLoading ? 'Buscando...' : 'Buscar'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="full_name">Nome Completo / Razão Social *</Label>
+                      <Input id="full_name" {...register('full_name')} />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
+                      <Input id="nome_fantasia" {...register('nome_fantasia')} />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Tipo de Cadastro</Label>
+                      <div className="flex flex-wrap gap-3">
+                        {tiposOptions.map((tipo) => (
+                          <div key={tipo.value} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`tipo-${tipo.value}`}
+                              checked={(selectedTipos as string[]).includes(tipo.value)}
+                              onCheckedChange={(checked) => {
+                                const current = (selectedTipos as string[]) || [];
+                                if (checked) {
+                                  setValue('tipos', [...current, tipo.value] as any);
+                                } else {
+                                  setValue('tipos', current.filter((t: string) => t !== tipo.value) as any);
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`tipo-${tipo.value}`} className="cursor-pointer">
+                              {tipo.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card: Contato - EDIT */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Contato</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefone Principal *</Label>
+                        <Input id="phone" {...register('phone')} placeholder="(00) 00000-0000" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone_2">Telefone Secundário</Label>
+                        <Input id="phone_2" {...register('phone_2')} placeholder="(00) 00000-0000" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">E-mail</Label>
+                      <Input id="email" type="email" {...register('email')} placeholder="email@exemplo.com" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card: Endereço - EDIT */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Endereço</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="cep">CEP</Label>
+                        <Input id="cep" {...register('cep')} placeholder="00000-000" />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="street">Logradouro</Label>
+                        <Input id="street" {...register('street')} />
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="number">Número</Label>
+                        <Input id="number" {...register('number')} />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="complement">Complemento</Label>
+                        <Input id="complement" {...register('complement')} />
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="neighborhood">Bairro</Label>
+                        <Input id="neighborhood" {...register('neighborhood')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="city">Cidade</Label>
+                        <Input id="city" {...register('city')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="state">Estado</Label>
+                        <Input id="state" {...register('state')} maxLength={2} placeholder="UF" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Card: Observações - EDIT */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Observações</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea {...register('notes')} rows={4} placeholder="Observações adicionais..." />
+                  </CardContent>
+                </Card>
+              </form>
+            ) : (
+              /* Modo LEITURA - Cards read-only */
+              <div className="space-y-6">
             {/* Card: Informações Básicas */}
             <Card>
               <CardHeader>
@@ -295,6 +545,8 @@ export default function CadastroDetail() {
                   <p className="text-sm whitespace-pre-wrap">{cadastro.notes}</p>
                 </CardContent>
               </Card>
+            )}
+              </div>
             )}
           </div>
         ) : (

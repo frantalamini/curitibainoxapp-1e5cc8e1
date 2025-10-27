@@ -110,18 +110,10 @@ const App = () => (
             }
           />
           <Route
-            path="/cadastros/:id"
+            path="/cadastros/clientes/:id"
             element={
               <ProtectedRoute>
                 <CadastroDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cadastros/:id/editar"
-            element={
-              <ProtectedRoute>
-                <ClientForm />
               </ProtectedRoute>
             }
           />
