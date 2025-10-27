@@ -209,6 +209,26 @@ export default function CadastroDetail() {
     }
   }, [cadastro, initialData, reset]);
 
+  // Sincronizar initialData quando cadastro mudar após refetch
+  useEffect(() => {
+    if (cadastro && !editMode) {
+      const cleanedData = {
+        ...cadastro,
+        tipos: cadastro.tipos || ['cliente'],
+        phone_2: cadastro.phone_2 || "",
+        nome_fantasia: cadastro.nome_fantasia || "",
+        complement: cadastro.complement || "",
+        notes: cadastro.notes || "",
+        responsible_financial: cadastro.responsible_financial || { name: "", phone: "", email: "" },
+        responsible_technical: cadastro.responsible_technical || { name: "", phone: "", email: "" },
+        responsible_legal: cadastro.responsible_legal || { name: "", phone: "", email: "" },
+      };
+      
+      setInitialData(cleanedData);
+      reset(cleanedData);
+    }
+  }, [cadastro, editMode, reset]);
+
   // Limpeza de overlays ao desmontar
   useEffect(() => {
     return () => {
@@ -305,46 +325,14 @@ export default function CadastroDetail() {
         JSON.stringify(payload[key]) !== JSON.stringify(initialData?.[key])
       ));
       
-      const result = await updateClient.mutateAsync(normalizedPayload);
-      console.log('✅ Update concluído', result);
+      await updateClient.mutateAsync(normalizedPayload);
+      console.log('✅ Update concluído - aguardando refetch automático');
       
-      await queryClient.invalidateQueries({ queryKey: ['cadastro-detail', id] });
-      await queryClient.invalidateQueries({ queryKey: ['clients'] });
+      // O invalidateQueries já está no onSuccess do hook useClients
+      // Aguardar apenas o refetch da query atual
+      await queryClient.refetchQueries({ queryKey: ['cadastro-detail', id] });
       
-      console.log('✅ Queries invalidadas');
-      
-      // Buscar dados atualizados e atualizar initialData
-      const updatedData = await queryClient.fetchQuery({ 
-        queryKey: ['cadastro-detail', id],
-        queryFn: async () => {
-          const { data } = await supabase
-            .from('clients')
-            .select('*')
-            .eq('id', id)
-            .maybeSingle();
-          return data;
-        }
-      });
-
-      console.log('✅ Dados refetchados', updatedData);
-
-      if (updatedData) {
-        const cleanedData = {
-          ...updatedData,
-          tipos: updatedData.tipos || ['cliente'],
-          phone_2: updatedData.phone_2 || "",
-          nome_fantasia: updatedData.nome_fantasia || "",
-          complement: updatedData.complement || "",
-          notes: updatedData.notes || "",
-          responsible_financial: updatedData.responsible_financial || { name: "", phone: "", email: "" },
-          responsible_technical: updatedData.responsible_technical || { name: "", phone: "", email: "" },
-          responsible_legal: updatedData.responsible_legal || { name: "", phone: "", email: "" },
-        };
-        setInitialData(cleanedData);
-        reset(cleanedData);
-        console.log('✅ initialData atualizado', cleanedData);
-      }
-      
+      console.log('✅ Dados atualizados');
       setEditMode(false);
     } catch (error) {
       console.error('❌ Erro ao salvar:', error);

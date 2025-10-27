@@ -98,12 +98,16 @@ export const useClients = () => {
 
   const updateClient = useMutation({
     mutationFn: async ({ id, ...client }: Partial<Client> & { id: string }) => {
+      console.log('🟢 updateClient.mutationFn chamado', { id, client });
+      
       const { data, error } = await supabase
         .from("clients")
         .update(client)
         .eq("id", id)
         .select()
         .single();
+
+      console.log('🟢 Resposta do Supabase', { data, error });
 
       if (error) throw error;
       return data;
