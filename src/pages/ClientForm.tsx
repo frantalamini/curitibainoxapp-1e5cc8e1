@@ -111,17 +111,26 @@ const clientSchema = z.object({
   responsible_financial: z.object({
     name: z.string().optional().nullable().transform(val => val ?? ""),
     phone: z.string().optional().nullable().transform(val => val ?? ""),
-    email: z.string().email("Email inválido").optional().or(z.literal("")).nullable().transform(val => val ?? ""),
+    email: z.union([
+      z.string().email("Email inválido"),
+      z.literal(""),
+    ]).optional().nullable().transform(val => val ?? ""),
   }).optional().nullable(),
   responsible_technical: z.object({
     name: z.string().optional().nullable().transform(val => val ?? ""),
     phone: z.string().optional().nullable().transform(val => val ?? ""),
-    email: z.string().email("Email inválido").optional().or(z.literal("")).nullable().transform(val => val ?? ""),
+    email: z.union([
+      z.string().email("Email inválido"),
+      z.literal(""),
+    ]).optional().nullable().transform(val => val ?? ""),
   }).optional().nullable(),
   responsible_legal: z.object({
     name: z.string().optional().nullable().transform(val => val ?? ""),
     phone: z.string().optional().nullable().transform(val => val ?? ""),
-    email: z.string().email("Email inválido").optional().or(z.literal("")).nullable().transform(val => val ?? ""),
+    email: z.union([
+      z.string().email("Email inválido"),
+      z.literal(""),
+    ]).optional().nullable().transform(val => val ?? ""),
   }).optional().nullable(),
 });
 
@@ -160,6 +169,14 @@ const ClientForm = () => {
       responsible_legal: { name: "", phone: "", email: "" },
     },
   });
+
+  // Limpeza de overlays ao desmontar
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+      document.body.style.removeProperty('pointer-events');
+    };
+  }, []);
 
   useEffect(() => {
     if (isEdit && clients) {
@@ -308,32 +325,33 @@ const ClientForm = () => {
   return (
     <MainLayout>
       <div className="max-w-2xl space-y-6">
-        {/* Header sticky com botões no topo */}
-        <div className="sticky top-0 z-20 bg-background pb-4 mb-6 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={handleCancel} type="button">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <h1 className="text-2xl font-bold">
-                {isEdit ? "Editar Cadastro" : "Novo Cadastro"}
-              </h1>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={handleCancel}>
-                Cancelar
-              </Button>
-              <Button type="submit" form="client-form">
-                Salvar
-              </Button>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Header sticky com botões no topo - DENTRO do form */}
+          <div className="sticky top-0 z-20 bg-background pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={handleCancel} type="button">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <h1 className="text-2xl font-bold">
+                  {isEdit ? "Editar Cadastro" : "Novo Cadastro"}
+                </h1>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={handleCancel}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  Salvar
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <form id="client-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card p-6 rounded-lg border">
-          <div className="space-y-2">
-            <Label htmlFor="full_name">Nome Completo / Razão Social *</Label>
+          <div className="space-y-6 bg-card p-6 rounded-lg border">
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Nome Completo / Razão Social *</Label>
             <Input
               id="full_name"
               {...register("full_name", { required: "Nome é obrigatório" })}
@@ -833,6 +851,7 @@ const ClientForm = () => {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </form>
       </div>
