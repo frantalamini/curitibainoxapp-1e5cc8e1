@@ -294,14 +294,14 @@ const ClientForm = () => {
           title: "✅ Cadastro Atualizado",
           description: "As alterações foram salvas com sucesso!",
         });
-        navigate(`/cadastros/${id}`);
+        navigate(`/cadastros/clientes/${id}`);
       } else {
         const newClient = await createClient.mutateAsync(data);
         toast({
           title: "✅ Cadastro Criado",
           description: "Novo cadastro criado com sucesso!",
         });
-        navigate(`/cadastros/${newClient.id}`);
+        navigate(`/cadastros/clientes/${newClient.id}`);
       }
     } catch (error) {
       toast({
@@ -315,7 +315,7 @@ const ClientForm = () => {
 
   const handleCancel = () => {
     if (id) {
-      navigate(`/cadastros/${id}`);
+      navigate(`/cadastros/clientes/${id}`);
     } else {
       navigate('/cadastros/clientes');
     }

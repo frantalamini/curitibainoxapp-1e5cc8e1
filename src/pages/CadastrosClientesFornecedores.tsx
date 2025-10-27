@@ -197,7 +197,7 @@ export default function CadastrosClientesFornecedores() {
                 selectedIds={selectedIds}
                 onSelectAll={handleSelectAll}
                 onSelectOne={handleSelectOne}
-                onEdit={(id) => navigate(`/cadastros/clientes/${id}`)}
+                onEdit={(id) => navigate(`/cadastros/clientes/${id}/editar`)}
                 onView={(id) => navigate(`/cadastros/clientes/${id}`)}
                 onDelete={(id) => setDeleteId(id)}
                 orderBy={orderBy}
@@ -214,7 +214,7 @@ export default function CadastrosClientesFornecedores() {
                   cadastro={cadastro}
                   isSelected={selectedIds.includes(cadastro.id)}
                   onSelect={(checked) => handleSelectOne(cadastro.id, checked)}
-                  onEdit={(id) => navigate(`/cadastros/clientes/${id}`)}
+                  onEdit={(id) => navigate(`/cadastros/clientes/${id}/editar`)}
                   onView={(id) => navigate(`/cadastros/clientes/${id}`)}
                   onDelete={(id) => setDeleteId(id)}
                 />

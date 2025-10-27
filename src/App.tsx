@@ -118,6 +118,14 @@ const App = () => (
             }
           />
           <Route
+            path="/cadastros/clientes/:id/editar"
+            element={
+              <ProtectedRoute>
+                <ClientForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/clients/new"
             element={
               <ProtectedRoute>
