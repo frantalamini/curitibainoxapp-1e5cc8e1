@@ -207,17 +207,25 @@ export default function CadastroDetail() {
     }
   }, [cadastro, initialData, reset]);
 
-  const handleBack = () => {
-    if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      navigate('/cadastros/clientes');
-    }
-    
-    setTimeout(() => {
+  // Limpeza de overlays ao desmontar
+  useEffect(() => {
+    return () => {
       document.body.classList.remove('overflow-hidden');
       document.body.style.removeProperty('pointer-events');
-    }, 100);
+    };
+  }, []);
+
+  const handleBack = () => {
+    if (editMode) {
+      // Se estiver editando, apenas desativa o modo edição
+      reset(initialData);
+      setEditMode(false);
+    } else {
+      // Se estiver visualizando, volta para a lista
+      document.body.classList.remove('overflow-hidden');
+      document.body.style.removeProperty('pointer-events');
+      navigate('/cadastros/clientes');
+    }
   };
 
   const getTipoLabel = (tipo: string) => {
@@ -271,32 +279,40 @@ export default function CadastroDetail() {
   };
 
   const onValid = async (payload: any) => {
+    console.log('🔵 onValid iniciado', { payload, id });
+    
     try {
       const cleanedPayload = {
         ...payload,
         id: id,
+        tipos: (payload.tipos && payload.tipos.length > 0) ? payload.tipos : ['cliente'],
         responsible_financial: payload.responsible_financial?.name ? payload.responsible_financial : null,
         responsible_technical: payload.responsible_technical?.name ? payload.responsible_technical : null,
         responsible_legal: payload.responsible_legal?.name ? payload.responsible_legal : null,
       };
 
-      await updateClient.mutateAsync(cleanedPayload);
+      console.log('🔵 Payload limpo', cleanedPayload);
+      
+      const result = await updateClient.mutateAsync(cleanedPayload);
+      console.log('✅ Update concluído', result);
+      
       await queryClient.invalidateQueries({ queryKey: ['cadastro-detail', id] });
       await queryClient.invalidateQueries({ queryKey: ['clients'] });
+      
+      console.log('✅ Queries invalidadas');
       
       setEditMode(false);
       toast({
         title: "✅ Cadastro Atualizado",
         description: "As alterações foram salvas com sucesso!",
       });
-      navigate(`/cadastros/clientes/${id}`, { replace: true });
     } catch (error) {
+      console.error('❌ Erro ao salvar:', error);
       toast({
         title: "❌ Erro ao salvar",
         description: "Não foi possível salvar os dados.",
         variant: "destructive",
       });
-      console.error("Erro ao salvar:", error);
     }
   };
 
