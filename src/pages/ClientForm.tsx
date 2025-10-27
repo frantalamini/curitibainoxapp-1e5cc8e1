@@ -277,14 +277,15 @@ const ClientForm = () => {
           title: "✅ Cadastro Atualizado",
           description: "As alterações foram salvas com sucesso!",
         });
+        navigate(`/cadastros/${id}`);
       } else {
-        await createClient.mutateAsync(data);
+        const newClient = await createClient.mutateAsync(data);
         toast({
           title: "✅ Cadastro Criado",
           description: "Novo cadastro criado com sucesso!",
         });
+        navigate(`/cadastros/${newClient.id}`);
       }
-      navigate("/cadastros/clientes");
     } catch (error) {
       toast({
         title: "❌ Erro ao salvar",
@@ -295,20 +296,42 @@ const ClientForm = () => {
     }
   };
 
+  const handleCancel = () => {
+    if (id) {
+      navigate(`/cadastros/${id}`);
+    } else {
+      navigate('/cadastros/clientes');
+    }
+  };
+
 
   return (
     <MainLayout>
       <div className="max-w-2xl space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/clients")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-3xl font-bold">
-            {isEdit ? "Editar Cadastro" : "Novo Cadastro"}
-          </h1>
+        {/* Header sticky com botões no topo */}
+        <div className="sticky top-0 z-20 bg-background pb-4 mb-6 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={handleCancel} type="button">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h1 className="text-2xl font-bold">
+                {isEdit ? "Editar Cadastro" : "Novo Cadastro"}
+              </h1>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={handleCancel}>
+                Cancelar
+              </Button>
+              <Button type="submit" form="client-form">
+                Salvar
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card p-6 rounded-lg border">
+        <form id="client-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card p-6 rounded-lg border">
           <div className="space-y-2">
             <Label htmlFor="full_name">Nome Completo / Razão Social *</Label>
             <Input
@@ -810,19 +833,6 @@ const ClientForm = () => {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="flex gap-4">
-            <Button type="submit" className="flex-1" disabled={isLoading}>
-              {isEdit ? "Atualizar" : "Salvar"} Cadastro
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/cadastros/clientes")}
-            >
-              Cancelar
-            </Button>
           </div>
         </form>
       </div>

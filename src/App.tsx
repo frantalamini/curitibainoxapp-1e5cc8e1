@@ -26,6 +26,7 @@ import Checklists from "./pages/Checklists";
 import ChecklistForm from "./pages/ChecklistForm";
 import Settings from "./pages/Settings";
 import CadastrosClientesFornecedores from "./pages/CadastrosClientesFornecedores";
+import CadastroDetail from "./pages/CadastroDetail";
 
 const queryClient = new QueryClient();
 
@@ -112,7 +113,7 @@ const App = () => (
             path="/cadastros/:id"
             element={
               <ProtectedRoute>
-                <ClientForm />
+                <CadastroDetail />
               </ProtectedRoute>
             }
           />

@@ -11,7 +11,6 @@ import { CadastrosTable } from "@/components/CadastrosTable";
 import { CadastrosMobileCard } from "@/components/CadastrosMobileCard";
 import { CadastrosPagination } from "@/components/CadastrosPagination";
 import { CadastrosEmptyState } from "@/components/CadastrosEmptyState";
-
 import { useCadastros, CadastroTipo } from "@/hooks/useCadastros";
 import { Plus, Printer, MoreVertical, Search } from "lucide-react";
 
@@ -61,6 +60,14 @@ export default function CadastrosClientesFornecedores() {
   useEffect(() => {
     setPage(1);
   }, [activeTab]);
+
+  // Limpar estados ao montar componente para evitar overlay preso
+  useEffect(() => {
+    setSelectedIds([]);
+    setDeleteId(null);
+    document.body.classList.remove('overflow-hidden');
+    document.body.style.removeProperty('pointer-events');
+  }, []);
 
   // Handlers de seleção
   const handleSelectAll = (checked: boolean) => {
@@ -149,13 +156,6 @@ export default function CadastrosClientesFornecedores() {
 
         {/* Sticky header: Busca + Abas */}
         <div className="sticky top-0 z-10 bg-background pb-4 space-y-4 border-b">
-        <p className="text-sm text-muted-foreground">
-          {count} {count === 1 ? 'registro' : 'registros'}
-        </p>
-      </div>
-
-      {/* Sticky header: Busca + Abas */}
-      <div className="sticky top-0 z-10 bg-background pb-4 space-y-4 border-b mb-4">
         {/* Barra de busca */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -175,82 +175,81 @@ export default function CadastrosClientesFornecedores() {
         />
       </div>
 
-      {/* Conteúdo principal */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
-      ) : cadastros.length === 0 ? (
-        <CadastrosEmptyState
-          type={searchTerm || activeTab !== 'todos' ? 'no-results' : 'no-data'}
-          searchTerm={searchTerm}
-          onReset={handleResetFilters}
-        />
-      ) : (
-        <>
-          {/* Desktop: Tabela */}
-          <div className="hidden md:block">
-            <CadastrosTable
-              cadastros={cadastros}
-              selectedIds={selectedIds}
-              onSelectAll={handleSelectAll}
-              onSelectOne={handleSelectOne}
-              onEdit={(id) => navigate(`/cadastros/${id}/editar`)}
-              onView={(id) => navigate(`/cadastros/${id}`)}
-              onDelete={(id) => setDeleteId(id)}
-              orderBy={orderBy}
-              orderDirection={orderDirection}
-              onSort={handleSort}
-            />
+        {/* Conteúdo principal */}
+        {isLoading ? (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
           </div>
-
-          {/* Mobile: Cards */}
-          <div className="md:hidden space-y-3">
-            {cadastros.map((cadastro) => (
-              <CadastrosMobileCard
-                key={cadastro.id}
-                cadastro={cadastro}
-                isSelected={selectedIds.includes(cadastro.id)}
-                onSelect={(checked) => handleSelectOne(cadastro.id, checked)}
+        ) : cadastros.length === 0 ? (
+          <CadastrosEmptyState
+            type={searchTerm || activeTab !== 'todos' ? 'no-results' : 'no-data'}
+            searchTerm={searchTerm}
+            onReset={handleResetFilters}
+          />
+        ) : (
+          <>
+            {/* Desktop: Tabela */}
+            <div className="hidden md:block">
+              <CadastrosTable
+                cadastros={cadastros}
+                selectedIds={selectedIds}
+                onSelectAll={handleSelectAll}
+                onSelectOne={handleSelectOne}
                 onEdit={(id) => navigate(`/cadastros/${id}/editar`)}
                 onView={(id) => navigate(`/cadastros/${id}`)}
                 onDelete={(id) => setDeleteId(id)}
+                orderBy={orderBy}
+                orderDirection={orderDirection}
+                onSort={handleSort}
               />
-            ))}
-          </div>
+            </div>
 
-          {/* Paginação */}
-          {totalPages > 1 && (
-            <CadastrosPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalCount={count}
-              onPageChange={setPage}
-            />
-          )}
-        </>
-      )}
+            {/* Mobile: Cards */}
+            <div className="md:hidden space-y-3">
+              {cadastros.map((cadastro) => (
+                <CadastrosMobileCard
+                  key={cadastro.id}
+                  cadastro={cadastro}
+                  isSelected={selectedIds.includes(cadastro.id)}
+                  onSelect={(checked) => handleSelectOne(cadastro.id, checked)}
+                  onEdit={(id) => navigate(`/cadastros/${id}/editar`)}
+                  onView={(id) => navigate(`/cadastros/${id}`)}
+                  onDelete={(id) => setDeleteId(id)}
+                />
+              ))}
+            </div>
+
+            {/* Paginação */}
+            {totalPages > 1 && (
+              <CadastrosPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalCount={count}
+                onPageChange={setPage}
+              />
+            )}
+          </>
+        )}
 
         {/* Modal de confirmação de exclusão */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este cadastro? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir este cadastro? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );
