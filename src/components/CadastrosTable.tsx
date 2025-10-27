@@ -13,7 +13,6 @@ type CadastrosTableProps = {
   onEdit: (id: string) => void;
   onView: (id: string) => void;
   onDelete: (id: string) => void;
-  onNameHover: (id: string) => void;
   orderBy: 'full_name' | 'created_at';
   orderDirection: 'asc' | 'desc';
   onSort: (field: 'full_name' | 'created_at') => void;
@@ -27,7 +26,6 @@ export const CadastrosTable = ({
   onEdit,
   onView,
   onDelete,
-  onNameHover,
   orderBy,
   orderDirection,
   onSort,
@@ -92,8 +90,8 @@ export const CadastrosTable = ({
                 />
               </TableCell>
               <TableCell 
-                className="max-w-[250px] cursor-pointer hover:bg-accent transition-colors"
-                onMouseEnter={() => onNameHover(cadastro.id)}
+                onClick={() => onView(cadastro.id)}
+                className="max-w-[250px] cursor-pointer hover:underline hover:text-blue-600 transition-colors"
               >
                 <div className="flex flex-col">
                   <span className="font-medium text-sm truncate">{cadastro.full_name}</span>
