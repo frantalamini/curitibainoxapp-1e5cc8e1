@@ -314,6 +314,7 @@ const ClientForm = () => {
   };
 
   const handleCancel = () => {
+    document.body.classList.remove('overflow-hidden');
     if (id) {
       navigate(`/cadastros/clientes/${id}`);
     } else {

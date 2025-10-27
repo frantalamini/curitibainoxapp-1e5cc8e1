@@ -207,17 +207,18 @@ export default function CadastroDetail() {
     }
   }, [cadastro, initialData, reset]);
 
-  const handleBack = () => {
-    if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      navigate('/cadastros/clientes');
-    }
-    
-    setTimeout(() => {
+  // Limpeza de overlays ao desmontar
+  useEffect(() => {
+    return () => {
       document.body.classList.remove('overflow-hidden');
       document.body.style.removeProperty('pointer-events');
-    }, 100);
+    };
+  }, []);
+
+  const handleBack = () => {
+    setEditMode(false);
+    document.body.classList.remove('overflow-hidden');
+    navigate('/cadastros/clientes');
   };
 
   const getTipoLabel = (tipo: string) => {
