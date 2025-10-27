@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import Index from "./pages/Index";
@@ -58,6 +58,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   return session ? <>{children}</> : <Navigate to="/auth" />;
+};
+
+const CadastroRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/cadastros/clientes/${id}`} replace />;
 };
 
 const App = () => (
@@ -122,6 +127,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ClientForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cadastros/:id"
+            element={
+              <ProtectedRoute>
+                <CadastroRedirect />
               </ProtectedRoute>
             }
           />
