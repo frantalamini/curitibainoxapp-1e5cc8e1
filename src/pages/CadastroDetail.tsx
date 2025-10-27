@@ -301,6 +301,9 @@ export default function CadastroDetail() {
       };
 
       console.log('🔵 Payload normalizado', normalizedPayload);
+      console.log('🔵 Campos alterados:', Object.keys(payload).filter(key => 
+        JSON.stringify(payload[key]) !== JSON.stringify(initialData?.[key])
+      ));
       
       const result = await updateClient.mutateAsync(normalizedPayload);
       console.log('✅ Update concluído', result);
@@ -310,8 +313,39 @@ export default function CadastroDetail() {
       
       console.log('✅ Queries invalidadas');
       
+      // Buscar dados atualizados e atualizar initialData
+      const updatedData = await queryClient.fetchQuery({ 
+        queryKey: ['cadastro-detail', id],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+          return data;
+        }
+      });
+
+      console.log('✅ Dados refetchados', updatedData);
+
+      if (updatedData) {
+        const cleanedData = {
+          ...updatedData,
+          tipos: updatedData.tipos || ['cliente'],
+          phone_2: updatedData.phone_2 || "",
+          nome_fantasia: updatedData.nome_fantasia || "",
+          complement: updatedData.complement || "",
+          notes: updatedData.notes || "",
+          responsible_financial: updatedData.responsible_financial || { name: "", phone: "", email: "" },
+          responsible_technical: updatedData.responsible_technical || { name: "", phone: "", email: "" },
+          responsible_legal: updatedData.responsible_legal || { name: "", phone: "", email: "" },
+        };
+        setInitialData(cleanedData);
+        reset(cleanedData);
+        console.log('✅ initialData atualizado', cleanedData);
+      }
+      
       setEditMode(false);
-      navigate(`/cadastros/clientes/${id}`, { replace: true });
     } catch (error) {
       console.error('❌ Erro ao salvar:', error);
     }
@@ -357,8 +391,19 @@ export default function CadastroDetail() {
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" form="formCliente">
-                    Salvar
+                  <Button 
+                    type="submit" 
+                    form="formCliente"
+                    disabled={updateClient.isPending}
+                  >
+                    {updateClient.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      "Salvar"
+                    )}
                   </Button>
                 </div>
               )}
