@@ -69,9 +69,10 @@ const clientSchema = z.object({
     .optional()
     .or(z.literal("")),
   complement: z.string()
+    .trim()
     .optional()
-    .nullable()
-    .transform(val => val ?? ""),
+    .or(z.literal(""))
+    .transform(val => val || ""),
   neighborhood: z.string()
     .trim()
     .max(100, "Bairro muito longo")
@@ -98,9 +99,10 @@ const clientSchema = z.object({
     .optional()
     .or(z.literal("")),
   notes: z.string()
+    .trim()
     .optional()
-    .nullable()
-    .transform(val => val ?? ""),
+    .or(z.literal(""))
+    .transform(val => val || ""),
   nome_fantasia: z.string()
     .trim()
     .max(100, "Nome fantasia muito longo")
@@ -216,16 +218,9 @@ export default function CadastroDetail() {
   }, []);
 
   const handleBack = () => {
-    if (editMode) {
-      // Se estiver editando, apenas desativa o modo edição
-      reset(initialData);
-      setEditMode(false);
-    } else {
-      // Se estiver visualizando, volta para a lista
-      document.body.classList.remove('overflow-hidden');
-      document.body.style.removeProperty('pointer-events');
-      navigate('/cadastros/clientes');
-    }
+    document.body.classList.remove('overflow-hidden');
+    document.body.style.removeProperty('pointer-events');
+    navigate('/cadastros/clientes');
   };
 
   const getTipoLabel = (tipo: string) => {
@@ -282,18 +277,32 @@ export default function CadastroDetail() {
     console.log('🔵 onValid iniciado', { payload, id });
     
     try {
-      const cleanedPayload = {
+      const normalizedPayload = {
+        id,
         ...payload,
-        id: id,
-        tipos: (payload.tipos && payload.tipos.length > 0) ? payload.tipos : ['cliente'],
+        tipos: Array.isArray(payload.tipos) && payload.tipos.length > 0 ? payload.tipos : ['cliente'],
+        complement: payload.complement || "",
+        notes: payload.notes || "",
+        phone_2: payload.phone_2 || "",
+        email: payload.email || "",
+        cpf_cnpj: payload.cpf_cnpj || "",
+        cep: payload.cep || "",
+        street: payload.street || "",
+        number: payload.number || "",
+        neighborhood: payload.neighborhood || "",
+        city: payload.city || "",
+        state: payload.state || "",
+        state_registration: payload.state_registration || "",
+        address: payload.address || "",
+        nome_fantasia: payload.nome_fantasia || "",
         responsible_financial: payload.responsible_financial?.name ? payload.responsible_financial : null,
         responsible_technical: payload.responsible_technical?.name ? payload.responsible_technical : null,
         responsible_legal: payload.responsible_legal?.name ? payload.responsible_legal : null,
       };
 
-      console.log('🔵 Payload limpo', cleanedPayload);
+      console.log('🔵 Payload normalizado', normalizedPayload);
       
-      const result = await updateClient.mutateAsync(cleanedPayload);
+      const result = await updateClient.mutateAsync(normalizedPayload);
       console.log('✅ Update concluído', result);
       
       await queryClient.invalidateQueries({ queryKey: ['cadastro-detail', id] });
@@ -302,17 +311,9 @@ export default function CadastroDetail() {
       console.log('✅ Queries invalidadas');
       
       setEditMode(false);
-      toast({
-        title: "✅ Cadastro Atualizado",
-        description: "As alterações foram salvas com sucesso!",
-      });
+      navigate(`/cadastros/clientes/${id}`, { replace: true });
     } catch (error) {
       console.error('❌ Erro ao salvar:', error);
-      toast({
-        title: "❌ Erro ao salvar",
-        description: "Não foi possível salvar os dados.",
-        variant: "destructive",
-      });
     }
   };
 
