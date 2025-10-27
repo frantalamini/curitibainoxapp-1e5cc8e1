@@ -284,7 +284,7 @@ const ClientForm = () => {
     return cleaned;
   };
 
-  const onSubmit = async (formData: any) => {
+  const onValid = async (formData: any) => {
     try {
       const data = cleanEmptyObjects(formData);
       
@@ -325,7 +325,7 @@ const ClientForm = () => {
   return (
     <MainLayout>
       <div className="max-w-2xl space-y-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onValid)} className="space-y-6">
           {/* Header sticky com botões no topo - DENTRO do form */}
           <div className="sticky top-0 z-20 bg-background pb-4 border-b">
             <div className="flex items-center justify-between">
