@@ -37,77 +37,89 @@ const clientSchema = z.object({
     .trim()
     .regex(/^[\d\s()-]*$/, "Telefone inválido")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   email: z.string()
     .trim()
     .email("Email inválido")
     .max(255, "Email muito longo")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   cpf_cnpj: z.string()
     .trim()
     .optional()
+    .nullable()
+    .transform(val => val ?? "")
     .refine((val) => {
       if (!val) return true;
       const digits = val.replace(/\D/g, "");
       return digits.length === 11 || digits.length === 14;
-    }, "CPF deve ter 11 dígitos ou CNPJ 14 dígitos")
-    .or(z.literal("")),
+    }, "CPF deve ter 11 dígitos ou CNPJ 14 dígitos"),
   cep: z.string()
     .trim()
     .regex(/^\d{5}-?\d{3}$/, "CEP inválido")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   street: z.string()
     .trim()
     .max(200, "Rua muito longa")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   number: z.string()
     .trim()
     .max(20, "Número muito longo")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   complement: z.string()
     .trim()
     .optional()
-    .or(z.literal(""))
-    .transform(val => val || ""),
+    .nullable()
+    .transform(val => val ?? ""),
   neighborhood: z.string()
     .trim()
     .max(100, "Bairro muito longo")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   city: z.string()
     .trim()
     .max(100, "Cidade muito longa")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   state: z.string()
     .trim()
     .length(2, "Estado deve ter 2 caracteres")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   state_registration: z.string()
     .trim()
     .max(50, "Inscrição estadual muito longa")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   address: z.string()
     .trim()
     .max(500, "Endereço muito longo")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   notes: z.string()
     .trim()
     .optional()
-    .or(z.literal(""))
-    .transform(val => val || ""),
+    .nullable()
+    .transform(val => val ?? ""),
   nome_fantasia: z.string()
     .trim()
     .max(100, "Nome fantasia muito longo")
     .optional()
-    .or(z.literal("")),
+    .nullable()
+    .transform(val => val ?? ""),
   responsible_financial: z.object({
     name: z.string().optional().nullable().transform(val => val ?? ""),
     phone: z.string().optional().nullable().transform(val => val ?? ""),
