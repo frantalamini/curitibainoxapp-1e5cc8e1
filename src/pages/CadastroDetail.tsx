@@ -41,11 +41,17 @@ const clientSchema = z.object({
     .transform(val => val ?? ""),
   email: z.string()
     .trim()
-    .email("Email inválido")
-    .max(255, "Email muito longo")
     .optional()
     .nullable()
-    .transform(val => val ?? ""),
+    .transform(val => val ?? "")
+    .refine(
+      (val) => !val || z.string().email().safeParse(val).success,
+      "Email inválido"
+    )
+    .refine(
+      (val) => !val || val.length <= 255,
+      "Email muito longo"
+    ),
   cpf_cnpj: z.string()
     .trim()
     .optional()
