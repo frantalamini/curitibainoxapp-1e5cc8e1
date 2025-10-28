@@ -167,7 +167,7 @@ export default function CadastroDetail() {
     setValue,
     watch,
     reset,
-    formState: { errors },
+    formState,
   } = useForm<any>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
@@ -180,6 +180,8 @@ export default function CadastroDetail() {
       responsible_legal: { name: "", phone: "", email: "" },
     },
   });
+
+  const { errors } = formState;
 
   useEffect(() => {
     if (cadastro && !initialData) {
@@ -294,7 +296,10 @@ export default function CadastroDetail() {
   };
 
   const onValid = async (payload: any) => {
-    console.log('🔵 onValid iniciado', { payload, id });
+    console.log('🔵 ========== onValid INICIADO ==========');
+    console.log('🔵 payload recebido do form:', payload);
+    console.log('🔵 ID do cadastro:', id);
+    console.log('🔵 initialData atual:', initialData);
     
     try {
       const normalizedPayload = {
@@ -320,29 +325,52 @@ export default function CadastroDetail() {
         responsible_legal: payload.responsible_legal?.name ? payload.responsible_legal : null,
       };
 
-      console.log('🔵 Payload normalizado', normalizedPayload);
-      console.log('🔵 Campos alterados:', Object.keys(payload).filter(key => 
+      console.log('🔵 normalizedPayload montado:', normalizedPayload);
+      
+      const changedFields = Object.keys(payload).filter(key => 
         JSON.stringify(payload[key]) !== JSON.stringify(initialData?.[key])
-      ));
+      );
+      console.log('🔵 Campos alterados:', changedFields);
       
-      await updateClient.mutateAsync(normalizedPayload);
-      console.log('✅ Update concluído - aguardando refetch automático');
+      console.log('🟡 Chamando updateClient.mutateAsync...');
+      const result = await updateClient.mutateAsync(normalizedPayload);
+      console.log('✅ mutateAsync retornou:', result);
       
-      // O invalidateQueries já está no onSuccess do hook useClients
-      // Aguardar apenas o refetch da query atual
+      console.log('🟡 Aguardando refetchQueries...');
       await queryClient.refetchQueries({ queryKey: ['cadastro-detail', id] });
+      console.log('✅ refetchQueries concluído');
       
-      console.log('✅ Dados atualizados');
+      console.log('✅ ========== onValid CONCLUÍDO ==========');
       setEditMode(false);
     } catch (error) {
-      console.error('❌ Erro ao salvar:', error);
+      console.error('❌ ========== ERRO EM onValid ==========');
+      console.error('❌ Tipo do erro:', typeof error);
+      console.error('❌ Erro completo:', error);
+      console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'N/A');
+      console.error('❌ Mensagem:', error instanceof Error ? error.message : String(error));
+      
+      toast({
+        title: "Erro ao salvar",
+        description: error instanceof Error ? error.message : "Erro desconhecido ao salvar cadastro",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <form id="formCliente" onSubmit={handleSubmit(onValid)}>
+        <form 
+          id="formCliente" 
+          onSubmit={(e) => {
+            console.log('🟢 FORM SUBMIT ACIONADO', {
+              isValid: formState.isValid,
+              errors: formState.errors,
+              isSubmitting: formState.isSubmitting
+            });
+            handleSubmit(onValid)(e);
+          }}
+        >
           {/* Header com botões sticky */}
           <div className="sticky top-0 z-20 bg-background pb-4 mb-6 border-b">
             <div className="flex items-center justify-between">
@@ -383,6 +411,16 @@ export default function CadastroDetail() {
                     type="submit" 
                     form="formCliente"
                     disabled={updateClient.isPending}
+                    onClick={() => {
+                      console.log('🟢 BOTÃO SALVAR CLICADO', {
+                        isPending: updateClient.isPending,
+                        isSubmitting: formState.isSubmitting,
+                        isValid: formState.isValid,
+                        errors: formState.errors,
+                        isDirty: formState.isDirty,
+                        dirtyFields: formState.dirtyFields
+                      });
+                    }}
                   >
                     {updateClient.isPending ? (
                       <>
