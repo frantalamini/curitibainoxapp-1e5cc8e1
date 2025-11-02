@@ -276,8 +276,14 @@ ${os.photos.length > 0 ? `
   `;
 };
 
-// Função principal para gerar PDF
-export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPDF> => {
+/**
+ * Gera o relatório PDF da ordem de serviço e retorna o Blob
+ * @param call - Dados da ordem de serviço
+ * @returns Objeto com o Blob do PDF e o nome do arquivo
+ */
+export const generateServiceCallReportBlob = async (
+  call: ServiceCall
+): Promise<{ blob: Blob; fileName: string }> => {
   try {
     // Buscar dados da empresa
     const companyData = await getCompanyData();
@@ -331,10 +337,40 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
 
-    // Salvar PDF
-    pdf.save(`OS_${call.os_number}_${call.clients?.full_name || "cliente"}.pdf`);
+    // Retornar Blob e nome do arquivo
+    const blob = pdf.output("blob");
+    const fileName = `OS_${call.os_number}_${call.clients?.full_name || "cliente"}.pdf`;
 
-    return pdf;
+    return { blob, fileName };
+  } catch (error) {
+    console.error("Erro ao gerar PDF:", error);
+    throw error;
+  }
+};
+
+/**
+ * Gera o relatório PDF da ordem de serviço (compatibilidade)
+ * @deprecated Use generateServiceCallReportBlob() em vez disso
+ */
+export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPDF> => {
+  try {
+    const { blob, fileName } = await generateServiceCallReportBlob(call);
+    
+    // Criar PDF e forçar download (compatibilidade com código antigo)
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    
+    // Retornar instância jsPDF vazia (compatibilidade)
+    return new jsPDF("p", "mm", "a4");
   } catch (error) {
     console.error("Erro ao gerar PDF:", error);
     throw error;

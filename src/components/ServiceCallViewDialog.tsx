@@ -32,11 +32,14 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
+import { ToastAction } from "@/components/ui/toast";
+import { generateServiceCallReportBlob } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
+import { openOrDownloadPdf, revokePdfUrl } from "@/lib/pdfFallback";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { useUserRole } from "@/hooks/useUserRole";
+import jsPDF from "jspdf";
 
 interface ServiceCallViewDialogProps {
   call: ServiceCall;
@@ -68,17 +71,69 @@ const ServiceCallViewDialog = ({
   const handleGeneratePDF = async () => {
     try {
       setIsGeneratingPDF(true);
-      const pdf = await generateServiceCallReport(call);
-      pdf.save(`Relatorio-OS-${call.os_number}.pdf`);
       
-      // Upload para storage
+      // Gerar PDF como Blob
+      const { blob, fileName } = await generateServiceCallReportBlob(call);
+      
+      // Tentar abrir em nova aba ou forçar download
+      const { url, opened } = openOrDownloadPdf(blob, fileName);
+      
+      // Upload para storage (para WhatsApp)
+      const pdf = new jsPDF("p", "mm", "a4");
       const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
       setPdfUrl(uploadedUrl);
       
+      // Toast com botões de ação
       toast({
-        title: "PDF Gerado!",
-        description: "O relatório foi baixado e está pronto para envio.",
+        title: "PDF gerado com sucesso!",
+        description: opened 
+          ? "PDF aberto em nova aba. Use os botões abaixo para outras opções."
+          : "Download iniciado. Use os botões abaixo se necessário.",
+        action: (
+          <div className="flex flex-col gap-2 mt-2">
+            <ToastAction
+              altText="Baixar PDF manualmente"
+              onClick={() => {
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = fileName;
+                a.style.display = "none";
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => document.body.removeChild(a), 100);
+              }}
+            >
+              📥 Baixar PDF manualmente
+            </ToastAction>
+            
+            {call.clients?.phone && (
+              <ToastAction
+                altText="Enviar via WhatsApp"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(uploadedUrl);
+                    const link = generateSimpleWhatsAppLink(call.clients!.phone);
+                    window.open(link, '_blank');
+                    
+                    toast({
+                      title: "Link copiado!",
+                      description: "Cole o link do PDF na conversa do WhatsApp",
+                    });
+                  } catch (error) {
+                    console.error("Erro ao copiar link:", error);
+                  }
+                }}
+              >
+                📱 Enviar via WhatsApp
+              </ToastAction>
+            )}
+          </div>
+        ),
       });
+      
+      // Liberar URL após 60 segundos
+      revokePdfUrl(url);
+      
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({
