@@ -63,7 +63,7 @@ export const loadSystemLogoForPdf = async (): Promise<string> => {
 };
 
 /**
- * Adiciona logo no cabeçalho do PDF (padrão: canto superior esquerdo)
+ * Adiciona logo no cabeçalho do PDF preservando aspect ratio
  */
 export const addLogoToPdf = (
   pdf: any,
@@ -71,31 +71,54 @@ export const addLogoToPdf = (
   options?: {
     x?: number;
     y?: number;
-    width?: number;
-    height?: number;
+    maxWidth?: number;
+    maxHeight?: number;
     align?: 'left' | 'center' | 'right';
   }
 ) => {
   const {
-    x = 20,
-    y = 10,
-    width = 30,
-    height = 15,
+    x = 14,
+    y = 14,
+    maxWidth = 48,
+    maxHeight = 16,
     align = 'left',
   } = options || {};
 
   const pageWidth = pdf.internal.pageSize.getWidth();
-  let finalX = x;
-
-  if (align === 'center') {
-    finalX = (pageWidth - width) / 2;
-  } else if (align === 'right') {
-    finalX = pageWidth - width - x;
-  }
 
   try {
-    pdf.addImage(logoBase64, 'PNG', finalX, y, width, height);
+    // Detectar dimensões reais da imagem usando getImageProperties
+    const imgProps = pdf.getImageProperties(logoBase64);
+    const aspectRatio = imgProps.width / imgProps.height;
+    
+    // Calcular dimensões mantendo proporção
+    let finalWidth = maxWidth;
+    let finalHeight = maxWidth / aspectRatio;
+    
+    // Se altura exceder limite, recalcular baseado na altura
+    if (finalHeight > maxHeight) {
+      finalHeight = maxHeight;
+      finalWidth = maxHeight * aspectRatio;
+    }
+    
+    // Ajustar X para alinhamento
+    let finalX = x;
+    if (align === 'center') {
+      finalX = (pageWidth - finalWidth) / 2;
+    } else if (align === 'right') {
+      finalX = pageWidth - finalWidth - x;
+    }
+    
+    pdf.addImage(logoBase64, 'PNG', finalX, y, finalWidth, finalHeight);
   } catch (error) {
     console.error("Erro ao adicionar logo ao PDF:", error);
+    // Fallback: usar dimensões máximas sem aspect ratio
+    let finalX = x;
+    if (align === 'center') {
+      finalX = (pageWidth - maxWidth) / 2;
+    } else if (align === 'right') {
+      finalX = pageWidth - maxWidth - x;
+    }
+    pdf.addImage(logoBase64, 'PNG', finalX, y, maxWidth, maxHeight);
   }
 };

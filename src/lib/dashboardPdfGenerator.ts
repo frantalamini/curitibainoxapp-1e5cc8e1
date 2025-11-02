@@ -35,8 +35,8 @@ export const generateDashboardReport = async (
   addLogoToPdf(pdf, logoBase64, {
     x: margin,
     y: 10,
-    width: 35,
-    height: 18,
+    maxWidth: 35,
+    maxHeight: 18,
   });
 
   // ========== CABEÇALHO COMPACTO ==========
