@@ -789,6 +789,41 @@ const ServiceCallForm = () => {
                       ))}
                     </div>
                   </div>
+
+                  {/* Observações Internas - Apenas para Admin/Técnico */}
+                  {(isAdmin || isTechnician) && (
+                    <>
+                      <Separator className="my-6" />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Label 
+                            htmlFor="internal_notes_text" 
+                            className="text-[#D32F2F] font-bold text-base"
+                          >
+                            Observações Internas
+                          </Label>
+                          <Badge variant="secondary" className="text-xs">
+                            Privado • Admin/Técnico
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Anotações visíveis apenas para administradores e técnicos. Não serão incluídas nos relatórios enviados ao cliente.
+                        </p>
+                        <Textarea
+                          id="internal_notes_text"
+                          placeholder="Observações internas sobre o atendimento, peças utilizadas, tempo de execução, etc."
+                          value={internalNotesText}
+                          onChange={(e) => setInternalNotesText(e.target.value)}
+                          maxLength={2000}
+                          rows={4}
+                        />
+                        <div className="text-xs text-muted-foreground text-right">
+                          {internalNotesText.length}/2000 caracteres
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                 </CardContent>
               </Card>
             </TabsContent>
@@ -874,41 +909,6 @@ const ServiceCallForm = () => {
                       }
                     }}
                   />
-
-                  {/* Observações Internas - Apenas para Admin/Técnico */}
-                  {(isAdmin || isTechnician) && (
-                    <>
-                      <Separator className="my-6" />
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Label 
-                            htmlFor="internal_notes_text" 
-                            className="text-[#D32F2F] font-bold text-base"
-                          >
-                            Observações Internas
-                          </Label>
-                          <Badge variant="secondary" className="text-xs">
-                            Privado • Admin/Técnico
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Anotações visíveis apenas para administradores e técnicos. Não serão incluídas nos relatórios enviados ao cliente.
-                        </p>
-                        <Textarea
-                          id="internal_notes_text"
-                          placeholder="Observações internas sobre o atendimento, peças utilizadas, tempo de execução, etc."
-                          value={internalNotesText}
-                          onChange={(e) => setInternalNotesText(e.target.value)}
-                          maxLength={2000}
-                          rows={4}
-                        />
-                        <div className="text-xs text-muted-foreground text-right">
-                          {internalNotesText.length}/2000 caracteres
-                        </div>
-                      </div>
-                    </>
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>
