@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Plus } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useClients } from "@/hooks/useClients";
+import { ClientAsyncSelect } from "@/components/ClientAsyncSelect";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { useServiceCalls, useServiceCall, ServiceCallInsert } from "@/hooks/useServiceCalls";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
@@ -45,7 +45,7 @@ const ServiceCallForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { clients, isLoading: clientsLoading } = useClients();
+  // Removido useClients() - carregamento assíncrono sob demanda
   const { technicians, isLoading: techniciansLoading } = useTechnicians();
   const { serviceTypes, isLoading: serviceTypesLoading } = useServiceTypes();
   const { checklists, isLoading: checklistsLoading } = useChecklists();
@@ -97,7 +97,7 @@ const ServiceCallForm = () => {
     formState: { errors },
   } = useForm<ServiceCallInsert>();
 
-  const selectedClient = clients?.find((c) => c.id === selectedClientId);
+  // selectedClient agora é carregado no ClientAsyncSelect via query própria
   const activeTechnicians = technicians?.filter((t) => t.active);
   const activeServiceTypes = serviceTypes?.filter((st) => st.active);
   const selectedChecklist = checklists?.find((c) => c.id === selectedChecklistId);
@@ -463,49 +463,18 @@ const ServiceCallForm = () => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="client_id">Cliente</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsClientDialogOpen(true)}
-                        className="text-xs"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Novo Cliente
-                      </Button>
-                    </div>
-                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione um cliente" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {clients?.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedClient && (
-                      <div className="mt-2 p-3 bg-muted rounded-md">
-                        <p className="font-semibold">
-                          {selectedClient.full_name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Telefone: {selectedClient.phone}
-                        </p>
-                        {selectedClient.street && (
-                          <p className="text-sm text-muted-foreground">
-                            {selectedClient.street}, {selectedClient.number}
-                            {selectedClient.city && ` - ${selectedClient.city}`}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    <Label htmlFor="client_id">Cliente *</Label>
+                    <ClientAsyncSelect
+                      value={selectedClientId}
+                      onChange={(id) => {
+                        setSelectedClientId(id);
+                        setValue("client_id", id);
+                      }}
+                      onNewClientClick={() => setIsClientDialogOpen(true)}
+                      error={!!errors.client_id}
+                    />
                     {errors.client_id && (
-                      <p className="text-sm text-red-500">
+                      <p className="text-sm text-destructive">
                         Selecione um cliente
                       </p>
                     )}
