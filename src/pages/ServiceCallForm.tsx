@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Clock } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SignaturePad } from "@/components/SignaturePad";
 import { ChecklistSelector } from "@/components/ChecklistSelector";
 import { ClientFormDialog } from "@/components/ClientFormDialog";
+import { TimePickerPopover } from "@/components/TimePickerPopover";
 
 import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
@@ -617,12 +618,13 @@ const ServiceCallForm = () => {
                         </PopoverContent>
                       </Popover>
 
-                      <Input
-                        type="time"
+                      <TimePickerPopover
                         value={selectedTime}
-                        onChange={(e) => setSelectedTime(e.target.value)}
-                        className="w-[150px]"
-                        placeholder="Selecionar hora"
+                        onChange={(time) => {
+                          setSelectedTime(time);
+                          setValue("scheduled_time", time, { shouldDirty: true });
+                        }}
+                        placeholder="--:--"
                       />
                     </div>
                     {errors.scheduled_date && (
