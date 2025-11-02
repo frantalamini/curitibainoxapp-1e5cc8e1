@@ -41,8 +41,8 @@ const PDF_CONFIG = {
   box: {
     borderWidth: 0.5,
     borderColor: [0, 0, 0] as [number, number, number],
-    padding: 3,
-    titleSpacing: 2,
+    padding: 6,
+    titleSpacing: 3,
   },
   table: {
     cellPadding: 3,
@@ -416,8 +416,8 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   if (clientEmail) clientDataLines.push({ text: `E-mail: ${clientEmail}`, bold: false });
   
   // Calcular altura dinâmica da caixa (min 50mm, max 120mm)
-  const lineHeight = 5;
-  const clientBoxHeight = Math.max(18, Math.min(42, clientDataLines.length * lineHeight + 2 * clientBoxPadding));
+  const clientLineHeight = 5;
+  const clientBoxHeight = Math.max(18, Math.min(42, clientDataLines.length * clientLineHeight + 2 * clientBoxPadding));
   
   // Desenhar borda
   pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
@@ -430,7 +430,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   clientDataLines.forEach((item) => {
     pdf.setFont("helvetica", item.bold ? "bold" : "normal");
     pdf.text(item.text, margin + clientBoxPadding, lineY);
-    lineY += lineHeight;
+    lineY += clientLineHeight;
   });
   
   yPos = clientBoxY + clientBoxHeight + PDF_CONFIG.sectionSpacing;
@@ -446,7 +446,11 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   const techBoxY = yPos;
   const techName = call.technicians?.full_name || "N/A";
-  const techBoxHeight = 10 + 2 * PDF_CONFIG.box.padding;
+  
+  const techContentWidth = contentWidth - 2 * PDF_CONFIG.box.padding;
+  const techLines = pdf.splitTextToSize(techName, techContentWidth);
+  const techLineHeight = 5;
+  const techBoxHeight = techLines.length * techLineHeight + 2 * PDF_CONFIG.box.padding;
 
   pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
   pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
@@ -454,7 +458,12 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(PDF_CONFIG.fontSize.base);
-  pdf.text(techName, margin + PDF_CONFIG.box.padding, techBoxY + PDF_CONFIG.box.padding + 4);
+  
+  let techLineY = techBoxY + PDF_CONFIG.box.padding + 4;
+  techLines.forEach((line: string) => {
+    pdf.text(line, margin + PDF_CONFIG.box.padding, techLineY);
+    techLineY += techLineHeight;
+  });
 
   yPos = techBoxY + techBoxHeight + PDF_CONFIG.sectionSpacing;
 
@@ -484,7 +493,11 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   }
   
   const schedLine = schedParts.join(' • ');
-  const schedBoxHeight = 10 + 2 * PDF_CONFIG.box.padding;
+  
+  const schedContentWidth = contentWidth - 2 * PDF_CONFIG.box.padding;
+  const schedLines = pdf.splitTextToSize(schedLine, schedContentWidth);
+  const schedLineHeight = 5;
+  const schedBoxHeight = schedLines.length * schedLineHeight + 2 * PDF_CONFIG.box.padding;
 
   pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
   pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
@@ -492,7 +505,12 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(PDF_CONFIG.fontSize.base);
-  pdf.text(schedLine, margin + PDF_CONFIG.box.padding, schedBoxY + PDF_CONFIG.box.padding + 4);
+  
+  let schedLineY = schedBoxY + PDF_CONFIG.box.padding + 4;
+  schedLines.forEach((line: string) => {
+    pdf.text(line, margin + PDF_CONFIG.box.padding, schedLineY);
+    schedLineY += schedLineHeight;
+  });
 
   yPos = schedBoxY + schedBoxHeight + PDF_CONFIG.sectionSpacing;
 
