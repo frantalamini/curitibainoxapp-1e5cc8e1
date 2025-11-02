@@ -96,6 +96,14 @@ const ServiceCallForm = () => {
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
   const [equipmentSerialNumber, setEquipmentSerialNumber] = useState("");
   const [internalNotesText, setInternalNotesText] = useState("");
+  
+  // Estados para gravação de áudio de informações técnicas
+  const [technicalAudioFile, setTechnicalAudioFile] = useState<File | null>(null);
+  const [existingTechnicalAudioUrl, setExistingTechnicalAudioUrl] = useState<string | null>(null);
+  const [isRecordingTechnical, setIsRecordingTechnical] = useState(false);
+  const [technicalMediaRecorder, setTechnicalMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [technicalAudioBlob, setTechnicalAudioBlob] = useState<Blob | null>(null);
+  const [technicalAudioURL, setTechnicalAudioURL] = useState<string>("");
 
   const {
     register,
@@ -178,6 +186,7 @@ const ServiceCallForm = () => {
       setExistingCustomerSignatureUrl(existingCall.customer_signature_url || null);
       setEquipmentSerialNumber(existingCall.equipment_serial_number || "");
       setInternalNotesText(existingCall.internal_notes_text || "");
+      setExistingTechnicalAudioUrl(existingCall.technical_diagnosis_audio_url || null);
     }
   }, [existingCall, isEditMode, setValue]);
 
@@ -214,6 +223,69 @@ const ServiceCallForm = () => {
       mediaRecorder.stream.getTracks().forEach(track => track.stop());
       setIsRecording(false);
     }
+  };
+
+  // Gravação de áudio para informações técnicas (limitado a 1min30s)
+  const startRecordingTechnical = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setTechnicalAudioBlob(blob);
+        setTechnicalAudioURL(URL.createObjectURL(blob));
+        
+        // Converter Blob para File
+        const file = new File([blob], `technical-audio-${Date.now()}.webm`, { 
+          type: 'audio/webm' 
+        });
+        setTechnicalAudioFile(file);
+      };
+
+      recorder.start();
+      setTechnicalMediaRecorder(recorder);
+      setIsRecordingTechnical(true);
+
+      // Limitar gravação a 90 segundos (1min30s)
+      setTimeout(() => {
+        if (recorder.state === 'recording') {
+          stopRecordingTechnical();
+        }
+      }, 90000);
+
+      toast({
+        title: "Gravação Iniciada",
+        description: "Duração máxima: 1 minuto e 30 segundos",
+      });
+    } catch (error) {
+      console.error('Erro ao acessar microfone:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível acessar o microfone",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopRecordingTechnical = () => {
+    if (technicalMediaRecorder && technicalMediaRecorder.state === 'recording') {
+      technicalMediaRecorder.stop();
+      technicalMediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setIsRecordingTechnical(false);
+    }
+  };
+
+  const removeTechnicalAudio = () => {
+    setTechnicalAudioFile(null);
+    setTechnicalAudioBlob(null);
+    setTechnicalAudioURL("");
+  };
+
+  const removeExistingTechnicalAudio = () => {
+    setExistingTechnicalAudioUrl(null);
   };
 
   const removeAudio = () => {
@@ -261,6 +333,7 @@ const ServiceCallForm = () => {
       let videoAfterUrl: string | null = existingVideoAfterUrl;
       let technicianSignatureUrl: string | null = existingTechnicianSignatureUrl;
       let customerSignatureUrl: string | null = existingCustomerSignatureUrl;
+      let technicalAudioUrl: string | null = existingTechnicalAudioUrl;
 
       if (audioFile) {
         const audioPath = `audio/${Date.now()}-${audioFile.name}`;
@@ -388,6 +461,31 @@ const ServiceCallForm = () => {
         }
       }
 
+      // Upload de áudio de informações técnicas
+      if (technicalAudioFile) {
+        const audioPath = `technical-audio/${Date.now()}-${technicalAudioFile.name}`;
+        const { error: audioError } = await supabase.storage
+          .from('service-call-attachments')
+          .upload(audioPath, technicalAudioFile);
+
+        if (audioError) {
+          console.error('Error uploading technical audio:', audioError);
+          toast({
+            title: "Erro",
+            description: "Erro ao fazer upload do áudio de informações técnicas",
+            variant: "destructive",
+          });
+          setIsUploading(false);
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('service-call-attachments')
+          .getPublicUrl(audioPath);
+
+        technicalAudioUrl = publicUrl;
+      }
+
       const formattedData: any = {
         ...data,
         scheduled_date: format(selectedDate, "yyyy-MM-dd"),
@@ -411,6 +509,7 @@ const ServiceCallForm = () => {
         equipment_serial_number: equipmentSerialNumber || null,
         internal_notes_text: internalNotesText || null,
         internal_notes_audio_url: null,
+        technical_diagnosis_audio_url: technicalAudioUrl,
       };
 
       if (isEditMode && id) {
@@ -844,6 +943,56 @@ const ServiceCallForm = () => {
                       rows={8}
                       className="resize-none"
                     />
+                  </div>
+
+                  {/* Gravação de Áudio (Informações Técnicas) */}
+                  <div className="space-y-2">
+                    <Label>Gravação de Áudio (Informações Técnicas)</Label>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Duração máxima do áudio: 1 minuto e 30 segundos
+                    </p>
+                    
+                    {!technicalAudioURL && !existingTechnicalAudioUrl ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={isRecordingTechnical ? stopRecordingTechnical : startRecordingTechnical}
+                        className="w-full"
+                      >
+                        <Mic className={`mr-2 h-4 w-4 ${isRecordingTechnical ? 'text-red-500 animate-pulse' : ''}`} />
+                        {isRecordingTechnical ? 'Parar Gravação' : 'Gravar Áudio'}
+                      </Button>
+                    ) : (
+                      <div className="space-y-2 mt-2">
+                        {technicalAudioURL && (
+                          <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                            <audio controls src={technicalAudioURL} className="flex-1" />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={removeTechnicalAudio}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                        {existingTechnicalAudioUrl && !technicalAudioURL && (
+                          <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                            <audio controls src={existingTechnicalAudioUrl} className="flex-1" />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={removeExistingTechnicalAudio}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Fotos/Vídeo Antes */}
