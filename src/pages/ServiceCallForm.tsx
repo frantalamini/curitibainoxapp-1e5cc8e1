@@ -54,6 +54,7 @@ const ServiceCallForm = () => {
   const { createServiceCall, updateServiceCall } = useServiceCalls();
   
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("");
   const [selectedServiceTypeId, setSelectedServiceTypeId] = useState<string>("");
@@ -580,7 +581,7 @@ const ServiceCallForm = () => {
                   <div className="space-y-2">
                     <Label>Data e Hora Agendada</Label>
                     <div className="flex gap-2">
-                      <Popover>
+                      <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             variant={"outline"}
@@ -591,7 +592,7 @@ const ServiceCallForm = () => {
                           >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                             {selectedDate ? (
-                              format(selectedDate, "PPP", { locale: ptBR })
+                              format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })
                             ) : (
                               <span>Selecione uma data</span>
                             )}
@@ -601,10 +602,16 @@ const ServiceCallForm = () => {
                           <Calendar
                             mode="single"
                             selected={selectedDate}
-                            onSelect={setSelectedDate}
+                            onSelect={(date) => {
+                              if (date) {
+                                setSelectedDate(date);
+                                setIsDatePickerOpen(false);
+                              }
+                            }}
                             disabled={(date) =>
                               date < new Date()
                             }
+                            locale={ptBR}
                             initialFocus
                           />
                         </PopoverContent>
