@@ -83,12 +83,14 @@ const ServiceCallViewDialog = ({
       const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
       setPdfUrl(uploadedUrl);
       
-      // Toast com botões de ação
+      // Mensagem apropriada baseada no resultado
+      const toastMessage = opened 
+        ? "PDF aberto em nova aba." 
+        : "Seu navegador bloqueou a abertura automática. O download foi iniciado automaticamente.";
+      
       toast({
         title: "PDF gerado com sucesso!",
-        description: opened 
-          ? "PDF aberto em nova aba. Use os botões abaixo para outras opções."
-          : "Download iniciado. Use os botões abaixo se necessário.",
+        description: toastMessage,
         action: (
           <div className="flex flex-col gap-2 mt-2">
             <ToastAction

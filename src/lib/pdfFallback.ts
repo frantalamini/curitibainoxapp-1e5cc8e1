@@ -22,16 +22,32 @@ export function openOrDownloadPdf(
   let opened = false;
 
   try {
-    // Tenta abrir em nova aba (pode ser bloqueado em Safari/iOS ou políticas corporativas)
+    // Tenta abrir em nova aba (pode ser bloqueado por extensões ou políticas de segurança)
     const win = window.open(url, "_blank", "noopener,noreferrer");
-    opened = !!win && !win.closed;
+    
+    // Detecção robusta de bloqueio:
+    // - Se retornar null, foi bloqueado imediatamente
+    // - Se retornar janela mas closed=true, foi fechada pelo bloqueador
+    if (win === null || win.closed) {
+      console.warn("🚫 Abertura de nova aba bloqueada (extensão/segurança)");
+      opened = false;
+    } else {
+      // Aguarda 100ms para verificar se a janela foi fechada automaticamente
+      setTimeout(() => {
+        if (win.closed) {
+          console.warn("🚫 Janela foi fechada automaticamente pelo navegador");
+        }
+      }, 100);
+      opened = true;
+    }
   } catch (error) {
-    console.warn("Abertura de nova aba bloqueada:", error);
+    console.warn("🚫 Erro ao tentar abrir nova aba:", error);
     opened = false;
   }
 
   // Se não abriu, força download silencioso
   if (!opened) {
+    console.log("📥 Forçando download automático do PDF...");
     try {
       const a = document.createElement("a");
       a.href = url;
@@ -45,7 +61,7 @@ export function openOrDownloadPdf(
         document.body.removeChild(a);
       }, 100);
     } catch (error) {
-      console.error("Erro ao forçar download:", error);
+      console.error("❌ Erro ao forçar download:", error);
     }
   }
 
