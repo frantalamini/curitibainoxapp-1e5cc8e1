@@ -22,7 +22,7 @@ const PDF_CONFIG = {
     black: [0, 0, 0] as [number, number, number],
     gray: [100, 100, 100] as [number, number, number],
     lightGray: [200, 200, 200] as [number, number, number],
-    border: [153, 153, 153] as [number, number, number],
+    border: [0, 0, 0] as [number, number, number],
   },
   photo: {
     perRow: 3,
@@ -33,6 +33,21 @@ const PDF_CONFIG = {
   signature: {
     maxHeight: 24,
     spacing: 8,
+  },
+  box: {
+    borderWidth: 0.5,
+    borderColor: [0, 0, 0] as [number, number, number],
+    padding: 4,
+    titleSpacing: 2,
+  },
+  table: {
+    cellPadding: 3,
+    borderWidth: 0.5,
+    labelWidth: 45,
+  },
+  logo: {
+    maxWidth: 60,
+    maxHeight: 22,
   },
 };
 
@@ -206,52 +221,76 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   // ============ CABEÇALHO (2 colunas) ============
   
-  // Logo à esquerda (com aspect ratio preservado)
+  // Logo à esquerda (maior e com aspect ratio preservado)
   addLogoToPdf(pdf, logoBase64, {
     x: margin,
     y: margin,
-    maxWidth: 48,
-    maxHeight: 16,
+    maxWidth: PDF_CONFIG.logo.maxWidth,
+    maxHeight: PDF_CONFIG.logo.maxHeight,
     align: 'left',
   });
   
-  // Dados da empresa à direita
-  const rightColumnX = pageWidth - margin - 70;
+  // Dados da empresa alinhados à direita
+  const rightColumnWidth = 70;
   let tempY = margin;
-  
-  pdf.setFontSize(PDF_CONFIG.fontSize.base);
+
+  pdf.setFontSize(PDF_CONFIG.fontSize.h2);
   pdf.setFont("helvetica", "bold");
-  tempY = addText(companyData.name, rightColumnX, tempY, 70, PDF_CONFIG.fontSize.h2);
+  pdf.text(companyData.name, pageWidth - margin, tempY, { align: "right" });
+  tempY += 6;
+
   pdf.setFont("helvetica", "normal");
-  
+  pdf.setFontSize(PDF_CONFIG.fontSize.small);
+
   if (companyData.cnpj) {
-    tempY = addText(`CNPJ: ${companyData.cnpj}`, rightColumnX, tempY, 70, PDF_CONFIG.fontSize.small);
+    pdf.text(`CNPJ: ${companyData.cnpj}`, pageWidth - margin, tempY, { align: "right" });
+    tempY += 4;
   }
   if (companyData.ie) {
-    tempY = addText(`IE: ${companyData.ie}`, rightColumnX, tempY, 70, PDF_CONFIG.fontSize.small);
+    pdf.text(`IE: ${companyData.ie}`, pageWidth - margin, tempY, { align: "right" });
+    tempY += 4;
   }
   if (companyData.phone) {
-    tempY = addText(companyData.phone, rightColumnX, tempY, 70, PDF_CONFIG.fontSize.small);
+    pdf.text(companyData.phone, pageWidth - margin, tempY, { align: "right" });
+    tempY += 4;
   }
   if (companyData.email) {
-    tempY = addText(companyData.email, rightColumnX, tempY, 70, PDF_CONFIG.fontSize.small);
+    pdf.text(companyData.email, pageWidth - margin, tempY, { align: "right" });
+    tempY += 4;
   }
   if (companyData.website) {
-    tempY = addText(companyData.website, rightColumnX, tempY, 70, PDF_CONFIG.fontSize.small);
+    pdf.text(companyData.website, pageWidth - margin, tempY, { align: "right" });
+    tempY += 4;
   }
   if (companyData.address) {
-    tempY = addText(companyData.address, rightColumnX, tempY, 70, PDF_CONFIG.fontSize.small);
+    const addressLines = pdf.splitTextToSize(companyData.address, rightColumnWidth);
+    addressLines.forEach((line: string) => {
+      pdf.text(line, pageWidth - margin, tempY, { align: "right" });
+      tempY += 4;
+    });
   }
+
+  yPos = Math.max(margin + PDF_CONFIG.logo.maxHeight, tempY) + 6;
+
+  // Linha horizontal após cabeçalho
+  pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+  pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+  pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
   
-  yPos = Math.max(margin + 16, tempY) + 6;
-  
-  // Título centralizado
+  // Título "ORDEM DE SERVIÇO" com destaque
   pdf.setFontSize(PDF_CONFIG.fontSize.h1);
   pdf.setFont("helvetica", "bold");
   pdf.text(`ORDEM DE SERVIÇO Nº ${call.os_number}`, pageWidth / 2, yPos, { align: "center" });
-  yPos += 6;
+  yPos += 4;
   
-  // Status + Data (centralizado)
+  // Linha horizontal após título
+  pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+  pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+  pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+  
+  // Status + Data
   const statusMap: Record<string, string> = {
     pending: "Aguardando",
     in_progress: "Em Andamento",
@@ -264,161 +303,290 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   pdf.setFontSize(PDF_CONFIG.fontSize.small);
   pdf.setFont("helvetica", "normal");
   pdf.text(statusText, pageWidth / 2, yPos, { align: "center" });
-  yPos += 8;
-  
-  // Linha separadora
-  pdf.setLineWidth(0.3);
-  pdf.setDrawColor(...PDF_CONFIG.colors.lightGray);
-  pdf.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += PDF_CONFIG.sectionSpacing;
+  yPos += 10;
 
-  // ============ BLOCO META (2 colunas 60/40) ============
+  // ============ SEÇÃO CLIENTE E DADOS DA OS (Modelo de Referência) ============
   
   const col1Width = contentWidth * 0.6;
   const col2Width = contentWidth * 0.4;
   const col2X = margin + col1Width + 5;
-  
-  const metaStartY = yPos;
-  
-  // COLUNA 1: Cliente
+
+  // Título "Cliente" centralizado
   pdf.setFontSize(PDF_CONFIG.fontSize.h2);
   pdf.setFont("helvetica", "bold");
-  pdf.text("CLIENTE", margin, yPos);
-  yPos += 5;
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(PDF_CONFIG.fontSize.base);
-  
+  pdf.text("Cliente", margin + col1Width / 2, yPos, { align: "center" });
+  yPos += 6;
+
+  // Caixa do cliente (sem labels internos)
+  const clientBoxY = yPos;
+  const clientLines: string[] = [];
+
   if (call.clients?.full_name) {
-    yPos = addText(`${call.clients.full_name}`, margin, yPos, col1Width - 5);
+    clientLines.push(call.clients.full_name);
   }
   if ((call.clients as any)?.cpf_cnpj) {
-    yPos = addText(`CNPJ/CPF: ${(call.clients as any).cpf_cnpj}`, margin, yPos, col1Width - 5, PDF_CONFIG.fontSize.small);
-  }
-  if (call.clients?.phone) {
-    yPos = addText(`Tel: ${call.clients.phone}`, margin, yPos, col1Width - 5, PDF_CONFIG.fontSize.small);
-  }
-  if ((call.clients as any)?.email) {
-    yPos = addText(`E-mail: ${(call.clients as any).email}`, margin, yPos, col1Width - 5, PDF_CONFIG.fontSize.small);
+    clientLines.push((call.clients as any).cpf_cnpj);
   }
   if (call.clients?.address) {
-    yPos = addText(`End: ${call.clients.address}`, margin, yPos, col1Width - 5, PDF_CONFIG.fontSize.small);
+    const addressParts = pdf.splitTextToSize(call.clients.address, col1Width - 2 * PDF_CONFIG.box.padding);
+    clientLines.push(...addressParts);
   }
-  
-  const col1EndY = yPos;
-  
-  // COLUNA 2: Dados da OS
-  yPos = metaStartY;
-  pdf.setFontSize(PDF_CONFIG.fontSize.h2);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("DADOS DA OS", col2X, yPos);
-  yPos += 5;
+  if (call.clients?.phone) {
+    clientLines.push(`Fone: ${call.clients.phone}`);
+  }
+  if ((call.clients as any)?.email) {
+    clientLines.push((call.clients as any).email);
+  }
+
+  const clientBoxHeight = Math.max(clientLines.length * 5 + 2 * PDF_CONFIG.box.padding, 50);
+
+  // Desenhar borda da caixa
+  pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+  pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+  pdf.rect(margin, clientBoxY, col1Width, clientBoxHeight);
+
+  // Conteúdo
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(PDF_CONFIG.fontSize.base);
-  
-  yPos = addText(`Nº OS: ${call.os_number}`, col2X, yPos, col2Width - 5, PDF_CONFIG.fontSize.small);
-  
-  if (call.service_types) {
-    yPos = addText(`Tipo: ${call.service_types.name}`, col2X, yPos, col2Width - 5, PDF_CONFIG.fontSize.small);
-  }
-  
-  yPos = addText(
-    `Data: ${format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}`,
-    col2X,
-    yPos,
-    col2Width - 5,
-    PDF_CONFIG.fontSize.small
-  );
-  
-  if (call.started_at) {
-    yPos = addText(
-      `Abertura: ${format(new Date(call.started_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}`,
-      col2X,
-      yPos,
-      col2Width - 5,
-      PDF_CONFIG.fontSize.small
-    );
-  }
-  
-  yPos = Math.max(col1EndY, yPos) + PDF_CONFIG.sectionSpacing;
+  let lineY = clientBoxY + PDF_CONFIG.box.padding + 4;
+  clientLines.forEach(line => {
+    pdf.text(line, margin + PDF_CONFIG.box.padding, lineY);
+    lineY += 5;
+  });
 
-  // ============ TÉCNICO (linha única) ============
-  
-  checkNewPage(10);
-  pdf.setFontSize(PDF_CONFIG.fontSize.base);
-  const techText = `TÉCNICO: ${call.technicians?.full_name || "N/A"} • Tel: ${call.technicians?.phone || "N/A"}`;
-  yPos = addText(techText, margin, yPos, contentWidth);
-  yPos += PDF_CONFIG.sectionSpacing;
+  // Tabela de dados da OS à direita
+  const osDataY = clientBoxY;
+  const rowHeight = 10;
+  const tableData = [
+    { label: "Número da OS", value: call.os_number },
+    { label: "Data", value: format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR }) },
+    { label: "Data prevista", value: call.started_at ? format(new Date(call.started_at), "dd/MM/yyyy", { locale: ptBR }) : "" },
+  ];
 
-  // ============ AGENDAMENTO ============
+  let currentY = osDataY;
+
+  tableData.forEach(row => {
+    // Borda das células
+    pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+    pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+    pdf.rect(col2X, currentY, PDF_CONFIG.table.labelWidth, rowHeight);
+    pdf.rect(col2X + PDF_CONFIG.table.labelWidth, currentY, col2Width - PDF_CONFIG.table.labelWidth, rowHeight);
+
+    // Label (negrito)
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(PDF_CONFIG.fontSize.base);
+    pdf.text(row.label, col2X + PDF_CONFIG.table.cellPadding, currentY + 6.5);
+
+    // Valor (normal)
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(row.value), col2X + PDF_CONFIG.table.labelWidth + PDF_CONFIG.table.cellPadding, currentY + 6.5);
+
+    currentY += rowHeight;
+  });
+
+  yPos = Math.max(clientBoxY + clientBoxHeight, currentY) + PDF_CONFIG.sectionSpacing;
+
+  // ============ TÉCNICO (caixa com borda) ============
   
-  checkNewPage(15);
-  yPos = addSectionTitle("AGENDAMENTO", yPos);
+  checkNewPage(20);
+
+  pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Técnico responsável", pageWidth / 2, yPos, { align: "center" });
+  yPos += 6;
+
+  const techBoxY = yPos;
+  const techText = `${call.technicians?.full_name || "N/A"} • Tel: ${call.technicians?.phone || "N/A"}`;
+  const techBoxHeight = 12;
+
+  pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+  pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+  pdf.rect(margin, techBoxY, contentWidth, techBoxHeight);
+
+  pdf.setFont("helvetica", "normal");
   pdf.setFontSize(PDF_CONFIG.fontSize.base);
+  pdf.text(techText, margin + PDF_CONFIG.box.padding, techBoxY + 8);
+
+  yPos = techBoxY + techBoxHeight + PDF_CONFIG.sectionSpacing;
+
+  // ============ AGENDAMENTO (caixa com borda) ============
   
-  const scheduleText = `Data: ${format(new Date(call.scheduled_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} • Hora: ${call.scheduled_time}`;
-  yPos = addText(scheduleText, margin, yPos, contentWidth);
+  checkNewPage(25);
+
+  pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Agendamento", pageWidth / 2, yPos, { align: "center" });
+  yPos += 6;
+
+  const schedBoxY = yPos;
+  const schedLines: string[] = [];
+
+  schedLines.push(`Data: ${format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })} • Hora: ${call.scheduled_time}`);
   
   if (call.started_at) {
     const startTime = format(new Date(call.started_at), "HH:mm", { locale: ptBR });
-    const timeText = `Início: ${startTime}`;
-    yPos = addText(timeText, margin, yPos, contentWidth, PDF_CONFIG.fontSize.small);
+    schedLines.push(`Início: ${startTime}`);
   }
-  
-  yPos += PDF_CONFIG.sectionSpacing;
 
-  // ============ EQUIPAMENTO + Nº SÉRIE (mesma linha) ============
+  const schedBoxHeight = schedLines.length * 5 + 2 * PDF_CONFIG.box.padding;
+
+  pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+  pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+  pdf.rect(margin, schedBoxY, contentWidth, schedBoxHeight);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(PDF_CONFIG.fontSize.base);
+  let schedLineY = schedBoxY + PDF_CONFIG.box.padding + 4;
+  schedLines.forEach(line => {
+    pdf.text(line, margin + PDF_CONFIG.box.padding, schedLineY);
+    schedLineY += 5;
+  });
+
+  yPos = schedBoxY + schedBoxHeight + PDF_CONFIG.sectionSpacing;
+
+  // ============ EQUIPAMENTO (caixa com título centralizado) ============
   
-  checkNewPage(10);
-  let equipText = `EQUIPAMENTO: ${call.equipment_description}`;
+  checkNewPage(20);
+
+  pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Equipamento", pageWidth / 2, yPos, { align: "center" });
+  yPos += 6;
+
+  const equipBoxY = yPos;
+  let equipText = call.equipment_description || "N/A";
   if (call.equipment_serial_number) {
-    equipText += ` | Nº SÉRIE: ${call.equipment_serial_number}`;
+    equipText += ` | Nº de série: ${call.equipment_serial_number}`;
   }
-  yPos = addText(equipText, margin, yPos, contentWidth, PDF_CONFIG.fontSize.base);
-  yPos += PDF_CONFIG.sectionSpacing;
 
-  // ============ DESCRIÇÃO DO PROBLEMA (ocultar se vazio) ============
+  const equipLines = pdf.splitTextToSize(equipText, contentWidth - 2 * PDF_CONFIG.box.padding);
+  const equipBoxHeight = equipLines.length * 5 + 2 * PDF_CONFIG.box.padding;
+
+  pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+  pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+  pdf.rect(margin, equipBoxY, contentWidth, equipBoxHeight);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(PDF_CONFIG.fontSize.base);
+  let equipLineY = equipBoxY + PDF_CONFIG.box.padding + 4;
+  equipLines.forEach((line: string) => {
+    pdf.text(line, margin + PDF_CONFIG.box.padding, equipLineY);
+    equipLineY += 5;
+  });
+
+  yPos = equipBoxY + equipBoxHeight + PDF_CONFIG.sectionSpacing;
+
+  // ============ PROBLEMA (caixa com título centralizado) ============
   
   if (shouldRenderSection(call.problem_description)) {
-    checkNewPage(15);
-    yPos = addSectionTitle("DESCRIÇÃO DO PROBLEMA", yPos);
-    yPos = addText(call.problem_description!, margin, yPos, contentWidth);
-    yPos += PDF_CONFIG.sectionSpacing;
+    checkNewPage(20);
+
+    pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Problema", pageWidth / 2, yPos, { align: "center" });
+    yPos += 6;
+
+    const problemBoxY = yPos;
+    const problemLines = pdf.splitTextToSize(call.problem_description, contentWidth - 2 * PDF_CONFIG.box.padding);
+    const problemBoxHeight = problemLines.length * 5 + 2 * PDF_CONFIG.box.padding;
+
+    pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+    pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+    pdf.rect(margin, problemBoxY, contentWidth, problemBoxHeight);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(PDF_CONFIG.fontSize.base);
+    let problemLineY = problemBoxY + PDF_CONFIG.box.padding + 4;
+    problemLines.forEach((line: string) => {
+      pdf.text(line, margin + PDF_CONFIG.box.padding, problemLineY);
+      problemLineY += 5;
+    });
+
+    yPos = problemBoxY + problemBoxHeight + PDF_CONFIG.sectionSpacing;
   }
 
-  // ============ AÇÕES EXECUTADAS (ocultar se vazio) ============
+  // ============ AÇÕES EXECUTADAS (caixa com título centralizado) ============
   
   if (shouldRenderSection(call.technical_diagnosis)) {
-    checkNewPage(15);
-    yPos = addSectionTitle("AÇÕES EXECUTADAS", yPos);
-    yPos = addText(call.technical_diagnosis!, margin, yPos, contentWidth);
-    
+    checkNewPage(20);
+
+    pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Ações executadas", pageWidth / 2, yPos, { align: "center" });
+    yPos += 6;
+
+    const actionsBoxY = yPos;
+    const actionsLines = pdf.splitTextToSize(call.technical_diagnosis, contentWidth - 2 * PDF_CONFIG.box.padding);
+    let actionsBoxHeight = actionsLines.length * 5 + 2 * PDF_CONFIG.box.padding;
+
+    // Adicionar espaço para indicador de áudio se houver
+    if (call.technical_diagnosis_audio_url) {
+      actionsBoxHeight += 6;
+    }
+
+    pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+    pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+    pdf.rect(margin, actionsBoxY, contentWidth, actionsBoxHeight);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(PDF_CONFIG.fontSize.base);
+    let actionsLineY = actionsBoxY + PDF_CONFIG.box.padding + 4;
+    actionsLines.forEach((line: string) => {
+      pdf.text(line, margin + PDF_CONFIG.box.padding, actionsLineY);
+      actionsLineY += 5;
+    });
+
+    // Audio indicator if available
     if (call.technical_diagnosis_audio_url) {
       pdf.setFontSize(PDF_CONFIG.fontSize.small);
       pdf.setTextColor(...PDF_CONFIG.colors.gray);
-      pdf.text("🎤 Áudio disponível no sistema", margin, yPos);
+      pdf.text("🎤 Áudio disponível no sistema", margin + PDF_CONFIG.box.padding, actionsLineY);
       pdf.setTextColor(...PDF_CONFIG.colors.black);
-      yPos += 4;
     }
-    
-    yPos += PDF_CONFIG.sectionSpacing;
+
+    yPos = actionsBoxY + actionsBoxHeight + PDF_CONFIG.sectionSpacing;
   }
 
-  // ============ OBSERVAÇÕES PARA O CLIENTE (ocultar se vazio) ============
+  // ============ OBSERVAÇÕES (caixa com título centralizado) ============
   
   if (shouldRenderSection(call.notes)) {
-    checkNewPage(15);
-    yPos = addSectionTitle("OBSERVAÇÕES", yPos);
-    yPos = addText(call.notes!, margin, yPos, contentWidth);
-    yPos += PDF_CONFIG.sectionSpacing;
+    checkNewPage(20);
+
+    pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Observações", pageWidth / 2, yPos, { align: "center" });
+    yPos += 6;
+
+    const notesBoxY = yPos;
+    const notesLines = pdf.splitTextToSize(call.notes, contentWidth - 2 * PDF_CONFIG.box.padding);
+    const notesBoxHeight = notesLines.length * 5 + 2 * PDF_CONFIG.box.padding;
+
+    pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+    pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+    pdf.rect(margin, notesBoxY, contentWidth, notesBoxHeight);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(PDF_CONFIG.fontSize.base);
+    let notesLineY = notesBoxY + PDF_CONFIG.box.padding + 4;
+    notesLines.forEach((line: string) => {
+      pdf.text(line, margin + PDF_CONFIG.box.padding, notesLineY);
+      notesLineY += 5;
+    });
+
+    yPos = notesBoxY + notesBoxHeight + PDF_CONFIG.sectionSpacing;
   }
 
   // ⚠️ IMPORTANTE: NÃO INCLUIR call.internal_notes_text
 
-  // ============ CHECKLIST (ocultar se vazio) ============
+  // ============ CHECKLIST (caixa com título centralizado) ============
   
   if (call.checklist_responses && checklistItems.length > 0) {
     checkNewPage(30);
-    yPos = addSectionTitle("CHECKLIST", yPos);
+
+    pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Checklist", pageWidth / 2, yPos, { align: "center" });
+    yPos += 6;
     
     pdf.setFontSize(PDF_CONFIG.fontSize.base);
     const responses = call.checklist_responses as Record<string, boolean>;
@@ -434,8 +602,9 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
       const questionText = itemTextMap.get(itemId) || `Item ${itemId}`;
       const symbol = checked ? "[X]" : "[ ]";
       
-      pdf.setDrawColor(...PDF_CONFIG.colors.border);
-      pdf.setLineWidth(0.2);
+      // Draw cell border
+      pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+      pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
       pdf.rect(margin, rowY - 4, contentWidth, rowHeight);
       
       pdf.text(symbol, margin + 2, rowY);
@@ -448,7 +617,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     yPos = rowY + PDF_CONFIG.sectionSpacing;
   }
 
-  // ============ FOTOS ANTES (3 por linha, ocultar se vazio) ============
+  // ============ FOTOS ANTES (com título centralizado) ============
   
   if (shouldRenderSection(call.photos_before_urls)) {
     const validUrls = call.photos_before_urls!.filter(url => 
@@ -457,7 +626,11 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     
     if (validUrls.length > 0) {
       checkNewPage(50);
-      yPos = addSectionTitle("FOTOS ANTES DO SERVIÇO", yPos);
+
+      pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Fotos antes do serviço", pageWidth / 2, yPos, { align: "center" });
+      yPos += 6;
       
       const { perRow, minWidth, maxHeight, spacing } = PDF_CONFIG.photo;
       const photoWidth = Math.min(minWidth, (contentWidth - spacing * (perRow - 1)) / perRow);
@@ -478,8 +651,9 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
             
             pdf.addImage(imageData, format, xPos, yPos, photoWidth, maxHeight);
             
-            pdf.setLineWidth(0.2);
-            pdf.setDrawColor(...PDF_CONFIG.colors.border);
+            // Draw border around photo
+            pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+            pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
             pdf.rect(xPos, yPos, photoWidth, maxHeight);
           } catch (error) {
             console.error("Erro ao adicionar foto:", error);
@@ -507,7 +681,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     }
   }
 
-  // ============ FOTOS DEPOIS (mesmo layout) ============
+  // ============ FOTOS DEPOIS (com título centralizado) ============
   
   if (shouldRenderSection(call.photos_after_urls)) {
     const validUrls = call.photos_after_urls!.filter(url => 
@@ -516,7 +690,11 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     
     if (validUrls.length > 0) {
       checkNewPage(50);
-      yPos = addSectionTitle("FOTOS DEPOIS DO SERVIÇO", yPos);
+
+      pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Fotos depois do serviço", pageWidth / 2, yPos, { align: "center" });
+      yPos += 6;
       
       const { perRow, minWidth, maxHeight, spacing } = PDF_CONFIG.photo;
       const photoWidth = Math.min(minWidth, (contentWidth - spacing * (perRow - 1)) / perRow);
@@ -537,8 +715,9 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
             
             pdf.addImage(imageData, format, xPos, yPos, photoWidth, maxHeight);
             
-            pdf.setLineWidth(0.2);
-            pdf.setDrawColor(...PDF_CONFIG.colors.border);
+            // Draw border around photo
+            pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+            pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
             pdf.rect(xPos, yPos, photoWidth, maxHeight);
           } catch (error) {
             console.error("Erro ao adicionar foto:", error);
@@ -594,14 +773,16 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   if (hasSignatures) {
     checkNewPage(60);
     
-    pdf.setLineWidth(0.3);
-    pdf.setDrawColor(...PDF_CONFIG.colors.lightGray);
+    // Add separator line
+    pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+    pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
     pdf.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 6;
-    
+
+    // Add section title
     pdf.setFontSize(PDF_CONFIG.fontSize.h2);
     pdf.setFont("helvetica", "bold");
-    pdf.text("ASSINATURAS", pageWidth / 2, yPos, { align: "center" });
+    pdf.text("Assinaturas", pageWidth / 2, yPos, { align: "center" });
     yPos += 8;
     pdf.setFont("helvetica", "normal");
     
