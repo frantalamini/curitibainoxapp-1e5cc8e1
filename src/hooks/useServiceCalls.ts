@@ -36,6 +36,9 @@ export interface ServiceCall {
   customer_signature_data?: string;
   technician_signature_date?: string;
   customer_signature_date?: string;
+  equipment_serial_number?: string;
+  internal_notes_text?: string;
+  internal_notes_audio_url?: string;
   clients?: {
     full_name: string;
     phone: string;
@@ -62,6 +65,9 @@ export interface ServiceCallInsert {
   audio_url?: string;
   media_urls?: string[];
   service_type_id?: string;
+  equipment_serial_number?: string;
+  internal_notes_text?: string;
+  internal_notes_audio_url?: string;
 }
 
 export const useServiceCall = (id?: string) => {

@@ -216,7 +216,10 @@ export type Database = {
           customer_signature_date: string | null
           customer_signature_url: string | null
           equipment_description: string
+          equipment_serial_number: string | null
           id: string
+          internal_notes_audio_url: string | null
+          internal_notes_text: string | null
           media_urls: string[] | null
           notes: string | null
           os_number: number
@@ -251,7 +254,10 @@ export type Database = {
           customer_signature_date?: string | null
           customer_signature_url?: string | null
           equipment_description: string
+          equipment_serial_number?: string | null
           id?: string
+          internal_notes_audio_url?: string | null
+          internal_notes_text?: string | null
           media_urls?: string[] | null
           notes?: string | null
           os_number?: number
@@ -286,7 +292,10 @@ export type Database = {
           customer_signature_date?: string | null
           customer_signature_url?: string | null
           equipment_description?: string
+          equipment_serial_number?: string | null
           id?: string
+          internal_notes_audio_url?: string | null
+          internal_notes_text?: string | null
           media_urls?: string[] | null
           notes?: string | null
           os_number?: number

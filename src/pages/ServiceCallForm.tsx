@@ -27,10 +27,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ClientAsyncSelect } from "@/components/ClientAsyncSelect";
 import { useTechnicians } from "@/hooks/useTechnicians";
+import { Badge } from "@/components/ui/badge";
 import { useServiceCalls, useServiceCall, ServiceCallInsert } from "@/hooks/useServiceCalls";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { useChecklists } from "@/hooks/useChecklists";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 
 import { SignaturePad } from "@/components/SignaturePad";
@@ -53,6 +55,7 @@ const ServiceCallForm = () => {
   const { data: existingCall, isLoading: isLoadingCall } = useServiceCall(id);
   const isEditMode = !!id;
   const { createServiceCall, updateServiceCall } = useServiceCalls();
+  const { isAdmin, isTechnician } = useUserRole();
   
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -90,6 +93,14 @@ const ServiceCallForm = () => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
+  const [equipmentSerialNumber, setEquipmentSerialNumber] = useState("");
+  const [internalNotesText, setInternalNotesText] = useState("");
+  const [internalNotesAudioFile, setInternalNotesAudioFile] = useState<File | null>(null);
+  const [existingInternalNotesAudioUrl, setExistingInternalNotesAudioUrl] = useState<string | null>(null);
+  const [isRecordingInternalNotes, setIsRecordingInternalNotes] = useState(false);
+  const [internalNotesMediaRecorder, setInternalNotesMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [internalNotesAudioBlob, setInternalNotesAudioBlob] = useState<Blob | null>(null);
+  const [internalNotesAudioURL, setInternalNotesAudioURL] = useState<string>("");
 
   const {
     register,
@@ -170,6 +181,9 @@ const ServiceCallForm = () => {
       setCustomerPosition(existingCall.customer_position || "");
       setExistingTechnicianSignatureUrl(existingCall.technician_signature_url || null);
       setExistingCustomerSignatureUrl(existingCall.customer_signature_url || null);
+      setEquipmentSerialNumber(existingCall.equipment_serial_number || "");
+      setInternalNotesText(existingCall.internal_notes_text || "");
+      setExistingInternalNotesAudioUrl(existingCall.internal_notes_audio_url || null);
     }
   }, [existingCall, isEditMode, setValue]);
 
@@ -221,6 +235,52 @@ const ServiceCallForm = () => {
 
   const removeExistingMedia = (urlToRemove: string) => {
     setExistingMediaUrls(prev => prev.filter(url => url !== urlToRemove));
+  };
+
+  const startRecordingInternalNotes = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setInternalNotesAudioBlob(blob);
+        setInternalNotesAudioURL(URL.createObjectURL(blob));
+        setInternalNotesAudioFile(new File([blob], 'observacoes-internas.webm', { type: 'audio/webm' }));
+      };
+
+      recorder.start();
+      setInternalNotesMediaRecorder(recorder);
+      setIsRecordingInternalNotes(true);
+    } catch (error) {
+      console.error('Erro ao acessar microfone:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível acessar o microfone",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopRecordingInternalNotes = () => {
+    if (internalNotesMediaRecorder && internalNotesMediaRecorder.state !== 'inactive') {
+      internalNotesMediaRecorder.stop();
+      internalNotesMediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setIsRecordingInternalNotes(false);
+    }
+  };
+
+  const removeInternalNotesAudio = () => {
+    setInternalNotesAudioFile(null);
+    setInternalNotesAudioBlob(null);
+    if (internalNotesAudioURL) URL.revokeObjectURL(internalNotesAudioURL);
+    setInternalNotesAudioURL("");
+  };
+
+  const removeExistingInternalNotesAudio = () => {
+    setExistingInternalNotesAudioUrl(null);
   };
 
   const onSubmit = async (data: ServiceCallInsert) => {
@@ -380,6 +440,22 @@ const ServiceCallForm = () => {
         }
       }
 
+      let internalNotesAudioUrl: string | null = existingInternalNotesAudioUrl;
+
+      if (internalNotesAudioFile) {
+        const audioPath = `internal-notes/${Date.now()}-${internalNotesAudioFile.name}`;
+        const { error: audioError } = await supabase.storage
+          .from('service-call-attachments')
+          .upload(audioPath, internalNotesAudioFile);
+
+        if (!audioError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-call-attachments')
+            .getPublicUrl(audioPath);
+          internalNotesAudioUrl = publicUrl;
+        }
+      }
+
       const formattedData: any = {
         ...data,
         scheduled_date: format(selectedDate, "yyyy-MM-dd"),
@@ -400,6 +476,9 @@ const ServiceCallForm = () => {
         customer_position: customerPosition || null,
         technician_signature_date: technicianSignatureData ? new Date().toISOString() : null,
         customer_signature_date: customerSignatureData ? new Date().toISOString() : null,
+        equipment_serial_number: equipmentSerialNumber || null,
+        internal_notes_text: internalNotesText || null,
+        internal_notes_audio_url: internalNotesAudioUrl,
       };
 
       if (isEditMode && id) {
@@ -482,21 +561,32 @@ const ServiceCallForm = () => {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="equipment_description">
-                      Equipamento
-                    </Label>
-                    <Input
-                      id="equipment_description"
-                      type="text"
-                      placeholder="Ex: Ar condicionado split 12000 BTU"
-                      {...register("equipment_description", { required: true })}
-                    />
-                    {errors.equipment_description && (
-                      <p className="text-sm text-red-500">
-                        Informe o equipamento
-                      </p>
-                    )}
+                  <div className="grid grid-cols-1 md:grid-cols-10 gap-4">
+                    {/* Equipamento - 60% da largura (6/10) */}
+                    <div className="md:col-span-6 space-y-2">
+                      <Label htmlFor="equipment_description">Equipamento *</Label>
+                      <Input
+                        id="equipment_description"
+                        type="text"
+                        placeholder="Ex: Ar condicionado split 12000 BTU"
+                        {...register("equipment_description", { required: true })}
+                      />
+                      {errors.equipment_description && (
+                        <p className="text-sm text-red-500">Informe o equipamento</p>
+                      )}
+                    </div>
+
+                    {/* Número de Série - 40% da largura (4/10) */}
+                    <div className="md:col-span-4 space-y-2">
+                      <Label htmlFor="equipment_serial_number">Número de Série</Label>
+                      <Input
+                        id="equipment_serial_number"
+                        type="text"
+                        placeholder="Ex: SN123456789"
+                        value={equipmentSerialNumber}
+                        onChange={(e) => setEquipmentSerialNumber(e.target.value)}
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -642,6 +732,96 @@ const ServiceCallForm = () => {
                       {...register("notes")}
                     />
                   </div>
+
+                  {/* Observações Internas - Apenas para Admin/Técnico */}
+                  {(isAdmin || isTechnician) && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="internal_notes_text">Observações Internas</Label>
+                        <Badge variant="secondary" className="text-xs">
+                          Privado • Admin/Técnico
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Anotações visíveis apenas para administradores e técnicos. Não serão incluídas nos relatórios enviados ao cliente.
+                      </p>
+                      <Textarea
+                        id="internal_notes_text"
+                        placeholder="Observações internas sobre o atendimento, peças utilizadas, tempo de execução, etc."
+                        value={internalNotesText}
+                        onChange={(e) => setInternalNotesText(e.target.value)}
+                        maxLength={2000}
+                        rows={4}
+                      />
+                      <div className="text-xs text-muted-foreground text-right">
+                        {internalNotesText.length}/2000 caracteres
+                      </div>
+
+                      {/* Gravação de Áudio para Observações Internas */}
+                      <div className="mt-3">
+                        <Label className="text-sm">Áudio de Observações Internas</Label>
+                        {!internalNotesAudioURL && !existingInternalNotesAudioUrl ? (
+                          <Button
+                            type="button"
+                            variant={isRecordingInternalNotes ? "destructive" : "outline"}
+                            onClick={isRecordingInternalNotes ? stopRecordingInternalNotes : startRecordingInternalNotes}
+                            className="w-full mt-2"
+                          >
+                            {isRecordingInternalNotes ? (
+                              <>
+                                <Square className="mr-2 h-4 w-4" />
+                                Parar Gravação
+                              </>
+                            ) : (
+                              <>
+                                <Mic className="mr-2 h-4 w-4" />
+                                Gravar Observações (Áudio)
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          <div className="space-y-2 mt-2">
+                            {internalNotesAudioURL && (
+                              <div className="p-3 bg-muted rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium">Nova Gravação</span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={removeInternalNotesAudio}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <audio controls className="w-full" src={internalNotesAudioURL}>
+                                  Seu navegador não suporta o elemento de áudio.
+                                </audio>
+                              </div>
+                            )}
+                            {existingInternalNotesAudioUrl && !internalNotesAudioURL && (
+                              <div className="p-3 bg-muted rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium">Áudio Existente</span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={removeExistingInternalNotesAudio}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <audio controls className="w-full" src={existingInternalNotesAudioUrl}>
+                                  Seu navegador não suporta o elemento de áudio.
+                                </audio>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Gravação de Áudio</Label>

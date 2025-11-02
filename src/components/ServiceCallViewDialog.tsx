@@ -20,7 +20,6 @@ import {
   Wrench,
   FileText,
   Phone,
-  Mail,
   MapPin,
   Image as ImageIcon,
   Video,
@@ -37,6 +36,7 @@ import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 import { ServiceCall } from "@/hooks/useServiceCalls";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface ServiceCallViewDialogProps {
   call: ServiceCall;
@@ -52,6 +52,7 @@ const ServiceCallViewDialog = ({
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const { isAdmin, isTechnician } = useUserRole();
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
@@ -275,8 +276,19 @@ const ServiceCallViewDialog = ({
             <CardHeader>
               <CardTitle className="text-lg">Equipamento</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm">{call.equipment_description}</p>
+            <CardContent className="space-y-3">
+              <div>
+                <Label className="text-muted-foreground">Descrição</Label>
+                <p className="text-sm mt-1">{call.equipment_description}</p>
+              </div>
+              {call.equipment_serial_number && (
+                <div>
+                  <Label className="text-muted-foreground">Número de Série</Label>
+                  <p className="text-sm font-mono bg-muted px-2 py-1 rounded inline-block mt-1">
+                    {call.equipment_serial_number}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -606,6 +618,49 @@ const ServiceCallViewDialog = ({
                       })}
                     </p>
                   )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Observações Internas - Apenas Admin/Técnico */}
+        {(isAdmin || isTechnician) && (call.internal_notes_text || call.internal_notes_audio_url) && (
+          <Card className="mt-4 border-2 border-dashed border-orange-300 dark:border-orange-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-orange-500" />
+                  Observações Internas
+                </CardTitle>
+                <Badge variant="secondary" className="text-xs">
+                  Privado • Não enviado ao cliente
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Estas informações são visíveis apenas para administradores e técnicos.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {call.internal_notes_text && (
+                <div>
+                  <Label className="text-muted-foreground">Anotações</Label>
+                  <p className="text-sm whitespace-pre-wrap mt-1 bg-muted/50 p-3 rounded">
+                    {call.internal_notes_text}
+                  </p>
+                </div>
+              )}
+              {call.internal_notes_audio_url && (
+                <div>
+                  <Label className="text-muted-foreground flex items-center gap-1 mb-2">
+                    <Volume2 className="w-3 h-3" />
+                    Áudio das Observações
+                  </Label>
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <audio controls className="w-full" src={call.internal_notes_audio_url}>
+                      Seu navegador não suporta o elemento de áudio.
+                    </audio>
+                  </div>
                 </div>
               )}
             </CardContent>
