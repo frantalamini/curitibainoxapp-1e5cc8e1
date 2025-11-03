@@ -32,9 +32,10 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
+import { generateServiceCallReportBlob } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
+import { generatePdfFileName } from "@/lib/pdfBlobHelpers";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -52,6 +53,7 @@ const ServiceCallViewDialog = ({
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const { isAdmin, isTechnician } = useUserRole();
 
   const getStatusBadge = (status: string) => {
@@ -69,18 +71,28 @@ const ServiceCallViewDialog = ({
     try {
       setIsGeneratingPDF(true);
       
-      // 1. Gerar e salvar PDF localmente
-      const pdf = await generateServiceCallReport(call);
-      pdf.save(`Relatorio-OS-${call.os_number}.pdf`);
+      // 1. Gerar PDF como Blob
+      const { blob, fileName } = await generateServiceCallReportBlob(call);
+      setPdfBlob(blob); // Armazena para reutilização
       
-      // 2. Upload para storage
-      const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
+      // 2. Download automático local
+      const autoDownloadUrl = URL.createObjectURL(blob);
+      const autoLink = document.createElement('a');
+      autoLink.href = autoDownloadUrl;
+      autoLink.download = fileName;
+      autoLink.style.display = 'none';
+      document.body.appendChild(autoLink);
+      autoLink.click();
+      document.body.removeChild(autoLink);
+      setTimeout(() => URL.revokeObjectURL(autoDownloadUrl), 1000);
+      
+      // 3. Upload para storage (para WhatsApp)
+      const uploadedUrl = await uploadPdfToStorage(blob, call.id, fileName);
       setPdfUrl(uploadedUrl);
       
-      // 3. Toast simples - usuário clica para abrir
       toast({
         title: "✅ PDF gerado com sucesso!",
-        description: "Arquivo baixado localmente. Use os botões abaixo para salvar ou compartilhar.",
+        description: "Use os botões abaixo para salvar ou compartilhar.",
         duration: 5000,
       });
     } catch (error) {
@@ -97,7 +109,8 @@ const ServiceCallViewDialog = ({
 
   const handleSavePdf = async () => {
     try {
-      if (!pdfUrl) {
+      // Usar Blob já gerado, evitando fetch desnecessário
+      if (!pdfBlob) {
         toast({
           title: "PDF não disponível",
           description: "Gere o relatório primeiro",
@@ -106,12 +119,7 @@ const ServiceCallViewDialog = ({
         return;
       }
 
-      // Baixar o PDF do storage como Blob
-      const response = await fetch(pdfUrl);
-      if (!response.ok) throw new Error('Falha ao baixar PDF');
-      
-      const blob = await response.blob();
-      const fileName = `relatorio-os-${call.os_number}.pdf`;
+      const fileName = generatePdfFileName(call.os_number);
 
       // Tentar usar File System Access API (Chrome/Edge HTTPS)
       if ('showSaveFilePicker' in window) {
@@ -127,7 +135,7 @@ const ServiceCallViewDialog = ({
           });
 
           const writable = await handle.createWritable();
-          await writable.write(blob);
+          await writable.write(pdfBlob);
           await writable.close();
 
           toast({
@@ -150,15 +158,14 @@ const ServiceCallViewDialog = ({
       }
 
       // Fallback: Download tradicional com <a download>
-      const blobUrl = URL.createObjectURL(blob);
+      const blobUrl = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = fileName;
+      link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Limpeza da URL temporária
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
       toast({

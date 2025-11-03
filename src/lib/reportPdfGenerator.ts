@@ -918,3 +918,23 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   return pdf;
 };
+
+/**
+ * Gera PDF e retorna Blob + metadados
+ * Versão otimizada que evita conversões desnecessárias
+ */
+export async function generateServiceCallReportBlob(
+  call: ServiceCall
+): Promise<{ blob: Blob; fileName: string; osNumber: string }> {
+  const { toPdfBlob, generatePdfFileName } = await import("./pdfBlobHelpers");
+  
+  const pdf = await generateServiceCallReport(call);
+  const blob = await toPdfBlob(pdf);
+  const fileName = generatePdfFileName(call.os_number);
+  
+  return {
+    blob,
+    fileName,
+    osNumber: String(call.os_number),
+  };
+}
