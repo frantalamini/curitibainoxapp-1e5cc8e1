@@ -34,12 +34,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { generateServiceCallReportBlob } from "@/lib/reportPdfGenerator";
-import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 import { makeObjectUrl, tryOpenInNewTab, forceDownload, revokePdfUrl } from "@/lib/pdfFallback";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { useUserRole } from "@/hooks/useUserRole";
-import jsPDF from "jspdf";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ServiceCallViewDialogProps {
   call: ServiceCall;
@@ -72,30 +71,51 @@ const ServiceCallViewDialog = ({
     try {
       setIsGeneratingPDF(true);
       
-      // 1. Gerar PDF como Blob
+      // 1. Gerar PDF correto como Blob
       const { blob, fileName } = await generateServiceCallReportBlob(call);
       
-      // 2. Upload IMEDIATO para storage (prioridade)
-      const pdf = new jsPDF("p", "mm", "a4");
-      const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
+      // 2. Converter Blob para File para upload
+      const pdfFile = new File([blob], fileName, { type: 'application/pdf' });
+      
+      // 3. Upload do PDF CORRETO para storage
+      const timestamp = Date.now();
+      const storagePath = `relatorios/chamado-${call.id}-${timestamp}.pdf`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('service-call-attachments')
+        .upload(storagePath, pdfFile, {
+          contentType: 'application/pdf',
+          upsert: false,
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // 4. Obter URL pública do storage
+      const { data: publicUrlData } = supabase.storage
+        .from('service-call-attachments')
+        .getPublicUrl(storagePath);
+      
+      const uploadedUrl = publicUrlData.publicUrl;
       setPdfUrl(uploadedUrl);
       
-      // 3. Tentar abrir a URL pública do storage (mais confiável que Blob URL)
+      // 5. Criar URL local do blob (fallback)
+      const blobUrl = makeObjectUrl(blob);
+      
+      // 6. Tentar abrir URL do storage em nova aba
       const opened = tryOpenInNewTab(uploadedUrl);
       
-      // 4. Se falhou, forçar download local do Blob
-      if (!opened) {
-        const blobUrl = makeObjectUrl(blob);
-        forceDownload(blobUrl, fileName);
-        revokePdfUrl(blobUrl);
-      }
+      // 7. SEMPRE forçar download local (silencioso)
+      forceDownload(blobUrl, fileName);
       
-      // 5. Toast com ações
+      // 8. Revogar URL do blob após 60 segundos
+      revokePdfUrl(blobUrl, 60000);
+      
+      // 9. Toast com ações
       toast({
         title: "PDF gerado com sucesso!",
         description: opened 
-          ? "PDF aberto em nova aba." 
-          : "Seu navegador bloqueou a abertura automática. O download foi iniciado.",
+          ? "PDF aberto em nova aba e salvo localmente." 
+          : "Download iniciado automaticamente.",
         action: (
           <div className="flex flex-col gap-2 mt-2">
             <ToastAction
@@ -108,14 +128,14 @@ const ServiceCallViewDialog = ({
             </ToastAction>
             
             <ToastAction
-              altText="Baixar PDF manualmente"
+              altText="Baixar PDF novamente"
               onClick={() => {
-                const blobUrl = makeObjectUrl(blob);
-                forceDownload(blobUrl, fileName);
-                revokePdfUrl(blobUrl);
+                const newBlobUrl = makeObjectUrl(blob);
+                forceDownload(newBlobUrl, fileName);
+                revokePdfUrl(newBlobUrl, 60000);
               }}
             >
-              📥 Baixar PDF manualmente
+              📥 Baixar PDF novamente
             </ToastAction>
             
             {call.clients?.phone && (
