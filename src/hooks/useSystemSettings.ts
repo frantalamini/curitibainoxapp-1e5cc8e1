@@ -5,14 +5,7 @@ import { toast } from "sonner";
 export interface SystemSettings {
   id: string;
   logo_url: string | null;
-  report_logo: string | null;
   company_name: string;
-  company_cnpj: string | null;
-  company_ie: string | null;
-  company_phone: string | null;
-  company_email: string | null;
-  company_website: string | null;
-  company_address: string | null;
   updated_at: string;
 }
 

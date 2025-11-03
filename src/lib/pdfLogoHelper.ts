@@ -3,17 +3,16 @@ import defaultLogo from "@/assets/logo.png";
 
 /**
  * Carrega a logo do sistema (personalizada ou padrão) em Base64 para uso em PDFs
- * Prioriza report_logo sobre logo_url
  */
 export const loadSystemLogoForPdf = async (): Promise<string> => {
   try {
-    // Buscar configuração da logo personalizada (prioriza report_logo)
+    // Buscar configuração da logo personalizada
     const { data: settings } = await supabase
       .from("system_settings")
-      .select("report_logo, logo_url")
+      .select("logo_url")
       .single();
 
-    const logoUrl = settings?.report_logo || settings?.logo_url || defaultLogo;
+    const logoUrl = settings?.logo_url || defaultLogo;
 
     // Se for URL do Supabase Storage, baixar via SDK
     if (logoUrl.includes('supabase.co/storage')) {
@@ -80,8 +79,8 @@ export const addLogoToPdf = (
   const {
     x = 14,
     y = 14,
-    maxWidth = 49, // 140px
-    maxHeight = 13, // 36px
+    maxWidth = 48,
+    maxHeight = 16,
     align = 'left',
   } = options || {};
 

@@ -12,13 +12,12 @@ const PDF_CONFIG = {
   fontSize: {
     h1: 16,
     h2: 12,
-    h3: 10,
     base: 11,
     small: 9,
     footer: 8,
   },
   lineHeight: 1.25,
-  sectionSpacing: 3,
+  sectionSpacing: 6,
   colors: {
     black: [0, 0, 0] as [number, number, number],
     gray: [100, 100, 100] as [number, number, number],
@@ -34,15 +33,12 @@ const PDF_CONFIG = {
   signature: {
     maxHeight: 24,
     spacing: 8,
-    boxHeight: 42,
-    boxWidth: 0.48,
-    gap: 0.04,
   },
   box: {
     borderWidth: 0.5,
     borderColor: [0, 0, 0] as [number, number, number],
-    padding: 6,
-    titleSpacing: 3,
+    padding: 4,
+    titleSpacing: 2,
   },
   table: {
     cellPadding: 3,
@@ -50,8 +46,8 @@ const PDF_CONFIG = {
     labelWidth: 45,
   },
   logo: {
-    maxWidth: 49,
-    maxHeight: 13,
+    maxWidth: 60,
+    maxHeight: 22,
   },
 };
 
@@ -125,30 +121,30 @@ const getCompanyData = async () => {
   try {
     const { data } = await supabase
       .from("system_settings")
-      .select("company_name, report_logo, logo_url, company_cnpj, company_ie, company_phone, company_email, company_website, company_address")
+      .select("company_name, logo_url")
       .single();
     
+    // TODO: Adicionar campos CNPJ, endereço, etc. via migração
+    // Por enquanto, usar dados fixos
     return {
       name: data?.company_name || "Curitiba Inox",
-      cnpj: data?.company_cnpj || "12.345.678/0001-90",
-      ie: data?.company_ie || "",
-      phone: data?.company_phone || "(41) 3333-4444",
-      email: data?.company_email || "contato@curitibainox.com.br",
-      website: data?.company_website || "",
-      address: data?.company_address || "Rua Exemplo, 123 - Curitiba/PR",
-      logoUrl: data?.report_logo || data?.logo_url,
+      cnpj: "12.345.678/0001-90",
+      phone: "(41) 3333-4444",
+      email: "contato@curitibainox.com.br",
+      website: "www.curitibainox.com.br",
+      address: "Rua Exemplo, 123 - Curitiba/PR",
+      ie: "123.456.789",
     };
   } catch (error) {
     console.error("Erro ao buscar dados da empresa:", error);
     return {
       name: "Curitiba Inox",
       cnpj: "",
-      ie: "",
       phone: "",
       email: "",
       website: "",
       address: "",
-      logoUrl: null,
+      ie: "",
     };
   }
 };
@@ -282,160 +278,115 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   pdf.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 8;
   
-  const titleY = yPos;
-  
-  // Título "ORDEM DE SERVIÇO" centralizado
+  // Título "ORDEM DE SERVIÇO" com destaque
   pdf.setFontSize(PDF_CONFIG.fontSize.h1);
   pdf.setFont("helvetica", "bold");
   pdf.text(`ORDEM DE SERVIÇO Nº ${call.os_number}`, pageWidth / 2, yPos, { align: "center" });
-  yPos += 6;
+  yPos += 4;
   
   // Linha horizontal após título
   pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
   pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
   pdf.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 8;
+  
+  // Status + Data
+  const statusMap: Record<string, string> = {
+    pending: "Aguardando",
+    in_progress: "Em Andamento",
+    on_hold: "Pendente",
+    completed: "Finalizado",
+    cancelled: "Cancelado",
+  };
+  
+  const statusText = `${statusMap[call.status] || call.status} • ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}`;
+  pdf.setFontSize(PDF_CONFIG.fontSize.small);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(statusText, pageWidth / 2, yPos, { align: "center" });
+  yPos += 10;
+
+  // ============ SEÇÃO CLIENTE E DADOS DA OS (Modelo de Referência) ============
+  
+  const col1Width = contentWidth * 0.6;
+  const col2Width = contentWidth * 0.4;
+  const col2X = margin + col1Width + 5;
+
+  // Título "Cliente" centralizado
+  pdf.setFontSize(PDF_CONFIG.fontSize.h2);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Cliente", margin + col1Width / 2, yPos, { align: "center" });
   yPos += 6;
 
-  // ============ CAIXA DE METADADOS À DIREITA (alinhada ao título) ============
-  
-  const metaBoxWidth = 72;
-  const metaBoxX = pageWidth - margin - metaBoxWidth;
-  const metaBoxY = titleY;
-  
-  const metaData = [
-    { label: "Número da OS", value: String(call.os_number || "") },
-    {
-      label: "Data",
-      value: call.scheduled_date
-        ? format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })
-        : "",
-    },
-    {
-      label: "Data prevista",
-      value: call.started_at
-        ? format(new Date(call.started_at), "dd/MM/yyyy", { locale: ptBR })
-        : "",
-    },
-  ];
-  
-  // Adicionar "Finalizado em" se status for 'completed'
-  if (call.status === 'completed' && call.updated_at) {
-    metaData.push({
-      label: "Finalizado em",
-      value: format(new Date(call.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
-    });
+  // Caixa do cliente (sem labels internos)
+  const clientBoxY = yPos;
+  const clientLines: string[] = [];
+
+  if (call.clients?.full_name) {
+    clientLines.push(call.clients.full_name);
+  }
+  if ((call.clients as any)?.cpf_cnpj) {
+    clientLines.push((call.clients as any).cpf_cnpj);
+  }
+  if (call.clients?.address) {
+    const addressParts = pdf.splitTextToSize(call.clients.address, col1Width - 2 * PDF_CONFIG.box.padding);
+    clientLines.push(...addressParts);
+  }
+  if (call.clients?.phone) {
+    clientLines.push(`Fone: ${call.clients.phone}`);
+  }
+  if ((call.clients as any)?.email) {
+    clientLines.push((call.clients as any).email);
   }
 
-  const rowHeight = 10;
-  const labelWidth = 35;
-  const valueWidth = metaBoxWidth - labelWidth;
+  const clientBoxHeight = Math.max(clientLines.length * 5 + 2 * PDF_CONFIG.box.padding, 50);
 
-  let tableY = metaBoxY;
-  metaData.forEach((row) => {
-    // Bordas das células
+  // Desenhar borda da caixa
+  pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+  pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+  pdf.rect(margin, clientBoxY, col1Width, clientBoxHeight);
+
+  // Conteúdo
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(PDF_CONFIG.fontSize.base);
+  let lineY = clientBoxY + PDF_CONFIG.box.padding + 4;
+  clientLines.forEach(line => {
+    pdf.text(line, margin + PDF_CONFIG.box.padding, lineY);
+    lineY += 5;
+  });
+
+  // Tabela de dados da OS à direita
+  const osDataY = clientBoxY;
+  const rowHeight = 10;
+  const tableData = [
+    { label: "Número da OS", value: call.os_number },
+    { label: "Data", value: format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR }) },
+    { label: "Data prevista", value: call.started_at ? format(new Date(call.started_at), "dd/MM/yyyy", { locale: ptBR }) : "" },
+  ];
+
+  let currentY = osDataY;
+
+  tableData.forEach(row => {
+    // Borda das células
     pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
     pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
-    pdf.rect(metaBoxX, tableY, labelWidth, rowHeight);
-    pdf.rect(metaBoxX + labelWidth, tableY, valueWidth, rowHeight);
+    pdf.rect(col2X, currentY, PDF_CONFIG.table.labelWidth, rowHeight);
+    pdf.rect(col2X + PDF_CONFIG.table.labelWidth, currentY, col2Width - PDF_CONFIG.table.labelWidth, rowHeight);
 
     // Label (negrito)
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(PDF_CONFIG.fontSize.base);
-    pdf.text(row.label, metaBoxX + PDF_CONFIG.table.cellPadding, tableY + 6);
+    pdf.text(row.label, col2X + PDF_CONFIG.table.cellPadding, currentY + 6.5);
 
     // Valor (normal)
     pdf.setFont("helvetica", "normal");
-    pdf.text(
-      row.value,
-      metaBoxX + labelWidth + PDF_CONFIG.table.cellPadding,
-      tableY + 6
-    );
+    pdf.text(String(row.value), col2X + PDF_CONFIG.table.labelWidth + PDF_CONFIG.table.cellPadding, currentY + 6.5);
 
-    tableY += rowHeight;
+    currentY += rowHeight;
   });
 
-  // ============ SEÇÃO CLIENTE (texto precisa caber, sem invadir) ============
-  
-  yPos = tableY + 6;
-  
-  // Título "Cliente" centralizado
-  pdf.setFontSize(PDF_CONFIG.fontSize.h2);
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Cliente", pageWidth / 2, yPos, { align: "center" });
-  yPos += 6;
+  yPos = Math.max(clientBoxY + clientBoxHeight, currentY) + PDF_CONFIG.sectionSpacing;
 
-  // Preparar dados do cliente com word-wrap
-  const clientBoxY = yPos;
-  const clientBoxPadding = PDF_CONFIG.box.padding;
-  const clientContentWidth = contentWidth - 2 * clientBoxPadding;
-  
-  const clientName = call.clients?.full_name || "";
-  const clientCNPJ = (call.clients as any)?.cpf_cnpj || "";
-  const clientIE = (call.clients as any)?.state_registration || "";
-  
-  // Endereço completo com word-wrap
-  const addressParts = [];
-  if (call.clients?.address || (call.clients as any)?.street) {
-    const street = (call.clients as any)?.street || "";
-    const number = (call.clients as any)?.number || "";
-    const complement = (call.clients as any)?.complement || "";
-    const neighborhood = (call.clients as any)?.neighborhood || "";
-    const city = (call.clients as any)?.city || "";
-    const state = (call.clients as any)?.state || "";
-    const cep = (call.clients as any)?.cep || "";
-    
-    let addressLine = call.clients?.address || `${street}${number ? ', Nº ' + number : ''}${complement ? ', ' + complement : ''}`;
-    if (neighborhood) addressLine += `, ${neighborhood}`;
-    if (city || state) addressLine += ` – ${city}${state ? '/' + state : ''}`;
-    if (cep) addressLine += ` – ${cep}`;
-    
-    addressParts.push(addressLine);
-  }
-  
-  const clientPhone = call.clients?.phone || "";
-  const clientPhone2 = (call.clients as any)?.phone_2 || "";
-  const clientEmail = (call.clients as any)?.email || "";
-  
-  // Construir array de linhas
-  const clientDataLines = [];
-  if (clientName) clientDataLines.push({ text: clientName, bold: true });
-  
-  const cnpjIELine = [clientCNPJ, clientIE].filter(Boolean).join(' • ');
-  if (cnpjIELine) clientDataLines.push({ text: cnpjIELine, bold: false });
-  
-  // Endereço com word-wrap
-  if (addressParts.length > 0) {
-    const wrappedAddress = pdf.splitTextToSize(addressParts[0], clientContentWidth);
-    wrappedAddress.forEach((line: string) => {
-      clientDataLines.push({ text: line, bold: false });
-    });
-  }
-  
-  const phones = [clientPhone, clientPhone2].filter(Boolean).join(', ');
-  if (phones) clientDataLines.push({ text: `Telefone: ${phones}`, bold: false });
-  if (clientEmail) clientDataLines.push({ text: `E-mail: ${clientEmail}`, bold: false });
-  
-  // Calcular altura dinâmica da caixa (min 50mm, max 120mm)
-  const clientLineHeight = 5;
-  const clientBoxHeight = Math.max(18, Math.min(42, clientDataLines.length * clientLineHeight + 2 * clientBoxPadding));
-  
-  // Desenhar borda
-  pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
-  pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
-  pdf.rect(margin, clientBoxY, contentWidth, clientBoxHeight);
-  
-  // Renderizar conteúdo
-  pdf.setFontSize(PDF_CONFIG.fontSize.base);
-  let lineY = clientBoxY + clientBoxPadding + 4;
-  clientDataLines.forEach((item) => {
-    pdf.setFont("helvetica", item.bold ? "bold" : "normal");
-    pdf.text(item.text, margin + clientBoxPadding, lineY);
-    lineY += clientLineHeight;
-  });
-  
-  yPos = clientBoxY + clientBoxHeight + PDF_CONFIG.sectionSpacing;
-
-  // ============ TÉCNICO (apenas nome, sem telefone) ============
+  // ============ TÉCNICO (caixa com borda) ============
   
   checkNewPage(20);
 
@@ -445,12 +396,8 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   yPos += 6;
 
   const techBoxY = yPos;
-  const techName = call.technicians?.full_name || "N/A";
-  
-  const techContentWidth = contentWidth - 2 * PDF_CONFIG.box.padding;
-  const techLines = pdf.splitTextToSize(techName, techContentWidth);
-  const techLineHeight = 5;
-  const techBoxHeight = techLines.length * techLineHeight + 2 * PDF_CONFIG.box.padding;
+  const techText = `${call.technicians?.full_name || "N/A"} • Tel: ${call.technicians?.phone || "N/A"}`;
+  const techBoxHeight = 12;
 
   pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
   pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
@@ -458,18 +405,13 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(PDF_CONFIG.fontSize.base);
-  
-  let techLineY = techBoxY + PDF_CONFIG.box.padding + 4;
-  techLines.forEach((line: string) => {
-    pdf.text(line, margin + PDF_CONFIG.box.padding, techLineY);
-    techLineY += techLineHeight;
-  });
+  pdf.text(techText, margin + PDF_CONFIG.box.padding, techBoxY + 8);
 
   yPos = techBoxY + techBoxHeight + PDF_CONFIG.sectionSpacing;
 
-  // ============ AGENDAMENTO (linha única compacta com tipo de serviço) ============
+  // ============ AGENDAMENTO (caixa com borda) ============
   
-  checkNewPage(20);
+  checkNewPage(25);
 
   pdf.setFontSize(PDF_CONFIG.fontSize.h2);
   pdf.setFont("helvetica", "bold");
@@ -477,27 +419,16 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   yPos += 6;
 
   const schedBoxY = yPos;
-  const schedParts = [];
+  const schedLines: string[] = [];
+
+  schedLines.push(`Data: ${format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })} • Hora: ${call.scheduled_time}`);
   
-  if (call.scheduled_date) {
-    schedParts.push(`Data: ${format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}`);
-  }
-  if (call.scheduled_time) {
-    schedParts.push(`Hora: ${call.scheduled_time}`);
-  }
   if (call.started_at) {
-    schedParts.push(`Início em: ${format(new Date(call.started_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}`);
+    const startTime = format(new Date(call.started_at), "HH:mm", { locale: ptBR });
+    schedLines.push(`Início: ${startTime}`);
   }
-  if ((call as any).service_types?.name) {
-    schedParts.push(`Tipo de Serviço: ${(call as any).service_types.name}`);
-  }
-  
-  const schedLine = schedParts.join(' • ');
-  
-  const schedContentWidth = contentWidth - 2 * PDF_CONFIG.box.padding;
-  const schedLines = pdf.splitTextToSize(schedLine, schedContentWidth);
-  const schedLineHeight = 5;
-  const schedBoxHeight = schedLines.length * schedLineHeight + 2 * PDF_CONFIG.box.padding;
+
+  const schedBoxHeight = schedLines.length * 5 + 2 * PDF_CONFIG.box.padding;
 
   pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
   pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
@@ -505,11 +436,10 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(PDF_CONFIG.fontSize.base);
-  
   let schedLineY = schedBoxY + PDF_CONFIG.box.padding + 4;
-  schedLines.forEach((line: string) => {
+  schedLines.forEach(line => {
     pdf.text(line, margin + PDF_CONFIG.box.padding, schedLineY);
-    schedLineY += schedLineHeight;
+    schedLineY += 5;
   });
 
   yPos = schedBoxY + schedBoxHeight + PDF_CONFIG.sectionSpacing;
@@ -835,7 +765,7 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
     yPos += 12;
   }
 
-  // ============ ASSINATURAS (2 retângulos lado a lado, altura ~120px) ============
+  // ============ ASSINATURAS (2 colunas lado a lado) ============
   
   const hasSignatures = (call.technician_signature_url || call.technician_signature_data) || 
                         (call.customer_signature_url || call.customer_signature_data);
@@ -843,121 +773,131 @@ export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPD
   if (hasSignatures) {
     checkNewPage(60);
     
-    // Verificar se há espaço suficiente para ambas as assinaturas (evitar quebra)
-    const signaturesHeight = PDF_CONFIG.signature.boxHeight + 10;
-    if (yPos + signaturesHeight > pdf.internal.pageSize.getHeight() - margin) {
-      pdf.addPage();
-      yPos = margin;
-    }
-    
+    // Add separator line
+    pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
+    pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
+    pdf.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 6;
+
+    // Add section title
     pdf.setFontSize(PDF_CONFIG.fontSize.h2);
     pdf.setFont("helvetica", "bold");
     pdf.text("Assinaturas", pageWidth / 2, yPos, { align: "center" });
-    yPos += 6;
-
-    const sigBoxWidth = contentWidth * PDF_CONFIG.signature.boxWidth;
-    const sigGap = contentWidth * PDF_CONFIG.signature.gap;
-    const sigBoxHeight = PDF_CONFIG.signature.boxHeight;
-
-    // Retângulo TÉCNICO (esquerda)
-    const techSigX = margin;
-    const techSigY = yPos;
-    
-    pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
-    pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
-    pdf.rect(techSigX, techSigY, sigBoxWidth, sigBoxHeight);
-    
-    // Título "TÉCNICO"
-    pdf.setFontSize(PDF_CONFIG.fontSize.h3);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("TÉCNICO", techSigX + sigBoxWidth / 2, techSigY + 5, { align: "center" });
-    
-    // Nome do técnico
+    yPos += 8;
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(PDF_CONFIG.fontSize.base);
-    const techName = call.technicians?.full_name || "N/A";
-    pdf.text(techName, techSigX + sigBoxWidth / 2, techSigY + 10, { align: "center" });
     
-    // Assinatura do técnico (renderizada dentro do retângulo)
+    const sigColWidth = (contentWidth - PDF_CONFIG.signature.spacing) / 2;
+    const sigCol2X = margin + sigColWidth + PDF_CONFIG.signature.spacing;
+    
+    const sigStartY = yPos;
+    let techY = sigStartY;
+    let clientY = sigStartY;
+    
+    // COLUNA 1: Técnico
     if (call.technician_signature_url || call.technician_signature_data) {
-      try {
-        const techSigData = call.technician_signature_url 
-          ? await loadImageAsBase64(call.technician_signature_url)
-          : call.technician_signature_data;
-        
-        if (techSigData && techSigData.startsWith('data:image/')) {
-          const sigImgHeight = 24;
-          const sigImgY = techSigY + 14;
-          pdf.addImage(techSigData, "PNG", techSigX + 4, sigImgY, sigBoxWidth - 8, sigImgHeight);
+      pdf.setFontSize(PDF_CONFIG.fontSize.base);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("TÉCNICO", margin, techY);
+      techY += 5;
+      pdf.setFont("helvetica", "normal");
+      
+      const signatureData = call.technician_signature_url 
+        ? await loadImageAsBase64(call.technician_signature_url)
+        : call.technician_signature_data;
+      
+      if (signatureData && signatureData.startsWith('data:image/')) {
+        try {
+          pdf.addImage(signatureData, "PNG", margin, techY, sigColWidth, PDF_CONFIG.signature.maxHeight);
+          techY += PDF_CONFIG.signature.maxHeight + 3;
+        } catch (error) {
+          console.error("Erro ao adicionar assinatura técnico:", error);
+          pdf.setFontSize(PDF_CONFIG.fontSize.small);
+          pdf.text("Não assinado", margin, techY);
+          techY += 5;
         }
-      } catch (error) {
-        console.error("Erro ao carregar assinatura do técnico:", error);
+      } else {
+        pdf.setFontSize(PDF_CONFIG.fontSize.small);
+        pdf.text("Não assinado", margin, techY);
+        techY += 5;
+      }
+      
+      pdf.setFontSize(PDF_CONFIG.fontSize.small);
+      techY = addText(call.technicians?.full_name || "N/A", margin, techY, sigColWidth, PDF_CONFIG.fontSize.small);
+      
+      if (call.technician_signature_date) {
+        pdf.setTextColor(...PDF_CONFIG.colors.gray);
+        techY = addText(
+          format(new Date(call.technician_signature_date), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+          margin,
+          techY,
+          sigColWidth,
+          PDF_CONFIG.fontSize.small
+        );
+        pdf.setTextColor(...PDF_CONFIG.colors.black);
       }
     }
     
-    // Data/hora da assinatura do técnico
-    if (call.technician_signature_date) {
-      pdf.setFontSize(PDF_CONFIG.fontSize.base - 1);
-      pdf.text(
-        format(new Date(call.technician_signature_date), "dd/MM/yyyy HH:mm", { locale: ptBR }),
-        techSigX + sigBoxWidth / 2,
-        techSigY + sigBoxHeight - 4,
-        { align: "center" }
-      );
-    }
-
-    // Retângulo CLIENTE (direita)
-    const clientSigX = techSigX + sigBoxWidth + sigGap;
-    const clientSigY = techSigY;
-    
-    pdf.setDrawColor(...PDF_CONFIG.box.borderColor);
-    pdf.setLineWidth(PDF_CONFIG.box.borderWidth);
-    pdf.rect(clientSigX, clientSigY, sigBoxWidth, sigBoxHeight);
-    
-    // Título "CLIENTE"
-    pdf.setFontSize(PDF_CONFIG.fontSize.h3);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("CLIENTE", clientSigX + sigBoxWidth / 2, clientSigY + 5, { align: "center" });
-    
-    // Nome e cargo do cliente
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(PDF_CONFIG.fontSize.base);
-    const customerName = call.customer_name || call.clients?.full_name || "N/A";
-    const customerPosition = call.customer_position || "";
-    pdf.text(customerName, clientSigX + sigBoxWidth / 2, clientSigY + 10, { align: "center" });
-    if (customerPosition) {
-      pdf.text(customerPosition, clientSigX + sigBoxWidth / 2, clientSigY + 14, { align: "center" });
-    }
-    
-    // Assinatura do cliente (renderizada dentro do retângulo)
+    // COLUNA 2: Cliente
     if (call.customer_signature_url || call.customer_signature_data) {
-      try {
-        const customerSigData = call.customer_signature_url 
-          ? await loadImageAsBase64(call.customer_signature_url)
-          : call.customer_signature_data;
-        
-        if (customerSigData && customerSigData.startsWith('data:image/')) {
-          const sigImgHeight = 24;
-          const sigImgY = clientSigY + (customerPosition ? 18 : 14);
-          pdf.addImage(customerSigData, "PNG", clientSigX + 4, sigImgY, sigBoxWidth - 8, sigImgHeight);
+      pdf.setFontSize(PDF_CONFIG.fontSize.base);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("CLIENTE", sigCol2X, clientY);
+      clientY += 5;
+      pdf.setFont("helvetica", "normal");
+      
+      const signatureData = call.customer_signature_url 
+        ? await loadImageAsBase64(call.customer_signature_url)
+        : call.customer_signature_data;
+      
+      if (signatureData && signatureData.startsWith('data:image/')) {
+        try {
+          pdf.addImage(signatureData, "PNG", sigCol2X, clientY, sigColWidth, PDF_CONFIG.signature.maxHeight);
+          clientY += PDF_CONFIG.signature.maxHeight + 3;
+        } catch (error) {
+          console.error("Erro ao adicionar assinatura cliente:", error);
+          pdf.setFontSize(PDF_CONFIG.fontSize.small);
+          pdf.text("Não assinado", sigCol2X, clientY);
+          clientY += 5;
         }
-      } catch (error) {
-        console.error("Erro ao carregar assinatura do cliente:", error);
+      } else {
+        pdf.setFontSize(PDF_CONFIG.fontSize.small);
+        pdf.text("Não assinado", sigCol2X, clientY);
+        clientY += 5;
+      }
+      
+      pdf.setFontSize(PDF_CONFIG.fontSize.small);
+      clientY = addText(
+        call.customer_name || call.clients?.full_name || "N/A",
+        sigCol2X,
+        clientY,
+        sigColWidth,
+        PDF_CONFIG.fontSize.small
+      );
+      
+      if (call.customer_position) {
+        clientY = addText(
+          `Cargo: ${call.customer_position}`,
+          sigCol2X,
+          clientY,
+          sigColWidth,
+          PDF_CONFIG.fontSize.small
+        );
+      }
+      
+      if (call.customer_signature_date) {
+        pdf.setTextColor(...PDF_CONFIG.colors.gray);
+        clientY = addText(
+          format(new Date(call.customer_signature_date), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+          sigCol2X,
+          clientY,
+          sigColWidth,
+          PDF_CONFIG.fontSize.small
+        );
+        pdf.setTextColor(...PDF_CONFIG.colors.black);
       }
     }
     
-    // Data/hora da assinatura do cliente
-    if (call.customer_signature_date) {
-      pdf.setFontSize(PDF_CONFIG.fontSize.base - 1);
-      pdf.text(
-        format(new Date(call.customer_signature_date), "dd/MM/yyyy HH:mm", { locale: ptBR }),
-        clientSigX + sigBoxWidth / 2,
-        clientSigY + sigBoxHeight - 4,
-        { align: "center" }
-      );
-    }
-
-    yPos = clientSigY + sigBoxHeight + 6;
+    yPos = Math.max(techY, clientY) + 5;
   }
 
   // ============ RODAPÉ (todas as páginas) ============
