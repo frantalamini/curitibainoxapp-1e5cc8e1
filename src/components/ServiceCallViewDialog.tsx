@@ -32,13 +32,11 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
-import { generateServiceCallReportBlob } from "@/lib/reportPdfGenerator";
+import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
+import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
-import { makeObjectUrl, tryOpenInNewTab, forceDownload, revokePdfUrl } from "@/lib/pdfFallback";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { useUserRole } from "@/hooks/useUserRole";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ServiceCallViewDialogProps {
   call: ServiceCall;
@@ -70,99 +68,17 @@ const ServiceCallViewDialog = ({
   const handleGeneratePDF = async () => {
     try {
       setIsGeneratingPDF(true);
+      const pdf = await generateServiceCallReport(call);
+      pdf.save(`Relatorio-OS-${call.os_number}.pdf`);
       
-      // 1. Gerar PDF correto como Blob
-      const { blob, fileName } = await generateServiceCallReportBlob(call);
-      
-      // 2. Converter Blob para File para upload
-      const pdfFile = new File([blob], fileName, { type: 'application/pdf' });
-      
-      // 3. Upload do PDF CORRETO para storage
-      const timestamp = Date.now();
-      const storagePath = `relatorios/chamado-${call.id}-${timestamp}.pdf`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('service-call-attachments')
-        .upload(storagePath, pdfFile, {
-          contentType: 'application/pdf',
-          upsert: false,
-        });
-      
-      if (uploadError) throw uploadError;
-      
-      // 4. Obter URL pública do storage
-      const { data: publicUrlData } = supabase.storage
-        .from('service-call-attachments')
-        .getPublicUrl(storagePath);
-      
-      const uploadedUrl = publicUrlData.publicUrl;
+      // Upload para storage
+      const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
       setPdfUrl(uploadedUrl);
       
-      // 5. Criar URL local do blob (fallback)
-      const blobUrl = makeObjectUrl(blob);
-      
-      // 6. Tentar abrir URL do storage em nova aba
-      const opened = tryOpenInNewTab(uploadedUrl);
-      
-      // 7. SEMPRE forçar download local (silencioso)
-      forceDownload(blobUrl, fileName);
-      
-      // 8. Revogar URL do blob após 60 segundos
-      revokePdfUrl(blobUrl, 60000);
-      
-      // 9. Toast com ações
       toast({
-        title: "PDF gerado com sucesso!",
-        description: opened 
-          ? "PDF aberto em nova aba e salvo localmente." 
-          : "Download iniciado automaticamente.",
-        action: (
-          <div className="flex flex-col gap-2 mt-2">
-            <ToastAction
-              altText="Abrir PDF online"
-              onClick={() => {
-                window.open(uploadedUrl, "_blank");
-              }}
-            >
-              🌐 Abrir PDF online
-            </ToastAction>
-            
-            <ToastAction
-              altText="Baixar PDF novamente"
-              onClick={() => {
-                const newBlobUrl = makeObjectUrl(blob);
-                forceDownload(newBlobUrl, fileName);
-                revokePdfUrl(newBlobUrl, 60000);
-              }}
-            >
-              📥 Baixar PDF novamente
-            </ToastAction>
-            
-            {call.clients?.phone && (
-              <ToastAction
-                altText="Enviar via WhatsApp"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(uploadedUrl);
-                    const link = generateSimpleWhatsAppLink(call.clients!.phone);
-                    window.open(link, '_blank');
-                    
-                    toast({
-                      title: "Link copiado!",
-                      description: "Cole o link do PDF na conversa do WhatsApp",
-                    });
-                  } catch (error) {
-                    console.error("Erro ao copiar link:", error);
-                  }
-                }}
-              >
-                📱 Enviar via WhatsApp
-              </ToastAction>
-            )}
-          </div>
-        ),
+        title: "PDF Gerado!",
+        description: "O relatório foi baixado e está pronto para envio.",
       });
-      
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({

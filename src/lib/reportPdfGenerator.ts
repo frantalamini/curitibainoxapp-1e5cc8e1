@@ -86,15 +86,6 @@ const renderHTMLTemplate = (call: ServiceCall, companyData: any): string => {
       role: call.customer_position || "N/A",
     },
     client_signed_at: call.customer_signature_date || null,
-    photos: [
-      ...(call.photos_before_urls || []).map(url => ({ url })),
-      ...(call.photos_after_urls || []).map(url => ({ url })),
-      ...(call.media_urls || []).map(url => ({ url })),
-    ].filter(photo => photo.url),
-    signatures: {
-      technician: call.technician_signature_data || "",
-      client: call.customer_signature_data || "",
-    }
   };
 
   // Função auxiliar para formatar datas
@@ -112,92 +103,73 @@ const renderHTMLTemplate = (call: ServiceCall, companyData: any): string => {
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<title>OS ${os.number}</title>
+<meta charset="utf-8" />
+<title>Ordem de Serviço</title>
 <style>
-  /* ——— Página ——— */
-  @page { size: A4; margin: 25mm; }
+  @page { size: A4; margin: 16mm 14mm; }
   * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
-  body { font-size: 11px; color:#111; line-height: 1.35; margin:0; padding:25mm; }
-  p, div { word-break: normal; overflow-wrap: anywhere; hyphens: none; }
-
-  /* ——— Utilitários ——— */
-  .row{display:flex;gap:10px} .col{flex:1 1 0}
-  .right{text-align:right} .wrap{word-break:normal;overflow-wrap:anywhere;hyphens:none}
+  body { font-size: 11px; color:#111; margin:0; padding:16mm 14mm; background: white; width: 210mm; }
+  .row { display:flex; gap:10px; }
+  .col { flex:1 1 0; }
+  .right { text-align:right; }
   .mt8{margin-top:8px} .mt12{margin-top:12px} .mt16{margin-top:16px}
-  .mb0{margin-bottom:0} .sep{border:0;border-top:.6pt solid #000;margin:10px 0}
-  .break{page-break-inside:avoid}
-  .tight{margin-top:2px}
-
-  /* ——— Cabeçalho ——— */
-  .logo { width:140px; height:40px; object-fit:contain; }
-
-  /* ——— Boxes ——— */
-  .box{border:.6pt solid #000;border-radius:2px;padding:10px 10px 8px}
-  .hdr{
-    text-transform:uppercase; font-weight:700; font-size:11px;
-    margin:-6px 0 6px;
-    position:relative; top:-4px;
-  }
-  .kv{display:flex;gap:6px}
-  .kv > div:first-child{width:92px;font-weight:700}
-  .kv + .kv {margin-top:3px}
-
-  /* ——— Fotos/Anexos ——— */
-  .photos{display:flex;flex-wrap:wrap;gap:8px}
-  .ph{flex:0 0 calc(33.333% - 6px); border:.6pt solid #000; border-radius:2px; padding:4px}
-  .ph img{width:100%; height:120px; object-fit:contain}
-
-  /* ——— Assinaturas no rodapé ——— */
-  .footer{margin-top:18mm; page-break-inside:avoid}
-  .sigArea{height:85px; position:relative; display:flex; align-items:flex-end}
-  .sigImg{position:absolute; left:0; right:0; top:0; bottom:18px; margin:auto; max-height:80px; object-fit:contain}
-  .sigLine{border-top:.8pt solid #000; height:0; width:100%}
-  .sigLabel{margin-top:4px; font-weight:700}
-  .small{color:#444; font-size:10px}
+  .mb8{margin-bottom:8px} .mb12{margin-bottom:12px}
+  .title { font-size:16px; font-weight:700; text-align:center; margin:6px 0 10px; }
+  .subtle { color:#444; font-size: 10px; }
+  .box { border:0.6pt solid #000; padding:8px; border-radius:2px; }
+  .box-title { font-weight:700; margin:0 0 6px; }
+  .kv { display:flex; }
+  .kv > div:first-child { width:110px; font-weight:700; }
+  .kv + .kv { margin-top:4px; }
+  .tight .kv > div:first-child { width:95px; }
+  .logo { height:40px; width:140px; object-fit:contain; }
+  .break { page-break-inside: avoid; }
+  .nowrap { white-space:nowrap; }
+  .wrap { word-break:break-word; overflow-wrap: anywhere; }
+  .sign { height:85px; border:0.6pt solid #000; border-radius:2px; background-size:contain; background-repeat:no-repeat; background-position:center; }
+  .sign-label { font-weight:700; margin-top:4px; }
+  hr.sep { border:0; border-top:0.6pt solid #000; margin:10px 0; }
 </style>
 </head>
 <body>
 
 <!-- CABEÇALHO -->
-<div class="row" style="align-items:flex-start">
+<div class="row" style="align-items:flex-start;">
   <div class="col">
-    <img class="logo" src="${companyData.report_logo_url}" alt="Logo">
+    <img class="logo" src="${companyData.report_logo_url}" alt="Logo" crossorigin="anonymous">
   </div>
   <div class="col right wrap">
     <div><b>${companyData.name}</b></div>
-    <div class="small">CNPJ: ${companyData.cnpj} • IE: ${companyData.state_inscription}</div>
-    <div class="small">${companyData.email} • ${companyData.phone} • ${companyData.website}</div>
-    <div class="small">${companyData.address}</div>
+    ${companyData.cnpj || companyData.state_inscription ? `<div class="subtle">CNPJ: ${companyData.cnpj}${companyData.state_inscription ? ' • IE: ' + companyData.state_inscription : ''}</div>` : ''}
+    ${companyData.email || companyData.phone ? `<div class="subtle">${companyData.email}${companyData.phone ? ' • ' + companyData.phone : ''}</div>` : ''}
+    ${companyData.website ? `<div class="subtle">${companyData.website}</div>` : ''}
+    ${companyData.address ? `<div class="subtle">${companyData.address}</div>` : ''}
   </div>
 </div>
 
 <hr class="sep"/>
 
-<div style="text-align:center;font-weight:700;font-size:16px;margin-bottom:8px">
-  ORDEM DE SERVIÇO Nº ${os.number}
-</div>
+<div class="title">ORDEM DE SERVIÇO Nº ${os.number}</div>
 
-<!-- RESUMO (Nº OS, datas, status à direita) -->
+<!-- RESUMO À DIREITA -->
 <div class="row mt8">
   <div class="col box break">
-    <div class="hdr">Cliente</div>
+    <div class="box-title">Cliente</div>
     <div class="wrap"><b>${client.name}</b></div>
-    ${client.trade_name ? `<div class="small wrap">${client.trade_name}</div>` : ''}
-    <div class="small wrap">${client.address.street}, ${client.address.number} - ${client.address.district}</div>
-    <div class="small wrap">${client.address.city} / ${client.address.state} • CEP ${client.address.zip}</div>
-    <div class="small">CNPJ: ${client.cnpj} • IE: ${client.state_inscription}</div>
-    <div class="small">Fone: ${client.phone} • E-mail: ${client.email}</div>
+    ${client.trade_name ? `<div class="subtle wrap">${client.trade_name}</div>` : ''}
+    ${client.address.street ? `<div class="subtle wrap">${client.address.street}${client.address.number ? ', ' + client.address.number : ''}${client.address.district ? ' - ' + client.address.district : ''}</div>` : ''}
+    ${client.address.city || client.address.state ? `<div class="subtle wrap">${client.address.city}${client.address.state ? ' / ' + client.address.state : ''}${client.address.zip ? ' • CEP ' + client.address.zip : ''}</div>` : ''}
+    ${client.cnpj || client.state_inscription ? `<div class="subtle">CNPJ: ${client.cnpj}${client.state_inscription ? ' • IE: ' + client.state_inscription : ''}</div>` : ''}
+    ${client.phone || client.email ? `<div class="subtle">Fone: ${client.phone}${client.email ? ' • E-mail: ' + client.email : ''}</div>` : ''}
   </div>
 
   <div class="col" style="flex:0 0 210px">
-    <div class="box">
-      <div class="hdr">Resumo</div>
-      <div class="kv"><div>Nº OS</div><div>${os.number}</div></div>
+    <div class="box tight">
+      <div class="kv"><div>Nº OS</div><div class="nowrap">${os.number}</div></div>
       <div class="kv"><div>Data</div><div>${formatDate(os.open_date, "dd/MM/yyyy")}</div></div>
       <div class="kv"><div>Prevista</div><div>${formatDate(os.schedule.date, "dd/MM/yyyy")}</div></div>
       <div class="kv"><div>Status</div><div>${os.status}</div></div>
-      <div class="kv"><div>Finalizado</div><div>${formatDate(os.closed_at, "dd/MM/yyyy HH:mm")}</div></div>
+      ${os.closed_at ? `<div class="kv"><div>Finalizado</div><div>${formatDate(os.closed_at, "dd/MM/yyyy HH:mm")}</div></div>` : ''}
     </div>
   </div>
 </div>
@@ -205,14 +177,14 @@ const renderHTMLTemplate = (call: ServiceCall, companyData: any): string => {
 <!-- TÉCNICO / AGENDAMENTO -->
 <div class="row mt12">
   <div class="col box">
-    <div class="hdr">Técnico responsável</div>
+    <div class="box-title">Técnico responsável</div>
     <div>${os.technician.name}</div>
   </div>
   <div class="col box">
-    <div class="hdr">Agendamento</div>
+    <div class="box-title">Agendamento</div>
     <div class="kv"><div>Data</div><div>${formatDate(os.schedule.date, "dd/MM/yyyy")}</div></div>
     <div class="kv"><div>Hora</div><div>${os.schedule.time}</div></div>
-    <div class="kv"><div>Início</div><div>${formatDate(os.started_at, "dd/MM/yyyy HH:mm")}</div></div>
+    ${os.started_at ? `<div class="kv"><div>Início</div><div>${formatDate(os.started_at, "dd/MM/yyyy HH:mm")}</div></div>` : ''}
     <div class="kv"><div>Tipo</div><div class="wrap">${os.service_type}</div></div>
   </div>
 </div>
@@ -220,11 +192,13 @@ const renderHTMLTemplate = (call: ServiceCall, companyData: any): string => {
 <!-- EQUIPAMENTO / PROBLEMA -->
 <div class="row mt12">
   <div class="col box">
-    <div class="hdr">Equipamento</div>
-    <div class="wrap">${os.equipment.name} <span class="small">• Nº de série: ${os.equipment.serial}</span></div>
+    <div class="box-title">Equipamento</div>
+    <div class="wrap">
+      ${os.equipment.name}${os.equipment.serial !== 'N/A' ? `<span class="subtle"> • Nº de série: ${os.equipment.serial}</span>` : ''}
+    </div>
   </div>
   <div class="col box">
-    <div class="hdr">Problema</div>
+    <div class="box-title">Problema</div>
     <div class="wrap">${os.problem}</div>
   </div>
 </div>
@@ -232,42 +206,27 @@ const renderHTMLTemplate = (call: ServiceCall, companyData: any): string => {
 <!-- SERVIÇOS / PEÇAS -->
 <div class="row mt12">
   <div class="col box break">
-    <div class="hdr">Serviços executados</div>
+    <div class="box-title">Serviços executados</div>
     <div class="wrap">${os.services_done}</div>
   </div>
   <div class="col box break">
-    <div class="hdr">Peças utilizadas</div>
+    <div class="box-title">Peças utilizadas</div>
     <div class="wrap">${os.parts_used}</div>
   </div>
 </div>
 
-<!-- FOTOS / ANEXOS (3 por linha, com quebras automáticas) -->
-${os.photos.length > 0 ? `
-  <div class="box mt16 break">
-    <div class="hdr">Anexos (fotos)</div>
-    <div class="photos">
-      ${os.photos.map(photo => `<div class="ph break"><img src="${photo.url}" alt="foto"></div>`).join('')}
-    </div>
-  </div>
-` : ''}
-
-<!-- ASSINATURAS (rodapé) -->
-<div class="row footer">
+<!-- ASSINATURAS -->
+<div class="row mt16 break">
   <div class="col">
-    <div class="sigArea">
-      ${os.signatures.technician ? `<img class="sigImg" src="${os.signatures.technician}" alt="Assinatura técnico">` : ''}
-      <div class="sigLine"></div>
-    </div>
-    <div class="sigLabel">TÉCNICO</div>
-    <div class="small">${os.technician.name} • ${formatDate(os.tech_signed_at, "dd/MM/yyyy HH:mm")}</div>
+    <div class="sign" style="${call.technician_signature_data ? `background-image: url('${call.technician_signature_data}');` : ''}"></div>
+    <div class="sign-label">TÉCNICO</div>
+    <div class="subtle">${os.technician.name}${os.tech_signed_at ? ' • ' + formatDate(os.tech_signed_at, "dd/MM/yyyy HH:mm") : ''}</div>
   </div>
   <div class="col">
-    <div class="sigArea">
-      ${os.signatures.client ? `<img class="sigImg" src="${os.signatures.client}" alt="Assinatura cliente">` : ''}
-      <div class="sigLine"></div>
-    </div>
-    <div class="sigLabel">CLIENTE</div>
-    <div class="small wrap">${os.client_contact.name} • ${os.client_contact.role} • ${formatDate(os.client_signed_at, "dd/MM/yyyy HH:mm")}</div>
+    <div class="sign" style="${call.customer_signature_data ? `background-image: url('${call.customer_signature_data}');` : ''}"></div>
+    <div class="sign-label">CLIENTE</div>
+    <div class="subtle wrap">${os.client_contact.name}${os.client_contact.role !== 'N/A' ? ' • ' + os.client_contact.role : ''}</div>
+    ${os.client_signed_at ? `<div class="subtle">${formatDate(os.client_signed_at, "dd/MM/yyyy HH:mm")}</div>` : ''}
   </div>
 </div>
 
@@ -276,14 +235,8 @@ ${os.photos.length > 0 ? `
   `;
 };
 
-/**
- * Gera o relatório PDF da ordem de serviço e retorna o Blob
- * @param call - Dados da ordem de serviço
- * @returns Objeto com o Blob do PDF e o nome do arquivo
- */
-export const generateServiceCallReportBlob = async (
-  call: ServiceCall
-): Promise<{ blob: Blob; fileName: string }> => {
+// Função principal para gerar PDF
+export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPDF> => {
   try {
     // Buscar dados da empresa
     const companyData = await getCompanyData();
@@ -337,40 +290,10 @@ export const generateServiceCallReportBlob = async (
 
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
 
-    // Retornar Blob e nome do arquivo
-    const blob = pdf.output("blob");
-    const fileName = `OS_${call.os_number}_${call.clients?.full_name || "cliente"}.pdf`;
+    // Salvar PDF
+    pdf.save(`OS_${call.os_number}_${call.clients?.full_name || "cliente"}.pdf`);
 
-    return { blob, fileName };
-  } catch (error) {
-    console.error("Erro ao gerar PDF:", error);
-    throw error;
-  }
-};
-
-/**
- * Gera o relatório PDF da ordem de serviço (compatibilidade)
- * @deprecated Use generateServiceCallReportBlob() em vez disso
- */
-export const generateServiceCallReport = async (call: ServiceCall): Promise<jsPDF> => {
-  try {
-    const { blob, fileName } = await generateServiceCallReportBlob(call);
-    
-    // Criar PDF e forçar download (compatibilidade com código antigo)
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
-    
-    // Retornar instância jsPDF vazia (compatibilidade)
-    return new jsPDF("p", "mm", "a4");
+    return pdf;
   } catch (error) {
     console.error("Erro ao gerar PDF:", error);
     throw error;
