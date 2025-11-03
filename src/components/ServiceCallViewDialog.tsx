@@ -113,26 +113,59 @@ const ServiceCallViewDialog = ({
       const blob = await response.blob();
       const fileName = `relatorio-os-${call.os_number}.pdf`;
 
-      // Criar URL temporária do Blob
+      // Tentar usar File System Access API (Chrome/Edge HTTPS)
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await window.showSaveFilePicker!({
+            suggestedName: fileName,
+            types: [
+              {
+                description: 'Documento PDF',
+                accept: { 'application/pdf': ['.pdf'] },
+              },
+            ],
+          });
+
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+
+          toast({
+            title: "✅ PDF salvo com sucesso!",
+            description: `Arquivo salvo: ${fileName}`,
+          });
+          return; // Sucesso - não precisa do fallback
+        } catch (err: any) {
+          // Usuário cancelou ou erro de permissão
+          if (err.name === 'AbortError') {
+            toast({
+              title: "Salvamento cancelado",
+              description: "Você cancelou o salvamento do arquivo",
+            });
+            return;
+          }
+          // Outros erros: cai no fallback abaixo
+          console.warn('showSaveFilePicker falhou, usando fallback:', err);
+        }
+      }
+
+      // Fallback: Download tradicional com <a download>
       const blobUrl = URL.createObjectURL(blob);
-      
-      // Criar elemento <a> para forçar download com escolha de pasta
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = fileName;
       document.body.appendChild(link);
-      
-      // Disparar download (abrirá janela nativa "Salvar como")
       link.click();
-      
-      // Limpeza
       document.body.removeChild(link);
+      
+      // Limpeza da URL temporária
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
       toast({
         title: "Download iniciado",
         description: `Salvando: ${fileName}`,
       });
+
     } catch (error) {
       console.error("Erro ao salvar PDF:", error);
       toast({
