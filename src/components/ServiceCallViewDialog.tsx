@@ -32,7 +32,6 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
@@ -78,49 +77,11 @@ const ServiceCallViewDialog = ({
       const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
       setPdfUrl(uploadedUrl);
       
-      // 3. Tentar abrir em nova aba (URL do storage é confiável)
-      try {
-        window.open(uploadedUrl, '_blank', 'noopener,noreferrer');
-      } catch (error) {
-        console.warn("Não foi possível abrir o PDF automaticamente:", error);
-      }
-      
-      // 4. Toast com botões de ação
+      // 3. Toast simples - usuário clica para abrir
       toast({
-        title: "PDF gerado com sucesso!",
-        description: "O arquivo foi baixado e está disponível para visualização online.",
-        action: (
-          <div className="flex flex-col gap-2 mt-2">
-            <ToastAction
-              altText="Abrir PDF"
-              onClick={() => window.open(uploadedUrl, '_blank')}
-            >
-              🌐 Abrir PDF
-            </ToastAction>
-            
-            {call.clients?.phone && (
-              <ToastAction
-                altText="Enviar via WhatsApp"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(uploadedUrl);
-                    const link = generateSimpleWhatsAppLink(call.clients!.phone);
-                    window.open(link, '_blank');
-                    
-                    toast({
-                      title: "Link copiado!",
-                      description: "Cole o link do PDF na conversa do WhatsApp",
-                    });
-                  } catch (error) {
-                    console.error("Erro ao copiar link:", error);
-                  }
-                }}
-              >
-                📱 Enviar via WhatsApp
-              </ToastAction>
-            )}
-          </div>
-        ),
+        title: "✅ PDF gerado com sucesso!",
+        description: "Arquivo baixado localmente. Use os botões abaixo para abrir online ou compartilhar.",
+        duration: 5000,
       });
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -162,37 +123,76 @@ const ServiceCallViewDialog = ({
           </div>
         </DialogHeader>
         
-        {pdfUrl && call.clients && (
-          <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-            <p className="text-sm text-green-800 dark:text-green-200 mb-3">
-              📄 PDF gerado com sucesso! Envie para o cliente via WhatsApp:
-            </p>
-            <Button
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(pdfUrl);
-                  const link = generateSimpleWhatsAppLink(call.clients!.phone);
-                  window.open(link, '_blank');
-                  
-                  toast({
-                    title: "Link copiado!",
-                    description: "Cole o link do PDF na conversa do WhatsApp",
-                  });
-                } catch (error) {
-                  console.error("Erro ao copiar link:", error);
-                  toast({
-                    title: "Erro",
-                    description: "Não foi possível copiar o link",
-                    variant: "destructive",
-                  });
-                }
-              }}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Enviar Relatório via WhatsApp
-            </Button>
-          </div>
+        {pdfUrl && (
+          <Card className="mt-4 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-200">
+                <FileDown className="w-5 h-5" />
+                PDF Gerado com Sucesso
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                O relatório foi baixado localmente e está disponível online. Escolha uma ação:
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = pdfUrl;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    toast({
+                      title: "Abrindo PDF",
+                      description: "Se não abrir, verifique o bloqueador de pop-ups",
+                    });
+                  }}
+                  className="flex-1"
+                  variant="default"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Abrir PDF Online
+                </Button>
+                
+                {call.clients?.phone && (
+                  <Button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(pdfUrl);
+                        const link = generateSimpleWhatsAppLink(call.clients!.phone);
+                        window.open(link, '_blank');
+                        
+                        toast({
+                          title: "Link copiado!",
+                          description: "Cole o link do PDF na conversa do WhatsApp",
+                        });
+                      } catch (error) {
+                        console.error("Erro ao copiar link:", error);
+                        toast({
+                          title: "Erro",
+                          description: "Não foi possível copiar o link",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Enviar via WhatsApp
+                  </Button>
+                )}
+              </div>
+              
+              <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
+                <strong>Nota:</strong> Se o PDF não abrir, desative extensões de bloqueio ou clique com botão direito → "Abrir link em nova aba"
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
