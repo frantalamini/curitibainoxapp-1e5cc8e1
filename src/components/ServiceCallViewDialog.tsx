@@ -80,7 +80,7 @@ const ServiceCallViewDialog = ({
       // 3. Toast simples - usuário clica para abrir
       toast({
         title: "✅ PDF gerado com sucesso!",
-        description: "Arquivo baixado localmente. Use os botões abaixo para abrir online ou compartilhar.",
+        description: "Arquivo baixado localmente. Use os botões abaixo para salvar ou compartilhar.",
         duration: 5000,
       });
     } catch (error) {
@@ -92,6 +92,54 @@ const ServiceCallViewDialog = ({
       });
     } finally {
       setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleSavePdf = async () => {
+    try {
+      if (!pdfUrl) {
+        toast({
+          title: "PDF não disponível",
+          description: "Gere o relatório primeiro",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Baixar o PDF do storage como Blob
+      const response = await fetch(pdfUrl);
+      if (!response.ok) throw new Error('Falha ao baixar PDF');
+      
+      const blob = await response.blob();
+      const fileName = `relatorio-os-${call.os_number}.pdf`;
+
+      // Criar URL temporária do Blob
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Criar elemento <a> para forçar download com escolha de pasta
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      
+      // Disparar download (abrirá janela nativa "Salvar como")
+      link.click();
+      
+      // Limpeza
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+      toast({
+        title: "Download iniciado",
+        description: `Salvando: ${fileName}`,
+      });
+    } catch (error) {
+      console.error("Erro ao salvar PDF:", error);
+      toast({
+        title: "Erro ao salvar PDF",
+        description: "Não foi possível baixar o arquivo",
+        variant: "destructive",
+      });
     }
   };
 
@@ -133,30 +181,17 @@ const ServiceCallViewDialog = ({
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                O relatório foi baixado localmente e está disponível online. Escolha uma ação:
+                O relatório foi gerado com sucesso. Escolha uma ação:
               </p>
               
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = pdfUrl;
-                    link.target = '_blank';
-                    link.rel = 'noopener noreferrer';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    toast({
-                      title: "Abrindo PDF",
-                      description: "Se não abrir, verifique o bloqueador de pop-ups",
-                    });
-                  }}
+                  onClick={handleSavePdf}
                   className="flex-1"
                   variant="default"
                 >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Abrir PDF Online
+                  <FileDown className="mr-2 h-4 w-4" />
+                  💾 Salvar PDF
                 </Button>
                 
                 {call.clients?.phone && (
@@ -189,7 +224,7 @@ const ServiceCallViewDialog = ({
               </div>
               
               <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
-                <strong>Nota:</strong> Se o PDF não abrir, desative extensões de bloqueio ou clique com botão direito → "Abrir link em nova aba"
+                <strong>Nota:</strong> Use "Salvar PDF" para escolher onde armazenar o arquivo localmente
               </div>
             </CardContent>
           </Card>
