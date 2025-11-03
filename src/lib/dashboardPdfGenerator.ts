@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { loadSystemLogoForPdf, addLogoToPdf } from "./pdfLogoHelper";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardData {
   totalClients: number;
@@ -12,6 +12,34 @@ interface DashboardData {
   startDate?: Date;
   endDate?: Date;
   technicianName?: string;
+}
+
+// Helper function to load system logo
+async function loadSystemLogoForPdf(): Promise<string> {
+  try {
+    const { data: settings } = await supabase
+      .from('system_settings')
+      .select('logo_url')
+      .single();
+    
+    if (settings?.logo_url) {
+      return settings.logo_url;
+    }
+  } catch (error) {
+    console.error('Error loading logo:', error);
+  }
+  return '';
+}
+
+// Helper function to add logo to PDF
+function addLogoToPdf(pdf: jsPDF, logoUrl: string, options: { x: number; y: number; maxWidth: number; maxHeight: number }) {
+  if (logoUrl) {
+    try {
+      pdf.addImage(logoUrl, 'PNG', options.x, options.y, options.maxWidth, options.maxHeight);
+    } catch (error) {
+      console.error('Error adding logo to PDF:', error);
+    }
+  }
 }
 
 export const generateDashboardReport = async (

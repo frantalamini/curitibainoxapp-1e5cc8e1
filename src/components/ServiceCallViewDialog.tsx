@@ -32,10 +32,9 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateServiceCallReportBlob } from "@/lib/reportPdfGenerator";
+import { generateOSPdf } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
-import { generatePdfFileName } from "@/lib/pdfBlobHelpers";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -71,20 +70,19 @@ const ServiceCallViewDialog = ({
     try {
       setIsGeneratingPDF(true);
       
-      // 1. Gerar PDF como Blob
-      const { blob, fileName } = await generateServiceCallReportBlob(call);
+      // 1. Gerar PDF como Blob usando @react-pdf/renderer
+      const { blob, fileName, blobUrl } = await generateOSPdf(call.id);
       setPdfBlob(blob); // Armazena para reutilização
       
       // 2. Download automático local
-      const autoDownloadUrl = URL.createObjectURL(blob);
       const autoLink = document.createElement('a');
-      autoLink.href = autoDownloadUrl;
+      autoLink.href = blobUrl;
       autoLink.download = fileName;
       autoLink.style.display = 'none';
       document.body.appendChild(autoLink);
       autoLink.click();
       document.body.removeChild(autoLink);
-      setTimeout(() => URL.revokeObjectURL(autoDownloadUrl), 1000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       
       // 3. Upload para storage (para WhatsApp)
       const uploadedUrl = await uploadPdfToStorage(blob, call.id, fileName);
@@ -119,7 +117,7 @@ const ServiceCallViewDialog = ({
         return;
       }
 
-      const fileName = generatePdfFileName(call.os_number);
+      const fileName = `relatorio-os-${call.os_number}.pdf`;
 
       // Tentar usar File System Access API (Chrome/Edge HTTPS)
       if ('showSaveFilePicker' in window) {

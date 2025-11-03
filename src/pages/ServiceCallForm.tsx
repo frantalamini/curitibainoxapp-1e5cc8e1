@@ -41,7 +41,7 @@ import { ClientFormDialog } from "@/components/ClientFormDialog";
 import { TimePickerPopover } from "@/components/TimePickerPopover";
 import { Separator } from "@/components/ui/separator";
 
-import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
+import { generateOSPdf } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 
@@ -1075,11 +1075,20 @@ const ServiceCallForm = () => {
                   onClick={async () => {
                     try {
                       setIsGeneratingPDF(true);
-                      const pdf = await generateServiceCallReport(existingCall);
-                      pdf.save(`Relatorio-Chamado-${existingCall.id.substring(0, 8)}.pdf`);
+                      const { blob, fileName, blobUrl } = await generateOSPdf(existingCall.id);
+                      
+                      // Download automático local
+                      const autoLink = document.createElement('a');
+                      autoLink.href = blobUrl;
+                      autoLink.download = fileName;
+                      autoLink.style.display = 'none';
+                      document.body.appendChild(autoLink);
+                      autoLink.click();
+                      document.body.removeChild(autoLink);
+                      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
                       
                       // Upload para storage
-                      const uploadedUrl = await uploadPdfToStorage(pdf, existingCall.id);
+                      const uploadedUrl = await uploadPdfToStorage(blob, existingCall.id, fileName);
                       setGeneratedPdfUrl(uploadedUrl);
                       
                       toast({
