@@ -77,10 +77,10 @@ const ServiceCallViewDialog = ({
       const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
       setPdfUrl(uploadedUrl);
       
-      // 3. Toast simples
+      // 3. Toast simples - usuário clica para abrir
       toast({
         title: "✅ PDF gerado com sucesso!",
-        description: `Arquivo salvo em: Downloads/Relatorio-OS-${call.os_number}.pdf`,
+        description: "Arquivo baixado localmente. Use os botões abaixo para abrir online ou compartilhar.",
         duration: 5000,
       });
     } catch (error) {
@@ -127,59 +127,36 @@ const ServiceCallViewDialog = ({
           <Card className="mt-4 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-200">
-                <CheckCircle2 className="w-5 h-5" />
+                <FileDown className="w-5 h-5" />
                 PDF Gerado com Sucesso
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Indicação clara do download local */}
-              <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                  📥 Arquivo salvo em:
-                </p>
-                <code className="text-xs bg-white dark:bg-black px-2 py-1 rounded font-mono text-blue-700 dark:text-blue-300">
-                  Downloads/Relatorio-OS-{call.os_number}.pdf
-                </code>
-              </div>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                O relatório foi baixado localmente e está disponível online. Escolha uma ação:
+              </p>
               
-              {/* Link direto (mais confiável) */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">
-                  🌐 Abrir online:
-                </p>
-                <a 
-                  href={pdfUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary underline hover:text-primary/80 text-sm break-all block"
-                >
-                  Clique aqui para abrir o PDF em nova aba
-                </a>
-              </div>
-              
-              {/* Botões de ação */}
-              <div className="flex flex-col gap-2">
-                <Button
-                  onClick={() => window.open(pdfUrl, '_blank')}
-                  variant="default"
-                  className="w-full"
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Tentar Abrir em Nova Aba
-                </Button>
-                
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={() => {
                     const link = document.createElement('a');
                     link.href = pdfUrl;
-                    link.download = `Relatorio-OS-${call.os_number}.pdf`;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    document.body.appendChild(link);
                     link.click();
+                    document.body.removeChild(link);
+                    
+                    toast({
+                      title: "Abrindo PDF",
+                      description: "Se não abrir, verifique o bloqueador de pop-ups",
+                    });
                   }}
-                  variant="outline"
-                  className="w-full"
+                  className="flex-1"
+                  variant="default"
                 >
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Baixar Novamente
+                  <FileText className="mr-2 h-4 w-4" />
+                  Abrir PDF Online
                 </Button>
                 
                 {call.clients?.phone && (
@@ -192,7 +169,7 @@ const ServiceCallViewDialog = ({
                         
                         toast({
                           title: "Link copiado!",
-                          description: "Cole o link do PDF no WhatsApp",
+                          description: "Cole o link do PDF na conversa do WhatsApp",
                         });
                       } catch (error) {
                         console.error("Erro ao copiar link:", error);
@@ -203,7 +180,7 @@ const ServiceCallViewDialog = ({
                         });
                       }
                     }}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    className="flex-1 bg-green-600 hover:bg-green-700"
                   >
                     <MessageCircle className="mr-2 h-4 w-4" />
                     Enviar via WhatsApp
@@ -211,19 +188,9 @@ const ServiceCallViewDialog = ({
                 )}
               </div>
               
-              {/* Instruções de troubleshooting */}
-              <details className="text-xs text-muted-foreground bg-background/50 p-3 rounded border">
-                <summary className="cursor-pointer font-medium hover:text-foreground">
-                  ❌ PDF não abre? Clique aqui para ver soluções
-                </summary>
-                <ul className="mt-2 space-y-1 list-disc list-inside text-xs">
-                  <li>Desative bloqueadores de anúncios temporariamente</li>
-                  <li>Permita pop-ups para este site nas configurações do navegador</li>
-                  <li>Copie o link azul acima e cole em nova aba do navegador</li>
-                  <li>Use o botão "Baixar Novamente" acima</li>
-                  <li>Verifique a pasta Downloads do seu computador</li>
-                </ul>
-              </details>
+              <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
+                <strong>Nota:</strong> Se o PDF não abrir, desative extensões de bloqueio ou clique com botão direito → "Abrir link em nova aba"
+              </div>
             </CardContent>
           </Card>
         )}
