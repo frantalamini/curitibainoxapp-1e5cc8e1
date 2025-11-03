@@ -32,6 +32,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { generateServiceCallReport } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
@@ -68,16 +69,58 @@ const ServiceCallViewDialog = ({
   const handleGeneratePDF = async () => {
     try {
       setIsGeneratingPDF(true);
+      
+      // 1. Gerar e salvar PDF localmente
       const pdf = await generateServiceCallReport(call);
       pdf.save(`Relatorio-OS-${call.os_number}.pdf`);
       
-      // Upload para storage
+      // 2. Upload para storage
       const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
       setPdfUrl(uploadedUrl);
       
+      // 3. Tentar abrir em nova aba (URL do storage é confiável)
+      try {
+        window.open(uploadedUrl, '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        console.warn("Não foi possível abrir o PDF automaticamente:", error);
+      }
+      
+      // 4. Toast com botões de ação
       toast({
-        title: "PDF Gerado!",
-        description: "O relatório foi baixado e está pronto para envio.",
+        title: "PDF gerado com sucesso!",
+        description: "O arquivo foi baixado e está disponível para visualização online.",
+        action: (
+          <div className="flex flex-col gap-2 mt-2">
+            <ToastAction
+              altText="Abrir PDF"
+              onClick={() => window.open(uploadedUrl, '_blank')}
+            >
+              🌐 Abrir PDF
+            </ToastAction>
+            
+            {call.clients?.phone && (
+              <ToastAction
+                altText="Enviar via WhatsApp"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(uploadedUrl);
+                    const link = generateSimpleWhatsAppLink(call.clients!.phone);
+                    window.open(link, '_blank');
+                    
+                    toast({
+                      title: "Link copiado!",
+                      description: "Cole o link do PDF na conversa do WhatsApp",
+                    });
+                  } catch (error) {
+                    console.error("Erro ao copiar link:", error);
+                  }
+                }}
+              >
+                📱 Enviar via WhatsApp
+              </ToastAction>
+            )}
+          </div>
+        ),
       });
     } catch (error) {
       console.error("Error generating PDF:", error);
