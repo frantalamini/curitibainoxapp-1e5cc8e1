@@ -36,7 +36,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { generateServiceCallReportBlob } from "@/lib/reportPdfGenerator";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
-import { openOrDownloadPdf, revokePdfUrl } from "@/lib/pdfFallback";
+import { makeObjectUrl, tryOpenInNewTab, forceDownload, revokePdfUrl } from "@/lib/pdfFallback";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { useUserRole } from "@/hooks/useUserRole";
 import jsPDF from "jspdf";
@@ -72,37 +72,47 @@ const ServiceCallViewDialog = ({
     try {
       setIsGeneratingPDF(true);
       
-      // Gerar PDF como Blob
+      // 1. Gerar PDF como Blob
       const { blob, fileName } = await generateServiceCallReportBlob(call);
       
-      // Tentar abrir em nova aba ou forçar download
-      const { url, opened } = openOrDownloadPdf(blob, fileName);
-      
-      // Upload para storage (para WhatsApp)
+      // 2. Upload IMEDIATO para storage (prioridade)
       const pdf = new jsPDF("p", "mm", "a4");
       const uploadedUrl = await uploadPdfToStorage(pdf, call.id);
       setPdfUrl(uploadedUrl);
       
-      // Mensagem apropriada baseada no resultado
-      const toastMessage = opened 
-        ? "PDF aberto em nova aba." 
-        : "Seu navegador bloqueou a abertura automática. O download foi iniciado automaticamente.";
+      // 3. Tentar abrir a URL pública do storage (mais confiável que Blob URL)
+      const opened = tryOpenInNewTab(uploadedUrl);
       
+      // 4. Se falhou, forçar download local do Blob
+      if (!opened) {
+        const blobUrl = makeObjectUrl(blob);
+        forceDownload(blobUrl, fileName);
+        revokePdfUrl(blobUrl);
+      }
+      
+      // 5. Toast com ações
       toast({
         title: "PDF gerado com sucesso!",
-        description: toastMessage,
+        description: opened 
+          ? "PDF aberto em nova aba." 
+          : "Seu navegador bloqueou a abertura automática. O download foi iniciado.",
         action: (
           <div className="flex flex-col gap-2 mt-2">
             <ToastAction
+              altText="Abrir PDF online"
+              onClick={() => {
+                window.open(uploadedUrl, "_blank");
+              }}
+            >
+              🌐 Abrir PDF online
+            </ToastAction>
+            
+            <ToastAction
               altText="Baixar PDF manualmente"
               onClick={() => {
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = fileName;
-                a.style.display = "none";
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => document.body.removeChild(a), 100);
+                const blobUrl = makeObjectUrl(blob);
+                forceDownload(blobUrl, fileName);
+                revokePdfUrl(blobUrl);
               }}
             >
               📥 Baixar PDF manualmente
@@ -132,9 +142,6 @@ const ServiceCallViewDialog = ({
           </div>
         ),
       });
-      
-      // Liberar URL após 60 segundos
-      revokePdfUrl(url);
       
     } catch (error) {
       console.error("Error generating PDF:", error);
