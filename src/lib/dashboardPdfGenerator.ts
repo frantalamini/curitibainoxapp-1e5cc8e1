@@ -49,6 +49,7 @@ export const generateDashboardReport = async (
     technicianChart: HTMLElement;
     serviceTypeChart: HTMLElement;
     equipmentChart: HTMLElement;
+    topClientsChart: HTMLElement;
   }
 ): Promise<jsPDF> => {
   const logoBase64 = await loadSystemLogoForPdf();
@@ -137,16 +138,20 @@ export const generateDashboardReport = async (
   pdf.setTextColor(0, 0, 0);
   yPos += metricHeight + 6;
 
-  // ========== GRÁFICOS EM GRID 2x2 ==========
-  const chartWidth = (pageWidth - 2 * margin - 8) / 2;
-  const chartHeight = 70;
+  // ========== GRÁFICOS EM GRID 3x2 ==========
+  const chartWidth = (pageWidth - 2 * margin - 16) / 3; // 16 = 2 espaçamentos * 8
+  const chartHeight = 60;
   const chartSpacing = 8;
 
   const charts = [
+    // Primeira linha (3 gráficos)
     { element: chartElements.statusChart, title: "Status", x: 0, y: 0 },
     { element: chartElements.technicianChart, title: "Técnicos", x: 1, y: 0 },
-    { element: chartElements.serviceTypeChart, title: "Tipos de Serviço", x: 0, y: 1 },
-    { element: chartElements.equipmentChart, title: "Top 5 Equipamentos", x: 1, y: 1 },
+    { element: chartElements.serviceTypeChart, title: "Tipos de Serviço", x: 2, y: 0 },
+    
+    // Segunda linha (2 gráficos - centralizados)
+    { element: chartElements.equipmentChart, title: "Top 5 Equipamentos", x: 0.5, y: 1 },
+    { element: chartElements.topClientsChart, title: "Top 5 Clientes", x: 1.5, y: 1 },
   ];
 
   // Capturar todos os gráficos em paralelo

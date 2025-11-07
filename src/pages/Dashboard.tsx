@@ -36,6 +36,7 @@ const Dashboard = () => {
   const technicianChartRef = useRef<HTMLDivElement>(null);
   const serviceTypeChartRef = useRef<HTMLDivElement>(null);
   const equipmentChartRef = useRef<HTMLDivElement>(null);
+  const topClientsChartRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading } = useDashboardData(startDate, endDate, selectedTechnician);
   const { technicians } = useTechnicians();
@@ -48,7 +49,8 @@ const Dashboard = () => {
 
   const handleExportPdf = async () => {
     if (!statusChartRef.current || !technicianChartRef.current || 
-        !serviceTypeChartRef.current || !equipmentChartRef.current) {
+        !serviceTypeChartRef.current || !equipmentChartRef.current || 
+        !topClientsChartRef.current) {
       toast.error("Aguarde os gráficos carregarem completamente");
       return;
     }
@@ -78,6 +80,7 @@ const Dashboard = () => {
           technicianChart: technicianChartRef.current,
           serviceTypeChart: serviceTypeChartRef.current,
           equipmentChart: equipmentChartRef.current,
+          topClientsChart: topClientsChartRef.current,
         }
       );
 
@@ -137,6 +140,21 @@ const Dashboard = () => {
     .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 5)
     .map(([name, value], index) => ({ name, value: value as number, color: COLORS[index % COLORS.length] }));
+
+  const clientData = Object.entries(
+    data?.calls.reduce((acc: any, call: any) => {
+      const clientName = call.clients?.full_name || "Sem cliente";
+      acc[clientName] = (acc[clientName] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {}
+  )
+    .sort(([, a], [, b]) => (b as number) - (a as number))
+    .slice(0, 5)
+    .map(([name, value], index) => ({ 
+      name, 
+      value: value as number, 
+      color: COLORS[index % COLORS.length] 
+    }));
 
   const metricsCards = [
     {
@@ -273,7 +291,7 @@ const Dashboard = () => {
         {isLoading ? (
           <div className="text-center py-8">Carregando dados...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>Chamados por Status</CardTitle>
@@ -425,6 +443,50 @@ const Dashboard = () => {
                         dataKey="value"
                       >
                         {equipmentData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number) => [`${value} chamados`, '']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #ccc',
+                          borderRadius: '4px',
+                          padding: '8px'
+                        }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '20px' }}
+                        layout="horizontal"
+                        align="center"
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">Nenhum dado disponível</div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Top 5 Clientes</CardTitle>
+              </CardHeader>
+              <CardContent ref={topClientsChartRef}>
+                {clientData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={350}>
+                    <PieChart>
+                      <Pie
+                        data={clientData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        outerRadius={70}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {clientData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
