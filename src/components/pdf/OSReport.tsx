@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   signatures: {
     flexDirection: 'row',
     gap: 24,
-    marginTop: 36,
+    marginTop: 12,
   },
   signatureCol: {
     flex: 1,
@@ -372,50 +372,41 @@ const PhotoGrid = ({ photos }: { photos: string[] }) => (
 
 // Componente Signatures
 const Signatures = ({ signatures }: { signatures: Report['signatures'] }) => (
-  <View style={styles.signatures} wrap={false}>
-    {signatures.tech && (
-      <View style={styles.signatureCol}>
-        <Text style={styles.signatureTitle}>TÉCNICO</Text>
-        {signatures.tech.imageDataUrl ? (
-          <>
+  <View style={styles.section} wrap={false}>
+    <View style={styles.sectionTitle}>
+      <Text>ASSINATURAS</Text>
+    </View>
+    <View style={styles.signatures}>
+      {signatures.tech && (
+        <View style={styles.signatureCol}>
+          <Text style={styles.signatureTitle}>TÉCNICO</Text>
+          {signatures.tech.imageDataUrl && (
             <Image src={signatures.tech.imageDataUrl} style={styles.signatureImage} />
-            <View style={styles.signatureLine} />
-          </>
-        ) : (
+          )}
           <View style={styles.signatureLine} />
-        )}
-        <Text style={styles.signatureLegend}>{signatures.tech.name}</Text>
-        {signatures.tech.when && (
-          <Text style={styles.signatureLegend}>{signatures.tech.when}</Text>
-        )}
-        {!signatures.tech.imageDataUrl && (
-          <Text style={[styles.signatureLegend, styles.muted]}>Não assinado</Text>
-        )}
-      </View>
-    )}
-    {signatures.client && (
-      <View style={styles.signatureCol}>
-        <Text style={styles.signatureTitle}>CLIENTE</Text>
-        {signatures.client.imageDataUrl ? (
-          <>
+          <Text style={styles.signatureLegend}>{signatures.tech.name}</Text>
+          {signatures.tech.when && (
+            <Text style={styles.signatureLegend}>{signatures.tech.when}</Text>
+          )}
+        </View>
+      )}
+      {signatures.client && (
+        <View style={styles.signatureCol}>
+          <Text style={styles.signatureTitle}>CLIENTE</Text>
+          {signatures.client.imageDataUrl && (
             <Image src={signatures.client.imageDataUrl} style={styles.signatureImage} />
-            <View style={styles.signatureLine} />
-          </>
-        ) : (
+          )}
           <View style={styles.signatureLine} />
-        )}
-        <Text style={styles.signatureLegend}>{signatures.client.name}</Text>
-        {signatures.client.role && (
-          <Text style={styles.signatureLegend}>Cargo: {signatures.client.role}</Text>
-        )}
-        {signatures.client.when && (
-          <Text style={styles.signatureLegend}>{signatures.client.when}</Text>
-        )}
-        {!signatures.client.imageDataUrl && (
-          <Text style={[styles.signatureLegend, styles.muted]}>Não assinado</Text>
-        )}
-      </View>
-    )}
+          <Text style={styles.signatureLegend}>{signatures.client.name}</Text>
+          {signatures.client.role && (
+            <Text style={styles.signatureLegend}>Cargo: {signatures.client.role}</Text>
+          )}
+          {signatures.client.when && (
+            <Text style={styles.signatureLegend}>{signatures.client.when}</Text>
+          )}
+        </View>
+      )}
+    </View>
   </View>
 );
 
@@ -596,26 +587,6 @@ export const OSReport = ({ data }: { data: Report }) => {
           </Section>
         )}
 
-        {/* Fotos - Antes */}
-        {data.technical.beforePhotos && data.technical.beforePhotos.length > 0 && (
-          <View style={styles.section} wrap={false}>
-            <View style={styles.sectionTitle}>
-              <Text>FOTOS - ANTES DA MANUTENÇÃO</Text>
-            </View>
-            <PhotoGrid photos={data.technical.beforePhotos} />
-          </View>
-        )}
-
-        {/* Fotos - Depois */}
-        {data.technical.afterPhotos && data.technical.afterPhotos.length > 0 && (
-          <View style={styles.section} wrap={false}>
-            <View style={styles.sectionTitle}>
-              <Text>FOTOS - DEPOIS DA MANUTENÇÃO</Text>
-            </View>
-            <PhotoGrid photos={data.technical.afterPhotos} />
-          </View>
-        )}
-
         {/* Anotações Gerais */}
         {data.general.notes && (
           <Section title="ANOTAÇÕES GERAIS">
@@ -626,6 +597,22 @@ export const OSReport = ({ data }: { data: Report }) => {
         {/* Assinaturas */}
         {(data.signatures.tech || data.signatures.client) && (
           <Signatures signatures={data.signatures} />
+        )}
+
+        {/* Fotos do Serviço */}
+        {((data.technical.beforePhotos && data.technical.beforePhotos.length > 0) ||
+          (data.technical.afterPhotos && data.technical.afterPhotos.length > 0)) && (
+          <View style={styles.section} wrap={false}>
+            <View style={styles.sectionTitle}>
+              <Text>FOTOS DO SERVIÇO</Text>
+            </View>
+            <PhotoGrid 
+              photos={[
+                ...(data.technical.beforePhotos || []),
+                ...(data.technical.afterPhotos || [])
+              ]} 
+            />
+          </View>
         )}
       </Page>
     </Document>
