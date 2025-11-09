@@ -10,73 +10,71 @@ import {
 } from '@react-pdf/renderer';
 
 // Tipos de dados para o PDF
-interface OSReportData {
-  osNumber: number;
+type Report = {
   company: {
     name: string;
-    cnpj: string;
-    ie: string;
-    address: string;
-    website: string;
-    email: string;
-    phone: string;
-    logoUrl?: string;
+    cnpj?: string;
+    ie?: string;
+    phone?: string;
+    email?: string;
+    site?: string;
+    address?: string;
+    logoDataUrl?: string;
+  };
+  os: {
+    number: number | string;
+    issueDate?: string;
+    status?: string;
+    dueDate?: string;
+    finishDate?: string;
   };
   client: {
     name: string;
-    cpfCnpj: string;
-    ie: string;
-    address: string;
-    city: string;
-    state: string;
-    cep: string;
-    phone: string;
-    email: string;
+    phone?: string;
+    email?: string;
+    cnpj?: string;
+    ie?: string;
+    address?: string;
   };
-  os: {
-    number: number;
-    createdAt: string;
-    status: string;
-    scheduledDate: string;
-    finishedAt?: string;
+  general: {
+    equipment?: string;
+    serialNumber?: string;
+    problemDescription?: string;
+    serviceType?: string;
+    checklistTitle?: string | null;
+    notes?: string | null;
+    schedule?: {
+      date?: string;
+      time?: string;
+      startedAt?: string;
+    };
+    technician?: { name: string };
   };
-  technician: {
-    name: string;
-    phone: string;
+  technical: {
+    analysisAndActions?: string | null;
+    beforePhotos?: string[];
+    afterPhotos?: string[];
+    extraFields?: { label: string; value: string }[];
   };
-  scheduling: {
-    date: string;
-    time: string;
-    startedAt?: string;
-    serviceType: string;
-  };
-  equipment: {
-    description: string;
-    serialNumber: string;
-  };
-  problem: string;
-  servicesPerformed: string;
-  parts: string;
-  notes: string;
-  checklist: {
-    items: Array<{ id: string; text: string }>;
-    responses: Record<string, boolean>;
-  };
-  photos: string[];
+  checklist?: {
+    title: string;
+    filledBy?: string;
+    filledAt?: string;
+    sections: {
+      title: string;
+      items: {
+        label: string;
+        status: "OK" | "NC" | "NA" | "Pendente";
+        note?: string | null;
+        photos?: string[];
+      }[];
+    }[];
+  } | null;
   signatures: {
-    technician: {
-      name: string;
-      url: string;
-      date: string;
-    };
-    customer: {
-      name: string;
-      position: string;
-      url: string;
-      date: string;
-    };
+    tech?: { name: string; when?: string; imageDataUrl?: string } | null;
+    client?: { name: string; role?: string; when?: string; imageDataUrl?: string } | null;
   };
-}
+};
 
 // Estilos do PDF
 const styles = StyleSheet.create({
@@ -222,14 +220,34 @@ const styles = StyleSheet.create({
   // Checklist
   checklistItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
+    alignItems: 'flex-start',
+    marginBottom: 6,
     fontSize: 9,
   },
-  checklistIcon: {
-    width: 12,
-    height: 12,
+  checklistStatus: {
+    width: 40,
     marginRight: 6,
+    fontWeight: 'bold',
+    fontSize: 8,
+    color: '#111111',
+  },
+  checklistLabel: {
+    flex: 1,
+    fontSize: 9,
+  },
+  checklistNote: {
+    fontSize: 8,
+    color: '#666666',
+    marginLeft: 46,
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  checklistSectionTitle: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    marginTop: 6,
+    marginBottom: 4,
+    color: '#333333',
   },
 
   // Fotos
@@ -298,21 +316,27 @@ const styles = StyleSheet.create({
 });
 
 // Componente Header
-const Header = ({ company, osNumber }: { company: OSReportData['company']; osNumber: number }) => (
+const Header = ({ company, osNumber }: { company: Report['company']; osNumber: number | string }) => (
   <>
     <View style={styles.header}>
       <View style={styles.logoContainer}>
-        {company.logoUrl && (
-          <Image src={company.logoUrl} style={styles.logo} />
+        {company.logoDataUrl && (
+          <Image src={company.logoDataUrl} style={styles.logo} />
         )}
       </View>
       <View style={styles.companyInfo}>
         <Text style={styles.companyName}>{company.name}</Text>
-        <Text style={styles.companyText}>CNPJ: {company.cnpj} | IE: {company.ie}</Text>
-        <Text style={styles.companyText}>{company.website}</Text>
-        <Text style={styles.companyText}>{company.email}</Text>
-        <Text style={styles.companyText}>{company.phone}</Text>
-        <Text style={styles.companyText}>{company.address}</Text>
+        {(company.cnpj || company.ie) && (
+          <Text style={styles.companyText}>
+            {company.cnpj && `CNPJ: ${company.cnpj}`}
+            {company.cnpj && company.ie && ' | '}
+            {company.ie && `IE: ${company.ie}`}
+          </Text>
+        )}
+        {company.site && <Text style={styles.companyText}>{company.site}</Text>}
+        {company.email && <Text style={styles.companyText}>{company.email}</Text>}
+        {company.phone && <Text style={styles.companyText}>{company.phone}</Text>}
+        {company.address && <Text style={styles.companyText}>{company.address}</Text>}
       </View>
     </View>
     <View style={styles.title}>
@@ -347,38 +371,56 @@ const PhotoGrid = ({ photos }: { photos: string[] }) => (
 );
 
 // Componente Signatures
-const Signatures = ({ signatures }: { signatures: OSReportData['signatures'] }) => (
+const Signatures = ({ signatures }: { signatures: Report['signatures'] }) => (
   <View style={styles.signatures} wrap={false}>
-    <View style={styles.signatureCol}>
-      <Text style={styles.signatureTitle}>TÉCNICO</Text>
-      {signatures.technician.url && (
-        <Image src={signatures.technician.url} style={styles.signatureImage} />
-      )}
-      <View style={styles.signatureLine} />
-      <Text style={styles.signatureLegend}>{signatures.technician.name}</Text>
-      {signatures.technician.date && (
-        <Text style={styles.signatureLegend}>{signatures.technician.date}</Text>
-      )}
-    </View>
-    <View style={styles.signatureCol}>
-      <Text style={styles.signatureTitle}>CLIENTE</Text>
-      {signatures.customer.url && (
-        <Image src={signatures.customer.url} style={styles.signatureImage} />
-      )}
-      <View style={styles.signatureLine} />
-      <Text style={styles.signatureLegend}>{signatures.customer.name}</Text>
-      {signatures.customer.position && (
-        <Text style={styles.signatureLegend}>Cargo: {signatures.customer.position}</Text>
-      )}
-      {signatures.customer.date && (
-        <Text style={styles.signatureLegend}>{signatures.customer.date}</Text>
-      )}
-    </View>
+    {signatures.tech && (
+      <View style={styles.signatureCol}>
+        <Text style={styles.signatureTitle}>TÉCNICO</Text>
+        {signatures.tech.imageDataUrl ? (
+          <>
+            <Image src={signatures.tech.imageDataUrl} style={styles.signatureImage} />
+            <View style={styles.signatureLine} />
+          </>
+        ) : (
+          <View style={styles.signatureLine} />
+        )}
+        <Text style={styles.signatureLegend}>{signatures.tech.name}</Text>
+        {signatures.tech.when && (
+          <Text style={styles.signatureLegend}>{signatures.tech.when}</Text>
+        )}
+        {!signatures.tech.imageDataUrl && (
+          <Text style={[styles.signatureLegend, styles.muted]}>Não assinado</Text>
+        )}
+      </View>
+    )}
+    {signatures.client && (
+      <View style={styles.signatureCol}>
+        <Text style={styles.signatureTitle}>CLIENTE</Text>
+        {signatures.client.imageDataUrl ? (
+          <>
+            <Image src={signatures.client.imageDataUrl} style={styles.signatureImage} />
+            <View style={styles.signatureLine} />
+          </>
+        ) : (
+          <View style={styles.signatureLine} />
+        )}
+        <Text style={styles.signatureLegend}>{signatures.client.name}</Text>
+        {signatures.client.role && (
+          <Text style={styles.signatureLegend}>Cargo: {signatures.client.role}</Text>
+        )}
+        {signatures.client.when && (
+          <Text style={styles.signatureLegend}>{signatures.client.when}</Text>
+        )}
+        {!signatures.client.imageDataUrl && (
+          <Text style={[styles.signatureLegend, styles.muted]}>Não assinado</Text>
+        )}
+      </View>
+    )}
   </View>
 );
 
 // Componente Principal
-export const OSReport = ({ data }: { data: OSReportData }) => {
+export const OSReport = ({ data }: { data: Report }) => {
   const statusMap: Record<string, string> = {
     pending: 'Aguardando Início',
     in_progress: 'Em Andamento',
@@ -391,7 +433,7 @@ export const OSReport = ({ data }: { data: OSReportData }) => {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Cabeçalho */}
-        <Header company={data.company} osNumber={data.osNumber} />
+        <Header company={data.company} osNumber={data.os.number} />
 
         {/* Cliente + Quadro da OS */}
         <View style={styles.grid2Cols} wrap={false}>
@@ -400,15 +442,23 @@ export const OSReport = ({ data }: { data: OSReportData }) => {
               <Text>CLIENTE</Text>
             </View>
             <Text style={styles.clientName}>{data.client.name}</Text>
-            <Text style={styles.clientInfo}>
-              CNPJ: {data.client.cpfCnpj} | IE: {data.client.ie}
-            </Text>
-            <Text style={styles.clientInfo}>
-              {data.client.address} — {data.client.city}/{data.client.state} — CEP {data.client.cep}
-            </Text>
-            <Text style={styles.clientInfo}>
-              Fone: {data.client.phone} — {data.client.email}
-            </Text>
+            {(data.client.cnpj || data.client.ie) && (
+              <Text style={styles.clientInfo}>
+                {data.client.cnpj && `CNPJ: ${data.client.cnpj}`}
+                {data.client.cnpj && data.client.ie && ' | '}
+                {data.client.ie && `IE: ${data.client.ie}`}
+              </Text>
+            )}
+            {data.client.address && (
+              <Text style={styles.clientInfo}>{data.client.address}</Text>
+            )}
+            {(data.client.phone || data.client.email) && (
+              <Text style={styles.clientInfo}>
+                {data.client.phone && `Fone: ${data.client.phone}`}
+                {data.client.phone && data.client.email && ' — '}
+                {data.client.email}
+              </Text>
+            )}
           </View>
 
           <View style={[styles.col2, styles.osBox]}>
@@ -416,102 +466,167 @@ export const OSReport = ({ data }: { data: OSReportData }) => {
               <Text style={styles.osLabel}>Nº OS</Text>
               <Text style={styles.osValue}>{data.os.number}</Text>
             </View>
-            <View style={styles.osRow}>
-              <Text style={styles.osLabel}>Data Emissão</Text>
-              <Text style={styles.osValue}>{data.os.createdAt}</Text>
-            </View>
-            <View style={styles.osRow}>
-              <Text style={styles.osLabel}>Status</Text>
-              <Text style={styles.osValue}>{statusMap[data.os.status] || data.os.status}</Text>
-            </View>
-            <View style={styles.osRow}>
-              <Text style={styles.osLabel}>Data Prevista</Text>
-              <Text style={styles.osValue}>{data.os.scheduledDate}</Text>
-            </View>
-            <View style={[styles.osRow, styles.osRowLast]}>
-              <Text style={styles.osLabel}>Data Finalização</Text>
-              <Text style={styles.osValue}>{data.os.finishedAt || '—'}</Text>
-            </View>
+            {data.os.issueDate && (
+              <View style={styles.osRow}>
+                <Text style={styles.osLabel}>Data Emissão</Text>
+                <Text style={styles.osValue}>{data.os.issueDate}</Text>
+              </View>
+            )}
+            {data.os.status && (
+              <View style={styles.osRow}>
+                <Text style={styles.osLabel}>Status</Text>
+                <Text style={styles.osValue}>{statusMap[data.os.status] || data.os.status}</Text>
+              </View>
+            )}
+            {data.os.dueDate && (
+              <View style={styles.osRow}>
+                <Text style={styles.osLabel}>Data Prevista</Text>
+                <Text style={styles.osValue}>{data.os.dueDate}</Text>
+              </View>
+            )}
+            {data.os.finishDate && (
+              <View style={[styles.osRow, styles.osRowLast]}>
+                <Text style={styles.osLabel}>Data Finalização</Text>
+                <Text style={styles.osValue}>{data.os.finishDate}</Text>
+              </View>
+            )}
           </View>
         </View>
 
         {/* Técnico Responsável */}
-        <Section title="TÉCNICO RESPONSÁVEL">
-          <Text style={styles.sectionText}>{data.technician.name}</Text>
-        </Section>
+        {data.general.technician && (
+          <Section title="TÉCNICO RESPONSÁVEL">
+            <Text style={styles.sectionText}>{data.general.technician.name}</Text>
+          </Section>
+        )}
 
         {/* Agendamento */}
-        <Section title="AGENDAMENTO">
-          <Text style={styles.sectionText}>
-            Data: {data.scheduling.date} • Hora: {data.scheduling.time}
-          </Text>
-          {data.scheduling.startedAt && (
-            <Text style={[styles.sectionText, styles.muted]}>Iniciado em: {data.scheduling.startedAt}</Text>
-          )}
-          {data.scheduling.serviceType && (
-            <Text style={[styles.sectionText, styles.muted]}>Tipo: {data.scheduling.serviceType}</Text>
-          )}
-        </Section>
+        {data.general.schedule && (
+          <Section title="AGENDAMENTO">
+            {(data.general.schedule.date || data.general.schedule.time) && (
+              <Text style={styles.sectionText}>
+                {data.general.schedule.date && `Data: ${data.general.schedule.date}`}
+                {data.general.schedule.date && data.general.schedule.time && ' • '}
+                {data.general.schedule.time && `Hora: ${data.general.schedule.time}`}
+              </Text>
+            )}
+            {data.general.schedule.startedAt && (
+              <Text style={[styles.sectionText, styles.muted]}>
+                Iniciado em: {data.general.schedule.startedAt}
+              </Text>
+            )}
+          </Section>
+        )}
 
         {/* Equipamento + Nº de Série */}
-        <View style={styles.grid2Cols} wrap={false}>
-          <View style={styles.colEquip}>
-            <Section title="EQUIPAMENTO">
-              <Text style={styles.sectionText}>{data.equipment.description || '—'}</Text>
-            </Section>
+        {(data.general.equipment || data.general.serialNumber) && (
+          <View style={styles.grid2Cols} wrap={false}>
+            {data.general.equipment && (
+              <View style={styles.colEquip}>
+                <Section title="EQUIPAMENTO">
+                  <Text style={styles.sectionText}>{data.general.equipment}</Text>
+                </Section>
+              </View>
+            )}
+            {data.general.serialNumber && (
+              <View style={styles.colSerial}>
+                <Section title="Nº DE SÉRIE">
+                  <Text style={styles.sectionText}>{data.general.serialNumber}</Text>
+                </Section>
+              </View>
+            )}
           </View>
-          <View style={styles.colSerial}>
-            <Section title="Nº DE SÉRIE">
-              <Text style={styles.sectionText}>{data.equipment.serialNumber || '—'}</Text>
-            </Section>
-          </View>
-        </View>
+        )}
 
         {/* Problema */}
-        {data.problem && (
+        {data.general.problemDescription && (
           <Section title="PROBLEMA">
-            <Text style={styles.sectionText}>{data.problem}</Text>
+            <Text style={styles.sectionText}>{data.general.problemDescription}</Text>
           </Section>
         )}
 
-        {/* Serviços Executados */}
-        {data.servicesPerformed && (
-          <Section title="SERVIÇOS EXECUTADOS">
-            <Text style={styles.sectionText}>{data.servicesPerformed}</Text>
+        {/* Tipo de Serviço */}
+        {data.general.serviceType && (
+          <Section title="TIPO DE SERVIÇO">
+            <Text style={styles.sectionText}>{data.general.serviceType}</Text>
           </Section>
         )}
-
-        {/* Peças Utilizadas */}
-        <Section title="PEÇAS UTILIZADAS">
-          <Text style={[styles.sectionText, styles.muted]}>{data.parts}</Text>
-        </Section>
 
         {/* Checklist */}
-        {data.checklist.items.length > 0 && (
-          <Section title="CHECKLIST" noBorder>
-            {data.checklist.items.map((item) => (
-              <View key={item.id} style={styles.checklistItem}>
-                <Text style={styles.checklistIcon}>
-                  {data.checklist.responses[item.id] ? '☑' : '☐'}
-                </Text>
-                <Text style={styles.sectionText}>{item.text}</Text>
+        {data.checklist && (
+          <View style={styles.section} wrap={false}>
+            <View style={styles.sectionTitle}>
+              <Text>CHECKLIST — {data.checklist.title}</Text>
+            </View>
+            {(data.checklist.filledBy || data.checklist.filledAt) && (
+              <Text style={[styles.muted, { fontSize: 8, marginBottom: 6 }]}>
+                {data.checklist.filledBy && `Preenchido por: ${data.checklist.filledBy}`}
+                {data.checklist.filledBy && data.checklist.filledAt && ' • '}
+                {data.checklist.filledAt}
+              </Text>
+            )}
+            {data.checklist.sections.map((section, sIdx) => (
+              <View key={sIdx}>
+                {section.title && (
+                  <Text style={styles.checklistSectionTitle}>{section.title}</Text>
+                )}
+                {section.items.map((item, iIdx) => (
+                  <View key={iIdx}>
+                    <View style={styles.checklistItem}>
+                      <Text style={styles.checklistStatus}>[{item.status}]</Text>
+                      <Text style={styles.checklistLabel}>{item.label}</Text>
+                    </View>
+                    {item.note && (
+                      <Text style={styles.checklistNote}>{item.note}</Text>
+                    )}
+                    {item.photos && item.photos.length > 0 && (
+                      <View style={{ marginLeft: 46, marginTop: 4, marginBottom: 6 }}>
+                        <PhotoGrid photos={item.photos} />
+                      </View>
+                    )}
+                  </View>
+                ))}
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Análises e Providências */}
+        {data.technical.analysisAndActions && (
+          <Section title="ANÁLISES E PROVIDÊNCIAS REALIZADAS">
+            <Text style={styles.sectionText}>{data.technical.analysisAndActions}</Text>
           </Section>
         )}
 
-        {/* Fotos */}
-        {data.photos.length > 0 && (
+        {/* Fotos - Antes */}
+        {data.technical.beforePhotos && data.technical.beforePhotos.length > 0 && (
           <View style={styles.section} wrap={false}>
             <View style={styles.sectionTitle}>
-              <Text>FOTOS</Text>
+              <Text>FOTOS - ANTES DA MANUTENÇÃO</Text>
             </View>
-            <PhotoGrid photos={data.photos} />
+            <PhotoGrid photos={data.technical.beforePhotos} />
           </View>
+        )}
+
+        {/* Fotos - Depois */}
+        {data.technical.afterPhotos && data.technical.afterPhotos.length > 0 && (
+          <View style={styles.section} wrap={false}>
+            <View style={styles.sectionTitle}>
+              <Text>FOTOS - DEPOIS DA MANUTENÇÃO</Text>
+            </View>
+            <PhotoGrid photos={data.technical.afterPhotos} />
+          </View>
+        )}
+
+        {/* Anotações Gerais */}
+        {data.general.notes && (
+          <Section title="ANOTAÇÕES GERAIS">
+            <Text style={styles.sectionText}>{data.general.notes}</Text>
+          </Section>
         )}
 
         {/* Assinaturas */}
-        {(data.signatures.technician.url || data.signatures.customer.url) && (
+        {(data.signatures.tech || data.signatures.client) && (
           <Signatures signatures={data.signatures} />
         )}
       </Page>
