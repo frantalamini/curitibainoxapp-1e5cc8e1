@@ -57,6 +57,7 @@ type Report = {
     analysisAndActions?: string | null;
     beforePhotos?: string[];
     afterPhotos?: string[];
+    mediaPhotos?: string[];
     extraFields?: { label: string; value: string }[];
   };
   checklist?: {
@@ -269,6 +270,37 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     clientDataUrl: clientSignatureDataUrl?.substring(0, 50) + '...',
   });
 
+  // 6. PROCESSAR FOTOS DE "FOTOS E VÍDEOS" (media_urls)
+  const mediaUrls = call.media_urls || [];
+  const mediaPhotos: string[] = [];
+  
+  // Filtrar apenas imagens por extensão
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
+  const mediaImageUrls = mediaUrls.filter(url => {
+    const lower = url.toLowerCase();
+    return imageExtensions.some(ext => lower.endsWith(ext));
+  });
+
+  console.log('🔍 [PDF] Processando fotos de "Fotos e Vídeos":', {
+    totalMedia: mediaUrls.length,
+    imagesDetected: mediaImageUrls.length,
+  });
+
+  // Converter imagens para DataURL
+  for (const url of mediaImageUrls) {
+    const dataUrl = await toDataUrl(url);
+    if (dataUrl) {
+      mediaPhotos.push(dataUrl);
+    } else {
+      console.warn('⚠️ [PDF] Falha ao converter foto de media_urls:', url);
+    }
+  }
+
+  console.log('🔍 [PDF] Fotos de "Fotos e Vídeos" convertidas:', {
+    original: mediaImageUrls.length,
+    converted: mediaPhotos.length,
+  });
+
   // 6. MONTAR ENDEREÇO COMPLETO DA EMPRESA
   const companyAddressParts = [
     companyDataAny?.company_address,
@@ -334,6 +366,7 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
       analysisAndActions: call.technical_diagnosis?.trim() || null,
       beforePhotos: beforePhotos.length > 0 ? beforePhotos : undefined,
       afterPhotos: afterPhotos.length > 0 ? afterPhotos : undefined,
+      mediaPhotos: mediaPhotos.length > 0 ? mediaPhotos : undefined,
       extraFields: [],
     },
     checklist,

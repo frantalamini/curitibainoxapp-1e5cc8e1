@@ -54,6 +54,7 @@ type Report = {
     analysisAndActions?: string | null;
     beforePhotos?: string[];
     afterPhotos?: string[];
+    mediaPhotos?: string[];
     extraFields?: { label: string; value: string }[];
   };
   checklist?: {
@@ -601,7 +602,8 @@ export const OSReport = ({ data }: { data: Report }) => {
 
         {/* Fotos do Serviço */}
         {((data.technical.beforePhotos && data.technical.beforePhotos.length > 0) ||
-          (data.technical.afterPhotos && data.technical.afterPhotos.length > 0)) && (
+          (data.technical.afterPhotos && data.technical.afterPhotos.length > 0) ||
+          (data.technical.mediaPhotos && data.technical.mediaPhotos.length > 0)) && (
           <View style={styles.section} wrap={false}>
             <View style={styles.sectionTitle}>
               <Text>FOTOS DO SERVIÇO</Text>
@@ -609,7 +611,8 @@ export const OSReport = ({ data }: { data: Report }) => {
             <PhotoGrid 
               photos={[
                 ...(data.technical.beforePhotos || []),
-                ...(data.technical.afterPhotos || [])
+                ...(data.technical.afterPhotos || []),
+                ...(data.technical.mediaPhotos || [])
               ]} 
             />
           </View>
