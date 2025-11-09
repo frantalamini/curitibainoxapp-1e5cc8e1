@@ -597,27 +597,44 @@ export const OSReport = ({ data }: { data: Report }) => {
         )}
 
         {/* FOTOS ANTES DA MANUTENÇÃO */}
-        {(data.photos?.before?.images?.length ?? 0) > 0 && (
+        {(data.photos?.before && ((data.photos.before.images?.length ?? 0) > 0 || (data.photos.before.videos?.length ?? 0) > 0)) && (
           <View style={styles.section} wrap={false}>
             <View style={styles.sectionTitle}>
               <Text>FOTOS ANTES DA MANUTENÇÃO</Text>
             </View>
-            <PhotoGrid photos={data.photos.before.images} />
+            
+            {/* Renderizar fotos se houver */}
+            {(data.photos.before.images?.length ?? 0) > 0 && (
+              <PhotoGrid photos={data.photos.before.images} />
+            )}
+            
+            {/* Renderizar aviso de vídeos se houver */}
             {(data.photos.before.videos?.length ?? 0) > 0 && (
               <Text style={[styles.sectionText, { marginTop: 8, fontSize: 9, color: '#666' }]}>
-                Vídeos (links): {data.photos.before.videos.join(' • ')}
+                Vídeos anexados{data.photos.before.videos.length > 1 ? ` (${data.photos.before.videos.length})` : ''}
               </Text>
             )}
           </View>
         )}
 
         {/* FOTOS APÓS A MANUTENÇÃO */}
-        {(data.photos?.after?.images?.length ?? 0) > 0 && (
+        {(data.photos?.after && ((data.photos.after.images?.length ?? 0) > 0 || (data.photos.after.videos?.length ?? 0) > 0)) && (
           <View style={styles.section} wrap={false}>
             <View style={styles.sectionTitle}>
               <Text>FOTOS APÓS A MANUTENÇÃO</Text>
             </View>
-            <PhotoGrid photos={data.photos.after.images} />
+            
+            {/* Renderizar fotos se houver */}
+            {(data.photos.after.images?.length ?? 0) > 0 && (
+              <PhotoGrid photos={data.photos.after.images} />
+            )}
+            
+            {/* Renderizar aviso de vídeos se houver */}
+            {(data.photos.after.videos?.length ?? 0) > 0 && (
+              <Text style={[styles.sectionText, { marginTop: 8, fontSize: 9, color: '#666' }]}>
+                Vídeos anexados{data.photos.after.videos.length > 1 ? ` (${data.photos.after.videos.length})` : ''}
+              </Text>
+            )}
           </View>
         )}
 
