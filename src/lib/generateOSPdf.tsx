@@ -79,47 +79,90 @@ type Report = {
     tech?: { name: string; when?: string; imageDataUrl?: string } | null;
     client?: { name: string; role?: string; when?: string; imageDataUrl?: string } | null;
   };
+  _imageDiagnostics?: {
+    mediaFailed?: string[];
+    beforeFailed?: string[];
+    afterFailed?: string[];
+    totalAttempted: number;
+    totalConverted: number;
+    totalFailed: number;
+  };
 };
 
-async function toDataUrl(url: string | null): Promise<string | null> {
-  if (!url) {
-    console.warn('⚠️ [toDataUrl] URL vazia ou null');
-    return null;
-  }
-  
+// Aguarda um tempo especificado (útil para debounce pós-upload)
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Converte URL para Data URL com retry, timeout e método robusto (FileReader)
+ */
+async function toDataUrlWithRetry(
+  url: string, 
+  maxRetries = 2, 
+  timeoutMs = 8000
+): Promise<string | null> {
   // Se já é DataURL, retorna direto
   if (url.startsWith('data:')) {
-    console.log('✅ [toDataUrl] DataURL detectado, retornando direto');
     return url;
   }
   
-  // Só aceitar URLs HTTP/HTTPS
+  // Validação básica
   if (!url.startsWith('http')) {
-    console.warn('⚠️ [toDataUrl] URL inválida (não HTTP):', url.substring(0, 100));
+    console.warn('⚠️ [toDataUrl] URL inválida:', url.substring(0, 100));
     return null;
+  }
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Timeout controller
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      console.log(`🔄 [toDataUrl] Tentativa ${attempt + 1}/${maxRetries + 1}:`, url.substring(0, 80) + '...');
+      
+      // Fetch com timeout
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        credentials: 'omit' // Evita CORS issues
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      // Converte para blob e depois para Data URL usando FileReader (método mais robusto)
+      const blob = await response.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('FileReader falhou'));
+        reader.readAsDataURL(blob);
+      });
+      
+      console.log('✅ [toDataUrl] Conversão bem-sucedida:', blob.type);
+      return dataUrl;
+      
+    } catch (error: any) {
+      const isTimeout = error.name === 'AbortError';
+      const isLastAttempt = attempt === maxRetries;
+      
+      console.warn(
+        `⚠️ [toDataUrl] Tentativa ${attempt + 1} falhou${isTimeout ? ' (timeout)' : ''}:`,
+        error.message
+      );
+      
+      // Se não for a última tentativa, aguarda antes de tentar novamente
+      if (!isLastAttempt) {
+        await sleep(400); // Backoff de 400ms
+      } else {
+        console.error('❌ [toDataUrl] TODAS as tentativas falharam:', url.substring(0, 80));
+        return null;
+      }
+    }
   }
   
-  try {
-    console.log('🔄 [toDataUrl] Convertendo URL pública:', url.substring(0, 100) + '...');
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      console.error('❌ [toDataUrl] Fetch falhou:', response.status, response.statusText);
-      return null;
-    }
-    
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    );
-    const contentType = response.headers.get('content-type') || 'image/png';
-    
-    console.log('✅ [toDataUrl] Conversão bem-sucedida:', contentType);
-    return `data:${contentType};base64,${base64}`;
-  } catch (error) {
-    console.error('❌ [toDataUrl] Erro na conversão:', error);
-    return null;
-  }
+  return null;
 }
 
 /**
@@ -148,11 +191,22 @@ function splitMedia(urls: string[]): { images: string[]; videos: string[] } {
 }
 
 /**
+ * Aguarda propagação de uploads recentes no storage/CDN
+ */
+async function waitForStoragePropagation(delayMs = 300): Promise<void> {
+  console.log(`⏳ [PDF] Aguardando ${delayMs}ms para propagação de uploads...`);
+  await sleep(delayMs);
+}
+
+/**
  * Gera PDF da OS usando @react-pdf/renderer
  * @param osId - ID da OS no Supabase
  * @returns Blob, fileName, blobUrl e osNumber
  */
 export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> => {
+  // 0. AGUARDAR PROPAGAÇÃO DE UPLOADS RECENTES
+  await waitForStoragePropagation(300);
+  
   // 1. BUSCAR DADOS DA OS
   const { data: osData, error: osError } = await supabase
     .from('service_calls')
@@ -198,7 +252,7 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
 
   // Converter logo para DataURL
   const logoUrl = companyDataAny?.report_logo || companyData?.logo_url || null;
-  const logoDataUrl = await toDataUrl(logoUrl);
+  const logoDataUrl = await toDataUrlWithRetry(logoUrl || '');
 
   // 3. BUSCAR CHECKLIST (se houver)
   let checklist: Report['checklist'] = null;
@@ -239,24 +293,28 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     after: { images: afterSplit.images.length, videos: afterSplit.videos.length },
   });
 
-  // Converter apenas IMAGENS para DataURL
+  // Converter apenas IMAGENS para DataURL (com retry)
   const beforePhotos: string[] = [];
+  const beforeFailed: string[] = [];
   for (const url of beforeSplit.images) {
-    const dataUrl = await toDataUrl(url);
+    const dataUrl = await toDataUrlWithRetry(url);
     if (dataUrl) {
       beforePhotos.push(dataUrl);
     } else {
-      console.warn('⚠️ [PDF] Falha ao converter foto "antes":', url);
+      console.error('❌ [PDF] FALHA CRÍTICA ao converter foto "antes":', url);
+      beforeFailed.push(url);
     }
   }
 
   const afterPhotos: string[] = [];
+  const afterFailed: string[] = [];
   for (const url of afterSplit.images) {
-    const dataUrl = await toDataUrl(url);
+    const dataUrl = await toDataUrlWithRetry(url);
     if (dataUrl) {
       afterPhotos.push(dataUrl);
     } else {
-      console.warn('⚠️ [PDF] Falha ao converter foto "depois":', url);
+      console.error('❌ [PDF] FALHA CRÍTICA ao converter foto "depois":', url);
+      afterFailed.push(url);
     }
   }
 
@@ -272,18 +330,18 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
 
   // Técnico: tentar data primeiro (mais confiável), depois url
   if (call.technician_signature_data) {
-    techSignatureDataUrl = await toDataUrl(call.technician_signature_data);
+    techSignatureDataUrl = await toDataUrlWithRetry(call.technician_signature_data);
   }
   if (!techSignatureDataUrl && call.technician_signature_url) {
-    techSignatureDataUrl = await toDataUrl(call.technician_signature_url);
+    techSignatureDataUrl = await toDataUrlWithRetry(call.technician_signature_url);
   }
 
   // Cliente: tentar data primeiro (mais confiável), depois url
   if (call.customer_signature_data) {
-    clientSignatureDataUrl = await toDataUrl(call.customer_signature_data);
+    clientSignatureDataUrl = await toDataUrlWithRetry(call.customer_signature_data);
   }
   if (!clientSignatureDataUrl && call.customer_signature_url) {
-    clientSignatureDataUrl = await toDataUrl(call.customer_signature_url);
+    clientSignatureDataUrl = await toDataUrlWithRetry(call.customer_signature_url);
   }
 
   // Debug: verificar se as assinaturas foram processadas
@@ -304,14 +362,16 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     videos: mediaSplit.videos.length,
   });
 
-  // Converter apenas IMAGENS para DataURL
+  // Converter apenas IMAGENS para DataURL (com retry)
   const mediaPhotos: string[] = [];
+  const mediaFailed: string[] = [];
   for (const url of mediaSplit.images) {
-    const dataUrl = await toDataUrl(url);
+    const dataUrl = await toDataUrlWithRetry(url);
     if (dataUrl) {
       mediaPhotos.push(dataUrl);
     } else {
-      console.warn('⚠️ [PDF] Falha ao converter foto de media_urls:', url);
+      console.error('❌ [PDF] FALHA CRÍTICA ao converter foto de media_urls:', url);
+      mediaFailed.push(url);
     }
   }
 
@@ -405,6 +465,14 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
         })(),
       },
     },
+    _imageDiagnostics: {
+      mediaFailed: mediaFailed.length > 0 ? mediaFailed : undefined,
+      beforeFailed: beforeFailed.length > 0 ? beforeFailed : undefined,
+      afterFailed: afterFailed.length > 0 ? afterFailed : undefined,
+      totalAttempted: beforeSplit.images.length + afterSplit.images.length + mediaSplit.images.length,
+      totalConverted: mediaPhotos.length + beforePhotos.length + afterPhotos.length,
+      totalFailed: mediaFailed.length + beforeFailed.length + afterFailed.length,
+    },
     checklist,
     signatures: {
       tech: techSignatureDataUrl || call.technicians?.full_name
@@ -439,6 +507,25 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
 
   // 11. CRIAR BLOB URL
   const blobUrl = URL.createObjectURL(blob);
+
+  // LOG DE DIAGNÓSTICO
+  const diag = report._imageDiagnostics;
+  if (diag && diag.totalFailed > 0) {
+    console.error('🚨 [PDF] IMAGENS FALHARAM:', {
+      tentadas: diag.totalAttempted,
+      convertidas: diag.totalConverted,
+      falhadas: diag.totalFailed,
+      detalhes: {
+        media: diag.mediaFailed,
+        antes: diag.beforeFailed,
+        depois: diag.afterFailed,
+      }
+    });
+  } else {
+    console.log('✅ [PDF] TODAS as imagens convertidas com sucesso:', {
+      total: diag?.totalConverted || 0,
+    });
+  }
 
   return {
     blob,
