@@ -123,6 +123,31 @@ async function toDataUrl(url: string | null): Promise<string | null> {
 }
 
 /**
+ * Separa URLs em imagens e vídeos por extensão
+ */
+function splitMedia(urls: string[]): { images: string[]; videos: string[] } {
+  const images: string[] = [];
+  const videos: string[] = [];
+  
+  const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
+  const videoExts = ['.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'];
+  
+  for (const url of urls) {
+    const lower = url.toLowerCase();
+    const isImage = imageExts.some(ext => lower.includes(ext));
+    const isVideo = videoExts.some(ext => lower.includes(ext));
+    
+    if (isVideo) {
+      videos.push(url);
+    } else if (isImage) {
+      images.push(url);
+    }
+  }
+  
+  return { images, videos };
+}
+
+/**
  * Gera PDF da OS usando @react-pdf/renderer
  * @param osId - ID da OS no Supabase
  * @returns Blob, fileName, blobUrl e osNumber
@@ -205,15 +230,18 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     }
   }
 
-  // 4. CONVERTER FOTOS PARA DATAURL
-  const beforePhotosUrls = call.photos_before_urls || [];
-  const afterPhotosUrls = call.photos_after_urls || [];
-  
+  // 4. SEPARAR IMAGENS E VÍDEOS DE "ANTES" E "DEPOIS"
+  const beforeSplit = splitMedia(call.photos_before_urls || []);
+  const afterSplit = splitMedia(call.photos_after_urls || []);
+
+  console.log('🔍 [PDF] Separação de mídias técnicas:', {
+    before: { images: beforeSplit.images.length, videos: beforeSplit.videos.length },
+    after: { images: afterSplit.images.length, videos: afterSplit.videos.length },
+  });
+
+  // Converter apenas IMAGENS para DataURL
   const beforePhotos: string[] = [];
-  const afterPhotos: string[] = [];
-  
-  // Converter fotos "antes" com log de erro
-  for (const url of beforePhotosUrls) {
+  for (const url of beforeSplit.images) {
     const dataUrl = await toDataUrl(url);
     if (dataUrl) {
       beforePhotos.push(dataUrl);
@@ -221,9 +249,9 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
       console.warn('⚠️ [PDF] Falha ao converter foto "antes":', url);
     }
   }
-  
-  // Converter fotos "depois" com log de erro
-  for (const url of afterPhotosUrls) {
+
+  const afterPhotos: string[] = [];
+  for (const url of afterSplit.images) {
     const dataUrl = await toDataUrl(url);
     if (dataUrl) {
       afterPhotos.push(dataUrl);
@@ -232,12 +260,9 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     }
   }
 
-  // Debug: verificar quantas fotos foram processadas
-  console.log('🔍 [PDF] Fotos processadas:', {
-    beforeOriginal: beforePhotosUrls.length,
-    beforeConverted: beforePhotos.length,
-    afterOriginal: afterPhotosUrls.length,
-    afterConverted: afterPhotos.length,
+  console.log('🔍 [PDF] Fotos convertidas:', {
+    before: beforePhotos.length,
+    after: afterPhotos.length,
   });
 
   // 5. CONVERTER ASSINATURAS PARA DATAURL
@@ -271,24 +296,17 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     clientDataUrl: clientSignatureDataUrl?.substring(0, 50) + '...',
   });
 
-  // 6. PROCESSAR FOTOS DE "FOTOS E VÍDEOS" (media_urls)
-  const mediaUrls = call.media_urls || [];
+  // 6. SEPARAR IMAGENS E VÍDEOS DE "FOTOS E VÍDEOS" (media_urls)
+  const mediaSplit = splitMedia(call.media_urls || []);
+
+  console.log('🔍 [PDF] Separação de "Fotos e Vídeos":', {
+    images: mediaSplit.images.length,
+    videos: mediaSplit.videos.length,
+  });
+
+  // Converter apenas IMAGENS para DataURL
   const mediaPhotos: string[] = [];
-  
-  // Filtrar apenas imagens por extensão
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
-  const mediaImageUrls = mediaUrls.filter(url => {
-    const lower = url.toLowerCase();
-    return imageExtensions.some(ext => lower.endsWith(ext));
-  });
-
-  console.log('🔍 [PDF] Processando fotos de "Fotos e Vídeos":', {
-    totalMedia: mediaUrls.length,
-    imagesDetected: mediaImageUrls.length,
-  });
-
-  // Converter imagens para DataURL
-  for (const url of mediaImageUrls) {
+  for (const url of mediaSplit.images) {
     const dataUrl = await toDataUrl(url);
     if (dataUrl) {
       mediaPhotos.push(dataUrl);
@@ -297,22 +315,7 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     }
   }
 
-  console.log('🔍 [PDF] Fotos de "Fotos e Vídeos" convertidas:', {
-    original: mediaImageUrls.length,
-    converted: mediaPhotos.length,
-  });
-
-  // 7. PROCESSAR VÍDEOS DE "FOTOS E VÍDEOS" (media_urls)
-  const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.m4v'];
-  const mediaVideoUrls = mediaUrls.filter(url => {
-    const lower = url.toLowerCase();
-    return videoExtensions.some(ext => lower.endsWith(ext));
-  });
-
-  console.log('🔍 [PDF] Vídeos detectados em media_urls:', {
-    totalVideos: mediaVideoUrls.length,
-    urls: mediaVideoUrls.map(u => u.substring(u.lastIndexOf('/') + 1)),
-  });
+  console.log('🔍 [PDF] Fotos de "Fotos e Vídeos" convertidas:', mediaPhotos.length);
 
   // 8. MONTAR ENDEREÇO COMPLETO DA EMPRESA
   const companyAddressParts = [
@@ -382,11 +385,24 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     photos: {
       before: {
         images: [...mediaPhotos, ...beforePhotos],
-        videos: mediaVideoUrls.length > 0 ? mediaVideoUrls : undefined,
+        videos: (() => {
+          const allBeforeVideos = [
+            ...mediaSplit.videos,
+            ...beforeSplit.videos,
+            call.video_before_url || null,
+          ].filter(Boolean) as string[];
+          return allBeforeVideos.length > 0 ? allBeforeVideos : undefined;
+        })(),
       },
       after: {
         images: afterPhotos,
-        videos: undefined,
+        videos: (() => {
+          const allAfterVideos = [
+            ...afterSplit.videos,
+            call.video_after_url || null,
+          ].filter(Boolean) as string[];
+          return allAfterVideos.length > 0 ? allAfterVideos : undefined;
+        })(),
       },
     },
     checklist,
