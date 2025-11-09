@@ -379,7 +379,7 @@ const Signatures = ({ signatures }: { signatures: Report['signatures'] }) => (
     <View style={styles.signatures}>
       {signatures.tech && (
         <View style={styles.signatureCol}>
-          <Text style={styles.signatureTitle}>TÉCNICO</Text>
+          <Text style={styles.signatureTitle}>TÉCNICO RESPONSÁVEL</Text>
           {signatures.tech.imageDataUrl && (
             <Image src={signatures.tech.imageDataUrl} style={styles.signatureImage} />
           )}
@@ -392,7 +392,7 @@ const Signatures = ({ signatures }: { signatures: Report['signatures'] }) => (
       )}
       {signatures.client && (
         <View style={styles.signatureCol}>
-          <Text style={styles.signatureTitle}>CLIENTE</Text>
+          <Text style={styles.signatureTitle}>CLIENTE / RESPONSÁVEL</Text>
           {signatures.client.imageDataUrl && (
             <Image src={signatures.client.imageDataUrl} style={styles.signatureImage} />
           )}
