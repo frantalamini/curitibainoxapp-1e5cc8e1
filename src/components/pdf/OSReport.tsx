@@ -52,10 +52,11 @@ type Report = {
   };
   technical: {
     analysisAndActions?: string | null;
-    beforePhotos?: string[];
-    afterPhotos?: string[];
-    mediaPhotos?: string[];
     extraFields?: { label: string; value: string }[];
+  };
+  photos: {
+    before: { images: string[]; videos?: string[] };
+    after: { images: string[]; videos?: string[] };
   };
   checklist?: {
     title: string;
@@ -595,27 +596,34 @@ export const OSReport = ({ data }: { data: Report }) => {
           </Section>
         )}
 
-        {/* Assinaturas */}
-        {(data.signatures.tech || data.signatures.client) && (
-          <Signatures signatures={data.signatures} />
-        )}
-
-        {/* Fotos do Serviço */}
-        {((data.technical.beforePhotos && data.technical.beforePhotos.length > 0) ||
-          (data.technical.afterPhotos && data.technical.afterPhotos.length > 0) ||
-          (data.technical.mediaPhotos && data.technical.mediaPhotos.length > 0)) && (
+        {/* FOTOS ANTES DA MANUTENÇÃO */}
+        {(data.photos?.before?.images?.length ?? 0) > 0 && (
           <View style={styles.section} wrap={false}>
             <View style={styles.sectionTitle}>
-              <Text>FOTOS DO SERVIÇO</Text>
+              <Text>FOTOS ANTES DA MANUTENÇÃO</Text>
             </View>
-            <PhotoGrid 
-              photos={[
-                ...(data.technical.beforePhotos || []),
-                ...(data.technical.afterPhotos || []),
-                ...(data.technical.mediaPhotos || [])
-              ]} 
-            />
+            <PhotoGrid photos={data.photos.before.images} />
+            {(data.photos.before.videos?.length ?? 0) > 0 && (
+              <Text style={[styles.sectionText, { marginTop: 8, fontSize: 9, color: '#666' }]}>
+                Vídeos (links): {data.photos.before.videos.join(' • ')}
+              </Text>
+            )}
           </View>
+        )}
+
+        {/* FOTOS APÓS A MANUTENÇÃO */}
+        {(data.photos?.after?.images?.length ?? 0) > 0 && (
+          <View style={styles.section} wrap={false}>
+            <View style={styles.sectionTitle}>
+              <Text>FOTOS APÓS A MANUTENÇÃO</Text>
+            </View>
+            <PhotoGrid photos={data.photos.after.images} />
+          </View>
+        )}
+
+        {/* Assinaturas (sempre por último) */}
+        {(data.signatures.tech || data.signatures.client) && (
+          <Signatures signatures={data.signatures} />
         )}
       </Page>
     </Document>

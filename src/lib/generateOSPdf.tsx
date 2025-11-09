@@ -55,10 +55,11 @@ type Report = {
   };
   technical: {
     analysisAndActions?: string | null;
-    beforePhotos?: string[];
-    afterPhotos?: string[];
-    mediaPhotos?: string[];
     extraFields?: { label: string; value: string }[];
+  };
+  photos: {
+    before: { images: string[]; videos?: string[] };
+    after: { images: string[]; videos?: string[] };
   };
   checklist?: {
     title: string;
@@ -301,7 +302,19 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     converted: mediaPhotos.length,
   });
 
-  // 6. MONTAR ENDEREÇO COMPLETO DA EMPRESA
+  // 7. PROCESSAR VÍDEOS DE "FOTOS E VÍDEOS" (media_urls)
+  const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.m4v'];
+  const mediaVideoUrls = mediaUrls.filter(url => {
+    const lower = url.toLowerCase();
+    return videoExtensions.some(ext => lower.endsWith(ext));
+  });
+
+  console.log('🔍 [PDF] Vídeos detectados em media_urls:', {
+    totalVideos: mediaVideoUrls.length,
+    urls: mediaVideoUrls.map(u => u.substring(u.lastIndexOf('/') + 1)),
+  });
+
+  // 8. MONTAR ENDEREÇO COMPLETO DA EMPRESA
   const companyAddressParts = [
     companyDataAny?.company_address,
   ].filter(Boolean);
@@ -364,10 +377,17 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     },
     technical: {
       analysisAndActions: call.technical_diagnosis?.trim() || null,
-      beforePhotos: beforePhotos.length > 0 ? beforePhotos : undefined,
-      afterPhotos: afterPhotos.length > 0 ? afterPhotos : undefined,
-      mediaPhotos: mediaPhotos.length > 0 ? mediaPhotos : undefined,
       extraFields: [],
+    },
+    photos: {
+      before: {
+        images: [...mediaPhotos, ...beforePhotos],
+        videos: mediaVideoUrls.length > 0 ? mediaVideoUrls : undefined,
+      },
+      after: {
+        images: afterPhotos,
+        videos: undefined,
+      },
     },
     checklist,
     signatures: {
