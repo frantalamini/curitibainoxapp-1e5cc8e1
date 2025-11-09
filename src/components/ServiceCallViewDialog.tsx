@@ -30,6 +30,7 @@ import {
   XCircle,
   PenTool,
   MessageCircle,
+  Mail,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateOSPdf } from "@/lib/generateOSPdf";
@@ -37,6 +38,10 @@ import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useChecklists } from "@/hooks/useChecklists";
+import { useEquipment } from "@/hooks/useEquipment";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { SendReportModal } from "@/components/SendReportModal";
 
 const getLatestSignature = (signatures: any[] | undefined, role: 'tech' | 'client') => {
   if (!signatures || !Array.isArray(signatures)) return null;
@@ -62,7 +67,12 @@ const ServiceCallViewDialog = ({
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [sendWhatsAppModalOpen, setSendWhatsAppModalOpen] = useState(false);
+  const [sendEmailModalOpen, setSendEmailModalOpen] = useState(false);
   const { isAdmin, isTechnician } = useUserRole();
+  const { checklists } = useChecklists();
+  const { equipment } = useEquipment();
+  const { settings: systemSettings } = useSystemSettings();
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
@@ -241,33 +251,21 @@ const ServiceCallViewDialog = ({
                   💾 Salvar PDF
                 </Button>
                 
-                {call.clients?.phone && (
-                  <Button
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(pdfUrl);
-                        const link = generateSimpleWhatsAppLink(call.clients!.phone);
-                        window.open(link, '_blank');
-                        
-                        toast({
-                          title: "Link copiado!",
-                          description: "Cole o link do PDF na conversa do WhatsApp",
-                        });
-                      } catch (error) {
-                        console.error("Erro ao copiar link:", error);
-                        toast({
-                          title: "Erro",
-                          description: "Não foi possível copiar o link",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Enviar via WhatsApp
-                  </Button>
-                )}
+                <Button
+                  onClick={() => setSendWhatsAppModalOpen(true)}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Enviar via WhatsApp
+                </Button>
+                
+                <Button
+                  onClick={() => setSendEmailModalOpen(true)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Enviar por E-mail
+                </Button>
               </div>
               
               <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
@@ -829,6 +827,27 @@ const ServiceCallViewDialog = ({
           </CardContent>
         </Card>
       </DialogContent>
+      
+      {/* Modais de Envio */}
+      <SendReportModal
+        open={sendWhatsAppModalOpen}
+        onOpenChange={setSendWhatsAppModalOpen}
+        mode="whatsapp"
+        osNumber={call.os_number.toString()}
+        pdfUrl={pdfUrl}
+        clientData={call.clients!}
+        companyName={systemSettings?.company_name || 'Curitiba Inox'}
+      />
+
+      <SendReportModal
+        open={sendEmailModalOpen}
+        onOpenChange={setSendEmailModalOpen}
+        mode="email"
+        osNumber={call.os_number.toString()}
+        pdfUrl={pdfUrl}
+        clientData={call.clients!}
+        companyName={systemSettings?.company_name || 'Curitiba Inox'}
+      />
     </Dialog>
   );
 };

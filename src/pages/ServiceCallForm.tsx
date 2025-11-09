@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Clock } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,8 @@ import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { useChecklists } from "@/hooks/useChecklists";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { SendReportModal } from "@/components/SendReportModal";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { supabase } from "@/integrations/supabase/client";
 
 import { SignaturePad } from "@/components/SignaturePad";
@@ -88,6 +90,9 @@ const ServiceCallForm = () => {
   const [existingVideoAfterUrl, setExistingVideoAfterUrl] = useState<string | null>(null);
   const [selectedChecklistId, setSelectedChecklistId] = useState<string>("");
   const [checklistResponses, setChecklistResponses] = useState<Record<string, boolean>>({});
+  const [sendWhatsAppModalOpen, setSendWhatsAppModalOpen] = useState(false);
+  const [sendEmailModalOpen, setSendEmailModalOpen] = useState(false);
+  const { settings: systemSettings } = useSystemSettings();
   const [technicianSignatureData, setTechnicianSignatureData] = useState<string | null>(null);
   const [customerSignatureData, setCustomerSignatureData] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState("");
@@ -1202,33 +1207,26 @@ const ServiceCallForm = () => {
                   <FileDown className="w-4 h-4 mr-2" />
                   {isGeneratingPDF ? "Gerando..." : "Gerar PDF"}
                 </Button>
-                {generatedPdfUrl && existingCall.clients && (
-                  <Button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(generatedPdfUrl);
-                        const link = generateSimpleWhatsAppLink(existingCall.clients!.phone);
-                        window.open(link, '_blank');
-                        
-                        toast({
-                          title: "Link copiado!",
-                          description: "Cole o link do PDF na conversa do WhatsApp",
-                        });
-                      } catch (error) {
-                        console.error("Erro ao copiar link:", error);
-                        toast({
-                          title: "Erro",
-                          description: "Não foi possível copiar o link",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Enviar via WhatsApp
-                  </Button>
+                {generatedPdfUrl && existingCall && (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={() => setSendWhatsAppModalOpen(true)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Enviar via WhatsApp
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      onClick={() => setSendEmailModalOpen(true)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      Enviar por E-mail
+                    </Button>
+                  </>
                 )}
               </>
             )}
