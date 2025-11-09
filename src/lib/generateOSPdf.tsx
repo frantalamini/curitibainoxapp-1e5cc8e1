@@ -80,7 +80,13 @@ type Report = {
 };
 
 async function toDataUrl(url: string | null): Promise<string | null> {
-  if (!url || !url.startsWith('http')) return null;
+  if (!url) return null;
+  
+  // Se já é um DataURL, retornar como está
+  if (url.startsWith('data:')) return url;
+  
+  // Só tentar converter URLs HTTP/HTTPS
+  if (!url.startsWith('http')) return null;
   
   try {
     const response = await fetch(url);
