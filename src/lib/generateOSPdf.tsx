@@ -280,18 +280,18 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     },
     checklist,
     signatures: {
-      tech: call.technicians?.full_name
+      tech: techSignatureDataUrl || call.technicians?.full_name
         ? {
-            name: call.technicians.full_name,
+            name: call.technicians?.full_name || 'Técnico',
             when: call.technician_signature_date
               ? format(new Date(call.technician_signature_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
               : undefined,
             imageDataUrl: techSignatureDataUrl || undefined,
           }
         : null,
-      client: call.customer_name || clientData?.full_name
+      client: clientSignatureDataUrl || call.customer_name || clientData?.full_name
         ? {
-            name: call.customer_name || clientData?.full_name,
+            name: call.customer_name || clientData?.full_name || 'Cliente',
             role: call.customer_position?.trim() || undefined,
             when: call.customer_signature_date
               ? format(new Date(call.customer_signature_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })

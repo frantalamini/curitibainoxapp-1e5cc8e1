@@ -519,22 +519,20 @@ export const OSReport = ({ data }: { data: Report }) => {
         )}
 
         {/* Equipamento + Nº de Série */}
-        {(data.general.equipment || data.general.serialNumber) && (
+        {data.general.equipment && (
           <View style={styles.grid2Cols} wrap={false}>
-            {data.general.equipment && (
-              <View style={styles.colEquip}>
-                <Section title="EQUIPAMENTO">
-                  <Text style={styles.sectionText}>{data.general.equipment}</Text>
-                </Section>
-              </View>
-            )}
-            {data.general.serialNumber && (
-              <View style={styles.colSerial}>
-                <Section title="Nº DE SÉRIE">
-                  <Text style={styles.sectionText}>{data.general.serialNumber}</Text>
-                </Section>
-              </View>
-            )}
+            <View style={styles.colEquip}>
+              <Section title="EQUIPAMENTO">
+                <Text style={styles.sectionText}>{data.general.equipment}</Text>
+              </Section>
+            </View>
+            <View style={styles.colSerial}>
+              <Section title="Nº DE SÉRIE">
+                <Text style={styles.sectionText}>
+                  {data.general.serialNumber || '—'}
+                </Text>
+              </Section>
+            </View>
           </View>
         )}
 
