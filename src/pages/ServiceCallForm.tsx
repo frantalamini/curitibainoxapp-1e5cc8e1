@@ -633,9 +633,9 @@ const ServiceCallForm = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="technician_id">Técnico Responsável</Label>
-                    <Select onValueChange={setSelectedTechnicianId}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione um técnico" />
+              <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione um técnico" />
                       </SelectTrigger>
                       <SelectContent>
                         {activeTechnicians?.map((technician) => (
@@ -654,9 +654,9 @@ const ServiceCallForm = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="service_type_id">Tipo de Serviço</Label>
-                    <Select onValueChange={setSelectedServiceTypeId}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione o tipo de serviço" />
+              <Select value={selectedServiceTypeId} onValueChange={setSelectedServiceTypeId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione o tipo de serviço" />
                       </SelectTrigger>
                       <SelectContent>
                         {activeServiceTypes?.map((serviceType) => (
