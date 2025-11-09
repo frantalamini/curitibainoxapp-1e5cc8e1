@@ -80,26 +80,42 @@ type Report = {
 };
 
 async function toDataUrl(url: string | null): Promise<string | null> {
-  if (!url) return null;
+  if (!url) {
+    console.warn('⚠️ [toDataUrl] URL vazia ou null');
+    return null;
+  }
   
-  // Se já é um DataURL, retornar como está
-  if (url.startsWith('data:')) return url;
+  // Se já é DataURL, retorna direto
+  if (url.startsWith('data:')) {
+    console.log('✅ [toDataUrl] DataURL detectado, retornando direto');
+    return url;
+  }
   
-  // Só tentar converter URLs HTTP/HTTPS
-  if (!url.startsWith('http')) return null;
+  // Só aceitar URLs HTTP/HTTPS
+  if (!url.startsWith('http')) {
+    console.warn('⚠️ [toDataUrl] URL inválida (não HTTP):', url.substring(0, 100));
+    return null;
+  }
   
   try {
+    console.log('🔄 [toDataUrl] Convertendo URL pública:', url.substring(0, 100) + '...');
     const response = await fetch(url);
-    if (!response.ok) return null;
+    
+    if (!response.ok) {
+      console.error('❌ [toDataUrl] Fetch falhou:', response.status, response.statusText);
+      return null;
+    }
     
     const arrayBuffer = await response.arrayBuffer();
     const base64 = btoa(
       String.fromCharCode(...new Uint8Array(arrayBuffer))
     );
     const contentType = response.headers.get('content-type') || 'image/png';
+    
+    console.log('✅ [toDataUrl] Conversão bem-sucedida:', contentType);
     return `data:${contentType};base64,${base64}`;
   } catch (error) {
-    console.error('Error converting image to DataURL:', error);
+    console.error('❌ [toDataUrl] Erro na conversão:', error);
     return null;
   }
 }
@@ -194,22 +210,64 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
   const beforePhotos: string[] = [];
   const afterPhotos: string[] = [];
   
+  // Converter fotos "antes" com log de erro
   for (const url of beforePhotosUrls) {
     const dataUrl = await toDataUrl(url);
-    if (dataUrl) beforePhotos.push(dataUrl);
+    if (dataUrl) {
+      beforePhotos.push(dataUrl);
+    } else {
+      console.warn('⚠️ [PDF] Falha ao converter foto "antes":', url);
+    }
   }
   
+  // Converter fotos "depois" com log de erro
   for (const url of afterPhotosUrls) {
     const dataUrl = await toDataUrl(url);
-    if (dataUrl) afterPhotos.push(dataUrl);
+    if (dataUrl) {
+      afterPhotos.push(dataUrl);
+    } else {
+      console.warn('⚠️ [PDF] Falha ao converter foto "depois":', url);
+    }
   }
 
+  // Debug: verificar quantas fotos foram processadas
+  console.log('🔍 [PDF] Fotos processadas:', {
+    beforeOriginal: beforePhotosUrls.length,
+    beforeConverted: beforePhotos.length,
+    afterOriginal: afterPhotosUrls.length,
+    afterConverted: afterPhotos.length,
+  });
+
   // 5. CONVERTER ASSINATURAS PARA DATAURL
-  const techSignatureUrl = call.technician_signature_url || call.technician_signature_data || null;
-  const clientSignatureUrl = call.customer_signature_url || call.customer_signature_data || null;
-  
-  const techSignatureDataUrl = await toDataUrl(techSignatureUrl);
-  const clientSignatureDataUrl = await toDataUrl(clientSignatureUrl);
+  // Priorizar signature_data (já é DataURL) e usar signature_url como fallback
+  let techSignatureDataUrl: string | null = null;
+  let clientSignatureDataUrl: string | null = null;
+
+  // Técnico: tentar data primeiro (mais confiável), depois url
+  if (call.technician_signature_data) {
+    techSignatureDataUrl = await toDataUrl(call.technician_signature_data);
+  }
+  if (!techSignatureDataUrl && call.technician_signature_url) {
+    techSignatureDataUrl = await toDataUrl(call.technician_signature_url);
+  }
+
+  // Cliente: tentar data primeiro (mais confiável), depois url
+  if (call.customer_signature_data) {
+    clientSignatureDataUrl = await toDataUrl(call.customer_signature_data);
+  }
+  if (!clientSignatureDataUrl && call.customer_signature_url) {
+    clientSignatureDataUrl = await toDataUrl(call.customer_signature_url);
+  }
+
+  // Debug: verificar se as assinaturas foram processadas
+  console.log('🔍 [PDF] Assinaturas processadas:', {
+    techData: call.technician_signature_data?.substring(0, 50) + '...',
+    techUrl: call.technician_signature_url,
+    techDataUrl: techSignatureDataUrl?.substring(0, 50) + '...',
+    clientData: call.customer_signature_data?.substring(0, 50) + '...',
+    clientUrl: call.customer_signature_url,
+    clientDataUrl: clientSignatureDataUrl?.substring(0, 50) + '...',
+  });
 
   // 6. MONTAR ENDEREÇO COMPLETO DA EMPRESA
   const companyAddressParts = [
