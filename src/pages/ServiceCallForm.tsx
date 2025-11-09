@@ -36,6 +36,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 
 import { SignaturePad } from "@/components/SignaturePad";
+import { SignatureModal } from "@/components/SignatureModal";
 import { ChecklistSelector } from "@/components/ChecklistSelector";
 import { ClientFormDialog } from "@/components/ClientFormDialog";
 import { TimePickerPopover } from "@/components/TimePickerPopover";
@@ -44,6 +45,14 @@ import { Separator } from "@/components/ui/separator";
 import { generateOSPdf } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
+
+type Signature = {
+  image_url: string;
+  signed_at: string;
+  signed_by?: string;
+  position?: string;
+  role: 'tech' | 'client';
+};
 
 const ServiceCallForm = () => {
   const { id } = useParams();
@@ -97,6 +106,11 @@ const ServiceCallForm = () => {
   const [equipmentSerialNumber, setEquipmentSerialNumber] = useState("");
   const [internalNotesText, setInternalNotesText] = useState("");
   
+  // Estados para os modais de assinatura
+  const [openTechSignatureModal, setOpenTechSignatureModal] = useState(false);
+  const [openClientSignatureModal, setOpenClientSignatureModal] = useState(false);
+  const [newSignatures, setNewSignatures] = useState<Signature[]>([]);
+  
   // Estados para gravação de áudio de informações técnicas
   const [technicalAudioFile, setTechnicalAudioFile] = useState<File | null>(null);
   const [existingTechnicalAudioUrl, setExistingTechnicalAudioUrl] = useState<string | null>(null);
@@ -117,6 +131,19 @@ const ServiceCallForm = () => {
   const activeTechnicians = technicians?.filter((t) => t.active);
   const activeServiceTypes = serviceTypes?.filter((st) => st.active);
   const selectedChecklist = checklists?.find((c) => c.id === selectedChecklistId);
+
+  // Função helper para obter assinatura mais recente por role
+  const getCurrentSignature = (signatures: any[] | undefined, role: 'tech' | 'client') => {
+    if (!signatures || !Array.isArray(signatures)) return null;
+    const filtered = signatures.filter((s: any) => s.role === role);
+    if (filtered.length === 0) return null;
+    return filtered.sort((a: any, b: any) => 
+      new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime()
+    )[0];
+  };
+
+  const currentTechSignature = existingCall ? getCurrentSignature((existingCall as any).signatures, 'tech') : null;
+  const currentClientSignature = existingCall ? getCurrentSignature((existingCall as any).signatures, 'client') : null;
 
   useEffect(() => {
     register("client_id");
@@ -498,28 +525,36 @@ const ServiceCallForm = () => {
         video_after_url: videoAfterUrl,
         checklist_id: selectedChecklistId || null,
         checklist_responses: Object.keys(checklistResponses).length > 0 ? checklistResponses : null,
-        technician_signature_data: technicianSignatureData,
-        technician_signature_url: technicianSignatureUrl,
-        customer_signature_data: customerSignatureData,
-        customer_signature_url: customerSignatureUrl,
-        customer_name: customerName || null,
-        customer_position: customerPosition || null,
-        technician_signature_date: technicianSignatureData ? new Date().toISOString() : null,
-        customer_signature_date: customerSignatureData ? new Date().toISOString() : null,
         equipment_serial_number: equipmentSerialNumber || null,
         internal_notes_text: internalNotesText || null,
         internal_notes_audio_url: null,
         technical_diagnosis_audio_url: technicalAudioUrl,
+        // Assinaturas: append novas ao histórico existente
+        signatures: [
+          ...((existingCall as any)?.signatures || []),
+          ...newSignatures
+        ],
+        // Manter campos antigos para compatibilidade (deprecated)
+        technician_signature_data: (existingCall as any)?.technician_signature_data || null,
+        technician_signature_url: (existingCall as any)?.technician_signature_url || null,
+        customer_signature_data: (existingCall as any)?.customer_signature_data || null,
+        customer_signature_url: (existingCall as any)?.customer_signature_url || null,
+        customer_name: (existingCall as any)?.customer_name || null,
+        customer_position: (existingCall as any)?.customer_position || null,
+        technician_signature_date: (existingCall as any)?.technician_signature_date || null,
+        customer_signature_date: (existingCall as any)?.customer_signature_date || null,
       };
 
       if (isEditMode && id) {
         updateServiceCall({ id, ...formattedData });
+        setNewSignatures([]); // Limpar após salvar
         toast({
           title: "✅ Chamado Atualizado",
           description: "As alterações foram salvas com sucesso!",
         });
       } else {
         createServiceCall(formattedData);
+        setNewSignatures([]); // Limpar após criar
         toast({
           title: "✅ Chamado Criado",
           description: "Novo chamado criado com sucesso!",
@@ -1040,24 +1075,80 @@ const ServiceCallForm = () => {
                     />
                   )}
 
-                  {/* Assinatura Técnico */}
-                  <SignaturePad
-                    title="Assinatura do Técnico"
-                    onSave={(signatureData) => setTechnicianSignatureData(signatureData)}
-                  />
+                  {/* Assinatura do Técnico - Read Only */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Assinatura do Técnico</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {currentTechSignature ? (
+                        <div className="space-y-2">
+                          <div className="border-2 border-muted rounded-lg p-4 bg-muted/10">
+                            <img
+                              src={currentTechSignature.image_url}
+                              alt="Assinatura do técnico"
+                              className="h-24 w-full object-contain pointer-events-none select-none opacity-80"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Assinado em {format(new Date(currentTechSignature.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            {currentTechSignature.signed_by && ` • ${currentTechSignature.signed_by}`}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Nenhuma assinatura registrada.
+                        </p>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setOpenTechSignatureModal(true)}
+                      >
+                        {currentTechSignature ? "Adicionar nova assinatura" : "Adicionar assinatura"}
+                      </Button>
+                    </CardContent>
+                  </Card>
 
-                  {/* Assinatura Cliente */}
-                  <SignaturePad
-                    title="Assinatura do Responsável (Cliente)"
-                    showExtraFields
-                    onSave={(signatureData, extraFields) => {
-                      setCustomerSignatureData(signatureData);
-                      if (extraFields) {
-                        setCustomerName(extraFields.name || "");
-                        setCustomerPosition(extraFields.position || "");
-                      }
-                    }}
-                  />
+                  {/* Assinatura do Cliente - Read Only */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Assinatura do Responsável (Cliente)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {currentClientSignature ? (
+                        <div className="space-y-2">
+                          <div className="border-2 border-muted rounded-lg p-4 bg-muted/10">
+                            <img
+                              src={currentClientSignature.image_url}
+                              alt="Assinatura do cliente"
+                              className="h-24 w-full object-contain pointer-events-none select-none opacity-80"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">{currentClientSignature.signed_by}</p>
+                            {currentClientSignature.position && (
+                              <p className="text-xs text-muted-foreground">Cargo: {currentClientSignature.position}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              Assinado em {format(new Date(currentClientSignature.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Nenhuma assinatura registrada.
+                        </p>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setOpenClientSignatureModal(true)}
+                      >
+                        {currentClientSignature ? "Adicionar nova assinatura" : "Adicionar assinatura"}
+                      </Button>
+                    </CardContent>
+                  </Card>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1150,6 +1241,60 @@ const ServiceCallForm = () => {
             </Button>
           </div>
         </form>
+
+        {/* Modal de Assinatura do Técnico */}
+        <SignatureModal
+          open={openTechSignatureModal}
+          title="Nova Assinatura do Técnico"
+          onCancel={() => setOpenTechSignatureModal(false)}
+          onSave={(dataUrl) => {
+            const technicianName = activeTechnicians?.find(t => t.id === selectedTechnicianId)?.full_name || 'Técnico';
+            const newSignature: Signature = {
+              image_url: dataUrl,
+              signed_at: new Date().toISOString(),
+              signed_by: technicianName,
+              role: 'tech',
+            };
+            setNewSignatures(prev => [...prev, newSignature]);
+            setOpenTechSignatureModal(false);
+            toast({
+              title: "Assinatura Adicionada",
+              description: "Nova assinatura do técnico registrada.",
+            });
+          }}
+        />
+
+        {/* Modal de Assinatura do Cliente */}
+        <SignatureModal
+          open={openClientSignatureModal}
+          title="Nova Assinatura do Responsável (Cliente)"
+          showExtraFields
+          onCancel={() => setOpenClientSignatureModal(false)}
+          onSave={(dataUrl, extraFields) => {
+            if (!extraFields?.name || !extraFields?.position) {
+              toast({
+                title: "Dados Incompletos",
+                description: "Nome e cargo são obrigatórios.",
+                variant: "destructive",
+              });
+              return;
+            }
+            
+            const newSignature: Signature = {
+              image_url: dataUrl,
+              signed_at: new Date().toISOString(),
+              signed_by: extraFields.name,
+              position: extraFields.position,
+              role: 'client',
+            };
+            setNewSignatures(prev => [...prev, newSignature]);
+            setOpenClientSignatureModal(false);
+            toast({
+              title: "Assinatura Adicionada",
+              description: "Nova assinatura do cliente registrada.",
+            });
+          }}
+        />
 
         {/* Dialog de criação de cliente */}
         <ClientFormDialog

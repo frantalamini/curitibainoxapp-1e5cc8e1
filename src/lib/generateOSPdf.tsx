@@ -191,6 +191,23 @@ function splitMedia(urls: string[]): { images: string[]; videos: string[] } {
 }
 
 /**
+ * Busca a assinatura mais recente de um role específico
+ */
+function getLatestSignature(
+  signatures: any[] | undefined, 
+  role: 'tech' | 'client'
+): { image_url: string; signed_at: string; signed_by?: string; position?: string } | null {
+  if (!signatures || !Array.isArray(signatures)) return null;
+  
+  const filtered = signatures.filter((s: any) => s.role === role);
+  if (filtered.length === 0) return null;
+  
+  return filtered.sort((a: any, b: any) => 
+    new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime()
+  )[0];
+}
+
+/**
  * Aguarda propagação de uploads recentes no storage/CDN
  */
 async function waitForStoragePropagation(delayMs = 300): Promise<void> {
@@ -323,35 +340,36 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     after: afterPhotos.length,
   });
 
-  // 5. CONVERTER ASSINATURAS PARA DATAURL
-  // Priorizar signature_data (já é DataURL) e usar signature_url como fallback
+  // 5. PROCESSAR ASSINATURAS (novo formato com histórico)
+  const latestTechSignature = getLatestSignature((call as any).signatures, 'tech');
+  const latestClientSignature = getLatestSignature((call as any).signatures, 'client');
+
   let techSignatureDataUrl: string | null = null;
   let clientSignatureDataUrl: string | null = null;
 
-  // Técnico: tentar data primeiro (mais confiável), depois url
-  if (call.technician_signature_data) {
+  // Técnico: buscar do array de histórico, fallback para campos antigos
+  if (latestTechSignature?.image_url) {
+    techSignatureDataUrl = await toDataUrlWithRetry(latestTechSignature.image_url);
+  } else if (call.technician_signature_data) {
     techSignatureDataUrl = await toDataUrlWithRetry(call.technician_signature_data);
-  }
-  if (!techSignatureDataUrl && call.technician_signature_url) {
+  } else if (call.technician_signature_url) {
     techSignatureDataUrl = await toDataUrlWithRetry(call.technician_signature_url);
   }
 
-  // Cliente: tentar data primeiro (mais confiável), depois url
-  if (call.customer_signature_data) {
+  // Cliente: buscar do array de histórico, fallback para campos antigos
+  if (latestClientSignature?.image_url) {
+    clientSignatureDataUrl = await toDataUrlWithRetry(latestClientSignature.image_url);
+  } else if (call.customer_signature_data) {
     clientSignatureDataUrl = await toDataUrlWithRetry(call.customer_signature_data);
-  }
-  if (!clientSignatureDataUrl && call.customer_signature_url) {
+  } else if (call.customer_signature_url) {
     clientSignatureDataUrl = await toDataUrlWithRetry(call.customer_signature_url);
   }
 
-  // Debug: verificar se as assinaturas foram processadas
   console.log('🔍 [PDF] Assinaturas processadas:', {
-    techData: call.technician_signature_data?.substring(0, 50) + '...',
-    techUrl: call.technician_signature_url,
-    techDataUrl: techSignatureDataUrl?.substring(0, 50) + '...',
-    clientData: call.customer_signature_data?.substring(0, 50) + '...',
-    clientUrl: call.customer_signature_url,
-    clientDataUrl: clientSignatureDataUrl?.substring(0, 50) + '...',
+    techFromHistory: !!latestTechSignature,
+    clientFromHistory: !!latestClientSignature,
+    techFallback: !latestTechSignature && !!(call.technician_signature_data || call.technician_signature_url),
+    clientFallback: !latestClientSignature && !!(call.customer_signature_data || call.customer_signature_url),
   });
 
   // 6. SEPARAR IMAGENS E VÍDEOS DE "FOTOS E VÍDEOS" (media_urls)
@@ -475,23 +493,27 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     },
     checklist,
     signatures: {
-      tech: techSignatureDataUrl || call.technicians?.full_name
+      tech: techSignatureDataUrl
         ? {
-            name: call.technicians?.full_name || 'Técnico',
-            when: call.technician_signature_date
+            name: latestTechSignature?.signed_by || call.technicians?.full_name || 'Técnico',
+            when: latestTechSignature?.signed_at
+              ? format(new Date(latestTechSignature.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+              : call.technician_signature_date
               ? format(new Date(call.technician_signature_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
               : undefined,
-            imageDataUrl: techSignatureDataUrl || undefined,
+            imageDataUrl: techSignatureDataUrl,
           }
         : null,
-      client: clientSignatureDataUrl || call.customer_name || clientData?.full_name
+      client: clientSignatureDataUrl
         ? {
-            name: call.customer_name || clientData?.full_name || 'Cliente',
-            role: call.customer_position?.trim() || undefined,
-            when: call.customer_signature_date
+            name: latestClientSignature?.signed_by || call.customer_name || 'Cliente',
+            role: latestClientSignature?.position?.trim() || call.customer_position?.trim() || undefined,
+            when: latestClientSignature?.signed_at
+              ? format(new Date(latestClientSignature.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+              : call.customer_signature_date
               ? format(new Date(call.customer_signature_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
               : undefined,
-            imageDataUrl: clientSignatureDataUrl || undefined,
+            imageDataUrl: clientSignatureDataUrl,
           }
         : null,
     },

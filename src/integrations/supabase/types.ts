@@ -229,6 +229,7 @@ export type Database = {
           scheduled_date: string
           scheduled_time: string
           service_type_id: string | null
+          signatures: Json | null
           started_at: string | null
           status: Database["public"]["Enums"]["service_status"]
           technical_diagnosis: string | null
@@ -267,6 +268,7 @@ export type Database = {
           scheduled_date: string
           scheduled_time: string
           service_type_id?: string | null
+          signatures?: Json | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           technical_diagnosis?: string | null
@@ -305,6 +307,7 @@ export type Database = {
           scheduled_date?: string
           scheduled_time?: string
           service_type_id?: string | null
+          signatures?: Json | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           technical_diagnosis?: string | null
@@ -377,23 +380,44 @@ export type Database = {
       }
       system_settings: {
         Row: {
+          company_address: string | null
+          company_cnpj: string | null
+          company_email: string | null
+          company_ie: string | null
           company_name: string | null
+          company_phone: string | null
+          company_website: string | null
           id: string
           logo_url: string | null
+          report_logo: string | null
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
+          company_address?: string | null
+          company_cnpj?: string | null
+          company_email?: string | null
+          company_ie?: string | null
           company_name?: string | null
+          company_phone?: string | null
+          company_website?: string | null
           id?: string
           logo_url?: string | null
+          report_logo?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
+          company_address?: string | null
+          company_cnpj?: string | null
+          company_email?: string | null
+          company_ie?: string | null
           company_name?: string | null
+          company_phone?: string | null
+          company_website?: string | null
           id?: string
           logo_url?: string | null
+          report_logo?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }

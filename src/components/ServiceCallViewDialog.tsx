@@ -38,6 +38,15 @@ import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 import { ServiceCall } from "@/hooks/useServiceCalls";
 import { useUserRole } from "@/hooks/useUserRole";
 
+const getLatestSignature = (signatures: any[] | undefined, role: 'tech' | 'client') => {
+  if (!signatures || !Array.isArray(signatures)) return null;
+  const filtered = signatures.filter((s: any) => s.role === role);
+  if (filtered.length === 0) return null;
+  return filtered.sort((a: any, b: any) => 
+    new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime()
+  )[0];
+};
+
 interface ServiceCallViewDialogProps {
   call: ServiceCall;
   open: boolean;
@@ -679,7 +688,13 @@ const ServiceCallViewDialog = ({
         )}
 
         {/* Assinaturas */}
-        {(call.technician_signature_url || call.technician_signature_data || call.customer_signature_url || call.customer_signature_data) && (
+        {(() => {
+          const latestTech = getLatestSignature((call as any).signatures, 'tech');
+          const latestClient = getLatestSignature((call as any).signatures, 'client');
+          const hasTech = latestTech || call.technician_signature_url || call.technician_signature_data;
+          const hasClient = latestClient || call.customer_signature_url || call.customer_signature_data;
+          
+          return (hasTech || hasClient) && (
           <Card className="mt-4">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -689,56 +704,60 @@ const ServiceCallViewDialog = ({
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Assinatura do Técnico */}
-              {(call.technician_signature_url || call.technician_signature_data) && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Assinatura do Técnico</Label>
-                  <div className="border rounded-lg p-4 bg-muted/30">
+              {(() => {
+                const imgUrl = latestTech?.image_url || call.technician_signature_data || call.technician_signature_url;
+                const signedAt = latestTech?.signed_at || call.technician_signature_date;
+                const signedBy = latestTech?.signed_by || call.technicians?.full_name;
+                
+                return imgUrl && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Assinatura do Técnico</Label>
                     <img
-                      src={call.technician_signature_data || call.technician_signature_url || ""}
+                      src={imgUrl}
                       alt="Assinatura do Técnico"
-                      className="w-full h-24 object-contain"
+                      className="h-20 border rounded p-2 bg-white w-full object-contain"
                     />
+                    <p className="text-sm font-medium">{signedBy}</p>
+                    {signedAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-sm font-medium">{call.technicians?.full_name}</p>
-                  {call.technician_signature_date && (
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(call.technician_signature_date), "dd/MM/yyyy 'às' HH:mm", {
-                        locale: ptBR,
-                      })}
-                    </p>
-                  )}
-                </div>
-              )}
+                );
+              })()}
 
               {/* Assinatura do Cliente */}
-              {(call.customer_signature_url || call.customer_signature_data) && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Assinatura do Cliente</Label>
-                  <div className="border rounded-lg p-4 bg-muted/30">
+              {(() => {
+                const imgUrl = latestClient?.image_url || call.customer_signature_data || call.customer_signature_url;
+                const signedAt = latestClient?.signed_at || call.customer_signature_date;
+                const signedBy = latestClient?.signed_by || call.customer_name;
+                const position = latestClient?.position || call.customer_position;
+                
+                return imgUrl && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Assinatura do Responsável (Cliente)</Label>
                     <img
-                      src={call.customer_signature_data || call.customer_signature_url || ""}
+                      src={imgUrl}
                       alt="Assinatura do Cliente"
-                      className="w-full h-24 object-contain"
+                      className="h-20 border rounded p-2 bg-white w-full object-contain"
                     />
+                    {signedBy && <p className="text-sm font-medium">{signedBy}</p>}
+                    {position && (
+                      <p className="text-xs text-muted-foreground">Cargo: {position}</p>
+                    )}
+                    {signedAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    )}
                   </div>
-                  {call.customer_name && (
-                    <p className="text-sm font-medium">{call.customer_name}</p>
-                  )}
-                  {call.customer_position && (
-                    <p className="text-xs text-muted-foreground">Cargo: {call.customer_position}</p>
-                  )}
-                  {call.customer_signature_date && (
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(call.customer_signature_date), "dd/MM/yyyy 'às' HH:mm", {
-                        locale: ptBR,
-                      })}
-                    </p>
-                  )}
-                </div>
-              )}
+                );
+              })()}
             </CardContent>
           </Card>
-        )}
+        );
+        })()}
 
         {/* Observações Internas - Apenas Admin/Técnico */}
         {(isAdmin || isTechnician) && (call.internal_notes_text || call.internal_notes_audio_url) && (
