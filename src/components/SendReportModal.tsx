@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { MessageCircle, Mail, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -42,18 +43,25 @@ interface SendReportModalProps {
 function normalizePhoneBR(raw?: string): string | null {
   if (!raw) return null;
   
-  let digits = raw.replace(/\D/g, '');
-  digits = digits.replace(/^0+/, '');
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return null;
   
-  if (digits.startsWith('55')) {
-    if (digits.length === 13 || digits.length === 12) {
-      return `+${digits}`;
-    }
-    return null;
+  // Remove zeros à esquerda
+  const d = digits.replace(/^0+/, '');
+  
+  // Com DDI Brasil explícito (55 + AA + número)
+  if (d.startsWith('55') && (d.length === 12 || d.length === 13)) {
+    return `+${d}`;
   }
   
-  if (digits.length === 11 || digits.length === 10) {
-    return `+55${digits}`;
+  // Sem DDI: assume Brasil (10 ou 11 dígitos)
+  if (d.length === 10 || d.length === 11) {
+    return `+55${d}`;
+  }
+  
+  // DDI de outro país (12-15 dígitos, não começa com 55)
+  if (d.length >= 12 && d.length <= 15) {
+    return `+${d}`;
   }
   
   return null;
@@ -63,11 +71,19 @@ function normalizePhoneBR(raw?: string): string | null {
  * Verifica se o número é provável celular brasileiro (tem WhatsApp)
  */
 function isLikelyWhatsApp(e164: string): boolean {
-  const match = e164.match(/^\+55(\d{2})(\d{8,9})$/);
-  if (!match) return false;
+  // Números brasileiros: validar se é celular
+  const brMatch = e164.match(/^\+55(\d{2})(\d{8,9})$/);
+  if (brMatch) {
+    const localNumber = brMatch[2];
+    return localNumber.length === 9 && localNumber.startsWith('9');
+  }
   
-  const localNumber = match[2];
-  return localNumber.length === 9 && localNumber.startsWith('9');
+  // Números internacionais: considerar como "provável WhatsApp"
+  if (e164.match(/^\+\d{10,14}$/)) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -211,6 +227,25 @@ function extractEmailContacts(clientData: any): EmailContact[] {
   return contacts;
 }
 
+/**
+ * Constrói a mensagem do WhatsApp baseado na disponibilidade do PDF
+ */
+function buildMessage(osNumber: string, pdfUrl: string): string {
+  const intro = `Olá! Segue o relatório da OS nº ${osNumber}.`;
+  
+  // Verifica se é uma URL pública válida
+  const hasPublicUrl = pdfUrl && (
+    pdfUrl.startsWith('http://') || 
+    pdfUrl.startsWith('https://')
+  );
+  
+  if (hasPublicUrl) {
+    return `${intro}\n\nBaixe o PDF aqui:\n${pdfUrl}`;
+  } else {
+    return `${intro}\n\nO PDF foi salvo localmente pelo atendente e será enviado em seguida.`;
+  }
+}
+
 export const SendReportModal = ({
   open,
   onOpenChange,
@@ -221,6 +256,8 @@ export const SendReportModal = ({
   companyName = 'Curitiba Inox',
 }: SendReportModalProps) => {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualPhoneError, setManualPhoneError] = useState('');
   const { toast } = useToast();
   
   const availableContacts = mode === 'whatsapp' 
@@ -248,6 +285,31 @@ export const SendReportModal = ({
     );
   };
   
+  const handleManualSend = () => {
+    const normalized = normalizePhoneBR(manualPhone);
+    
+    if (!normalized) {
+      setManualPhoneError('Telefone inválido. Use formato: (XX) XXXXX-XXXX ou +55 XX XXXXX-XXXX');
+      return;
+    }
+    
+    const message = buildMessage(osNumber, pdfUrl);
+    const waNumber = normalized.replace('+', '');
+    const encodedMessage = encodeURIComponent(message);
+    const link = `https://wa.me/${waNumber}?text=${encodedMessage}`;
+    
+    window.open(link, '_blank', 'noopener,noreferrer');
+    
+    toast({
+      title: "WhatsApp aberto",
+      description: `Enviando para ${normalized}`,
+    });
+    
+    setManualPhone('');
+    setManualPhoneError('');
+    onOpenChange(false);
+  };
+  
   const handleSend = () => {
     if (selectedContacts.length === 0) {
       toast({
@@ -263,7 +325,7 @@ export const SendReportModal = ({
     );
     
     if (mode === 'whatsapp') {
-      const message = `Olá! Segue o relatório da OS nº ${osNumber}.\n\nBaixe o PDF aqui:\n${pdfUrl}\n\nQualquer dúvida, estamos à disposição.`;
+      const message = buildMessage(osNumber, pdfUrl);
       
       (selected as WhatsAppContact[]).forEach(contact => {
         const waNumber = contact.phoneE164.replace('+', '');
@@ -316,11 +378,33 @@ export const SendReportModal = ({
         
         <div className="space-y-4 py-4">
           {availableContacts.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              {mode === 'whatsapp'
-                ? 'Nenhum telefone válido cadastrado.'
-                : 'Nenhum e-mail válido cadastrado.'}
-            </p>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                {mode === 'whatsapp' 
+                  ? 'Nenhum telefone válido cadastrado.' 
+                  : 'Nenhum email válido cadastrado para este cliente.'}
+              </p>
+              
+              {mode === 'whatsapp' && (
+                <div className="space-y-2">
+                  <Label htmlFor="manual-phone">Informar número manualmente:</Label>
+                  <Input
+                    id="manual-phone"
+                    type="text"
+                    placeholder="(XX) XXXXX-XXXX ou +55 XX XXXXX-XXXX"
+                    value={manualPhone}
+                    onChange={(e) => {
+                      setManualPhone(e.target.value);
+                      setManualPhoneError('');
+                    }}
+                    className={manualPhoneError ? 'border-destructive' : ''}
+                  />
+                  {manualPhoneError && (
+                    <p className="text-xs text-destructive">{manualPhoneError}</p>
+                  )}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="space-y-3">
               {mode === 'whatsapp' ? (
@@ -408,27 +492,38 @@ export const SendReportModal = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button
-            onClick={handleSend}
-            disabled={selectedContacts.length === 0}
-            className={
-              mode === 'whatsapp'
-                ? 'bg-green-600 hover:bg-green-700'
-                : 'bg-blue-600 hover:bg-blue-700'
-            }
-          >
-            {mode === 'whatsapp' ? (
-              <>
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Abrir WhatsApp
-              </>
-            ) : (
-              <>
-                <Mail className="mr-2 h-4 w-4" />
-                Abrir E-mail
-              </>
-            )}
-          </Button>
+          {availableContacts.length === 0 && mode === 'whatsapp' ? (
+            <Button
+              onClick={handleManualSend}
+              disabled={!manualPhone.trim()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Enviar para este número
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSend}
+              disabled={selectedContacts.length === 0}
+              className={
+                mode === 'whatsapp'
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }
+            >
+              {mode === 'whatsapp' ? (
+                <>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Abrir WhatsApp
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Abrir E-mail
+                </>
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
