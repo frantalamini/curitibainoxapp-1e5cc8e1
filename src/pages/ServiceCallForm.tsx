@@ -374,10 +374,10 @@ const ServiceCallForm = () => {
           .upload(audioPath, audioFile);
 
         if (!audioError) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: signedData } = await supabase.storage
             .from('service-call-attachments')
-            .getPublicUrl(audioPath);
-          audioUrl = publicUrl;
+            .createSignedUrl(audioPath, 31536000); // 1 ano
+          audioUrl = signedData?.signedUrl || '';
         }
       }
 
@@ -390,10 +390,10 @@ const ServiceCallForm = () => {
             .upload(filePath, file);
 
           if (!error) {
-            const { data: { publicUrl } } = supabase.storage
+            const { data: signedData } = await supabase.storage
               .from('service-call-attachments')
-              .getPublicUrl(filePath);
-            mediaUrls.push(publicUrl);
+              .createSignedUrl(filePath, 31536000); // 1 ano
+            if (signedData?.signedUrl) mediaUrls.push(signedData.signedUrl);
           }
         }
       }
@@ -408,10 +408,10 @@ const ServiceCallForm = () => {
             .upload(filePath, file);
 
           if (!error) {
-            const { data: { publicUrl } } = supabase.storage
+            const { data: signedData } = await supabase.storage
               .from('service-call-attachments')
-              .getPublicUrl(filePath);
-            photosBeforeUrls.push(publicUrl);
+              .createSignedUrl(filePath, 31536000); // 1 ano
+            if (signedData?.signedUrl) photosBeforeUrls.push(signedData.signedUrl);
           }
         }
       }
@@ -424,10 +424,10 @@ const ServiceCallForm = () => {
           .upload(filePath, videoBeforeFile);
 
         if (!error) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: signedData } = await supabase.storage
             .from('service-call-attachments')
-            .getPublicUrl(filePath);
-          videoBeforeUrl = publicUrl;
+            .createSignedUrl(filePath, 31536000); // 1 ano
+          videoBeforeUrl = signedData?.signedUrl || '';
         }
       }
 
@@ -440,10 +440,10 @@ const ServiceCallForm = () => {
             .upload(filePath, file);
 
           if (!error) {
-            const { data: { publicUrl } } = supabase.storage
+            const { data: signedData } = await supabase.storage
               .from('service-call-attachments')
-              .getPublicUrl(filePath);
-            photosAfterUrls.push(publicUrl);
+              .createSignedUrl(filePath, 31536000); // 1 ano
+            if (signedData?.signedUrl) photosAfterUrls.push(signedData.signedUrl);
           }
         }
       }
@@ -456,10 +456,10 @@ const ServiceCallForm = () => {
           .upload(filePath, videoAfterFile);
 
         if (!error) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: signedData } = await supabase.storage
             .from('service-call-attachments')
-            .getPublicUrl(filePath);
-          videoAfterUrl = publicUrl;
+            .createSignedUrl(filePath, 31536000); // 1 ano
+          videoAfterUrl = signedData?.signedUrl || '';
         }
       }
 
@@ -471,10 +471,10 @@ const ServiceCallForm = () => {
           .upload(pngPath, blob, { contentType: 'image/png' });
 
         if (!error) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: signedData } = await supabase.storage
             .from('service-call-attachments')
-            .getPublicUrl(pngPath);
-          technicianSignatureUrl = publicUrl;
+            .createSignedUrl(pngPath, 31536000); // 1 ano
+          technicianSignatureUrl = signedData?.signedUrl || '';
         }
       }
 
@@ -486,10 +486,10 @@ const ServiceCallForm = () => {
           .upload(pngPath, blob, { contentType: 'image/png' });
 
         if (!error) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: signedData } = await supabase.storage
             .from('service-call-attachments')
-            .getPublicUrl(pngPath);
-          customerSignatureUrl = publicUrl;
+            .createSignedUrl(pngPath, 31536000); // 1 ano
+          customerSignatureUrl = signedData?.signedUrl || '';
         }
       }
 
@@ -511,11 +511,11 @@ const ServiceCallForm = () => {
           return;
         }
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: signedData } = await supabase.storage
           .from('service-call-attachments')
-          .getPublicUrl(audioPath);
+          .createSignedUrl(audioPath, 31536000); // 1 ano
 
-        technicalAudioUrl = publicUrl;
+        technicalAudioUrl = signedData?.signedUrl || '';
       }
 
       const formattedData: any = {

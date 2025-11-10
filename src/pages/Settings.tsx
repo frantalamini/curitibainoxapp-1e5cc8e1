@@ -47,15 +47,19 @@ const Settings = () => {
 
       if (uploadError) throw uploadError;
 
-      // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
+      // Obter URL assinada (bucket privado) - válida por 1 ano para logos
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from("service-call-attachments")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 31536000); // 1 ano em segundos
+
+      if (signedUrlError || !signedUrlData) {
+        throw new Error("Não foi possível gerar URL de acesso à logo");
+      }
 
       // Atualizar settings
-      await updateSettings.mutateAsync({ logo_url: publicUrl });
+      await updateSettings.mutateAsync({ logo_url: signedUrlData.signedUrl });
       
-      setPreviewUrl(publicUrl);
+      setPreviewUrl(signedUrlData.signedUrl);
       toast.success("Logo atualizada com sucesso!");
     } catch (error) {
       console.error("Erro ao fazer upload:", error);

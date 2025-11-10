@@ -35,12 +35,17 @@ export const uploadPdfToStorage = async (
       throw new Error("Não foi possível fazer upload do PDF");
     }
     
-    // Obter URL pública
-    const { data: publicUrlData } = supabase.storage
+    // Obter URL assinada (bucket privado) - válida por 7 dias
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from("service-call-attachments")
-      .getPublicUrl(finalFileName);
+      .createSignedUrl(finalFileName, 604800); // 7 dias em segundos
     
-    return publicUrlData.publicUrl;
+    if (signedUrlError || !signedUrlData) {
+      logger.error("Erro ao gerar URL assinada:", signedUrlError);
+      throw new Error("Não foi possível gerar URL de acesso ao PDF");
+    }
+    
+    return signedUrlData.signedUrl;
   } catch (error) {
     logger.error("Erro ao processar upload do PDF:", error);
     throw error;
