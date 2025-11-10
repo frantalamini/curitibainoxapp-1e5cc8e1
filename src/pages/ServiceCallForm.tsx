@@ -1294,6 +1294,31 @@ const ServiceCallForm = () => {
           }}
         />
 
+        {/* Modais de Envio */}
+        {existingCall && generatedPdfUrl && (
+          <>
+            <SendReportModal
+              open={sendWhatsAppModalOpen}
+              onOpenChange={setSendWhatsAppModalOpen}
+              mode="whatsapp"
+              osNumber={existingCall.os_number.toString()}
+              pdfUrl={generatedPdfUrl}
+              clientData={existingCall.clients!}
+              companyName={systemSettings?.company_name || 'Curitiba Inox'}
+            />
+
+            <SendReportModal
+              open={sendEmailModalOpen}
+              onOpenChange={setSendEmailModalOpen}
+              mode="email"
+              osNumber={existingCall.os_number.toString()}
+              pdfUrl={generatedPdfUrl}
+              clientData={existingCall.clients!}
+              companyName={systemSettings?.company_name || 'Curitiba Inox'}
+            />
+          </>
+        )}
+
         {/* Dialog de criação de cliente */}
         <ClientFormDialog
           open={isClientDialogOpen}
