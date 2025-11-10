@@ -79,6 +79,67 @@ export const generateWhatsAppLinkWithPdf = (
 };
 
 /**
+ * Normaliza telefone brasileiro ou internacional
+ * Remove caracteres não numéricos e adiciona DDI 55 se necessário
+ */
+export function normalizePhone(raw: string): string {
+  const digits = (raw || '').replace(/\D/g, '');
+  
+  // Se já tem DDI 55 Brasil (12-13 dígitos)
+  if (/^55\d{10,11}$/.test(digits)) return digits;
+  
+  // Se é BR sem DDI (10-11 dígitos), adiciona 55
+  if (/^\d{10,11}$/.test(digits)) return '55' + digits;
+  
+  // Retorna como está (internacional ou inválido)
+  return digits;
+}
+
+/**
+ * Constrói URL do WhatsApp com detecção mobile/desktop
+ * Mobile: usa wa.me
+ * Desktop: usa web.whatsapp.com/send
+ */
+export function buildWhatsAppUrl(phoneRaw: string, message: string): string {
+  const phone = normalizePhone(phoneRaw);
+  const text = encodeURIComponent(message || '');
+  
+  // Detecta se é mobile
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile/i.test(
+    navigator.userAgent
+  );
+  
+  let url: string;
+  if (isMobile) {
+    // Mobile: usa wa.me
+    url = `https://wa.me/${phone}?text=${text}`;
+  } else {
+    // Desktop: usa web.whatsapp.com
+    url = `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
+  }
+  
+  console.log('🔗 URL WhatsApp gerada:', url);
+  console.log('📱 Dispositivo:', isMobile ? 'Mobile' : 'Desktop');
+  console.log('📞 Telefone normalizado:', phone);
+  
+  return url;
+}
+
+/**
+ * Abre WhatsApp em nova aba com tratamento de erro
+ * Usa detecção automática mobile/desktop
+ */
+export function openWhatsApp(phoneRaw: string, message: string): void {
+  const url = buildWhatsAppUrl(phoneRaw, message);
+  
+  const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+  
+  if (!newWindow) {
+    alert('⚠️ Não foi possível abrir o WhatsApp.\n\nPermita pop-ups para este site nas configurações do navegador.');
+  }
+}
+
+/**
  * Gera link do WhatsApp simples (sem mensagem pré-formatada)
  * Abre conversa para o usuário digitar manualmente
  */

@@ -8,6 +8,7 @@ import { MessageCircle, Mail, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { openWhatsApp } from "@/lib/whatsapp-templates";
 
 type WhatsAppContact = {
   id: string;
@@ -294,11 +295,9 @@ export const SendReportModal = ({
     }
     
     const message = buildMessage(osNumber, pdfUrl);
-    const waNumber = normalized.replace('+', '');
-    const encodedMessage = encodeURIComponent(message);
-    const link = `https://wa.me/${waNumber}?text=${encodedMessage}`;
     
-    window.open(link, '_blank', 'noopener,noreferrer');
+    // 🆕 Usar a nova função com detecção mobile/desktop
+    openWhatsApp(normalized.replace('+', ''), message);
     
     toast({
       title: "WhatsApp aberto",
@@ -327,12 +326,9 @@ export const SendReportModal = ({
     if (mode === 'whatsapp') {
       const message = buildMessage(osNumber, pdfUrl);
       
+      // 🆕 Usar a nova função com detecção mobile/desktop
       (selected as WhatsAppContact[]).forEach(contact => {
-        const waNumber = contact.phoneE164.replace('+', '');
-        const encodedMessage = encodeURIComponent(message);
-        const link = `https://wa.me/${waNumber}?text=${encodedMessage}`;
-        
-        window.open(link, '_blank', 'noopener,noreferrer');
+        openWhatsApp(contact.phoneE164.replace('+', ''), message);
       });
       
       const fixos = (selected as WhatsAppContact[]).filter(c => !c.isLikelyWhatsApp);

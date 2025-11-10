@@ -1,12 +1,36 @@
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
-import { generateWhatsAppLink, WhatsAppMessageData } from "@/lib/whatsapp-templates";
+import { openWhatsApp, WhatsAppMessageData } from "@/lib/whatsapp-templates";
 
 interface WhatsAppButtonProps {
   data: WhatsAppMessageData;
   variant?: "default" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
+}
+
+/**
+ * Constrói mensagem a partir dos dados da OS
+ */
+function buildMessageFromData(data: WhatsAppMessageData): string {
+  let message = `Olá ${data.clientName}!\n\n`;
+  message += `Referente à OS #${data.osNumber}`;
+  
+  if (data.deviceModel) {
+    message += `\n📱 Equipamento: ${data.deviceModel}`;
+  }
+  
+  if (data.issue) {
+    message += `\n🔧 Problema: ${data.issue}`;
+  }
+  
+  if (data.status) {
+    message += `\n📊 Status: ${data.status}`;
+  }
+  
+  message += `\n\nEstou entrando em contato para atualizar sobre o andamento do serviço.`;
+  
+  return message;
 }
 
 /**
@@ -20,8 +44,8 @@ export const WhatsAppButton = ({
   className 
 }: WhatsAppButtonProps) => {
   const handleClick = () => {
-    const link = generateWhatsAppLink(data);
-    window.open(link, '_blank');
+    const message = buildMessageFromData(data);
+    openWhatsApp(data.phoneNumber, message);
   };
 
   return (
