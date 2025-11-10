@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useUserRole = () => {
-  const [role, setRole] = useState<string | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchRole = async () => {
+    const fetchRoles = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          setRole(null);
+          setRoles([]);
           setLoading(false);
           return;
         }
@@ -18,31 +18,30 @@ export const useUserRole = () => {
         const { data, error } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", user.id)
-          .maybeSingle();
+          .eq("user_id", user.id);
 
         if (error) {
-          console.error("Error fetching role:", error);
-          setRole(null);
+          console.error("Error fetching roles:", error);
+          setRoles([]);
         } else {
-          setRole(data?.role || null);
+          setRoles(data?.map((r) => r.role) || []);
         }
       } catch (error) {
-        console.error("Error in fetchRole:", error);
-        setRole(null);
+        console.error("Error in fetchRoles:", error);
+        setRoles([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRole();
+    fetchRoles();
   }, []);
 
   return {
-    role,
+    roles,
     loading,
-    isAdmin: role === "admin",
-    isTechnician: role === "technician",
-    isUser: role === "user",
+    isAdmin: roles.includes("admin"),
+    isTechnician: roles.includes("technician"),
+    isUser: roles.includes("user"),
   };
 };

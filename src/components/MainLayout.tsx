@@ -50,7 +50,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>("Cadastros");
-  const { role } = useUserRole();
+  const { isAdmin } = useUserRole();
   const { settings } = useSystemSettings();
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: Tags, label: "Categorias dos Produtos", to: "/categories" },
         { icon: Users, label: "Vendedores", to: "/sellers" },
         { icon: Package, label: "Embalagens", to: "/packaging" },
-        ...(role === "admin"
+        ...(isAdmin
           ? [
               { icon: Users, label: "Técnicos", to: "/technicians" },
               { icon: Shield, label: "Gerenciar Usuários", to: "/admin/users" },
@@ -246,7 +246,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 
             {/* Footer: Settings and Logout */}
             <div className="mt-auto space-y-2">
-              {role === "admin" && (
+              {isAdmin && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
