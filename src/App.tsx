@@ -27,6 +27,7 @@ import ChecklistForm from "./pages/ChecklistForm";
 import Settings from "./pages/Settings";
 import CadastrosClientesFornecedores from "./pages/CadastrosClientesFornecedores";
 import CadastroDetail from "./pages/CadastroDetail";
+import UserManagement from "./pages/UserManagement";
 
 const queryClient = new QueryClient();
 
@@ -287,6 +288,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute>
+                <UserManagement />
               </ProtectedRoute>
             }
           />

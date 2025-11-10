@@ -17,6 +17,7 @@ import {
   Activity,
   DollarSign,
   X,
+  Shield,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/curitiba-logo.png";
@@ -88,7 +89,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: Users, label: "Vendedores", to: "/sellers" },
         { icon: Package, label: "Embalagens", to: "/packaging" },
         ...(role === "admin"
-          ? [{ icon: Users, label: "Técnicos", to: "/technicians" }]
+          ? [
+              { icon: Users, label: "Técnicos", to: "/technicians" },
+              { icon: Shield, label: "Gerenciar Usuários", to: "/admin/users" },
+            ]
           : []),
         { icon: FileText, label: "Checklists", to: "/checklists" },
       ],
