@@ -19,10 +19,10 @@ export const useAllUsers = () => {
     queryKey: ["all-users"],
     queryFn: async () => {
       // Buscar todos os perfis
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, user_id, full_name, username, phone")
-        .order("full_name");
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, user_id, full_name, username, phone, email")
+      .order("full_name");
 
       if (profilesError) throw profilesError;
 
@@ -44,7 +44,7 @@ export const useAllUsers = () => {
           user_id: profile.user_id,
           full_name: profile.full_name,
           username: profile.username || undefined,
-          email: undefined,
+          email: profile.email || undefined,
           phone: profile.phone,
           roles,
         };
