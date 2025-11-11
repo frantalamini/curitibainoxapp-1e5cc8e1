@@ -79,7 +79,7 @@ serve(async (req) => {
       throw new Error('Invalid role. Must be admin or technician');
     }
 
-    // Check if username already exists
+    // Check if username or email already exists
     const supabaseCheck = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -92,7 +92,14 @@ serve(async (req) => {
       .single();
 
     if (existingUsername) {
-      throw new Error('Username already exists');
+      throw new Error('Nome de usuário já existe');
+    }
+
+    // Check if email already exists
+    const { data: existingUser, error: emailCheckError } = await supabaseCheck.auth.admin.listUsers();
+    
+    if (existingUser?.users?.some(u => u.email === email)) {
+      throw new Error('Este email já está cadastrado no sistema');
     }
 
     console.log('Creating user with email:', email);
