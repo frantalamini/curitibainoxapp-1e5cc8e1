@@ -207,13 +207,25 @@ export const useCreateUser = () => {
       phone?: string; 
       role: AppRole;
     }) => {
+      console.log('[useCreateUser] Chamando edge function com:', { username, email, role });
+      
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: { username, email, password, full_name, phone, role }
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      console.log('[useCreateUser] Resposta da edge function:', { data, error });
+
+      if (error) {
+        console.error('[useCreateUser] Erro de transporte:', error);
+        throw error;
+      }
       
+      if (data?.error) {
+        console.error('[useCreateUser] Erro retornado pela edge function:', data.error);
+        throw new Error(data.error);
+      }
+      
+      console.log('[useCreateUser] Usuário criado com sucesso');
       return data;
     },
     onSuccess: () => {
@@ -224,6 +236,8 @@ export const useCreateUser = () => {
       });
     },
     onError: (error: any) => {
+      console.error('[useCreateUser] onError chamado com:', error);
+      
       let errorMessage = error.message || "Ocorreu um erro ao criar o usuário.";
       
       // Traduzir mensagens de erro específicas
@@ -232,6 +246,8 @@ export const useCreateUser = () => {
       } else if (errorMessage.includes("Username already exists") || errorMessage.includes("já existe")) {
         errorMessage = "Este nome de usuário já está em uso.";
       }
+      
+      console.log('[useCreateUser] Exibindo toast com mensagem:', errorMessage);
       
       toast({
         title: "Erro ao criar usuário",
