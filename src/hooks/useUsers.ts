@@ -231,8 +231,13 @@ export const useCreateUser = () => {
       console.log('[useCreateUser] Usuário criado com sucesso');
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all-users"] });
+    onSuccess: async () => {
+      // Pequeno delay para garantir que o trigger completou
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Forçar refetch imediato da lista
+      await queryClient.refetchQueries({ queryKey: ["all-users"] });
+      
       toast({
         title: "Usuário criado",
         description: "O usuário foi criado com sucesso.",
