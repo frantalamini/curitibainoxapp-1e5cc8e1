@@ -119,31 +119,14 @@ export const useUpdateUser = () => {
   return useMutation({
     mutationFn: async ({ 
       userId,
-      username,
       full_name, 
       phone
     }: { 
       userId: string;
-      username?: string;
       full_name?: string; 
       phone?: string; 
     }) => {
-      // First check if username is being changed and if it already exists
-      if (username) {
-        const { data: existingProfile, error: checkError } = await supabase
-          .from("profiles")
-          .select("user_id")
-          .eq("username", username)
-          .neq("user_id", userId)
-          .single();
-
-        if (existingProfile) {
-          throw new Error("Nome de usuário já existe");
-        }
-      }
-
       const updateData: any = {};
-      if (username !== undefined) updateData.username = username;
       if (full_name !== undefined) updateData.full_name = full_name;
       if (phone !== undefined) updateData.phone = phone;
 
@@ -165,6 +148,40 @@ export const useUpdateUser = () => {
       toast({
         title: "Erro ao atualizar usuário",
         description: error.message || "Ocorreu um erro ao atualizar o usuário.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useResetUserPassword = () => {
+  return useMutation({
+    mutationFn: async ({ 
+      userId, 
+      newPassword 
+    }: { 
+      userId: string; 
+      newPassword: string; 
+    }) => {
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: { userId, newPassword }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Senha alterada",
+        description: "A senha do usuário foi alterada com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao alterar senha",
+        description: error.message || "Ocorreu um erro ao alterar a senha.",
         variant: "destructive",
       });
     },
