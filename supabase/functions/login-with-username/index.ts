@@ -19,7 +19,13 @@ serve(async (req) => {
       throw new Error('Username/email and password are required');
     }
 
-    // Create Supabase client
+    // Create Supabase admin client for username lookup (bypasses RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Create regular client for authentication
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -31,9 +37,10 @@ serve(async (req) => {
     if (!username_or_email.includes('@')) {
       console.log('Searching for username:', username_or_email);
       
-      const { data: profile, error: profileError } = await supabaseClient
+      // Use admin client to bypass RLS policies on profiles table
+      const { data: profile, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .select('user_id')
+        .select('email')
         .eq('username', username_or_email)
         .single();
 
@@ -42,20 +49,7 @@ serve(async (req) => {
         throw new Error('Invalid credentials');
       }
 
-      // Get user email from auth.users
-      const supabaseAdmin = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-
-      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(profile.user_id);
-
-      if (userError || !userData.user) {
-        console.error('User not found:', userError);
-        throw new Error('Invalid credentials');
-      }
-
-      emailToUse = userData.user.email!;
+      emailToUse = profile.email;
       console.log('Found email for username:', emailToUse);
     }
 
