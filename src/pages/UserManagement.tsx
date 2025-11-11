@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useAllUsers, useAddUserRole, useRemoveUserRole, useCreateUser, AppRole } from "@/hooks/useUsers";
+import { useAllUsers, useAddUserRole, useRemoveUserRole, useCreateUser, AppRole, UserWithRole } from "@/hooks/useUsers";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EditUserDialog } from "@/components/EditUserDialog";
 import {
   Table,
   TableBody,
@@ -39,7 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Trash2, Shield, Search, Plus } from "lucide-react";
+import { UserPlus, Trash2, Shield, Search, Plus, Pencil } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/MainLayout";
 import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
@@ -54,7 +55,9 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [addRoleDialogOpen, setAddRoleDialogOpen] = useState(false);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserWithRole | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("technician");
   const [removeRoleDialog, setRemoveRoleDialog] = useState<{
     open: boolean;
@@ -251,17 +254,30 @@ export default function UserManagement() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedUser(user.user_id);
-                            setAddRoleDialogOpen(true);
-                          }}
-                        >
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Adicionar Role
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedUserForEdit(user);
+                              setEditUserDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedUser(user.user_id);
+                              setAddRoleDialogOpen(true);
+                            }}
+                          >
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            Adicionar Role
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -437,6 +453,13 @@ export default function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit User Dialog */}
+      <EditUserDialog
+        open={editUserDialogOpen}
+        onOpenChange={setEditUserDialogOpen}
+        user={selectedUserForEdit}
+      />
     </div>
     </MainLayout>
   );

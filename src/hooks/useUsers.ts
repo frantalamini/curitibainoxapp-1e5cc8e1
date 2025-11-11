@@ -113,6 +113,64 @@ export const useRemoveUserRole = () => {
   });
 };
 
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      userId,
+      username,
+      full_name, 
+      phone
+    }: { 
+      userId: string;
+      username?: string;
+      full_name?: string; 
+      phone?: string; 
+    }) => {
+      // First check if username is being changed and if it already exists
+      if (username) {
+        const { data: existingProfile, error: checkError } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("username", username)
+          .neq("user_id", userId)
+          .single();
+
+        if (existingProfile) {
+          throw new Error("Nome de usuário já existe");
+        }
+      }
+
+      const updateData: any = {};
+      if (username !== undefined) updateData.username = username;
+      if (full_name !== undefined) updateData.full_name = full_name;
+      if (phone !== undefined) updateData.phone = phone;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update(updateData)
+        .eq("user_id", userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-users"] });
+      toast({
+        title: "Usuário atualizado",
+        description: "As informações do usuário foram atualizadas com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar usuário",
+        description: error.message || "Ocorreu um erro ao atualizar o usuário.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
 export const useCreateUser = () => {
   const queryClient = useQueryClient();
 
@@ -149,9 +207,18 @@ export const useCreateUser = () => {
       });
     },
     onError: (error: any) => {
+      let errorMessage = error.message || "Ocorreu um erro ao criar o usuário.";
+      
+      // Traduzir mensagens de erro específicas
+      if (errorMessage.includes("already registered") || errorMessage.includes("já está cadastrado")) {
+        errorMessage = "Este email já está cadastrado no sistema.";
+      } else if (errorMessage.includes("Username already exists") || errorMessage.includes("já existe")) {
+        errorMessage = "Este nome de usuário já está em uso.";
+      }
+      
       toast({
         title: "Erro ao criar usuário",
-        description: error.message || "Ocorreu um erro ao criar o usuário.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
