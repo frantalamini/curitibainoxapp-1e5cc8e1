@@ -42,6 +42,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { UserPlus, Trash2, Shield, Search, Plus } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/MainLayout";
+import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 
 export default function UserManagement() {
   const { isAdmin, loading: roleLoading } = useUserRole();
@@ -63,6 +64,7 @@ export default function UserManagement() {
 
   // Form state for creating new user
   const [newUserForm, setNewUserForm] = useState({
+    username: "",
     email: "",
     password: "",
     full_name: "",
@@ -85,6 +87,7 @@ export default function UserManagement() {
   const filteredUsers = users?.filter(
     (user) =>
       user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -139,7 +142,7 @@ export default function UserManagement() {
   };
 
   const handleCreateUser = () => {
-    if (!newUserForm.email || !newUserForm.password || !newUserForm.full_name) {
+    if (!newUserForm.username || !newUserForm.email || !newUserForm.password || !newUserForm.full_name) {
       return;
     }
 
@@ -147,6 +150,7 @@ export default function UserManagement() {
       onSuccess: () => {
         setCreateUserDialogOpen(false);
         setNewUserForm({
+          username: "",
           email: "",
           password: "",
           full_name: "",
@@ -199,7 +203,7 @@ export default function UserManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>Username</TableHead>
                     <TableHead>Telefone</TableHead>
                     <TableHead>Roles</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
@@ -209,7 +213,13 @@ export default function UserManagement() {
                   {filteredUsers?.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.full_name}</TableCell>
-                      <TableCell>{user.email || "-"}</TableCell>
+                      <TableCell>
+                        {user.username ? (
+                          <code className="text-sm bg-muted px-2 py-0.5 rounded">@{user.username}</code>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
                       <TableCell>{user.phone || "-"}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -336,6 +346,18 @@ export default function UserManagement() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="username">Nome de Usuário *</Label>
+              <Input
+                id="username"
+                placeholder="usuario123"
+                value={newUserForm.username}
+                onChange={(e) => setNewUserForm({ ...newUserForm, username: e.target.value.toLowerCase() })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Apenas letras, números, ponto e underscore
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
@@ -350,10 +372,13 @@ export default function UserManagement() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 value={newUserForm.password}
                 onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
               />
+              {newUserForm.password && (
+                <PasswordStrengthIndicator password={newUserForm.password} className="mt-2" />
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone</Label>
@@ -386,6 +411,7 @@ export default function UserManagement() {
               onClick={() => {
                 setCreateUserDialogOpen(false);
                 setNewUserForm({
+                  username: "",
                   email: "",
                   password: "",
                   full_name: "",
@@ -400,6 +426,7 @@ export default function UserManagement() {
               onClick={handleCreateUser} 
               disabled={
                 createUser.isPending || 
+                !newUserForm.username ||
                 !newUserForm.email || 
                 !newUserForm.password || 
                 !newUserForm.full_name

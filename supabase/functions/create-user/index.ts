@@ -45,19 +45,54 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, full_name, phone, role } = await req.json();
+    const { username, email, password, full_name, phone, role } = await req.json();
 
     // Validate input
-    if (!email || !password || !full_name) {
-      throw new Error('Missing required fields: email, password, full_name');
+    if (!username || !email || !password || !full_name) {
+      throw new Error('Missing required fields: username, email, password, full_name');
     }
 
-    if (password.length < 6) {
-      throw new Error('Password must be at least 6 characters');
+    // Validate username format (letters, numbers, underscore, dot only)
+    const usernameRegex = /^[a-zA-Z0-9_.]+$/;
+    if (!usernameRegex.test(username)) {
+      throw new Error('Username can only contain letters, numbers, underscore and dot');
+    }
+
+    if (username.length < 3) {
+      throw new Error('Username must be at least 3 characters');
+    }
+
+    // Validate strong password
+    if (password.length < 8) {
+      throw new Error('Password must be at least 8 characters');
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      throw new Error('Password must contain at least one uppercase letter');
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      throw new Error('Password must contain at least one special character');
     }
 
     if (!['admin', 'technician'].includes(role)) {
       throw new Error('Invalid role. Must be admin or technician');
+    }
+
+    // Check if username already exists
+    const supabaseCheck = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { data: existingUsername, error: usernameCheckError } = await supabaseCheck
+      .from('profiles')
+      .select('username')
+      .eq('username', username)
+      .single();
+
+    if (existingUsername) {
+      throw new Error('Username already exists');
     }
 
     console.log('Creating user with email:', email);
@@ -92,8 +127,19 @@ serve(async (req) => {
 
     console.log('User created successfully:', newUser.user.id);
 
-    // The profile will be created automatically by the trigger
-    // Now just add the role
+    // Update the profile with username (trigger creates basic profile)
+    const { error: profileUpdateError } = await supabaseAdmin
+      .from('profiles')
+      .update({ username })
+      .eq('user_id', newUser.user.id);
+
+    if (profileUpdateError) {
+      console.error('Error updating profile with username:', profileUpdateError);
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      throw new Error('Failed to set username');
+    }
+
+    // Now add the role
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({

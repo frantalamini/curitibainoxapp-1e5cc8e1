@@ -17,8 +17,23 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-// Schema de validação para login
+// Schema de validação para login (aceita username ou email)
 const loginSchema = z.object({
+  usernameOrEmail: z
+    .string()
+    .trim()
+    .min(3, "Username ou email muito curto")
+    .max(255, "Username ou email muito longo"),
+  password: z
+    .string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .regex(/[A-Z]/, "Senha deve conter ao menos 1 letra maiúscula")
+    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, "Senha deve conter ao menos 1 caractere especial")
+    .max(100, "Senha muito longa"),
+});
+
+// Schema de validação para cadastro (não herda do login, tem email próprio)
+const signupSchema = z.object({
   email: z
     .string()
     .trim()
@@ -28,14 +43,8 @@ const loginSchema = z.object({
     .string()
     .min(8, "Senha deve ter no mínimo 8 caracteres")
     .regex(/[A-Z]/, "Senha deve conter ao menos 1 letra maiúscula")
-    .regex(/[a-z]/, "Senha deve conter ao menos 1 letra minúscula")
-    .regex(/[0-9]/, "Senha deve conter ao menos 1 número")
-    .regex(/[^A-Za-z0-9]/, "Senha deve conter ao menos 1 caractere especial (!@#$%)")
+    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, "Senha deve conter ao menos 1 caractere especial")
     .max(100, "Senha muito longa"),
-});
-
-// Schema de validação para cadastro
-const signupSchema = loginSchema.extend({
   fullName: z
     .string()
     .trim()
@@ -73,6 +82,7 @@ const Auth = () => {
       isForgotPassword ? forgotPasswordSchema : isLogin ? loginSchema : signupSchema
     ),
     defaultValues: {
+      usernameOrEmail: "",
       email: "",
       password: "",
       fullName: "",
@@ -92,7 +102,8 @@ const Auth = () => {
   const handleAuth = async (values: LoginFormData | SignupFormData | ForgotPasswordFormData) => {
     try {
       if (isForgotPassword) {
-        const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        const forgotValues = values as ForgotPasswordFormData;
+        const { error } = await supabase.auth.resetPasswordForEmail(forgotValues.email, {
           redirectTo: `${window.location.origin}/auth/reset-password`,
         });
 
@@ -107,12 +118,29 @@ const Auth = () => {
         setIsLogin(true);
         form.reset();
       } else if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: values.email,
-          password: (values as LoginFormData).password,
+        const loginValues = values as LoginFormData;
+        
+        // Call the login-with-username edge function
+        const { data, error } = await supabase.functions.invoke('login-with-username', {
+          body: {
+            username_or_email: loginValues.usernameOrEmail,
+            password: loginValues.password,
+          },
         });
 
-        if (error) throw error;
+        if (error || data?.error) {
+          throw new Error(data?.error || error?.message || 'Credenciais inválidas');
+        }
+
+        // Set the session manually
+        if (data.session) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+
+          if (sessionError) throw sessionError;
+        }
 
         toast({
           title: "Login realizado com sucesso!",
@@ -202,19 +230,35 @@ const Auth = () => {
                 </>
               )}
               
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="email" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {isLogin ? (
+                <FormField
+                  control={form.control}
+                  name="usernameOrEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Usuário ou Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Digite seu username ou email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               
               {!isForgotPassword && (
                 <FormField

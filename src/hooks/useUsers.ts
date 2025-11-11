@@ -8,6 +8,7 @@ export interface UserWithRole {
   id: string;
   user_id: string;
   full_name: string;
+  username?: string;
   email?: string;
   phone?: string;
   roles: AppRole[];
@@ -20,7 +21,7 @@ export const useAllUsers = () => {
       // Buscar todos os perfis
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, user_id, full_name, phone")
+        .select("id, user_id, full_name, username, phone")
         .order("full_name");
 
       if (profilesError) throw profilesError;
@@ -42,6 +43,7 @@ export const useAllUsers = () => {
           id: profile.id,
           user_id: profile.user_id,
           full_name: profile.full_name,
+          username: profile.username || undefined,
           email: undefined,
           phone: profile.phone,
           roles,
@@ -116,12 +118,14 @@ export const useCreateUser = () => {
 
   return useMutation({
     mutationFn: async ({ 
+      username,
       email, 
       password, 
       full_name, 
       phone, 
       role 
     }: { 
+      username: string;
       email: string; 
       password: string; 
       full_name: string; 
@@ -129,7 +133,7 @@ export const useCreateUser = () => {
       role: AppRole;
     }) => {
       const { data, error } = await supabase.functions.invoke('create-user', {
-        body: { email, password, full_name, phone, role }
+        body: { username, email, password, full_name, phone, role }
       });
 
       if (error) throw error;
