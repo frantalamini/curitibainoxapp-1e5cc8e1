@@ -215,14 +215,17 @@ export const useCreateUser = () => {
 
       console.log('[useCreateUser] Resposta da edge function:', { data, error });
 
+      // Erro de transporte (rede, timeout, etc)
       if (error) {
         console.error('[useCreateUser] Erro de transporte:', error);
         throw error;
       }
       
-      if (data?.error) {
-        console.error('[useCreateUser] Erro retornado pela edge function:', data.error);
-        throw new Error(data.error);
+      // Verificar se a operação falhou (mesmo com status 200)
+      if (!data?.success || data?.error) {
+        const errorMsg = data?.error || 'Erro ao criar usuário';
+        console.error('[useCreateUser] Operação falhou:', errorMsg);
+        throw new Error(errorMsg);
       }
       
       console.log('[useCreateUser] Usuário criado com sucesso');
