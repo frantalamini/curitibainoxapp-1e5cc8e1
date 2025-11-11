@@ -110,3 +110,46 @@ export const useRemoveUserRole = () => {
     },
   });
 };
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      email, 
+      password, 
+      full_name, 
+      phone, 
+      role 
+    }: { 
+      email: string; 
+      password: string; 
+      full_name: string; 
+      phone?: string; 
+      role: AppRole;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: { email, password, full_name, phone, role }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-users"] });
+      toast({
+        title: "Usuário criado",
+        description: "O usuário foi criado com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao criar usuário",
+        description: error.message || "Ocorreu um erro ao criar o usuário.",
+        variant: "destructive",
+      });
+    },
+  });
+};

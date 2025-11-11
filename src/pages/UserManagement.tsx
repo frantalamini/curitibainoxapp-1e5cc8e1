@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useAllUsers, useAddUserRole, useRemoveUserRole, AppRole } from "@/hooks/useUsers";
+import { useAllUsers, useAddUserRole, useRemoveUserRole, useCreateUser, AppRole } from "@/hooks/useUsers";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -38,17 +39,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Trash2, Shield, Search } from "lucide-react";
+import { UserPlus, Trash2, Shield, Search, Plus } from "lucide-react";
 import { Navigate } from "react-router-dom";
+import { MainLayout } from "@/components/MainLayout";
 
 export default function UserManagement() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const { data: users, isLoading } = useAllUsers();
   const addRole = useAddUserRole();
   const removeRole = useRemoveUserRole();
+  const createUser = useCreateUser();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [addRoleDialogOpen, setAddRoleDialogOpen] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("technician");
   const [removeRoleDialog, setRemoveRoleDialog] = useState<{
@@ -56,6 +60,15 @@ export default function UserManagement() {
     userId: string | null;
     role: AppRole | null;
   }>({ open: false, userId: null, role: null });
+
+  // Form state for creating new user
+  const [newUserForm, setNewUserForm] = useState({
+    email: "",
+    password: "",
+    full_name: "",
+    phone: "",
+    role: "technician" as AppRole,
+  });
 
   if (roleLoading) {
     return (
@@ -125,8 +138,28 @@ export default function UserManagement() {
     }
   };
 
+  const handleCreateUser = () => {
+    if (!newUserForm.email || !newUserForm.password || !newUserForm.full_name) {
+      return;
+    }
+
+    createUser.mutate(newUserForm, {
+      onSuccess: () => {
+        setCreateUserDialogOpen(false);
+        setNewUserForm({
+          email: "",
+          password: "",
+          full_name: "",
+          phone: "",
+          role: "technician",
+        });
+      },
+    });
+  };
+
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <MainLayout>
+      <div className="container mx-auto py-6 space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -150,6 +183,10 @@ export default function UserManagement() {
                 className="pl-10"
               />
             </div>
+            <Button onClick={() => setCreateUserDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Criar Novo Usuário
+            </Button>
           </div>
 
           {isLoading ? (
@@ -279,6 +316,101 @@ export default function UserManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Usuário</DialogTitle>
+            <DialogDescription>
+              Preencha os dados para criar um novo usuário no sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Nome Completo *</Label>
+              <Input
+                id="full_name"
+                placeholder="Digite o nome completo"
+                value={newUserForm.full_name}
+                onChange={(e) => setNewUserForm({ ...newUserForm, full_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="exemplo@email.com"
+                value={newUserForm.email}
+                onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha *</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                value={newUserForm.password}
+                onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Telefone</Label>
+              <Input
+                id="phone"
+                placeholder="(00) 00000-0000"
+                value={newUserForm.phone}
+                onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Perfil Inicial *</Label>
+              <Select 
+                value={newUserForm.role} 
+                onValueChange={(value) => setNewUserForm({ ...newUserForm, role: value as AppRole })}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Selecione o perfil" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="technician">Técnico</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setCreateUserDialogOpen(false);
+                setNewUserForm({
+                  email: "",
+                  password: "",
+                  full_name: "",
+                  phone: "",
+                  role: "technician",
+                });
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleCreateUser} 
+              disabled={
+                createUser.isPending || 
+                !newUserForm.email || 
+                !newUserForm.password || 
+                !newUserForm.full_name
+              }
+            >
+              {createUser.isPending ? "Criando..." : "Criar Usuário"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+    </MainLayout>
   );
 }

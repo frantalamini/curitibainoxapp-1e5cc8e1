@@ -1,0 +1,140 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+
+    // Create Supabase client with anon key to verify the calling user
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify the calling user is an admin
+    const { data: { user: callingUser }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !callingUser) {
+      console.error('Error getting user:', userError);
+      throw new Error('Unauthorized');
+    }
+
+    const { data: roles, error: rolesError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', callingUser.id);
+
+    if (rolesError || !roles?.some(r => r.role === 'admin')) {
+      console.error('User is not admin:', callingUser.id);
+      throw new Error('Unauthorized: Admin access required');
+    }
+
+    // Parse request body
+    const { email, password, full_name, phone, role } = await req.json();
+
+    // Validate input
+    if (!email || !password || !full_name) {
+      throw new Error('Missing required fields: email, password, full_name');
+    }
+
+    if (password.length < 6) {
+      throw new Error('Password must be at least 6 characters');
+    }
+
+    if (!['admin', 'technician'].includes(role)) {
+      throw new Error('Invalid role. Must be admin or technician');
+    }
+
+    console.log('Creating user with email:', email);
+
+    // Create Supabase admin client
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Create the user using admin API
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // Auto-confirm the email
+      user_metadata: {
+        full_name,
+        phone: phone || '',
+      }
+    });
+
+    if (createError) {
+      console.error('Error creating user:', createError);
+      throw createError;
+    }
+
+    console.log('User created successfully:', newUser.user.id);
+
+    // The profile will be created automatically by the trigger
+    // Now just add the role
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({
+        user_id: newUser.user.id,
+        role: role
+      });
+
+    if (roleError) {
+      console.error('Error adding role:', roleError);
+      // Try to clean up the created user
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+      throw new Error('Failed to assign role to user');
+    }
+
+    console.log('Role assigned successfully');
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        user_id: newUser.user.id,
+        message: 'User created successfully'
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
+    );
+
+  } catch (error) {
+    console.error('Error in create-user function:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'An error occurred while creating user';
+    
+    return new Response(
+      JSON.stringify({ 
+        error: errorMessage
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      }
+    );
+  }
+});
