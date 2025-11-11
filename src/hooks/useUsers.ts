@@ -265,3 +265,42 @@ export const useCreateUser = () => {
     },
   });
 };
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: userId }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.success || data?.error) {
+        throw new Error(data?.error || 'Erro ao deletar usuário');
+      }
+
+      return data;
+    },
+    onSuccess: async () => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await queryClient.refetchQueries({ queryKey: ["all-users"] });
+      
+      toast({
+        title: "Usuário deletado",
+        description: "O usuário foi removido com sucesso do sistema.",
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Erro ao deletar usuário:', error);
+      toast({
+        title: "Erro ao deletar usuário",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};

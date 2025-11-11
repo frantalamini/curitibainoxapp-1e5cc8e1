@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useAllUsers, useAddUserRole, useRemoveUserRole, useCreateUser, AppRole, UserWithRole } from "@/hooks/useUsers";
+import { useAllUsers, useAddUserRole, useRemoveUserRole, useCreateUser, useDeleteUser, AppRole, UserWithRole } from "@/hooks/useUsers";
 import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,8 @@ export default function UserManagement() {
   const addRole = useAddUserRole();
   const removeRole = useRemoveUserRole();
   const createUser = useCreateUser();
+  const deleteUser = useDeleteUser();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [addRoleDialogOpen, setAddRoleDialogOpen] = useState(false);
@@ -65,6 +68,12 @@ export default function UserManagement() {
     role: AppRole | null;
   }>({ open: false, userId: null, role: null });
 
+  const [deleteUserDialog, setDeleteUserDialog] = useState<{
+    open: boolean;
+    userId: string | null;
+    userName: string | null;
+  }>({ open: false, userId: null, userName: null });
+
   // Form state for creating new user
   const [newUserForm, setNewUserForm] = useState({
     username: "",
@@ -73,6 +82,15 @@ export default function UserManagement() {
     full_name: "",
     phone: "",
     role: "technician" as AppRole,
+  });
+
+  // Pegar o user_id do usuário atual
+  useState(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setCurrentUserId(data.user.id);
+      }
+    });
   });
 
   if (roleLoading) {
@@ -162,6 +180,16 @@ export default function UserManagement() {
         });
       },
     });
+  };
+
+  const handleDeleteUser = () => {
+    if (deleteUserDialog.userId) {
+      deleteUser.mutate(deleteUserDialog.userId, {
+        onSuccess: () => {
+          setDeleteUserDialog({ open: false, userId: null, userName: null });
+        },
+      });
+    }
   };
 
   return (
@@ -276,6 +304,21 @@ export default function UserManagement() {
                           >
                             <UserPlus className="h-4 w-4 mr-1" />
                             Adicionar Role
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setDeleteUserDialog({ 
+                                open: true, 
+                                userId: user.user_id, 
+                                userName: user.full_name 
+                              });
+                            }}
+                            disabled={user.user_id === currentUserId}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Deletar
                           </Button>
                         </div>
                       </TableCell>
@@ -460,6 +503,33 @@ export default function UserManagement() {
         onOpenChange={setEditUserDialogOpen}
         user={selectedUserForEdit}
       />
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog
+        open={deleteUserDialog.open}
+        onOpenChange={(open) =>
+          !open && setDeleteUserDialog({ open: false, userId: null, userName: null })
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deletar Usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja deletar permanentemente o usuário <strong>{deleteUserDialog.userName}</strong>? 
+              Esta ação não pode ser desfeita e todos os dados relacionados serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Deletar Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     </MainLayout>
   );
