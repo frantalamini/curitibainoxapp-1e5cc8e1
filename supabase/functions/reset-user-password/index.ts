@@ -12,21 +12,22 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Verificar autenticação com cliente regular
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    
-    const supabaseClient = createClient(
+    // Cliente admin para todas as operações
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: authHeader }
-        }
-      }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // Extrair e validar o JWT token
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Token de autenticação não fornecido");
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Validar o token e obter o usuário
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
       console.error("Erro de autenticação:", authError);
@@ -34,12 +35,6 @@ serve(async (req: Request) => {
     }
 
     console.log("Verificando role de admin para usuário:", user.id);
-
-    // Cliente admin para operações privilegiadas
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
 
     // Verificar se o usuário tem role de admin
     const { data: userRole, error: roleError } = await supabaseAdmin
