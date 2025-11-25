@@ -12,15 +12,21 @@ serve(async (req: Request) => {
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
-
-    // Verificar se quem está fazendo a requisição é admin
+    // Verificar autenticação com cliente regular
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: authHeader }
+        }
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
     if (authError || !user) {
       console.error("Erro de autenticação:", authError);
@@ -28,6 +34,12 @@ serve(async (req: Request) => {
     }
 
     console.log("Verificando role de admin para usuário:", user.id);
+
+    // Cliente admin para operações privilegiadas
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
 
     // Verificar se o usuário tem role de admin
     const { data: userRole, error: roleError } = await supabaseAdmin
