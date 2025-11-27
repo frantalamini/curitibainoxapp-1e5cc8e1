@@ -28,7 +28,7 @@ import Settings from "./pages/Settings";
 import CadastrosClientesFornecedores from "./pages/CadastrosClientesFornecedores";
 import CadastroDetail from "./pages/CadastroDetail";
 import UserManagement from "./pages/UserManagement";
-import RelatorioOS from "./pages/RelatorioOS";
+import RelatorioOS from "./pages/relatorio-os/[osNumber]";
 
 const queryClient = new QueryClient();
 
