@@ -1031,7 +1031,7 @@ const ServiceCallForm = () => {
                           </Button>
                         )}
 
-                        {activeTrip && (
+                        {activeTrip && activeTrip.started_at && (
                           <div className="space-y-3">
                             <Alert>
                               <Car className="h-4 w-4" />
@@ -1490,7 +1490,7 @@ const ServiceCallForm = () => {
               isLoading={isCreatingTrip}
             />
 
-            {activeTrip && (
+            {activeTrip && activeTrip.start_odometer_km !== undefined && (
               <EndTripModal
                 open={endTripModalOpen}
                 onOpenChange={setEndTripModalOpen}
