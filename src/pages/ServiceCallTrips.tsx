@@ -19,8 +19,8 @@ const ServiceCallTrips = () => {
   const [filters, setFilters] = useState({
     startDate: "",
     endDate: "",
-    vehicleId: "",
-    technicianId: "",
+    vehicleId: "all",
+    technicianId: "all",
   });
 
   const { data: trips, isLoading } = useServiceCallTrips(filters);
@@ -80,7 +80,7 @@ const ServiceCallTrips = () => {
                     <SelectValue placeholder="Todos os veículos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os veículos</SelectItem>
+                    <SelectItem value="all">Todos os veículos</SelectItem>
                     {vehicles?.map((vehicle) => (
                       <SelectItem key={vehicle.id} value={vehicle.id}>
                         {vehicle.name} - {vehicle.plate}
@@ -100,7 +100,7 @@ const ServiceCallTrips = () => {
                     <SelectValue placeholder="Todos os técnicos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os técnicos</SelectItem>
+                    <SelectItem value="all">Todos os técnicos</SelectItem>
                     {technicians?.map((tech) => (
                       <SelectItem key={tech.id} value={tech.id}>
                         {tech.full_name}

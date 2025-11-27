@@ -119,10 +119,10 @@ export const useServiceCallTrips = (filters?: {
       if (filters?.endDate) {
         query = query.lte("started_at", filters.endDate);
       }
-      if (filters?.vehicleId) {
+      if (filters?.vehicleId && filters.vehicleId !== "all") {
         query = query.eq("vehicle_id", filters.vehicleId);
       }
-      if (filters?.technicianId) {
+      if (filters?.technicianId && filters.technicianId !== "all") {
         query = query.eq("technician_id", filters.technicianId);
       }
 
