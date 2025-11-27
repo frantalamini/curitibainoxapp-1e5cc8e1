@@ -232,19 +232,9 @@ function extractEmailContacts(clientData: any): EmailContact[] {
  * Constrói a mensagem do WhatsApp baseado na disponibilidade do PDF
  */
 function buildMessage(osNumber: string, pdfUrl: string): string {
-  const intro = `Olá! Segue o relatório da OS nº ${osNumber}.`;
+  const publicUrl = `${window.location.origin}/relatorio-os/${osNumber}`;
   
-  // Verifica se é uma URL pública válida
-  const hasPublicUrl = pdfUrl && (
-    pdfUrl.startsWith('http://') || 
-    pdfUrl.startsWith('https://')
-  );
-  
-  if (hasPublicUrl) {
-    return `${intro}\n\nBaixe o PDF aqui:\n${pdfUrl}`;
-  } else {
-    return `${intro}\n\nO PDF foi salvo localmente pelo atendente e será enviado em seguida.`;
-  }
+  return `Olá! Seu relatório da OS nº ${osNumber} está pronto.\n\nAcesse pelo link:\n${publicUrl}`;
 }
 
 export const SendReportModal = ({
@@ -343,8 +333,9 @@ export const SendReportModal = ({
     } else {
       const emails = (selected as EmailContact[]).map(c => c.email).join(',');
       const subject = encodeURIComponent(`Relatório OS #${osNumber} – ${companyName}`);
+      const publicUrl = `${window.location.origin}/relatorio-os/${osNumber}`;
       const body = encodeURIComponent(
-        `Olá,\n\nSegue o relatório da OS #${osNumber}.\n\nBaixe o PDF aqui:\n${pdfUrl}\n\nAtenciosamente,\n${companyName}`
+        `Olá,\n\nSeu relatório da OS #${osNumber} está pronto.\n\nAcesse pelo link:\n${publicUrl}\n\nAtenciosamente,\n${companyName}`
       );
       const mailtoLink = `mailto:${emails}?subject=${subject}&body=${body}`;
       

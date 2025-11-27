@@ -59,18 +59,14 @@ export const generateWhatsAppLink = (data: WhatsAppMessageData): string => {
 export const generateWhatsAppLinkWithPdf = (
   data: WhatsAppPdfMessageData
 ): string => {
-  const { phoneNumber, clientName, osNumber, pdfUrl } = data;
+  const { phoneNumber, clientName, osNumber } = data;
   
   const cleanPhone = phoneNumber.replace(/\D/g, '');
+  const publicUrl = `https://curitibainoxapp.lovable.app/relatorio-os/${osNumber}`;
   
-  // Mensagem simplificada sem emojis complexos
   let message = `Ola ${clientName}!\n\n`;
-  message += `O relatorio da OS #${osNumber} esta pronto.\n\n`;
-  
-  if (pdfUrl) {
-    message += `Acesse aqui:\n${pdfUrl}\n`;
-  }
-  
+  message += `Seu relatorio da OS #${osNumber} esta pronto.\n\n`;
+  message += `Acesse pelo link:\n${publicUrl}\n`;
   message += `\nDuvidas? Estou a disposicao!`;
   
   const encodedMessage = encodeURIComponent(message);
