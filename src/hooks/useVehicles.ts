@@ -2,22 +2,28 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+export type VehicleStatus = 'ativo' | 'inativo' | 'em_manutencao';
+
 export interface Vehicle {
   id: string;
   name: string;
+  brand: string | null;
   plate: string;
   renavam: string | null;
   current_odometer_km: number;
-  active: boolean;
+  status: VehicleStatus;
+  active: boolean; // Mantido para retrocompatibilidade
   created_at: string;
   updated_at: string;
 }
 
 export interface VehicleInsert {
   name: string;
+  brand?: string;
   plate: string;
   renavam?: string;
   current_odometer_km?: number;
+  status?: VehicleStatus;
   active?: boolean;
 }
 

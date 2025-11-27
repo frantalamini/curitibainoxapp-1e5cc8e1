@@ -33,6 +33,7 @@ import UserManagement from "./pages/UserManagement";
 import RelatorioOS from "./pages/relatorio-os/[osNumber]";
 import Vehicles from "./pages/Vehicles";
 import VehicleForm from "./pages/VehicleForm";
+import VehicleMaintenances from "./pages/VehicleMaintenances";
 
 const queryClient = new QueryClient();
 
@@ -302,6 +303,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <VehicleForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vehicle-maintenances"
+            element={
+              <ProtectedRoute>
+                <VehicleMaintenances />
               </ProtectedRoute>
             }
           />

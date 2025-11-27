@@ -125,6 +125,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: BarChart3, label: "Dashboard", to: "/dashboard" },
         { icon: Activity, label: "Indicadores Técnicos", to: "/technical-indicators" },
         { icon: DollarSign, label: "Financeiro", to: "/financial" },
+        { icon: Wrench, label: "Manutenções de Veículos", to: "/vehicle-maintenances" },
       ],
     },
   ];

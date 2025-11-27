@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,18 +14,47 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { useVehicles, VehicleInsert } from "@/hooks/useVehicles";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useVehicles, VehicleInsert, VehicleStatus } from "@/hooks/useVehicles";
+import { useVehicleMaintenances, MaintenanceType } from "@/hooks/useVehicleMaintenances";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toTitleCase } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
+  brand: z.string().optional(),
   plate: z.string().min(1, "Placa é obrigatória"),
   renavam: z.string().optional(),
   current_odometer_km: z.coerce.number().min(0, "Quilometragem deve ser maior ou igual a 0").default(0),
-  active: z.boolean().default(true),
+  status: z.enum(['ativo', 'inativo', 'em_manutencao']).default('ativo'),
+  maintenance_started_at: z.string().optional(),
+  maintenance_type: z.enum(['preventiva', 'corretiva', 'colisao']).optional(),
+  maintenance_finished_at: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // Se status for "em_manutencao", exigir campos de manutenção
+  if (data.status === 'em_manutencao') {
+    if (!data.maintenance_started_at) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Data/hora de início é obrigatória quando em manutenção",
+        path: ["maintenance_started_at"],
+      });
+    }
+    if (!data.maintenance_type) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Tipo de manutenção é obrigatório quando em manutenção",
+        path: ["maintenance_type"],
+      });
+    }
+  }
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -35,17 +64,25 @@ const VehicleForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { createVehicle, updateVehicle } = useVehicles();
+  const { createMaintenance, updateMaintenance, getOpenMaintenance } = useVehicleMaintenances();
+  const [previousStatus, setPreviousStatus] = useState<VehicleStatus | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      brand: "",
       plate: "",
       renavam: "",
       current_odometer_km: 0,
-      active: true,
+      status: 'ativo',
+      maintenance_started_at: "",
+      maintenance_type: undefined,
+      maintenance_finished_at: "",
     },
   });
+
+  const watchStatus = form.watch("status");
 
   useEffect(() => {
     if (id) {
@@ -66,12 +103,17 @@ const VehicleForm = () => {
         }
 
         if (data) {
+          setPreviousStatus(data.status);
           form.reset({
             name: data.name,
+            brand: data.brand || "",
             plate: data.plate,
             renavam: data.renavam || "",
             current_odometer_km: data.current_odometer_km,
-            active: data.active,
+            status: data.status,
+            maintenance_started_at: "",
+            maintenance_type: undefined,
+            maintenance_finished_at: "",
           });
         }
       };
@@ -80,20 +122,90 @@ const VehicleForm = () => {
     }
   }, [id, form, toast]);
 
-  const onSubmit = (formData: FormData) => {
-    // Normalizar nome para Title Case e placa para maiúsculas
-    const data = {
-      ...formData,
-      name: toTitleCase(formData.name),
-      plate: formData.plate.toUpperCase(),
-    };
+  const onSubmit = async (formData: FormData) => {
+    try {
+      // Normalizar nome para Title Case, brand para Title Case e placa para maiúsculas
+      const vehicleData = {
+        name: toTitleCase(formData.name),
+        brand: formData.brand ? toTitleCase(formData.brand) : undefined,
+        plate: formData.plate.toUpperCase(),
+        renavam: formData.renavam,
+        current_odometer_km: formData.current_odometer_km,
+        status: formData.status,
+      };
 
-    if (id) {
-      updateVehicle({ id, ...data });
-    } else {
-      createVehicle(data as VehicleInsert);
+      // Cenário 1: Status mudou para "em_manutencao"
+      if (formData.status === 'em_manutencao' && previousStatus !== 'em_manutencao') {
+        // Criar registro de manutenção
+        const maintenanceData = {
+          vehicle_id: id || "", // Será preenchido após criar o veículo se for novo
+          maintenance_type: formData.maintenance_type as MaintenanceType,
+          started_at: new Date(formData.maintenance_started_at!).toISOString(),
+          finished_at: null,
+        };
+
+        if (id) {
+          // Atualizar veículo existente
+          updateVehicle({ id, ...vehicleData });
+          // Criar manutenção
+          createMaintenance({ ...maintenanceData, vehicle_id: id });
+        } else {
+          // Criar novo veículo
+          const { data: newVehicle } = await supabase
+            .from("vehicles")
+            .insert(vehicleData)
+            .select()
+            .single();
+          
+          if (newVehicle) {
+            // Criar manutenção para o novo veículo
+            createMaintenance({ ...maintenanceData, vehicle_id: newVehicle.id });
+          }
+        }
+      }
+      // Cenário 2: Status mudou de "em_manutencao" para "ativo"
+      else if (previousStatus === 'em_manutencao' && formData.status === 'ativo') {
+        if (!formData.maintenance_finished_at) {
+          toast({
+            title: "Erro",
+            description: "Data/hora de fim da manutenção é obrigatória",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Buscar manutenção em aberto
+        if (id) {
+          const openMaintenance = await getOpenMaintenance(id);
+          if (openMaintenance) {
+            // Atualizar manutenção com data de fim
+            updateMaintenance({
+              id: openMaintenance.id,
+              finished_at: new Date(formData.maintenance_finished_at).toISOString(),
+            });
+          }
+          // Atualizar veículo
+          updateVehicle({ id, ...vehicleData });
+        }
+      }
+      // Cenário 3: Mudança simples entre ativo/inativo
+      else {
+        if (id) {
+          updateVehicle({ id, ...vehicleData });
+        } else {
+          createVehicle(vehicleData as VehicleInsert);
+        }
+      }
+
+      navigate("/vehicles");
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar veículo",
+        variant: "destructive",
+      });
     }
-    navigate("/vehicles");
   };
 
   return (
@@ -113,6 +225,20 @@ const VehicleForm = () => {
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Ex: Van Branca" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="brand"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Marca</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Ex: Fiat, VW, Renault" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -172,21 +298,85 @@ const VehicleForm = () => {
 
             <FormField
               control={form.control}
-              name="active"
+              name="status"
               render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Veículo Ativo</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="ativo">Ativo</SelectItem>
+                      <SelectItem value="inativo">Inativo</SelectItem>
+                      <SelectItem value="em_manutencao">Em Manutenção</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Campos condicionais quando status = "em_manutencao" */}
+            {watchStatus === 'em_manutencao' && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="maintenance_started_at"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data e Hora de Início da Manutenção</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="datetime-local" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="maintenance_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Manutenção</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="preventiva">Manutenção Preventiva</SelectItem>
+                          <SelectItem value="corretiva">Manutenção Corretiva</SelectItem>
+                          <SelectItem value="colisao">Colisão</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
+
+            {/* Campo condicional quando status anterior era "em_manutencao" e atual é "ativo" */}
+            {previousStatus === 'em_manutencao' && watchStatus === 'ativo' && (
+              <FormField
+                control={form.control}
+                name="maintenance_finished_at"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data e Hora de Fim da Manutenção</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="datetime-local" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="flex gap-4">
               <Button type="submit">
