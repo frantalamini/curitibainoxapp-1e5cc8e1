@@ -20,8 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus } from "lucide-react";
-import { useVehicles } from "@/hooks/useVehicles";
+import { useVehicles, VehicleStatus } from "@/hooks/useVehicles";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const Vehicles = () => {
@@ -39,6 +40,16 @@ const Vehicles = () => {
 
   const formatOdometer = (km: number) => {
     return new Intl.NumberFormat('pt-BR').format(km) + " km";
+  };
+
+  const getStatusBadge = (status: VehicleStatus) => {
+    const variants: Record<VehicleStatus, { label: string; className: string }> = {
+      ativo: { label: "Ativo", className: "bg-green-500 text-white" },
+      inativo: { label: "Inativo", className: "bg-red-500 text-white" },
+      em_manutencao: { label: "Em Manutenção", className: "bg-yellow-500 text-white" },
+    };
+    const config = variants[status];
+    return <Badge className={config.className}>{config.label}</Badge>;
   };
 
   if (isLoading) {
@@ -67,39 +78,25 @@ const Vehicles = () => {
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Placa</TableHead>
-                <TableHead>RENAVAM</TableHead>
-                <TableHead>Quilometragem</TableHead>
-                <TableHead>Ativo</TableHead>
-                {isAdmin && <TableHead className="text-right">Ações</TableHead>}
-              </TableRow>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Marca</TableHead>
+                    <TableHead>Placa</TableHead>
+                    <TableHead>RENAVAM</TableHead>
+                    <TableHead>Quilometragem</TableHead>
+                    <TableHead>Status</TableHead>
+                    {isAdmin && <TableHead className="text-right">Ações</TableHead>}
+                  </TableRow>
             </TableHeader>
             <TableBody>
               {vehicles?.map((vehicle) => (
                 <TableRow key={vehicle.id}>
-                  <TableCell>
-                    <span className="text-sm font-medium">{vehicle.name}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{vehicle.plate}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {vehicle.renavam || "-"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">
-                      {formatOdometer(vehicle.current_odometer_km)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`text-sm ${vehicle.active ? 'text-green-600' : 'text-red-600'}`}>
-                      {vehicle.active ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </TableCell>
+                  <TableCell className="font-medium">{vehicle.name}</TableCell>
+                  <TableCell>{vehicle.brand || "-"}</TableCell>
+                  <TableCell>{vehicle.plate}</TableCell>
+                  <TableCell>{vehicle.renavam || "-"}</TableCell>
+                  <TableCell>{formatOdometer(vehicle.current_odometer_km)}</TableCell>
+                  <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
                   {isAdmin && (
                     <TableCell className="text-right space-x-2">
                       <Button

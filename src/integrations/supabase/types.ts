@@ -538,35 +538,76 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_maintenances: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          id: string
+          maintenance_type: Database["public"]["Enums"]["maintenance_type"]
+          started_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          maintenance_type: Database["public"]["Enums"]["maintenance_type"]
+          started_at: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          maintenance_type?: Database["public"]["Enums"]["maintenance_type"]
+          started_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_maintenances_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           active: boolean
+          brand: string | null
           created_at: string
           current_odometer_km: number | null
           id: string
           name: string
           plate: string
           renavam: string | null
+          status: Database["public"]["Enums"]["vehicle_status"]
           updated_at: string
         }
         Insert: {
           active?: boolean
+          brand?: string | null
           created_at?: string
           current_odometer_km?: number | null
           id?: string
           name: string
           plate: string
           renavam?: string | null
+          status?: Database["public"]["Enums"]["vehicle_status"]
           updated_at?: string
         }
         Update: {
           active?: boolean
+          brand?: string | null
           created_at?: string
           current_odometer_km?: number | null
           id?: string
           name?: string
           plate?: string
           renavam?: string | null
+          status?: Database["public"]["Enums"]["vehicle_status"]
           updated_at?: string
         }
         Relationships: []
@@ -594,6 +635,7 @@ export type Database = {
         | "funcionario"
         | "outro"
         | "colaborador"
+      maintenance_type: "preventiva" | "corretiva" | "colisao"
       os_status:
         | "pending"
         | "in_progress"
@@ -607,6 +649,7 @@ export type Database = {
         | "cancelled"
         | "on_hold"
       service_urgency: "corrective" | "preventive"
+      vehicle_status: "ativo" | "inativo" | "em_manutencao"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -744,6 +787,7 @@ export const Constants = {
         "outro",
         "colaborador",
       ],
+      maintenance_type: ["preventiva", "corretiva", "colisao"],
       os_status: [
         "pending",
         "in_progress",
@@ -759,6 +803,7 @@ export const Constants = {
         "on_hold",
       ],
       service_urgency: ["corrective", "preventive"],
+      vehicle_status: ["ativo", "inativo", "em_manutencao"],
     },
   },
 } as const
