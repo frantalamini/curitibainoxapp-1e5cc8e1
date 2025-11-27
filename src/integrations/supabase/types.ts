@@ -314,6 +314,7 @@ export type Database = {
           checklist_id: string | null
           checklist_responses: Json | null
           client_id: string
+          commercial_status_id: string | null
           created_at: string
           created_by: string
           customer_name: string | null
@@ -355,6 +356,7 @@ export type Database = {
           checklist_id?: string | null
           checklist_responses?: Json | null
           client_id: string
+          commercial_status_id?: string | null
           created_at?: string
           created_by: string
           customer_name?: string | null
@@ -396,6 +398,7 @@ export type Database = {
           checklist_id?: string | null
           checklist_responses?: Json | null
           client_id?: string
+          commercial_status_id?: string | null
           created_at?: string
           created_by?: string
           customer_name?: string | null
@@ -445,6 +448,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_calls_commercial_status_id_fkey"
+            columns: ["commercial_status_id"]
+            isOneToOne: false
+            referencedRelation: "service_call_statuses"
             referencedColumns: ["id"]
           },
           {

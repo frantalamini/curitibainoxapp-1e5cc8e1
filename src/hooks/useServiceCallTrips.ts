@@ -134,6 +134,31 @@ export const useServiceCallTrips = (filters?: {
   });
 };
 
+// Hook para verificar deslocamentos em aberto para múltiplas OSs (batch)
+export const useOpenTripsMap = (serviceCallIds: string[]) => {
+  return useQuery({
+    queryKey: ["open-trips-map", serviceCallIds],
+    queryFn: async () => {
+      if (!serviceCallIds.length) return {};
+      
+      const { data, error } = await supabase
+        .from("service_call_trips")
+        .select("service_call_id")
+        .in("service_call_id", serviceCallIds)
+        .eq("status", "em_deslocamento");
+
+      if (error) throw error;
+      
+      const map: Record<string, boolean> = {};
+      data?.forEach(trip => {
+        map[trip.service_call_id] = true;
+      });
+      return map;
+    },
+    enabled: serviceCallIds.length > 0,
+  });
+};
+
 // Hook para criar/atualizar/deletar deslocamentos
 export const useServiceCallTripsMutations = () => {
   const { toast } = useToast();

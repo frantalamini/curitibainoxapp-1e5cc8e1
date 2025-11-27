@@ -13,6 +13,7 @@ export interface ServiceCall {
   scheduled_time: string;
   status: "pending" | "in_progress" | "completed" | "cancelled";
   status_id?: string;
+  commercial_status_id?: string;
   notes?: string;
   audio_url?: string;
   media_urls?: string[];
@@ -64,6 +65,10 @@ export interface ServiceCall {
     name: string;
     color: string;
   };
+  commercial_status?: {
+    name: string;
+    color: string;
+  };
 }
 
 export interface ServiceCallInsert {
@@ -112,7 +117,11 @@ export const useServiceCall = (id?: string) => {
             name,
             color
           ),
-          service_call_statuses (
+          service_call_statuses!service_calls_status_id_fkey (
+            name,
+            color
+          ),
+          commercial_status:service_call_statuses!service_calls_commercial_status_id_fkey (
             name,
             color
           )
@@ -151,7 +160,11 @@ export const useServiceCalls = () => {
             name,
             color
           ),
-          service_call_statuses (
+          service_call_statuses!service_calls_status_id_fkey (
+            name,
+            color
+          ),
+          commercial_status:service_call_statuses!service_calls_commercial_status_id_fkey (
             name,
             color
           )
