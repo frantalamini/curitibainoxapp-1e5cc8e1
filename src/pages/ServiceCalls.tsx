@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Search, Eye, Car } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -36,9 +36,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ServiceCallViewDialog from "@/components/ServiceCallViewDialog";
 import type { ServiceCall } from "@/hooks/useServiceCalls";
-import { StartTripModal } from "@/components/StartTripModal";
-import { useServiceCallTripsMutations, useOpenTripsMap } from "@/hooks/useServiceCallTrips";
-import { supabase } from "@/integrations/supabase/client";
 
 const ServiceCalls = () => {
   const navigate = useNavigate();
@@ -53,15 +50,6 @@ const ServiceCalls = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedCall, setSelectedCall] = useState<ServiceCall | null>(null);
-  
-  // Estados para trip
-  const [startTripModalOpen, setStartTripModalOpen] = useState(false);
-  const [selectedCallForTrip, setSelectedCallForTrip] = useState<ServiceCall | null>(null);
-  const { createTrip, isCreating: isCreatingTrip } = useServiceCallTripsMutations();
-  
-  // Hook para verificar trips em aberto (batch)
-  const serviceCallIds = serviceCalls?.map(call => call.id) || [];
-  const { data: openTripsMap = {} } = useOpenTripsMap(serviceCallIds);
 
   // Auto-filter based on URL query params
   useEffect(() => {
@@ -86,51 +74,6 @@ const ServiceCalls = () => {
   });
 
 
-  // Helper para construir endereço completo
-  const buildFullAddress = (client: ServiceCall['clients']) => {
-    if (!client) return '';
-    const parts = [
-      client.street,
-      client.number,
-      client.complement,
-      client.neighborhood,
-      client.city,
-      client.state,
-      client.cep
-    ].filter(Boolean);
-    return parts.join(', ');
-  };
-
-  // Handler para iniciar deslocamento da listagem
-  const handleStartTripFromList = async (vehicleId: string, startOdometer: number) => {
-    if (!selectedCallForTrip) return;
-
-    createTrip({
-      service_call_id: selectedCallForTrip.id,
-      technician_id: selectedCallForTrip.technician_id,
-      vehicle_id: vehicleId,
-      start_odometer_km: startOdometer,
-    });
-
-    // Atualizar odômetro do veículo
-    await supabase
-      .from("vehicles")
-      .update({ current_odometer_km: startOdometer })
-      .eq("id", vehicleId);
-
-    // Abrir Google Maps com endereço do cliente
-    if (selectedCallForTrip.clients) {
-      const address = buildFullAddress(selectedCallForTrip.clients);
-      if (address) {
-        const encodedAddress = encodeURIComponent(address);
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-        window.open(mapsUrl, '_blank', 'noopener,noreferrer');
-      }
-    }
-
-    setStartTripModalOpen(false);
-    setSelectedCallForTrip(null);
-  };
 
   return (
     <MainLayout>
@@ -194,7 +137,6 @@ const ServiceCalls = () => {
                   <TableHead className="w-36">Técnico</TableHead>
                   <TableHead className="w-40">Status Técnico</TableHead>
                   <TableHead className="w-40">Status Comercial</TableHead>
-                  <TableHead className="w-12"></TableHead>
                   <TableHead className="text-right w-24">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -311,22 +253,6 @@ const ServiceCalls = () => {
                     </SelectContent>
                   </Select>
                 </TableCell>
-                    <TableCell>
-                      {call.commercial_status?.name === "Aprovado" && !openTripsMap[call.id] && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedCallForTrip(call);
-                            setStartTripModalOpen(true);
-                          }}
-                          title="Iniciar deslocamento"
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Car className="h-5 w-5" />
-                        </Button>
-                      )}
-                    </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button
@@ -383,15 +309,6 @@ const ServiceCalls = () => {
           call={selectedCall}
           open={viewDialogOpen}
           onOpenChange={setViewDialogOpen}
-        />
-      )}
-
-      {selectedCallForTrip && (
-        <StartTripModal
-          open={startTripModalOpen}
-          onOpenChange={setStartTripModalOpen}
-          onConfirm={handleStartTripFromList}
-          isLoading={isCreatingTrip}
         />
       )}
     </MainLayout>

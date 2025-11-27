@@ -705,6 +705,65 @@ const ServiceCallForm = () => {
           </p>
         </div>
 
+        {/* Banner de Deslocamento - sempre visível no topo para OS em edição */}
+        {isEditMode && (isAdmin || isTechnician) && (
+          <Card className="mb-6 border-2 border-blue-200 bg-blue-50/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <Car className="h-6 w-6 text-blue-600" />
+                <span className="text-lg font-semibold text-blue-900">Deslocamento</span>
+              </div>
+
+              {/* Estado 1: Não iniciado */}
+              {!activeTrip && !hasCompletedTrip && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Deslocamento ainda não iniciado.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => setStartTripModalOpen(true)}
+                    disabled={isCreatingTrip}
+                  >
+                    <Car className="mr-2 h-4 w-4" />
+                    {isCreatingTrip ? "Iniciando..." : "Iniciar Deslocamento"}
+                  </Button>
+                </div>
+              )}
+
+              {/* Estado 2: Em andamento */}
+              {activeTrip && activeTrip.started_at && (
+                <div className="space-y-3">
+                  <Alert className="border-amber-200 bg-amber-50">
+                    <Car className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800">
+                      Deslocamento em andamento desde {format(new Date(activeTrip.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    type="button"
+                    onClick={() => setEndTripModalOpen(true)}
+                    disabled={isUpdatingTrip}
+                  >
+                    <MapPin className="mr-2 h-4 w-4" />
+                    {isUpdatingTrip ? "Finalizando..." : "Cheguei no Cliente"}
+                  </Button>
+                </div>
+              )}
+
+              {/* Estado 3: Concluído */}
+              {!activeTrip && hasCompletedTrip && (
+                <Alert className="border-green-200 bg-green-50">
+                  <MapPin className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    Deslocamento concluído.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)}>
           <Tabs defaultValue="geral" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -1035,60 +1094,6 @@ const ServiceCallForm = () => {
                     </div>
                   </div>
 
-                  {/* Seção de Deslocamento */}
-                  {isEditMode && (isAdmin || isTechnician) && (
-                    <>
-                      <Separator className="my-6" />
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Car className="h-5 w-5" />
-                          <Label className="text-base font-semibold">Deslocamento</Label>
-                        </div>
-
-                        {!activeTrip && !hasCompletedTrip && (
-                          <Button
-                            type="button"
-                            onClick={() => setStartTripModalOpen(true)}
-                            className="w-full"
-                            disabled={isCreatingTrip}
-                          >
-                            <Car className="mr-2 h-4 w-4" />
-                            {isCreatingTrip ? "Iniciando..." : "Iniciar Deslocamento"}
-                          </Button>
-                        )}
-
-                        {activeTrip && activeTrip.started_at && (
-                          <div className="space-y-3">
-                            <Alert>
-                              <Car className="h-4 w-4" />
-                              <AlertDescription>
-                                Deslocamento em andamento desde {format(new Date(activeTrip.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                              </AlertDescription>
-                            </Alert>
-                            <Button
-                              type="button"
-                              onClick={() => setEndTripModalOpen(true)}
-                              className="w-full"
-                              variant="default"
-                              disabled={isUpdatingTrip}
-                            >
-                              <MapPin className="mr-2 h-4 w-4" />
-                              {isUpdatingTrip ? "Finalizando..." : "Cheguei no Cliente"}
-                            </Button>
-                          </div>
-                        )}
-
-                        {!activeTrip && hasCompletedTrip && (
-                          <Alert className="bg-green-50 border-green-200">
-                            <MapPin className="h-4 w-4 text-green-600" />
-                            <AlertDescription className="text-green-700">
-                              Deslocamento concluído
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </div>
-                    </>
-                  )}
 
                   {/* Observações Internas - Apenas para Admin/Técnico */}
                   {(isAdmin || isTechnician) && (
@@ -1139,7 +1144,7 @@ const ServiceCallForm = () => {
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
-                        Para preencher as informações técnicas, finalize primeiro o deslocamento clicando em "Cheguei no Cliente" na aba Geral.
+                        Para preencher as informações técnicas, finalize primeiro o deslocamento clicando em "Cheguei no Cliente" no banner de Deslocamento acima.
                       </AlertDescription>
                     </Alert>
                   )}
