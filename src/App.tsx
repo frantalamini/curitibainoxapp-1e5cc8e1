@@ -28,6 +28,7 @@ import Settings from "./pages/Settings";
 import CadastrosClientesFornecedores from "./pages/CadastrosClientesFornecedores";
 import CadastroDetail from "./pages/CadastroDetail";
 import UserManagement from "./pages/UserManagement";
+import RelatorioOS from "./pages/RelatorioOS";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/reset-password" element={<ResetPassword />} />
+          <Route path="/relatorio-os/:osNumber" element={<RelatorioOS />} />
             <Route
               path="/"
               element={

@@ -4,14 +4,14 @@ import { logger } from "./logger";
 import { toPdfBlob } from "./pdfBlobHelpers";
 
 /**
- * Faz upload do PDF para o Supabase Storage e retorna a URL pública
+ * Faz upload do PDF para o Supabase Storage e retorna a URL pública e o caminho do arquivo
  * Aceita jsPDF instance ou Blob diretamente
  */
 export const uploadPdfToStorage = async (
   pdfInput: jsPDF | Blob,
   serviceCallId: string,
   fileName?: string
-): Promise<string> => {
+): Promise<{ signedUrl: string; filePath: string }> => {
   try {
     // Converter para Blob se necessário
     const pdfBlob = await toPdfBlob(pdfInput);
@@ -45,7 +45,10 @@ export const uploadPdfToStorage = async (
       throw new Error("Não foi possível gerar URL de acesso ao PDF");
     }
     
-    return signedUrlData.signedUrl;
+    return {
+      signedUrl: signedUrlData.signedUrl,
+      filePath: data.path,
+    };
   } catch (error) {
     logger.error("Erro ao processar upload do PDF:", error);
     throw error;

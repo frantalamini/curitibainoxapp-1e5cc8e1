@@ -1184,8 +1184,8 @@ const ServiceCallForm = () => {
                       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
                       
                       // Upload para storage
-                      const uploadedUrl = await uploadPdfToStorage(blob, existingCall.id, fileName);
-                      setGeneratedPdfUrl(uploadedUrl);
+                      const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
+                      setGeneratedPdfUrl(uploadResult.signedUrl);
                       
                       toast({
                         title: "PDF Gerado!",
