@@ -184,16 +184,15 @@ const ServiceCalls = () => {
                     <TableCell>{call.equipment_description}</TableCell>
                     <TableCell>
                       {call.service_types ? (
-                        <span 
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                          style={{ 
-                            backgroundColor: call.service_types.color + '20',
-                            color: call.service_types.color,
-                            border: `1px solid ${call.service_types.color}`
-                          }}
-                        >
-                          {call.service_types.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded-sm flex-shrink-0"
+                            style={{ backgroundColor: call.service_types.color }}
+                          />
+                          <span className="text-sm">
+                            {call.service_types.name}
+                          </span>
+                        </div>
                       ) : (
                         <span className="text-sm text-muted-foreground">-</span>
                       )}
