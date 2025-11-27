@@ -15,15 +15,20 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useServiceCallStatuses, ServiceCallStatusInsert } from "@/hooks/useServiceCallStatuses";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toTitleCase } from "@/lib/utils";
+import { Wrench, Briefcase } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   color: z.string().min(1, "Cor é obrigatória"),
   active: z.boolean().default(true),
+  status_type: z.enum(['tecnico', 'comercial'], {
+    required_error: "Selecione o tipo de status",
+  }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -40,6 +45,7 @@ const ServiceCallStatusForm = () => {
       name: "",
       color: "#3b82f6",
       active: true,
+      status_type: "tecnico",
     },
   });
 
@@ -66,6 +72,7 @@ const ServiceCallStatusForm = () => {
             name: data.name,
             color: data.color,
             active: data.active,
+            status_type: data.status_type || "tecnico",
           });
         }
       };
@@ -135,6 +142,55 @@ const ServiceCallStatusForm = () => {
                     />
                     <span className="text-sm text-muted-foreground">{field.value}</span>
                   </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="status_type"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel className="text-base">Tipo de Status *</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-start space-x-3 space-y-0 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                        <RadioGroupItem value="tecnico" id="tecnico" />
+                        <div className="space-y-1 leading-none flex-1">
+                          <label
+                            htmlFor="tecnico"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                          >
+                            <Wrench className="h-4 w-4 text-blue-600" />
+                            Status Técnico
+                          </label>
+                          <p className="text-sm text-muted-foreground">
+                            Andamento do serviço (Ex: Em Andamento, Finalizado)
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3 space-y-0 rounded-lg border p-4 hover:bg-accent/50 transition-colors">
+                        <RadioGroupItem value="comercial" id="comercial" />
+                        <div className="space-y-1 leading-none flex-1">
+                          <label
+                            htmlFor="comercial"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                          >
+                            <Briefcase className="h-4 w-4 text-purple-600" />
+                            Situação Comercial
+                          </label>
+                          <p className="text-sm text-muted-foreground">
+                            Orçamento/aprovação/faturamento (Ex: Aprovado, Cancelado)
+                          </p>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -217,6 +217,7 @@ export type Database = {
           id: string
           is_default: boolean
           name: string
+          status_type: Database["public"]["Enums"]["status_type"]
           updated_at: string
         }
         Insert: {
@@ -227,6 +228,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           name: string
+          status_type?: Database["public"]["Enums"]["status_type"]
           updated_at?: string
         }
         Update: {
@@ -237,6 +239,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           name?: string
+          status_type?: Database["public"]["Enums"]["status_type"]
           updated_at?: string
         }
         Relationships: []
@@ -713,6 +716,7 @@ export type Database = {
         | "cancelled"
         | "on_hold"
       service_urgency: "corrective" | "preventive"
+      status_type: "tecnico" | "comercial"
       trip_status: "em_deslocamento" | "concluido"
       vehicle_status: "ativo" | "inativo" | "em_manutencao"
     }
@@ -868,6 +872,7 @@ export const Constants = {
         "on_hold",
       ],
       service_urgency: ["corrective", "preventive"],
+      status_type: ["tecnico", "comercial"],
       trip_status: ["em_deslocamento", "concluido"],
       vehicle_status: ["ativo", "inativo", "em_manutencao"],
     },
