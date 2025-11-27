@@ -206,26 +206,31 @@ const ServiceCallForm = () => {
     setStartTripModalOpen(false);
   };
 
-  const handleEndTrip = async (endOdometer: number) => {
+  const handleEndTrip = async (endOdometer: number | null) => {
     if (!activeTrip) return;
 
-    const distance = endOdometer - activeTrip.start_odometer_km;
+    const updates: any = {
+      finished_at: new Date().toISOString(),
+      status: 'concluido',
+    };
+
+    // Se quilometragem informada, calcular distância e atualizar veículo
+    if (endOdometer !== null) {
+      const distance = endOdometer - activeTrip.start_odometer_km;
+      updates.end_odometer_km = endOdometer;
+      updates.distance_km = distance;
+      
+      // Atualizar vehicles.current_odometer_km
+      await supabase
+        .from("vehicles")
+        .update({ current_odometer_km: endOdometer })
+        .eq("id", activeTrip.vehicle_id);
+    }
 
     updateTrip({
       id: activeTrip.id,
-      updates: {
-        finished_at: new Date().toISOString(),
-        end_odometer_km: endOdometer,
-        distance_km: distance,
-        status: 'concluido',
-      },
+      updates,
     });
-
-    // Atualizar vehicles.current_odometer_km
-    await supabase
-      .from("vehicles")
-      .update({ current_odometer_km: endOdometer })
-      .eq("id", activeTrip.vehicle_id);
 
     setEndTripModalOpen(false);
   };
@@ -638,7 +643,26 @@ const ServiceCallForm = () => {
           description: "As alterações foram salvas com sucesso!",
         });
       } else {
-        createServiceCall(formattedData);
+        // Buscar IDs dos status padrão para novo chamado
+        const { data: defaultTechnicalStatus } = await supabase
+          .from("service_call_statuses")
+          .select("id")
+          .eq("name", "Aguardando Início")
+          .eq("status_type", "tecnico")
+          .maybeSingle();
+
+        const { data: defaultCommercialStatus } = await supabase
+          .from("service_call_statuses")
+          .select("id")
+          .eq("name", "Aguardando aprovação")
+          .eq("status_type", "comercial")
+          .maybeSingle();
+
+        createServiceCall({
+          ...formattedData,
+          status_id: defaultTechnicalStatus?.id,
+          commercial_status_id: defaultCommercialStatus?.id,
+        });
         setNewSignatures([]); // Limpar após criar
         toast({
           title: "✅ Chamado Criado",

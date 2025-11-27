@@ -8,7 +8,7 @@ import { MapPin } from "lucide-react";
 interface EndTripModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (endOdometer: number) => void;
+  onConfirm: (endOdometer: number | null) => void;
   startOdometer: number;
   isLoading?: boolean;
 }
@@ -20,8 +20,11 @@ export const EndTripModal = ({ open, onOpenChange, onConfirm, startOdometer, isL
   const handleConfirm = () => {
     setError("");
 
+    // Se não preencheu, envia null
     if (!endOdometer) {
-      setError("Informe a quilometragem final");
+      onConfirm(null);
+      setEndOdometer("");
+      setError("");
       return;
     }
     
@@ -76,7 +79,7 @@ export const EndTripModal = ({ open, onOpenChange, onConfirm, startOdometer, isL
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="end-odometer">Quilometragem Final (km) *</Label>
+            <Label htmlFor="end-odometer">Quilometragem Final (km)</Label>
             <Input
               id="end-odometer"
               type="number"
@@ -111,7 +114,7 @@ export const EndTripModal = ({ open, onOpenChange, onConfirm, startOdometer, isL
           <Button
             type="button"
             onClick={handleConfirm}
-            disabled={!endOdometer || isLoading}
+            disabled={isLoading}
           >
             {isLoading ? "Finalizando..." : "Finalizar Deslocamento"}
           </Button>
