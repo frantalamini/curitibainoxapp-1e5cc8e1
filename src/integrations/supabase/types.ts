@@ -241,6 +241,70 @@ export type Database = {
         }
         Relationships: []
       }
+      service_call_trips: {
+        Row: {
+          created_at: string
+          distance_km: number | null
+          end_odometer_km: number | null
+          finished_at: string | null
+          id: string
+          service_call_id: string
+          start_odometer_km: number
+          started_at: string
+          status: Database["public"]["Enums"]["trip_status"]
+          technician_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_km?: number | null
+          end_odometer_km?: number | null
+          finished_at?: string | null
+          id?: string
+          service_call_id: string
+          start_odometer_km: number
+          started_at?: string
+          status?: Database["public"]["Enums"]["trip_status"]
+          technician_id: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_km?: number | null
+          end_odometer_km?: number | null
+          finished_at?: string | null
+          id?: string
+          service_call_id?: string
+          start_odometer_km?: number
+          started_at?: string
+          status?: Database["public"]["Enums"]["trip_status"]
+          technician_id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_call_trips_service_call_id_fkey"
+            columns: ["service_call_id"]
+            isOneToOne: false
+            referencedRelation: "service_calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_call_trips_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_call_trips_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_calls: {
         Row: {
           audio_url: string | null
@@ -649,6 +713,7 @@ export type Database = {
         | "cancelled"
         | "on_hold"
       service_urgency: "corrective" | "preventive"
+      trip_status: "em_deslocamento" | "concluido"
       vehicle_status: "ativo" | "inativo" | "em_manutencao"
     }
     CompositeTypes: {
@@ -803,6 +868,7 @@ export const Constants = {
         "on_hold",
       ],
       service_urgency: ["corrective", "preventive"],
+      trip_status: ["em_deslocamento", "concluido"],
       vehicle_status: ["ativo", "inativo", "em_manutencao"],
     },
   },
