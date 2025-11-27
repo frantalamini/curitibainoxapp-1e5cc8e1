@@ -198,7 +198,7 @@ const ServiceCallForm = () => {
       const address = buildFullAddress(existingCall.clients);
       if (address) {
         const encodedAddress = encodeURIComponent(address);
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}&travelmode=driving`;
         window.open(mapsUrl, '_blank', 'noopener,noreferrer');
       }
     }
