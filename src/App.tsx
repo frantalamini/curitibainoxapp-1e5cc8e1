@@ -21,6 +21,8 @@ import ServiceCalls from "./pages/ServiceCalls";
 import ServiceCallForm from "./pages/ServiceCallForm";
 import ServiceTypes from "./pages/ServiceTypes";
 import ServiceTypeForm from "./pages/ServiceTypeForm";
+import ServiceCallStatuses from "./pages/ServiceCallStatuses";
+import ServiceCallStatusForm from "./pages/ServiceCallStatusForm";
 import Schedule from "./pages/Schedule";
 import Checklists from "./pages/Checklists";
 import ChecklistForm from "./pages/ChecklistForm";
@@ -250,6 +252,30 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ServiceTypeForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/service-call-statuses"
+            element={
+              <ProtectedRoute>
+                <ServiceCallStatuses />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/service-call-statuses/new"
+            element={
+              <ProtectedRoute>
+                <ServiceCallStatusForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/service-call-statuses/:id/edit"
+            element={
+              <ProtectedRoute>
+                <ServiceCallStatusForm />
               </ProtectedRoute>
             }
           />

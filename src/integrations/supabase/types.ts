@@ -208,6 +208,39 @@ export type Database = {
         }
         Relationships: []
       }
+      service_call_statuses: {
+        Row: {
+          active: boolean
+          color: string
+          created_at: string
+          display_order: number
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_calls: {
         Row: {
           audio_url: string | null
@@ -239,6 +272,7 @@ export type Database = {
           signatures: Json | null
           started_at: string | null
           status: Database["public"]["Enums"]["service_status"]
+          status_id: string | null
           technical_diagnosis: string | null
           technical_diagnosis_audio_url: string | null
           technician_id: string
@@ -279,6 +313,7 @@ export type Database = {
           signatures?: Json | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
+          status_id?: string | null
           technical_diagnosis?: string | null
           technical_diagnosis_audio_url?: string | null
           technician_id: string
@@ -319,6 +354,7 @@ export type Database = {
           signatures?: Json | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["service_status"]
+          status_id?: string | null
           technical_diagnosis?: string | null
           technical_diagnosis_audio_url?: string | null
           technician_id?: string
@@ -349,6 +385,13 @@ export type Database = {
             columns: ["service_type_id"]
             isOneToOne: false
             referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_calls_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "service_call_statuses"
             referencedColumns: ["id"]
           },
           {

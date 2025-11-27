@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, Search, Play, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -32,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import MainLayout from "@/components/MainLayout";
 import { useServiceCalls } from "@/hooks/useServiceCalls";
+import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ServiceCallViewDialog from "@/components/ServiceCallViewDialog";
@@ -41,6 +41,7 @@ const ServiceCalls = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { serviceCalls, isLoading, deleteServiceCall, updateServiceCall } = useServiceCalls();
+  const { statuses } = useServiceCallStatuses();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -56,17 +57,6 @@ const ServiceCalls = () => {
     }
   }, [searchParams]);
 
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      pending: { label: "Aguardando Início", variant: "secondary" as const },
-      in_progress: { label: "Em Andamento", variant: "default" as const },
-      on_hold: { label: "Com Pendências", variant: "outline" as const },
-      completed: { label: "Finalizado", variant: "outline" as const },
-      cancelled: { label: "Cancelado", variant: "destructive" as const },
-    };
-    return statusMap[status as keyof typeof statusMap] || statusMap.pending;
-  };
-
 
   const filteredCalls = serviceCalls?.filter((call) => {
     const matchesSearch = 
@@ -74,19 +64,17 @@ const ServiceCalls = () => {
       call.equipment_description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       call.technicians?.full_name.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === "all" || call.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || call.status_id === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusChange = (callId: string, newStatus: string) => {
-    updateServiceCall({ id: callId, status: newStatus as any });
-  };
-
   const handleExecuteTask = (callId: string) => {
+    // Buscar o status "Em Andamento" dinamicamente
+    const inProgressStatus = statuses?.find(s => s.name === "Em Andamento");
     updateServiceCall({ 
       id: callId, 
-      status: "in_progress",
+      status_id: inProgressStatus?.id,
       started_at: new Date().toISOString()
     });
   };
@@ -118,11 +106,11 @@ const ServiceCalls = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pending">Aguardando Início</SelectItem>
-              <SelectItem value="in_progress">Em Andamento</SelectItem>
-              <SelectItem value="on_hold">Com Pendências</SelectItem>
-              <SelectItem value="completed">Finalizado</SelectItem>
-              <SelectItem value="cancelled">Cancelado</SelectItem>
+              {statuses?.map((status) => (
+                <SelectItem key={status.id} value={status.id}>
+                  {status.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -199,27 +187,45 @@ const ServiceCalls = () => {
                     </TableCell>
                     <TableCell>{call.technicians?.full_name}</TableCell>
                     <TableCell>
-                      <Select
-                        value={call.status}
-                        onValueChange={(value) => handleStatusChange(call.id, value)}
-                      >
-                        <SelectTrigger className="w-[140px]">
-                          <Badge variant={getStatusBadge(call.status).variant}>
-                            {getStatusBadge(call.status).label}
-                          </Badge>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Aguardando Início</SelectItem>
-                          <SelectItem value="in_progress">Em Andamento</SelectItem>
-                          <SelectItem value="on_hold">Com Pendências</SelectItem>
-                          <SelectItem value="completed">Finalizado</SelectItem>
-                          <SelectItem value="cancelled">Cancelado</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {call.service_call_statuses ? (
+                        <Select
+                          value={call.status_id || ""}
+                          onValueChange={(value) => updateServiceCall({ id: call.id, status_id: value })}
+                        >
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-4 h-4 rounded-sm flex-shrink-0"
+                                  style={{ backgroundColor: call.service_call_statuses.color }}
+                                />
+                                <span className="text-sm">
+                                  {call.service_call_statuses.name}
+                                </span>
+                              </div>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statuses?.map((status) => (
+                              <SelectItem key={status.id} value={status.id}>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-4 h-4 rounded-sm flex-shrink-0"
+                                    style={{ backgroundColor: status.color }}
+                                  />
+                                  <span className="text-sm">{status.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    {call.status === 'pending' && (
+                    {call.service_call_statuses?.name === 'Aguardando Início' && (
                       <Button
                         variant="default"
                         size="sm"
