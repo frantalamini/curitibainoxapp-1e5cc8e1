@@ -18,6 +18,7 @@ import {
   DollarSign,
   X,
   Shield,
+  Car,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/curitiba-logo.png";
@@ -89,6 +90,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: Tags, label: "Categorias dos Produtos", to: "/categories" },
         { icon: Users, label: "Vendedores", to: "/sellers" },
         { icon: Package, label: "Embalagens", to: "/packaging" },
+        { icon: Car, label: "Veículos", to: "/vehicles" },
         ...(isAdmin
           ? [
               { icon: Users, label: "Técnicos", to: "/technicians" },

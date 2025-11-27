@@ -31,6 +31,8 @@ import CadastrosClientesFornecedores from "./pages/CadastrosClientesFornecedores
 import CadastroDetail from "./pages/CadastroDetail";
 import UserManagement from "./pages/UserManagement";
 import RelatorioOS from "./pages/relatorio-os/[osNumber]";
+import Vehicles from "./pages/Vehicles";
+import VehicleForm from "./pages/VehicleForm";
 
 const queryClient = new QueryClient();
 
@@ -276,6 +278,30 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ServiceCallStatusForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vehicles"
+            element={
+              <ProtectedRoute>
+                <Vehicles />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vehicles/new"
+            element={
+              <ProtectedRoute>
+                <VehicleForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vehicles/:id/edit"
+            element={
+              <ProtectedRoute>
+                <VehicleForm />
               </ProtectedRoute>
             }
           />
