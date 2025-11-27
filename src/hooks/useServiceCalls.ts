@@ -44,6 +44,13 @@ export interface ServiceCall {
     full_name: string;
     phone: string;
     address?: string;
+    street?: string;
+    number?: string;
+    complement?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    cep?: string;
   };
   technicians?: {
     full_name: string;
@@ -88,7 +95,14 @@ export const useServiceCall = (id?: string) => {
           clients (
             full_name,
             phone,
-            address
+            address,
+            street,
+            number,
+            complement,
+            neighborhood,
+            city,
+            state,
+            cep
           ),
           technicians (
             full_name,

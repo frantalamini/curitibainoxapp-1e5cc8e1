@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,10 @@ import { Separator } from "@/components/ui/separator";
 import { generateOSPdf } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
+import { StartTripModal } from "@/components/StartTripModal";
+import { EndTripModal } from "@/components/EndTripModal";
+import { useOpenTrip, useHasCompletedTrip, useServiceCallTripsMutations } from "@/hooks/useServiceCallTrips";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type Signature = {
   image_url: string;
@@ -68,6 +72,13 @@ const ServiceCallForm = () => {
   const isEditMode = !!id;
   const { createServiceCall, updateServiceCall } = useServiceCalls();
   const { isAdmin, isTechnician } = useUserRole();
+  
+  // Estados para deslocamentos
+  const [startTripModalOpen, setStartTripModalOpen] = useState(false);
+  const [endTripModalOpen, setEndTripModalOpen] = useState(false);
+  const { data: activeTrip } = useOpenTrip(id);
+  const { data: hasCompletedTrip } = useHasCompletedTrip(id);
+  const { createTrip, updateTrip, isCreating: isCreatingTrip, isUpdating: isUpdatingTrip } = useServiceCallTripsMutations();
   
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -149,6 +160,75 @@ const ServiceCallForm = () => {
 
   const currentTechSignature = existingCall ? getCurrentSignature((existingCall as any).signatures, 'tech') : null;
   const currentClientSignature = existingCall ? getCurrentSignature((existingCall as any).signatures, 'client') : null;
+
+  // Função helper para construir endereço completo
+  const buildFullAddress = (client: any) => {
+    if (!client) return "";
+    const parts = [
+      client.street,
+      client.number,
+      client.complement,
+      client.neighborhood,
+      client.city,
+      client.state,
+      client.cep
+    ].filter(Boolean);
+    return parts.join(', ');
+  };
+
+  // Handlers para deslocamentos
+  const handleStartTrip = async (vehicleId: string, startOdometer: number) => {
+    if (!id || !existingCall) return;
+
+    createTrip({
+      service_call_id: id,
+      technician_id: existingCall.technician_id,
+      vehicle_id: vehicleId,
+      start_odometer_km: startOdometer,
+    });
+
+    // Atualizar vehicles.current_odometer_km
+    await supabase
+      .from("vehicles")
+      .update({ current_odometer_km: startOdometer })
+      .eq("id", vehicleId);
+
+    // Abrir Google Maps com endereço do cliente
+    if (existingCall.clients) {
+      const address = buildFullAddress(existingCall.clients);
+      if (address) {
+        const encodedAddress = encodeURIComponent(address);
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+        window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+      }
+    }
+
+    setStartTripModalOpen(false);
+  };
+
+  const handleEndTrip = async (endOdometer: number) => {
+    if (!activeTrip) return;
+
+    const distance = endOdometer - activeTrip.start_odometer_km;
+
+    updateTrip({
+      id: activeTrip.id,
+      updates: {
+        finished_at: new Date().toISOString(),
+        end_odometer_km: endOdometer,
+        distance_km: distance,
+        status: 'concluido',
+      },
+    });
+
+    // Atualizar vehicles.current_odometer_km
+    await supabase
+      .from("vehicles")
+      .update({ current_odometer_km: endOdometer })
+      .eq("id", activeTrip.vehicle_id);
+
+    setEndTripModalOpen(false);
+  };
 
   useEffect(() => {
     register("client_id");
@@ -929,6 +1009,61 @@ const ServiceCallForm = () => {
                     </div>
                   </div>
 
+                  {/* Seção de Deslocamento */}
+                  {isEditMode && (isAdmin || isTechnician) && (
+                    <>
+                      <Separator className="my-6" />
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Car className="h-5 w-5" />
+                          <Label className="text-base font-semibold">Deslocamento</Label>
+                        </div>
+
+                        {!activeTrip && !hasCompletedTrip && (
+                          <Button
+                            type="button"
+                            onClick={() => setStartTripModalOpen(true)}
+                            className="w-full"
+                            disabled={isCreatingTrip}
+                          >
+                            <Car className="mr-2 h-4 w-4" />
+                            {isCreatingTrip ? "Iniciando..." : "Iniciar Deslocamento"}
+                          </Button>
+                        )}
+
+                        {activeTrip && (
+                          <div className="space-y-3">
+                            <Alert>
+                              <Car className="h-4 w-4" />
+                              <AlertDescription>
+                                Deslocamento em andamento desde {format(new Date(activeTrip.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              </AlertDescription>
+                            </Alert>
+                            <Button
+                              type="button"
+                              onClick={() => setEndTripModalOpen(true)}
+                              className="w-full"
+                              variant="default"
+                              disabled={isUpdatingTrip}
+                            >
+                              <MapPin className="mr-2 h-4 w-4" />
+                              {isUpdatingTrip ? "Finalizando..." : "Cheguei no Cliente"}
+                            </Button>
+                          </div>
+                        )}
+
+                        {!activeTrip && hasCompletedTrip && (
+                          <Alert className="bg-green-50 border-green-200">
+                            <MapPin className="h-4 w-4 text-green-600" />
+                            <AlertDescription className="text-green-700">
+                              Deslocamento concluído
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    </>
+                  )}
+
                   {/* Observações Internas - Apenas para Admin/Técnico */}
                   {(isAdmin || isTechnician) && (
                     <>
@@ -973,6 +1108,20 @@ const ServiceCallForm = () => {
                   <CardTitle>Informações Técnicas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* Bloqueio se não houver deslocamento concluído */}
+                  {isEditMode && !hasCompletedTrip && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Para preencher as informações técnicas, finalize primeiro o deslocamento clicando em "Cheguei no Cliente" na aba Geral.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className={cn(
+                    "space-y-6",
+                    isEditMode && !hasCompletedTrip && "opacity-50 pointer-events-none"
+                  )}>
                   {/* Análises e Providências Realizadas */}
                   <div className="space-y-2">
                     <Label>Análises e Providências Realizadas</Label>
@@ -1154,6 +1303,7 @@ const ServiceCallForm = () => {
                       </Button>
                     </CardContent>
                   </Card>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1329,6 +1479,28 @@ const ServiceCallForm = () => {
             setIsClientDialogOpen(false);
           }}
         />
+
+        {/* Modais de Deslocamento */}
+        {isEditMode && existingCall && (
+          <>
+            <StartTripModal
+              open={startTripModalOpen}
+              onOpenChange={setStartTripModalOpen}
+              onConfirm={handleStartTrip}
+              isLoading={isCreatingTrip}
+            />
+
+            {activeTrip && (
+              <EndTripModal
+                open={endTripModalOpen}
+                onOpenChange={setEndTripModalOpen}
+                onConfirm={handleEndTrip}
+                startOdometer={activeTrip.start_odometer_km}
+                isLoading={isUpdatingTrip}
+              />
+            )}
+          </>
+        )}
       </div>
     </MainLayout>
   );

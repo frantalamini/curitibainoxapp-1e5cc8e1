@@ -34,6 +34,7 @@ import RelatorioOS from "./pages/relatorio-os/[osNumber]";
 import Vehicles from "./pages/Vehicles";
 import VehicleForm from "./pages/VehicleForm";
 import VehicleMaintenances from "./pages/VehicleMaintenances";
+import ServiceCallTrips from "./pages/ServiceCallTrips";
 
 const queryClient = new QueryClient();
 
@@ -311,6 +312,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <VehicleMaintenances />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/service-call-trips"
+            element={
+              <ProtectedRoute>
+                <ServiceCallTrips />
               </ProtectedRoute>
             }
           />
