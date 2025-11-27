@@ -232,6 +232,7 @@ export type Database = {
           photos_after_urls: string[] | null
           photos_before_urls: string[] | null
           problem_description: string | null
+          report_pdf_path: string | null
           scheduled_date: string
           scheduled_time: string
           service_type_id: string | null
@@ -271,6 +272,7 @@ export type Database = {
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null
+          report_pdf_path?: string | null
           scheduled_date: string
           scheduled_time: string
           service_type_id?: string | null
@@ -310,6 +312,7 @@ export type Database = {
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null
+          report_pdf_path?: string | null
           scheduled_date?: string
           scheduled_time?: string
           service_type_id?: string | null

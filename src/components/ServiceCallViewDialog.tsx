@@ -42,6 +42,7 @@ import { useChecklists } from "@/hooks/useChecklists";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { SendReportModal } from "@/components/SendReportModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const getLatestSignature = (signatures: any[] | undefined, role: 'tech' | 'client') => {
   if (!signatures || !Array.isArray(signatures)) return null;
@@ -104,8 +105,18 @@ const ServiceCallViewDialog = ({
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       
       // 3. Upload para storage (para WhatsApp)
-      const uploadedUrl = await uploadPdfToStorage(blob, call.id, fileName);
-      setPdfUrl(uploadedUrl);
+      const uploadResult = await uploadPdfToStorage(blob, call.id, fileName);
+      setPdfUrl(uploadResult.signedUrl);
+      
+      // 4. Salvar o caminho do PDF no banco de dados
+      const { error: updateError } = await supabase
+        .from('service_calls')
+        .update({ report_pdf_path: uploadResult.filePath })
+        .eq('id', call.id);
+      
+      if (updateError) {
+        console.error("Erro ao salvar caminho do PDF:", updateError);
+      }
       
       toast({
         title: "✅ PDF gerado com sucesso!",
