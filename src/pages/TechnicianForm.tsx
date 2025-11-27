@@ -14,6 +14,7 @@ import { ArrowLeft } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import InputMask from "react-input-mask";
 import { useToast } from "@/hooks/use-toast";
+import { toTitleCase } from "@/lib/utils";
 
 const technicianSchema = z.object({
   full_name: z.string()
@@ -86,7 +87,10 @@ const TechnicianForm = () => {
     setCharCount(additionalNotes?.length || 0);
   }, [additionalNotes]);
 
-  const onSubmit = async (data: TechnicianInsert) => {
+  const onSubmit = async (formData: TechnicianInsert) => {
+    // Normalizar nome para Title Case
+    const data = { ...formData, full_name: toTitleCase(formData.full_name) };
+
     if (isEdit) {
       await updateTechnician.mutateAsync({ id: id!, ...data });
       toast({

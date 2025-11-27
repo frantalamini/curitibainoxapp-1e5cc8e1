@@ -18,6 +18,7 @@ import { ArrowLeft, Search, Loader2, DollarSign, Wrench, Scale } from "lucide-re
 import MainLayout from "@/components/MainLayout";
 import { useToast } from "@/hooks/use-toast";
 import { CadastroTipo } from "@/hooks/useCadastros";
+import { toTitleCase } from "@/lib/utils";
 
 const clientSchema = z.object({
   full_name: z.string()
@@ -287,6 +288,20 @@ const ClientForm = () => {
   const onValid = async (formData: any) => {
     try {
       const data = cleanEmptyObjects(formData);
+      
+      // Normalizar campos de texto para Title Case
+      data.full_name = toTitleCase(data.full_name);
+      data.nome_fantasia = toTitleCase(data.nome_fantasia);
+      
+      if (data.responsible_financial?.name) {
+        data.responsible_financial.name = toTitleCase(data.responsible_financial.name);
+      }
+      if (data.responsible_technical?.name) {
+        data.responsible_technical.name = toTitleCase(data.responsible_technical.name);
+      }
+      if (data.responsible_legal?.name) {
+        data.responsible_legal.name = toTitleCase(data.responsible_legal.name);
+      }
       
       if (isEdit) {
         await updateClient.mutateAsync({ id: id!, ...data });

@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { useServiceCallStatuses, ServiceCallStatusInsert } from "@/hooks/useServiceCallStatuses";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { toTitleCase } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -73,9 +74,9 @@ const ServiceCallStatusForm = () => {
     }
   }, [id, form, toast]);
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = (formData: FormData) => {
     // Validate required fields before submitting
-    if (!data.name || !data.color) {
+    if (!formData.name || !formData.color) {
       toast({
         title: "Erro",
         description: "Nome e cor são obrigatórios",
@@ -83,6 +84,9 @@ const ServiceCallStatusForm = () => {
       });
       return;
     }
+
+    // Normalizar nome para Title Case
+    const data = { ...formData, name: toTitleCase(formData.name) };
 
     if (id) {
       updateStatus({ id, ...data });

@@ -12,6 +12,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toTitleCase } from "@/lib/utils";
 
 const ChecklistForm = () => {
   const { id } = useParams();
@@ -105,7 +106,7 @@ const ChecklistForm = () => {
     }
 
     const checklistData = {
-      name,
+      name: toTitleCase(name),
       description: description || undefined,
       items,
     };

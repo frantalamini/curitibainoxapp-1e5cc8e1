@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { useToast } from "@/hooks/use-toast";
+import { toTitleCase } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -57,7 +58,10 @@ const ServiceTypeForm = () => {
     }
   }, [id, serviceTypes, form]);
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = (formData: FormData) => {
+    // Normalizar nome para Title Case
+    const data = { ...formData, name: toTitleCase(formData.name) };
+
     if (id) {
       updateServiceType({ id, ...data });
       toast({

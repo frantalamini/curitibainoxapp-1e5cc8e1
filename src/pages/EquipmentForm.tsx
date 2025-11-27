@@ -19,6 +19,7 @@ import {
 import { ArrowLeft } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { useToast } from "@/hooks/use-toast";
+import { toTitleCase } from "@/lib/utils";
 
 const equipmentSchema = z.object({
   client_id: z.string()
@@ -86,7 +87,14 @@ const EquipmentForm = () => {
     }
   }, [id, equipment, reset, isEdit]);
 
-  const onSubmit = async (data: EquipmentInsert) => {
+  const onSubmit = async (formData: EquipmentInsert) => {
+    // Normalizar campos para Title Case
+    const data = {
+      ...formData,
+      brand: toTitleCase(formData.brand),
+      model: toTitleCase(formData.model),
+    };
+
     if (isEdit) {
       await updateEquipment.mutateAsync({ id: id!, ...data });
       toast({
