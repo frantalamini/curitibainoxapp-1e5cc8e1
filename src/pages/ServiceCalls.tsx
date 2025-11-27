@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Search, Play, Eye, Car } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Eye, Car } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -45,6 +45,10 @@ const ServiceCalls = () => {
   const [searchParams] = useSearchParams();
   const { serviceCalls, isLoading, deleteServiceCall, updateServiceCall } = useServiceCalls();
   const { statuses } = useServiceCallStatuses();
+  
+  // Filtrar statuses por tipo
+  const technicalStatuses = statuses?.filter(s => s.status_type === 'tecnico') || [];
+  const commercialStatuses = statuses?.filter(s => s.status_type === 'comercial') || [];
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -81,15 +85,6 @@ const ServiceCalls = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleExecuteTask = (callId: string) => {
-    // Buscar o status "Em Andamento" dinamicamente
-    const inProgressStatus = statuses?.find(s => s.name === "Em Andamento");
-    updateServiceCall({ 
-      id: callId, 
-      status_id: inProgressStatus?.id,
-      started_at: new Date().toISOString()
-    });
-  };
 
   // Helper para construir endereço completo
   const buildFullAddress = (client: ServiceCall['clients']) => {
@@ -159,12 +154,12 @@ const ServiceCalls = () => {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Status" />
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Status Técnico" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {statuses?.map((status) => (
+              {technicalStatuses.map((status) => (
                 <SelectItem key={status.id} value={status.id}>
                   {status.name}
                 </SelectItem>
@@ -197,8 +192,9 @@ const ServiceCalls = () => {
                   <TableHead>Equipamento</TableHead>
                   <TableHead className="w-40">Tipo de Chamado</TableHead>
                   <TableHead className="w-36">Técnico</TableHead>
-                  <TableHead className="w-32">Status</TableHead>
-                  <TableHead className="w-16"></TableHead>
+                  <TableHead className="w-40">Status Técnico</TableHead>
+                  <TableHead className="w-40">Status Comercial</TableHead>
+                  <TableHead className="w-12"></TableHead>
                   <TableHead className="text-right w-24">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -251,7 +247,7 @@ const ServiceCalls = () => {
                           value={call.status_id || ""}
                           onValueChange={(value) => updateServiceCall({ id: call.id, status_id: value })}
                         >
-                          <SelectTrigger className="w-[200px]">
+                          <SelectTrigger className="w-[180px]">
                             <SelectValue>
                               <div className="flex items-center gap-2">
                                 <div
@@ -265,7 +261,44 @@ const ServiceCalls = () => {
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
-                            {statuses?.map((status) => (
+                            {technicalStatuses.map((status) => (
+                              <SelectItem key={status.id} value={status.id}>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-4 h-4 rounded-sm flex-shrink-0"
+                                    style={{ backgroundColor: status.color }}
+                                  />
+                                  <span className="text-sm">{status.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {call.commercial_status ? (
+                        <Select
+                          value={call.commercial_status_id || ""}
+                          onValueChange={(value) => updateServiceCall({ id: call.id, commercial_status_id: value })}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-4 h-4 rounded-sm flex-shrink-0"
+                                  style={{ backgroundColor: call.commercial_status.color }}
+                                />
+                                <span className="text-sm">
+                                  {call.commercial_status.name}
+                                </span>
+                              </div>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {commercialStatuses.map((status) => (
                               <SelectItem key={status.id} value={status.id}>
                                 <div className="flex items-center gap-2">
                                   <div
@@ -300,17 +333,6 @@ const ServiceCalls = () => {
                     </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    {call.service_call_statuses?.name === 'Aguardando Início' && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleExecuteTask(call.id)}
-                        title="Iniciar atendimento"
-                      >
-                        <Play className="h-4 w-4 mr-1" />
-                        Executar
-                      </Button>
-                    )}
                     <Button
                       variant="ghost"
                       size="sm"
