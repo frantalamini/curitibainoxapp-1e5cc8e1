@@ -31,7 +31,7 @@ export const useServiceCallStatuses = () => {
       const { data, error } = await supabase
         .from("service_call_statuses")
         .select("*")
-        .order("display_order", { ascending: true });
+        .order("name", { ascending: true });
 
       if (error) throw error;
       return data as ServiceCallStatus[];
