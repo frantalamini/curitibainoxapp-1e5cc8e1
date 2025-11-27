@@ -12,6 +12,7 @@ export interface ServiceCall {
   scheduled_date: string;
   scheduled_time: string;
   status: "pending" | "in_progress" | "completed" | "cancelled";
+  status_id?: string;
   notes?: string;
   audio_url?: string;
   media_urls?: string[];
@@ -49,6 +50,10 @@ export interface ServiceCall {
     phone: string;
   };
   service_types?: {
+    name: string;
+    color: string;
+  };
+  service_call_statuses?: {
     name: string;
     color: string;
   };
@@ -92,6 +97,10 @@ export const useServiceCall = (id?: string) => {
           service_types (
             name,
             color
+          ),
+          service_call_statuses (
+            name,
+            color
           )
         `)
         .eq("id", id)
@@ -125,6 +134,10 @@ export const useServiceCalls = () => {
             phone
           ),
           service_types (
+            name,
+            color
+          ),
+          service_call_statuses (
             name,
             color
           )

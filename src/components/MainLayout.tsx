@@ -85,6 +85,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: Building2, label: "Clientes e Fornecedores", to: "/cadastros/clientes" },
         { icon: Package, label: "Produtos", to: "/equipment" },
         { icon: Wrench, label: "Serviços", to: "/service-types" },
+        { icon: Activity, label: "Status de Chamado", to: "/service-call-statuses" },
         { icon: Tags, label: "Categorias dos Produtos", to: "/categories" },
         { icon: Users, label: "Vendedores", to: "/sellers" },
         { icon: Package, label: "Embalagens", to: "/packaging" },
