@@ -241,80 +241,76 @@ const ServiceCalls = () => {
                       )}
                     </TableCell>
                     <TableCell>{call.technicians?.full_name}</TableCell>
-                    <TableCell>
-                      {call.service_call_statuses ? (
-                        <Select
-                          value={call.status_id || ""}
-                          onValueChange={(value) => updateServiceCall({ id: call.id, status_id: value })}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-4 h-4 rounded-sm flex-shrink-0"
-                                  style={{ backgroundColor: call.service_call_statuses.color }}
-                                />
-                                <span className="text-sm">
-                                  {call.service_call_statuses.name}
-                                </span>
-                              </div>
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {technicalStatuses.map((status) => (
-                              <SelectItem key={status.id} value={status.id}>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-4 h-4 rounded-sm flex-shrink-0"
-                                    style={{ backgroundColor: status.color }}
-                                  />
-                                  <span className="text-sm">{status.name}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {call.commercial_status ? (
-                        <Select
-                          value={call.commercial_status_id || ""}
-                          onValueChange={(value) => updateServiceCall({ id: call.id, commercial_status_id: value })}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-4 h-4 rounded-sm flex-shrink-0"
-                                  style={{ backgroundColor: call.commercial_status.color }}
-                                />
-                                <span className="text-sm">
-                                  {call.commercial_status.name}
-                                </span>
-                              </div>
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {commercialStatuses.map((status) => (
-                              <SelectItem key={status.id} value={status.id}>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-4 h-4 rounded-sm flex-shrink-0"
-                                    style={{ backgroundColor: status.color }}
-                                  />
-                                  <span className="text-sm">{status.name}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
+                <TableCell>
+                  <Select
+                    value={call.status_id || ""}
+                    onValueChange={(value) => updateServiceCall({ id: call.id, status_id: value })}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Selecionar">
+                        {call.service_call_statuses && (
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-sm flex-shrink-0"
+                              style={{ backgroundColor: call.service_call_statuses.color }}
+                            />
+                            <span className="text-sm">
+                              {call.service_call_statuses.name}
+                            </span>
+                          </div>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {technicalStatuses.map((status) => (
+                        <SelectItem key={status.id} value={status.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-sm flex-shrink-0"
+                              style={{ backgroundColor: status.color }}
+                            />
+                            <span className="text-sm">{status.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={call.commercial_status_id || ""}
+                    onValueChange={(value) => updateServiceCall({ id: call.id, commercial_status_id: value })}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Selecionar">
+                        {call.commercial_status && (
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-sm flex-shrink-0"
+                              style={{ backgroundColor: call.commercial_status.color }}
+                            />
+                            <span className="text-sm">
+                              {call.commercial_status.name}
+                            </span>
+                          </div>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {commercialStatuses.map((status) => (
+                        <SelectItem key={status.id} value={status.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-sm flex-shrink-0"
+                              style={{ backgroundColor: status.color }}
+                            />
+                            <span className="text-sm">{status.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
                     <TableCell>
                       {call.commercial_status?.name === "Aprovado" && !openTripsMap[call.id] && (
                         <Button
