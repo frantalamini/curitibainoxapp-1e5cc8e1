@@ -20,7 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Wrench, Briefcase } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -65,6 +66,7 @@ const ServiceCallStatuses = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Status</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Cor</TableHead>
                 <TableHead>Ativo</TableHead>
                 {isAdmin && <TableHead className="text-right">Ações</TableHead>}
@@ -81,6 +83,19 @@ const ServiceCallStatuses = () => {
                       />
                       <span className="text-sm">{status.name}</span>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {status.status_type === 'tecnico' ? (
+                      <Badge variant="secondary" className="gap-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                        <Wrench className="h-3.5 w-3.5" />
+                        Status Técnico
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="gap-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200">
+                        <Briefcase className="h-3.5 w-3.5" />
+                        Situação Comercial
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground">{status.color}</span>
