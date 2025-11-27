@@ -538,6 +538,39 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          active: boolean
+          created_at: string
+          current_odometer_km: number | null
+          id: string
+          name: string
+          plate: string
+          renavam: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          current_odometer_km?: number | null
+          id?: string
+          name: string
+          plate: string
+          renavam?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          current_odometer_km?: number | null
+          id?: string
+          name?: string
+          plate?: string
+          renavam?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
