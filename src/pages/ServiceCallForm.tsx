@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
@@ -134,6 +134,15 @@ const ServiceCallForm = () => {
   const [technicalMediaRecorder, setTechnicalMediaRecorder] = useState<MediaRecorder | null>(null);
   const [technicalAudioBlob, setTechnicalAudioBlob] = useState<Blob | null>(null);
   const [technicalAudioURL, setTechnicalAudioURL] = useState<string>("");
+  
+  // Ref para chunks de áudio técnico (evita problemas de closure)
+  const technicalAudioChunksRef = useRef<BlobPart[]>([]);
+  
+  // Estados para preview de fotos/vídeos técnicos
+  const [photosBeforePreviews, setPhotosBeforePreviews] = useState<{file: File, url: string}[]>([]);
+  const [videoBeforePreview, setVideoBeforePreview] = useState<{file: File, url: string} | null>(null);
+  const [photosAfterPreviews, setPhotosAfterPreviews] = useState<{file: File, url: string}[]>([]);
+  const [videoAfterPreview, setVideoAfterPreview] = useState<{file: File, url: string} | null>(null);
 
   const {
     register,
@@ -269,7 +278,12 @@ const ServiceCallForm = () => {
   useEffect(() => {
     return () => {
       if (audioURL) URL.revokeObjectURL(audioURL);
+      if (technicalAudioURL) URL.revokeObjectURL(technicalAudioURL);
       mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
+      photosBeforePreviews.forEach(preview => URL.revokeObjectURL(preview.url));
+      photosAfterPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
+      if (videoBeforePreview) URL.revokeObjectURL(videoBeforePreview.url);
+      if (videoAfterPreview) URL.revokeObjectURL(videoAfterPreview.url);
     };
   }, []);
 
@@ -345,28 +359,89 @@ const ServiceCallForm = () => {
   // Gravação de áudio para informações técnicas (limitado a 1min30s)
   const startRecordingTechnical = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks: BlobPart[] = [];
-
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        setTechnicalAudioBlob(blob);
-        setTechnicalAudioURL(URL.createObjectURL(blob));
-        
-        // Converter Blob para File
-        const file = new File([blob], `technical-audio-${Date.now()}.webm`, { 
-          type: 'audio/webm' 
+      // Verificar suporte do navegador
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Erro",
+          description: "Seu navegador não suporta gravação de áudio",
+          variant: "destructive"
         });
-        setTechnicalAudioFile(file);
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Verificar suporte ao MediaRecorder
+      if (!window.MediaRecorder) {
+        toast({
+          title: "Erro", 
+          description: "Seu navegador não suporta gravação de áudio",
+          variant: "destructive"
+        });
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
+      // Determinar melhor mimeType suportado
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : 'audio/mp4';
+
+      const recorder = new MediaRecorder(stream, { mimeType });
+      technicalAudioChunksRef.current = []; // Limpar chunks anteriores
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          technicalAudioChunksRef.current.push(e.data);
+        }
       };
 
-      recorder.start();
+      recorder.onstop = () => {
+        const chunks = technicalAudioChunksRef.current;
+        if (chunks.length === 0) {
+          toast({
+            title: "Erro",
+            description: "Nenhum áudio foi capturado",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        const blob = new Blob(chunks, { type: mimeType });
+        const audioUrl = URL.createObjectURL(blob);
+        setTechnicalAudioBlob(blob);
+        setTechnicalAudioURL(audioUrl);
+        
+        const extension = mimeType.includes('webm') ? 'webm' : 'mp4';
+        const file = new File([blob], `technical-audio-${Date.now()}.${extension}`, { 
+          type: mimeType 
+        });
+        setTechnicalAudioFile(file);
+        
+        toast({
+          title: "Gravação Concluída",
+          description: "Áudio gravado com sucesso!",
+        });
+      };
+
+      recorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        toast({
+          title: "Erro na Gravação",
+          description: "Ocorreu um erro durante a gravação",
+          variant: "destructive"
+        });
+        setIsRecordingTechnical(false);
+      };
+
+      // Iniciar gravação com timeslice para garantir dados periódicos
+      recorder.start(1000); // Captura dados a cada 1 segundo
       setTechnicalMediaRecorder(recorder);
       setIsRecordingTechnical(true);
 
-      // Limitar gravação a 90 segundos (1min30s)
+      // Limitar a 90 segundos
       setTimeout(() => {
         if (recorder.state === 'recording') {
           stopRecordingTechnical();
@@ -377,11 +452,20 @@ const ServiceCallForm = () => {
         title: "Gravação Iniciada",
         description: "Duração máxima: 1 minuto e 30 segundos",
       });
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Erro ao acessar microfone:', error);
+      
+      let errorMessage = "Não foi possível acessar o microfone";
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = "Permissão de microfone negada. Por favor, permita o acesso ao microfone nas configurações do navegador.";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "Nenhum microfone encontrado no dispositivo";
+      }
+      
       toast({
         title: "Erro",
-        description: "Não foi possível acessar o microfone",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -1218,37 +1302,245 @@ const ServiceCallForm = () => {
                   {/* Fotos/Vídeo Antes */}
                   <div className="space-y-2">
                     <Label>Fotos/Vídeo Antes da Manutenção</Label>
-                    <p className="text-xs text-muted-foreground">Máximo: 5 fotos OU 1 vídeo</p>
+                    <p className="text-xs text-muted-foreground">Máximo: 5 fotos OU 1 vídeo. Em celular, você pode tirar foto diretamente da câmera.</p>
                     <Input
                       type="file"
                       accept="image/*,video/*"
+                      capture="environment"
                       multiple
                       onChange={(e) => {
                         const files = Array.from(e.target.files || []);
                         const images = files.filter(f => f.type.startsWith('image/'));
                         const videos = files.filter(f => f.type.startsWith('video/'));
-                        if (images.length > 0) setPhotosBeforeFiles(prev => [...prev, ...images].slice(0, 5));
-                        if (videos.length > 0) setVideoBeforeFile(videos[0]);
+                        
+                        if (images.length > 0) {
+                          const newImages = images.slice(0, 5 - photosBeforeFiles.length);
+                          setPhotosBeforeFiles(prev => [...prev, ...newImages].slice(0, 5));
+                          
+                          newImages.forEach(file => {
+                            const url = URL.createObjectURL(file);
+                            setPhotosBeforePreviews(prev => [...prev, { file, url }].slice(0, 5));
+                          });
+                        }
+                        if (videos.length > 0) {
+                          if (videoBeforePreview) URL.revokeObjectURL(videoBeforePreview.url);
+                          const url = URL.createObjectURL(videos[0]);
+                          setVideoBeforeFile(videos[0]);
+                          setVideoBeforePreview({ file: videos[0], url });
+                        }
+                        
+                        e.target.value = '';
                       }}
                     />
+                    
+                    {/* Preview de fotos/vídeos antes */}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {photosBeforePreviews.map((preview, index) => (
+                        <div key={`new-before-${index}`} className="relative">
+                          <img
+                            src={preview.url}
+                            alt={`Foto antes ${index + 1}`}
+                            className="w-24 h-24 object-cover rounded-md border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={() => {
+                              setPhotosBeforeFiles(prev => prev.filter(f => f !== preview.file));
+                              setPhotosBeforePreviews(prev => prev.filter(p => p.file !== preview.file));
+                              URL.revokeObjectURL(preview.url);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      {videoBeforePreview && (
+                        <div className="relative">
+                          <video
+                            src={videoBeforePreview.url}
+                            className="w-24 h-24 object-cover rounded-md border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={() => {
+                              URL.revokeObjectURL(videoBeforePreview.url);
+                              setVideoBeforeFile(null);
+                              setVideoBeforePreview(null);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {existingPhotosBeforeUrls.map((url, index) => (
+                        <div key={`existing-before-${index}`} className="relative">
+                          <img
+                            src={url}
+                            alt={`Foto existente ${index + 1}`}
+                            className="w-24 h-24 object-cover rounded-md border-2 border-green-500"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={() => {
+                              setExistingPhotosBeforeUrls(prev => prev.filter(u => u !== url));
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      {existingVideoBeforeUrl && (
+                        <div className="relative">
+                          <video
+                            src={existingVideoBeforeUrl}
+                            className="w-24 h-24 object-cover rounded-md border-2 border-green-500"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={() => setExistingVideoBeforeUrl(null)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Fotos/Vídeo Depois */}
                   <div className="space-y-2">
                     <Label>Fotos/Vídeo Depois da Manutenção</Label>
-                    <p className="text-xs text-muted-foreground">Máximo: 5 fotos OU 1 vídeo</p>
+                    <p className="text-xs text-muted-foreground">Máximo: 5 fotos OU 1 vídeo. Em celular, você pode tirar foto diretamente da câmera.</p>
                     <Input
                       type="file"
                       accept="image/*,video/*"
+                      capture="environment"
                       multiple
                       onChange={(e) => {
                         const files = Array.from(e.target.files || []);
                         const images = files.filter(f => f.type.startsWith('image/'));
                         const videos = files.filter(f => f.type.startsWith('video/'));
-                        if (images.length > 0) setPhotosAfterFiles(prev => [...prev, ...images].slice(0, 5));
-                        if (videos.length > 0) setVideoAfterFile(videos[0]);
+                        
+                        if (images.length > 0) {
+                          const newImages = images.slice(0, 5 - photosAfterFiles.length);
+                          setPhotosAfterFiles(prev => [...prev, ...newImages].slice(0, 5));
+                          
+                          newImages.forEach(file => {
+                            const url = URL.createObjectURL(file);
+                            setPhotosAfterPreviews(prev => [...prev, { file, url }].slice(0, 5));
+                          });
+                        }
+                        if (videos.length > 0) {
+                          if (videoAfterPreview) URL.revokeObjectURL(videoAfterPreview.url);
+                          const url = URL.createObjectURL(videos[0]);
+                          setVideoAfterFile(videos[0]);
+                          setVideoAfterPreview({ file: videos[0], url });
+                        }
+                        
+                        e.target.value = '';
                       }}
                     />
+                    
+                    {/* Preview de fotos/vídeos depois */}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {photosAfterPreviews.map((preview, index) => (
+                        <div key={`new-after-${index}`} className="relative">
+                          <img
+                            src={preview.url}
+                            alt={`Foto depois ${index + 1}`}
+                            className="w-24 h-24 object-cover rounded-md border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={() => {
+                              setPhotosAfterFiles(prev => prev.filter(f => f !== preview.file));
+                              setPhotosAfterPreviews(prev => prev.filter(p => p.file !== preview.file));
+                              URL.revokeObjectURL(preview.url);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      {videoAfterPreview && (
+                        <div className="relative">
+                          <video
+                            src={videoAfterPreview.url}
+                            className="w-24 h-24 object-cover rounded-md border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={() => {
+                              URL.revokeObjectURL(videoAfterPreview.url);
+                              setVideoAfterFile(null);
+                              setVideoAfterPreview(null);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {existingPhotosAfterUrls.map((url, index) => (
+                        <div key={`existing-after-${index}`} className="relative">
+                          <img
+                            src={url}
+                            alt={`Foto existente ${index + 1}`}
+                            className="w-24 h-24 object-cover rounded-md border-2 border-green-500"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={() => {
+                              setExistingPhotosAfterUrls(prev => prev.filter(u => u !== url));
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      {existingVideoAfterUrl && (
+                        <div className="relative">
+                          <video
+                            src={existingVideoAfterUrl}
+                            className="w-24 h-24 object-cover rounded-md border-2 border-green-500"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={() => setExistingVideoAfterUrl(null)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Checklist */}
