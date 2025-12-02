@@ -62,7 +62,7 @@ export const generateWhatsAppLinkWithPdf = (
   const { phoneNumber, clientName, osNumber } = data;
   
   const cleanPhone = phoneNumber.replace(/\D/g, '');
-  const publicUrl = `https://curitibainoxapp.lovable.app/relatorio-os/${osNumber}`;
+  const publicUrl = `${window.location.origin}/relatorio-os/${osNumber}`;
   
   let message = `Ola ${clientName}!\n\n`;
   message += `Seu relatorio da OS #${osNumber} esta pronto.\n\n`;
