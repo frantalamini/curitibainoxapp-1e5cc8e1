@@ -186,7 +186,11 @@ const ServiceCalls = () => {
                 <TableCell>
                   <Select
                     value={call.status_id || ""}
-                    onValueChange={(value) => updateServiceCall({ id: call.id, status_id: value })}
+                    onValueChange={(value) => {
+                      if (value && value !== "") {
+                        updateServiceCall({ id: call.id, status_id: value });
+                      }
+                    }}
                   >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Selecionar">
@@ -221,7 +225,11 @@ const ServiceCalls = () => {
                 <TableCell>
                   <Select
                     value={call.commercial_status_id || ""}
-                    onValueChange={(value) => updateServiceCall({ id: call.id, commercial_status_id: value })}
+                    onValueChange={(value) => {
+                      if (value && value !== "") {
+                        updateServiceCall({ id: call.id, commercial_status_id: value });
+                      }
+                    }}
                   >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Selecionar">
