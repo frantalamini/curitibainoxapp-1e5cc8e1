@@ -56,18 +56,18 @@ export const generateWhatsAppLink = (data: WhatsAppMessageData): string => {
 /**
  * Gera link do WhatsApp com PDF do relatório
  */
+const PUBLIC_BASE_URL = "https://curitibainoxapp.com";
+
 export const generateWhatsAppLinkWithPdf = (
   data: WhatsAppPdfMessageData
 ): string => {
   const { phoneNumber, clientName, osNumber } = data;
   
   const cleanPhone = phoneNumber.replace(/\D/g, '');
-  const publicUrl = `${window.location.origin}/relatorio-os/${osNumber}`;
+  const publicReportUrl = `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}`;
   
-  let message = `Ola ${clientName}!\n\n`;
-  message += `Seu relatorio da OS #${osNumber} esta pronto.\n\n`;
-  message += `Acesse pelo link:\n${publicUrl}\n`;
-  message += `\nDuvidas? Estou a disposicao!`;
+  let message = `Olá! Seu relatório da OS nº ${osNumber} está pronto.\n`;
+  message += `Acesse pelo link: ${publicReportUrl}`;
   
   const encodedMessage = encodeURIComponent(message);
   
@@ -100,22 +100,10 @@ export function buildWhatsAppUrl(phoneRaw: string, message: string): string {
   const phone = normalizePhone(phoneRaw);
   const text = encodeURIComponent(message || '');
   
-  // Detecta se é mobile
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile/i.test(
-    navigator.userAgent
-  );
-  
-  let url: string;
-  if (isMobile) {
-    // Mobile: usa wa.me
-    url = `https://wa.me/${phone}?text=${text}`;
-  } else {
-    // Desktop: usa web.whatsapp.com
-    url = `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
-  }
+  // Sempre usa wa.me (funciona em mobile e desktop)
+  const url = `https://wa.me/${phone}?text=${text}`;
   
   console.log('🔗 URL WhatsApp gerada:', url);
-  console.log('📱 Dispositivo:', isMobile ? 'Mobile' : 'Desktop');
   console.log('📞 Telefone normalizado:', phone);
   
   return url;
