@@ -2,26 +2,14 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useHomeStats } from "@/hooks/useHomeStats";
-import { 
-  ClipboardList, 
-  AlertTriangle, 
-  CalendarDays, 
-  Users, 
-  Plus,
-  FileText,
-  Calendar,
-  Wrench,
-  BarChart3,
-  Settings,
-  Clock
-} from "lucide-react";
+import { Icon, type IconName } from "@/components/ui/icons";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface StatCardProps {
   title: string;
   value: number;
-  icon: React.ReactNode;
+  icon: IconName;
   colorClass: string;
   onClick: () => void;
 }
@@ -38,7 +26,7 @@ const StatCard = ({ title, value, icon, colorClass, onClick }: StatCardProps) =>
           <p className="text-3xl font-bold mt-1">{value}</p>
         </div>
         <div className={`p-3 rounded-xl ${colorClass} group-hover:scale-110 transition-transform`}>
-          {icon}
+          <Icon name={icon} size="lg" color="current" />
         </div>
       </div>
     </CardContent>
@@ -46,7 +34,7 @@ const StatCard = ({ title, value, icon, colorClass, onClick }: StatCardProps) =>
 );
 
 interface QuickActionProps {
-  icon: React.ReactNode;
+  icon: IconName;
   label: string;
   onClick: () => void;
 }
@@ -57,7 +45,7 @@ const QuickAction = ({ icon, label, onClick }: QuickActionProps) => (
     className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
   >
     <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-      {icon}
+      <Icon name={icon} size="md" color="current" />
     </div>
     <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
       {label}
@@ -69,44 +57,44 @@ const DesktopHome = () => {
   const navigate = useNavigate();
   const { data: stats, isLoading } = useHomeStats();
 
-  const statCards = [
+  const statCards: StatCardProps[] = [
     {
       title: "Chamados em Aberto",
       value: stats?.openCallsCount || 0,
-      icon: <ClipboardList className="h-6 w-6 text-blue-600" />,
-      colorClass: "bg-blue-100",
+      icon: "chamadosTecnicos",
+      colorClass: "bg-blue-100 text-blue-600",
       onClick: () => navigate("/service-calls"),
     },
     {
       title: "Em Atraso",
       value: stats?.overdueCallsCount || 0,
-      icon: <AlertTriangle className="h-6 w-6 text-red-600" />,
-      colorClass: "bg-red-100",
+      icon: "alerta",
+      colorClass: "bg-red-100 text-red-600",
       onClick: () => navigate("/service-calls"),
     },
     {
       title: "Chamados Hoje",
       value: stats?.todayCallsCount || 0,
-      icon: <CalendarDays className="h-6 w-6 text-green-600" />,
-      colorClass: "bg-green-100",
+      icon: "agenda",
+      colorClass: "bg-green-100 text-green-600",
       onClick: () => navigate("/schedule"),
     },
     {
       title: "Total de Clientes",
       value: stats?.clientsCount || 0,
-      icon: <Users className="h-6 w-6 text-primary" />,
-      colorClass: "bg-primary/10",
+      icon: "usuarios",
+      colorClass: "bg-primary/10 text-primary",
       onClick: () => navigate("/cadastros/clientes"),
     },
   ];
 
-  const quickActions = [
-    { icon: <ClipboardList className="h-5 w-5" />, label: "Chamados", onClick: () => navigate("/service-calls") },
-    { icon: <FileText className="h-5 w-5" />, label: "Cadastros", onClick: () => navigate("/cadastros/clientes") },
-    { icon: <Calendar className="h-5 w-5" />, label: "Agenda", onClick: () => navigate("/schedule") },
-    { icon: <Wrench className="h-5 w-5" />, label: "Equipamentos", onClick: () => navigate("/equipment") },
-    { icon: <BarChart3 className="h-5 w-5" />, label: "Relatórios", onClick: () => navigate("/dashboard") },
-    { icon: <Settings className="h-5 w-5" />, label: "Configurações", onClick: () => navigate("/settings") },
+  const quickActions: QuickActionProps[] = [
+    { icon: "chamadosTecnicos", label: "Chamados", onClick: () => navigate("/service-calls") },
+    { icon: "clientesFornecedores", label: "Cadastros", onClick: () => navigate("/cadastros/clientes") },
+    { icon: "agenda", label: "Agenda", onClick: () => navigate("/schedule") },
+    { icon: "equipamentos", label: "Equipamentos", onClick: () => navigate("/equipment") },
+    { icon: "relatorios", label: "Relatórios", onClick: () => navigate("/dashboard") },
+    { icon: "configuracoes", label: "Configurações", onClick: () => navigate("/settings") },
   ];
 
   const formatDate = (dateStr: string) => {
@@ -126,7 +114,7 @@ const DesktopHome = () => {
           onClick={() => navigate("/service-calls/new")}
           className="gap-2"
         >
-          <Plus className="h-5 w-5" />
+          <Icon name="mais" size="md" color="white" />
           Abrir novo chamado
         </Button>
       </div>
@@ -156,7 +144,7 @@ const DesktopHome = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Clock className="h-5 w-5 text-primary" />
+              <Icon name="relogio" size="md" color="primary" />
               Próximos Compromissos
             </CardTitle>
           </CardHeader>

@@ -1,22 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { 
-  ClipboardList, 
-  Users, 
-  Calendar, 
-  Smartphone, 
-  FileText, 
-  Settings,
-  Plus
-} from "lucide-react";
+import { Icon, type IconName } from "@/components/ui/icons";
 import defaultLogo from "@/assets/logo.png";
 
 interface NavItem {
-  icon: React.ReactNode;
+  icon: IconName;
   label: string;
   path: string;
-  angle: number; // Position angle in degrees
+  angle: number;
 }
 
 const MobileHome = () => {
@@ -26,36 +18,32 @@ const MobileHome = () => {
   const logoUrl = settings?.logo_url || defaultLogo;
 
   const navItems: NavItem[] = [
-    { icon: <ClipboardList className="h-6 w-6" />, label: "Chamados", path: "/service-calls", angle: 0 },
-    { icon: <Users className="h-6 w-6" />, label: "Cadastros", path: "/cadastros/clientes", angle: 60 },
-    { icon: <Calendar className="h-6 w-6" />, label: "Agenda", path: "/schedule", angle: 120 },
-    { icon: <Smartphone className="h-6 w-6" />, label: "Equipamentos", path: "/equipment", angle: 180 },
-    { icon: <FileText className="h-6 w-6" />, label: "Relatórios", path: "/dashboard", angle: 240 },
-    { icon: <Settings className="h-6 w-6" />, label: "Configurações", path: "/settings", angle: 300 },
+    { icon: "chamadosTecnicos", label: "Chamados", path: "/service-calls", angle: 0 },
+    { icon: "clientesFornecedores", label: "Cadastros", path: "/cadastros/clientes", angle: 60 },
+    { icon: "agenda", label: "Agenda", path: "/schedule", angle: 120 },
+    { icon: "equipamentos", label: "Equipamentos", path: "/equipment", angle: 180 },
+    { icon: "relatorios", label: "Relatórios", path: "/dashboard", angle: 240 },
+    { icon: "configuracoes", label: "Configurações", path: "/settings", angle: 300 },
   ];
 
-  // Calculate position for each nav item around the circle
   const getPosition = (angle: number, radius: number) => {
-    const radian = (angle - 90) * (Math.PI / 180); // Start from top
+    const radian = (angle - 90) * (Math.PI / 180);
     const x = Math.cos(radian) * radius;
     const y = Math.sin(radian) * radius;
     return { x, y };
   };
 
-  const circleRadius = 120; // Distance from center
+  const circleRadius = 120;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header with subtle branding */}
       <header className="pt-6 pb-2 px-6">
         <p className="text-sm text-muted-foreground text-center">
           Assistência Técnica
         </p>
       </header>
 
-      {/* Main circular navigation area */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
-        {/* Circular Navigation Container */}
         <div 
           className="relative"
           style={{ 
@@ -63,7 +51,6 @@ const MobileHome = () => {
             height: circleRadius * 2 + 100 
           }}
         >
-          {/* Decorative ring */}
           <div 
             className="absolute inset-0 rounded-full border-2 border-dashed border-border/50"
             style={{
@@ -75,10 +62,7 @@ const MobileHome = () => {
             }}
           />
 
-          {/* Center Logo */}
-          <div 
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
-          >
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
             <div className="w-24 h-24 rounded-full bg-card shadow-elevated border-2 border-primary/20 flex items-center justify-center p-3 overflow-hidden">
               <img 
                 src={logoUrl} 
@@ -88,7 +72,6 @@ const MobileHome = () => {
             </div>
           </div>
 
-          {/* Navigation Items */}
           {navItems.map((item) => {
             const pos = getPosition(item.angle, circleRadius);
             return (
@@ -102,11 +85,9 @@ const MobileHome = () => {
                   transform: 'translate(-50%, -50%)'
                 }}
               >
-                {/* Icon container */}
                 <div className="w-14 h-14 rounded-2xl bg-card shadow-card border border-border flex items-center justify-center text-primary group-hover:shadow-card-hover group-hover:border-primary/30 group-active:bg-accent transition-all duration-200">
-                  {item.icon}
+                  <Icon name={item.icon} size="lg" color="primary" />
                 </div>
-                {/* Label */}
                 <span className="mt-1.5 text-xs font-medium text-foreground/80 group-hover:text-primary transition-colors">
                   {item.label}
                 </span>
@@ -115,19 +96,17 @@ const MobileHome = () => {
           })}
         </div>
 
-        {/* Main CTA Button */}
         <div className="w-full max-w-sm mt-8 px-4">
           <Button 
             onClick={() => navigate("/service-calls/new")}
             className="w-full h-14 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl gap-2"
             size="lg"
           >
-            <Plus className="h-5 w-5" />
+            <Icon name="mais" size="md" color="white" />
             Abrir novo chamado
           </Button>
         </div>
 
-        {/* Quick stats summary (optional) */}
         <div className="w-full max-w-sm mt-6 px-4">
           <div className="grid grid-cols-3 gap-3">
             <QuickStatCard 
