@@ -128,6 +128,69 @@ export type Database = {
         }
         Relationships: []
       }
+      color_palettes: {
+        Row: {
+          cmyk_c: number
+          cmyk_k: number
+          cmyk_m: number
+          cmyk_y: number
+          created_at: string | null
+          display_order: number | null
+          hex: string
+          hsl_h: number
+          hsl_l: number
+          hsl_s: number
+          id: string
+          is_active: boolean | null
+          name: string
+          rgb_b: number
+          rgb_g: number
+          rgb_r: number
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          cmyk_c: number
+          cmyk_k: number
+          cmyk_m: number
+          cmyk_y: number
+          created_at?: string | null
+          display_order?: number | null
+          hex: string
+          hsl_h: number
+          hsl_l: number
+          hsl_s: number
+          id?: string
+          is_active?: boolean | null
+          name: string
+          rgb_b: number
+          rgb_g: number
+          rgb_r: number
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          cmyk_c?: number
+          cmyk_k?: number
+          cmyk_m?: number
+          cmyk_y?: number
+          created_at?: string | null
+          display_order?: number | null
+          hex?: string
+          hsl_h?: number
+          hsl_l?: number
+          hsl_s?: number
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          rgb_b?: number
+          rgb_g?: number
+          rgb_r?: number
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       equipment: {
         Row: {
           brand: string

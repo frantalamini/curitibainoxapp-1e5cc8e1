@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Image as ImageIcon, Save, Loader2 } from "lucide-react";
+import { Upload, Image as ImageIcon, Save, Loader2, Palette } from "lucide-react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { useColorPalette } from "@/hooks/useColorPalette";
+import { ColorCard } from "@/components/settings/ColorCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -23,6 +25,7 @@ interface CompanyFormData {
 
 const Settings = () => {
   const { settings, isLoading, updateSettings } = useSystemSettings();
+  const { colors, isLoading: isLoadingColors, updateColor, applyPalette } = useColorPalette();
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingReportLogo, setUploadingReportLogo] = useState(false);
   const [previewLogoUrl, setPreviewLogoUrl] = useState<string | null>(null);
@@ -224,6 +227,51 @@ const Settings = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Paleta de Cores */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Paleta de Cores
+            </CardTitle>
+            <CardDescription>
+              Personalize as cores do aplicativo. Edite cada cor nos formatos HEX, RGB, HSL ou CMYK.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoadingColors ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {colors?.map((color) => (
+                    <ColorCard
+                      key={color.id}
+                      color={color}
+                      onSave={(data) => updateColor.mutate(data)}
+                      onDelete={() => {/* Colors are fixed, no delete */}}
+                      isSaving={updateColor.isPending}
+                    />
+                  ))}
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Button
+                    onClick={applyPalette}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Palette className="h-4 w-4 mr-2" />
+                    Aplicar Paleta ao App
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Dados da Empresa */}
         <Card>

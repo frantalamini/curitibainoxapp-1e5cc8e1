@@ -43,6 +43,7 @@ import {
   AlertTriangle,
   Info,
   Home,
+  Palette,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -109,6 +110,7 @@ export const IconMap = {
   seguranca: Shield,
   veiculo: Car,
   checklist: FileCheck,
+  paleta: Palette,
 } as const;
 
 export type IconName = keyof typeof IconMap;
