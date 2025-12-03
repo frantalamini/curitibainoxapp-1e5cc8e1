@@ -1,43 +1,60 @@
-import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/mobile-card";
+import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
 import { ActiveBadge } from "@/components/ui/status-badge";
 import { Badge } from "@/components/ui/badge";
+import { Palette, Tag, Star } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ServiceCallStatus = Tables<"service_call_statuses">;
 
 interface StatusMobileCardProps {
   status: ServiceCallStatus;
+  onView?: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export function StatusMobileCard({ status, onEdit, onDelete }: StatusMobileCardProps) {
+export function StatusMobileCard({ status, onView, onEdit, onDelete }: StatusMobileCardProps) {
   return (
-    <MobileCard>
+    <MobileCard onClick={onEdit}>
       <MobileCardHeader
         title={status.name}
         badge={<ActiveBadge active={status.active} />}
-        onEdit={onEdit}
-        onDelete={onDelete}
       />
       
-      <div className="flex items-center gap-3 mt-2">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Cor:</span>
-          <div 
-            className="w-6 h-6 rounded-md border border-border"
-            style={{ backgroundColor: status.color }}
-          />
-        </div>
+      <div className="space-y-1">
+        <MobileCardRow
+          icon={<Palette className="h-4 w-4" />}
+          label="Cor"
+          value={
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-5 h-5 rounded-md border border-border"
+                style={{ backgroundColor: status.color }}
+              />
+              <span className="text-muted-foreground text-xs">{status.color}</span>
+            </div>
+          }
+        />
         
-        <Badge variant="outline" className="text-xs">
-          {status.status_type === 'tecnico' ? 'Técnico' : 'Comercial'}
-        </Badge>
-        
-        {status.is_default && (
-          <Badge variant="secondary" className="text-xs">Padrão</Badge>
-        )}
+        <MobileCardRow
+          icon={<Tag className="h-4 w-4" />}
+          label="Tipo"
+          value={status.status_type === 'tecnico' ? 'Técnico' : 'Comercial'}
+        />
       </div>
+      
+      <MobileCardFooter
+        onView={onView}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      >
+        {status.is_default && (
+          <Badge variant="secondary" className="text-xs gap-1">
+            <Star className="h-3 w-3" />
+            Padrão
+          </Badge>
+        )}
+      </MobileCardFooter>
     </MobileCard>
   );
 }
