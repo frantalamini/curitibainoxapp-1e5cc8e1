@@ -40,6 +40,8 @@ export const useServiceCallStatuses = () => {
       if (error) throw error;
       return data as ServiceCallStatus[];
     },
+    staleTime: 5 * 60 * 1000, // 5 minutos - statuses raramente mudam
+    gcTime: 30 * 60 * 1000,   // 30 minutos no cache
   });
 
   const createMutation = useMutation({

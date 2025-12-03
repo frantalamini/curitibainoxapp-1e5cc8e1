@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, Search, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -34,8 +34,10 @@ import { useServiceCalls } from "@/hooks/useServiceCalls";
 import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import ServiceCallViewDialog from "@/components/ServiceCallViewDialog";
 import type { ServiceCall } from "@/hooks/useServiceCalls";
+
+// Lazy load do dialog pesado - só carrega quando usuário clica em "Ver"
+const ServiceCallViewDialog = lazy(() => import("@/components/ServiceCallViewDialog"));
 
 const ServiceCalls = () => {
   const navigate = useNavigate();
@@ -313,11 +315,13 @@ const ServiceCalls = () => {
       </div>
 
       {selectedCall && (
-        <ServiceCallViewDialog
-          call={selectedCall}
-          open={viewDialogOpen}
-          onOpenChange={setViewDialogOpen}
-        />
+        <Suspense fallback={<div className="fixed inset-0 bg-background/80 flex items-center justify-center"><div className="animate-pulse">Carregando...</div></div>}>
+          <ServiceCallViewDialog
+            call={selectedCall}
+            open={viewDialogOpen}
+            onOpenChange={setViewDialogOpen}
+          />
+        </Suspense>
       )}
     </MainLayout>
   );

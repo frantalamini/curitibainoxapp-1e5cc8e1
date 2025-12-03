@@ -5,10 +5,17 @@ export const useDashboardData = (startDate?: Date, endDate?: Date, technicianId?
   return useQuery({
     queryKey: ["dashboard", startDate, endDate, technicianId],
     queryFn: async () => {
+      // Query otimizada - seleciona apenas campos necessários para cálculos
       let query = supabase
         .from("service_calls")
         .select(`
-          *,
+          id,
+          client_id,
+          equipment_description,
+          status,
+          scheduled_date,
+          service_type_id,
+          technician_id,
           clients (id, full_name),
           technicians (id, full_name),
           service_types (id, name, color)
@@ -24,6 +31,9 @@ export const useDashboardData = (startDate?: Date, endDate?: Date, technicianId?
       if (technicianId) {
         query = query.eq("technician_id", technicianId);
       }
+
+      // Limita a 500 registros para evitar sobrecarga
+      query = query.limit(500);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -41,5 +51,7 @@ export const useDashboardData = (startDate?: Date, endDate?: Date, technicianId?
         completionRate: calls.length > 0 ? (completedCalls / calls.length) * 100 : 0,
       };
     },
+    staleTime: 2 * 60 * 1000, // 2 minutos para dashboard
+    gcTime: 10 * 60 * 1000,   // 10 minutos no cache
   });
 };
