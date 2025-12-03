@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useClients } from "@/hooks/useClients";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -22,11 +22,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, Eye } from "lucide-react";
+import { Pencil, Trash2, Eye } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
+import { PageHeader } from "@/components/ui/page-header";
+import { SearchBar } from "@/components/ui/search-bar";
+import { EquipmentMobileCard } from "@/components/mobile/EquipmentMobileCard";
 
 const Equipment = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { equipment, isLoading, deleteEquipment } = useEquipment();
   const { clients } = useClients();
   const [search, setSearch] = useState("");
@@ -40,7 +44,8 @@ const Equipment = () => {
     eq.brand.toLowerCase().includes(search.toLowerCase()) ||
     eq.model.toLowerCase().includes(search.toLowerCase()) ||
     eq.serial_number?.includes(search) ||
-    eq.imei?.includes(search)
+    eq.imei?.includes(search) ||
+    getClientName(eq.client_id).toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDelete = () => {
@@ -52,33 +57,43 @@ const Equipment = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Equipamentos</h1>
-          <Button onClick={() => navigate("/equipment/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Equipamento
-          </Button>
-        </div>
+      <div className="space-y-4 md:space-y-6">
+        <PageHeader 
+          title="Equipamentos" 
+          actionLabel="Novo Equipamento"
+          onAction={() => navigate("/equipment/new")}
+        />
 
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por marca, modelo, serial ou IMEI..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por marca, modelo, serial ou cliente..."
+          className="md:max-w-sm"
+        />
 
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <div>Carregando...</div>
+            <div className="text-muted-foreground">Carregando...</div>
+          </div>
+        ) : filteredEquipment?.length === 0 ? (
+          <div className="card-mobile text-center text-muted-foreground">
+            Nenhum equipamento encontrado
+          </div>
+        ) : isMobile ? (
+          <div className="space-y-3">
+            {filteredEquipment?.map((eq) => (
+              <EquipmentMobileCard
+                key={eq.id}
+                equipment={eq}
+                clientName={getClientName(eq.client_id)}
+                onView={() => navigate(`/equipment/${eq.id}`)}
+                onEdit={() => navigate(`/equipment/${eq.id}/edit`)}
+                onDelete={() => setDeleteId(eq.id)}
+              />
+            ))}
           </div>
         ) : (
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -90,47 +105,39 @@ const Equipment = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEquipment?.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Nenhum equipamento encontrado
+                {filteredEquipment?.map((eq) => (
+                  <TableRow key={eq.id}>
+                    <TableCell className="font-medium">{getClientName(eq.client_id)}</TableCell>
+                    <TableCell>{eq.brand}</TableCell>
+                    <TableCell>{eq.model}</TableCell>
+                    <TableCell>{eq.serial_number || eq.imei || "-"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/equipment/${eq.id}`)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/equipment/${eq.id}/edit`)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteId(eq.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filteredEquipment?.map((eq) => (
-                    <TableRow key={eq.id}>
-                      <TableCell className="font-medium">{getClientName(eq.client_id)}</TableCell>
-                      <TableCell>{eq.brand}</TableCell>
-                      <TableCell>{eq.model}</TableCell>
-                      <TableCell>{eq.serial_number || eq.imei || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/equipment/${eq.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/equipment/${eq.id}/edit`)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteId(eq.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

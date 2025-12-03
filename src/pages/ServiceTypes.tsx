@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -24,9 +23,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PageHeader } from "@/components/ui/page-header";
+import { ServiceTypeMobileCard } from "@/components/mobile/ServiceTypeMobileCard";
+import { ActiveBadge } from "@/components/ui/status-badge";
 
 const ServiceTypes = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { serviceTypes, isLoading, deleteServiceType } = useServiceTypes();
   const { isAdmin } = useUserRole();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -50,89 +54,83 @@ const ServiceTypes = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Tipos de Serviço</h1>
-          {isAdmin && (
-            <Button onClick={() => navigate("/service-types/new")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Tipo
-            </Button>
-          )}
-        </div>
+      <div className="space-y-4 md:space-y-6">
+        <PageHeader 
+          title="Tipos de Serviço" 
+          actionLabel={isAdmin ? "Novo Tipo" : undefined}
+          onAction={isAdmin ? () => navigate("/service-types/new") : undefined}
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Tipos Cadastrados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!serviceTypes || serviceTypes.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Nenhum tipo de serviço cadastrado
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Cor</TableHead>
-                    <TableHead>Status</TableHead>
-                    {isAdmin && <TableHead className="text-right">Ações</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {serviceTypes.map((type) => (
-                    <TableRow key={type.id}>
-                      <TableCell className="font-medium">{type.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-6 h-6 rounded border"
-                            style={{ backgroundColor: type.color }}
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {type.color}
-                          </span>
+        {!serviceTypes || serviceTypes.length === 0 ? (
+          <div className="card-mobile text-center text-muted-foreground">
+            Nenhum tipo de serviço cadastrado
+          </div>
+        ) : isMobile ? (
+          <div className="space-y-3">
+            {serviceTypes.map((type) => (
+              <ServiceTypeMobileCard
+                key={type.id}
+                serviceType={type}
+                onEdit={() => navigate(`/service-types/${type.id}/edit`)}
+                onDelete={() => setDeleteId(type.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Cor</TableHead>
+                  <TableHead>Status</TableHead>
+                  {isAdmin && <TableHead className="text-right">Ações</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {serviceTypes.map((type) => (
+                  <TableRow key={type.id}>
+                    <TableCell className="font-medium">{type.name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-6 h-6 rounded border"
+                          style={{ backgroundColor: type.color }}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {type.color}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <ActiveBadge active={type.active} />
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate(`/service-types/${type.id}/edit`)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteId(type.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            type.active
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {type.active ? "Ativo" : "Inativo"}
-                        </span>
-                      </TableCell>
-                      {isAdmin && (
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => navigate(`/service-types/${type.id}/edit`)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteId(type.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
@@ -140,8 +138,7 @@ const ServiceTypes = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este tipo de serviço? Esta ação não
-              pode ser desfeita.
+              Tem certeza que deseja excluir este tipo de serviço? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
