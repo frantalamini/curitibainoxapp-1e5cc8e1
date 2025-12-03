@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import LazyLoadErrorBoundary from "@/components/LazyLoadErrorBoundary";
 import DynamicFavicon from "@/components/DynamicFavicon";
+import PaletteLoader from "@/components/PaletteLoader";
 
 // Componentes críticos carregados imediatamente (usados no primeiro render)
 import Auth from "./pages/Auth";
@@ -98,6 +99,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <DynamicFavicon />
+      <PaletteLoader />
       <Toaster />
       <Sonner />
       <BrowserRouter>
