@@ -21,12 +21,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useVehicles, VehicleStatus } from "@/hooks/useVehicles";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PageHeader } from "@/components/ui/page-header";
+import { VehicleMobileCard } from "@/components/mobile/VehicleMobileCard";
 
 const Vehicles = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { vehicles, isLoading, deleteVehicle } = useVehicles();
   const { isAdmin } = useUserRole();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -38,15 +42,16 @@ const Vehicles = () => {
     }
   };
 
-  const formatOdometer = (km: number) => {
+  const formatOdometer = (km: number | null) => {
+    if (!km) return "-";
     return new Intl.NumberFormat('pt-BR').format(km) + " km";
   };
 
   const getStatusBadge = (status: VehicleStatus) => {
     const variants: Record<VehicleStatus, { label: string; className: string }> = {
-      ativo: { label: "Ativo", className: "bg-green-500 text-white" },
-      inativo: { label: "Inativo", className: "bg-red-500 text-white" },
-      em_manutencao: { label: "Em Manutenção", className: "bg-yellow-500 text-white" },
+      ativo: { label: "Ativo", className: "bg-success text-success-foreground" },
+      inativo: { label: "Inativo", className: "bg-destructive text-destructive-foreground" },
+      em_manutencao: { label: "Em Manutenção", className: "bg-warning text-warning-foreground" },
     };
     const config = variants[status];
     return <Badge className={config.className}>{config.label}</Badge>;
@@ -55,8 +60,8 @@ const Vehicles = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="p-8">
-          <p>Carregando...</p>
+        <div className="flex justify-center py-8">
+          <p className="text-muted-foreground">Carregando...</p>
         </div>
       </MainLayout>
     );
@@ -64,62 +69,75 @@ const Vehicles = () => {
 
   return (
     <MainLayout>
-      <div className="p-8 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Veículos</h1>
-          {isAdmin && (
-            <Button onClick={() => navigate("/vehicles/new")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Veículo
-            </Button>
-          )}
-        </div>
+      <div className="space-y-4 md:space-y-6">
+        <PageHeader 
+          title="Veículos" 
+          actionLabel={isAdmin ? "Novo Veículo" : undefined}
+          onAction={isAdmin ? () => navigate("/vehicles/new") : undefined}
+        />
 
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Marca</TableHead>
-                    <TableHead>Placa</TableHead>
-                    <TableHead>RENAVAM</TableHead>
-                    <TableHead>Quilometragem</TableHead>
-                    <TableHead>Status</TableHead>
-                    {isAdmin && <TableHead className="text-right">Ações</TableHead>}
-                  </TableRow>
-            </TableHeader>
-            <TableBody>
-              {vehicles?.map((vehicle) => (
-                <TableRow key={vehicle.id}>
-                  <TableCell className="font-medium">{vehicle.name}</TableCell>
-                  <TableCell>{vehicle.brand || "-"}</TableCell>
-                  <TableCell>{vehicle.plate}</TableCell>
-                  <TableCell>{vehicle.renavam || "-"}</TableCell>
-                  <TableCell>{formatOdometer(vehicle.current_odometer_km)}</TableCell>
-                  <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
-                  {isAdmin && (
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteId(vehicle.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  )}
+        {!vehicles || vehicles.length === 0 ? (
+          <div className="card-mobile text-center text-muted-foreground">
+            Nenhum veículo cadastrado
+          </div>
+        ) : isMobile ? (
+          <div className="space-y-3">
+            {vehicles.map((vehicle) => (
+              <VehicleMobileCard
+                key={vehicle.id}
+                vehicle={vehicle}
+                onEdit={() => navigate(`/vehicles/${vehicle.id}/edit`)}
+                onDelete={() => setDeleteId(vehicle.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Marca</TableHead>
+                  <TableHead>Placa</TableHead>
+                  <TableHead>RENAVAM</TableHead>
+                  <TableHead>Quilometragem</TableHead>
+                  <TableHead>Status</TableHead>
+                  {isAdmin && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {vehicles.map((vehicle) => (
+                  <TableRow key={vehicle.id}>
+                    <TableCell className="font-medium">{vehicle.name}</TableCell>
+                    <TableCell>{vehicle.brand || "-"}</TableCell>
+                    <TableCell>{vehicle.plate}</TableCell>
+                    <TableCell>{vehicle.renavam || "-"}</TableCell>
+                    <TableCell>{formatOdometer(vehicle.current_odometer_km)}</TableCell>
+                    <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteId(vehicle.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

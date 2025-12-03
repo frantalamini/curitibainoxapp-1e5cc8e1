@@ -2,88 +2,116 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* ============================================
+   DESIGN SYSTEM CURITIBA INOX
+   Identidade Visual Unificada Desktop/Mobile
+   Cor Primária: #18487A (HSL: 204 92% 29%)
+   ============================================ */
 
 @layer base {
   :root {
+    /* Core Colors - Curitiba Inox Brand */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 216 100% 34%;
+    /* Primary: Curitiba Inox Blue #18487A */
+    --primary: 204 92% 29%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary: Light Blue-Gray */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 204 92% 29%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted: Subtle Gray */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 216 100% 42%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent: Primary Variant */
+    --accent: 204 80% 94%;
+    --accent-foreground: 204 92% 29%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive: Red */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 216 100% 34%;
+    /* Success: Green */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    /* Warning: Amber */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
-    --sidebar-background: 216 18% 97%; /* #F5F6F8 */
-    --sidebar-foreground: 215 15% 40%; /* #64748B */
-    --sidebar-primary: 204 92% 29%; /* #18487A */
+    /* Borders and Inputs */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 204 92% 29%;
+
+    /* Radius - Increased for modern look */
+    --radius: 0.75rem;
+    --radius-card: 1rem;
+    --radius-button: 0.625rem;
+
+    /* Sidebar - Curitiba Inox Palette */
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 215 16% 47%;
+    --sidebar-primary: 204 92% 29%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 14% 93%; /* #ECEFF1 */
+    --sidebar-accent: 210 14% 93%;
     --sidebar-accent-foreground: 204 92% 29%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 216 100% 42%;
+    --sidebar-ring: 204 92% 29%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 216 100% 42%;
+    --primary: 204 92% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 216 100% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 204 50% 20%;
+    --accent-foreground: 204 92% 70%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 216 100% 42%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 216 100% 42%;
+    --success: 142 76% 30%;
+    --success-foreground: 210 40% 98%;
+
+    --warning: 38 92% 40%;
+    --warning-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 204 92% 45%;
+
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 215 20% 65%;
+    --sidebar-primary: 204 92% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 216 100% 42%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 216 100% 50%;
+    --sidebar-accent: 217 33% 15%;
+    --sidebar-accent-foreground: 204 92% 70%;
+    --sidebar-border: 217 33% 15%;
+    --sidebar-ring: 204 92% 50%;
   }
 }
 
@@ -93,11 +121,69 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Prevent horizontal scroll on mobile */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 }
 
-/* Sidebar Custom Styles */
+/* ============================================
+   TYPOGRAPHY - Inter / SF Pro
+   ============================================ */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+  
+  h1 {
+    @apply text-2xl md:text-3xl;
+  }
+  
+  h2 {
+    @apply text-xl md:text-2xl;
+  }
+  
+  h3 {
+    @apply text-lg md:text-xl;
+  }
+}
+
+/* ============================================
+   CARD STYLES - Unified Design
+   ============================================ */
+@layer components {
+  .card-elevated {
+    @apply bg-card rounded-[var(--radius-card)] border border-border;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  }
+  
+  .card-elevated:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  }
+  
+  .card-mobile {
+    @apply bg-card rounded-[var(--radius-card)] border border-border p-4;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  }
+}
+
+/* ============================================
+   BUTTON STYLES - Touch-friendly
+   ============================================ */
+@layer components {
+  .btn-touch {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+/* ============================================
+   SIDEBAR STYLES
+   ============================================ */
 .bg-sidebar {
   background-color: hsl(var(--sidebar-background));
 }
@@ -122,15 +208,16 @@ All colors MUST be HSL.
   font-weight: 500;
 }
 
-/* Submenu item styles */
 .submenu-item-active {
-  background-color: #F5F6F8;
-  color: #18487A;
-  border-left: 3px solid #18487A;
+  background-color: hsl(var(--sidebar-accent));
+  color: hsl(var(--sidebar-primary));
+  border-left: 3px solid hsl(var(--sidebar-primary));
   font-weight: 500;
 }
 
-/* Slide animation for submenu panel */
+/* ============================================
+   ANIMATIONS
+   ============================================ */
 @keyframes slide-in-right {
   from {
     transform: translateX(-100%);
@@ -148,4 +235,17 @@ All colors MUST be HSL.
 
 .submenu-panel {
   transition: width 0.25s ease-in-out, opacity 0.25s ease-in-out;
+}
+
+/* ============================================
+   MOBILE-SPECIFIC UTILITIES
+   ============================================ */
+@layer utilities {
+  .safe-padding-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
 }
