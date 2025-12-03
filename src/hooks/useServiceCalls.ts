@@ -87,6 +87,64 @@ export interface ServiceCallInsert {
   internal_notes_audio_url?: string;
 }
 
+// Query select fields para reutilização
+const SERVICE_CALL_SELECT = `
+  *,
+  clients (
+    full_name,
+    phone,
+    address
+  ),
+  technicians (
+    full_name,
+    phone
+  ),
+  service_types (
+    name,
+    color
+  ),
+  service_call_statuses!service_calls_status_id_fkey (
+    name,
+    color
+  ),
+  commercial_status:service_call_statuses!service_calls_commercial_status_id_fkey (
+    name,
+    color
+  )
+`;
+
+const SERVICE_CALL_SELECT_FULL = `
+  *,
+  clients (
+    full_name,
+    phone,
+    address,
+    street,
+    number,
+    complement,
+    neighborhood,
+    city,
+    state,
+    cep
+  ),
+  technicians (
+    full_name,
+    phone
+  ),
+  service_types (
+    name,
+    color
+  ),
+  service_call_statuses!service_calls_status_id_fkey (
+    name,
+    color
+  ),
+  commercial_status:service_call_statuses!service_calls_commercial_status_id_fkey (
+    name,
+    color
+  )
+`;
+
 export const useServiceCall = (id?: string) => {
   return useQuery({
     queryKey: ["service-call", id],
@@ -95,37 +153,7 @@ export const useServiceCall = (id?: string) => {
       
       const { data, error } = await supabase
         .from("service_calls")
-        .select(`
-          *,
-          clients (
-            full_name,
-            phone,
-            address,
-            street,
-            number,
-            complement,
-            neighborhood,
-            city,
-            state,
-            cep
-          ),
-          technicians (
-            full_name,
-            phone
-          ),
-          service_types (
-            name,
-            color
-          ),
-          service_call_statuses!service_calls_status_id_fkey (
-            name,
-            color
-          ),
-          commercial_status:service_call_statuses!service_calls_commercial_status_id_fkey (
-            name,
-            color
-          )
-        `)
+        .select(SERVICE_CALL_SELECT_FULL)
         .eq("id", id)
         .single();
 
@@ -133,47 +161,29 @@ export const useServiceCall = (id?: string) => {
       return data as ServiceCall;
     },
     enabled: !!id,
+    staleTime: 30 * 1000, // 30 segundos para dados de uma OS específica
   });
 };
 
-export const useServiceCalls = () => {
+// Hook otimizado com paginação - carrega apenas 30 registros por padrão
+export const useServiceCalls = (limit: number = 30) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: serviceCalls, isLoading } = useQuery({
-    queryKey: ["service-calls"],
+    queryKey: ["service-calls", limit],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_calls")
-        .select(`
-          *,
-          clients (
-            full_name,
-            phone,
-            address
-          ),
-          technicians (
-            full_name,
-            phone
-          ),
-          service_types (
-            name,
-            color
-          ),
-          service_call_statuses!service_calls_status_id_fkey (
-            name,
-            color
-          ),
-          commercial_status:service_call_statuses!service_calls_commercial_status_id_fkey (
-            name,
-            color
-          )
-        `)
-        .order("scheduled_date", { ascending: false });
+        .select(SERVICE_CALL_SELECT)
+        .order("scheduled_date", { ascending: false })
+        .limit(limit); // OTIMIZAÇÃO: Limita a quantidade de registros
 
       if (error) throw error;
       return data as ServiceCall[];
     },
+    staleTime: 60 * 1000, // 1 minuto - lista de OS
+    gcTime: 5 * 60 * 1000, // 5 minutos no cache
   });
 
   const createMutation = useMutation({

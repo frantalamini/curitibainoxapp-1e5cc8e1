@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,37 +6,59 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import NotFound from "./pages/NotFound";
-import Clients from "./pages/Clients";
-import ClientForm from "./pages/ClientForm";
-import Equipment from "./pages/Equipment";
-import EquipmentForm from "./pages/EquipmentForm";
-import Technicians from "./pages/Technicians";
-import TechnicianForm from "./pages/TechnicianForm";
-import ServiceCalls from "./pages/ServiceCalls";
-import ServiceCallForm from "./pages/ServiceCallForm";
-import ServiceTypes from "./pages/ServiceTypes";
-import ServiceTypeForm from "./pages/ServiceTypeForm";
-import ServiceCallStatuses from "./pages/ServiceCallStatuses";
-import ServiceCallStatusForm from "./pages/ServiceCallStatusForm";
-import Schedule from "./pages/Schedule";
-import Checklists from "./pages/Checklists";
-import ChecklistForm from "./pages/ChecklistForm";
-import Settings from "./pages/Settings";
-import CadastrosClientesFornecedores from "./pages/CadastrosClientesFornecedores";
-import CadastroDetail from "./pages/CadastroDetail";
-import UserManagement from "./pages/UserManagement";
-import RelatorioOS from "./pages/relatorio-os/[osNumber]";
-import Vehicles from "./pages/Vehicles";
-import VehicleForm from "./pages/VehicleForm";
-import VehicleMaintenances from "./pages/VehicleMaintenances";
-import ServiceCallTrips from "./pages/ServiceCallTrips";
 
-const queryClient = new QueryClient();
+// Componentes críticos carregados imediatamente (usados no primeiro render)
+import Auth from "./pages/Auth";
+import NotFound from "./pages/NotFound";
+
+// Lazy loading de todas as outras páginas para reduzir bundle inicial
+const Index = lazy(() => import("./pages/Index"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Clients = lazy(() => import("./pages/Clients"));
+const ClientForm = lazy(() => import("./pages/ClientForm"));
+const Equipment = lazy(() => import("./pages/Equipment"));
+const EquipmentForm = lazy(() => import("./pages/EquipmentForm"));
+const Technicians = lazy(() => import("./pages/Technicians"));
+const TechnicianForm = lazy(() => import("./pages/TechnicianForm"));
+const ServiceCalls = lazy(() => import("./pages/ServiceCalls"));
+const ServiceCallForm = lazy(() => import("./pages/ServiceCallForm"));
+const ServiceTypes = lazy(() => import("./pages/ServiceTypes"));
+const ServiceTypeForm = lazy(() => import("./pages/ServiceTypeForm"));
+const ServiceCallStatuses = lazy(() => import("./pages/ServiceCallStatuses"));
+const ServiceCallStatusForm = lazy(() => import("./pages/ServiceCallStatusForm"));
+const Schedule = lazy(() => import("./pages/Schedule"));
+const Checklists = lazy(() => import("./pages/Checklists"));
+const ChecklistForm = lazy(() => import("./pages/ChecklistForm"));
+const Settings = lazy(() => import("./pages/Settings"));
+const CadastrosClientesFornecedores = lazy(() => import("./pages/CadastrosClientesFornecedores"));
+const CadastroDetail = lazy(() => import("./pages/CadastroDetail"));
+const UserManagement = lazy(() => import("./pages/UserManagement"));
+const RelatorioOS = lazy(() => import("./pages/relatorio-os/[osNumber]"));
+const Vehicles = lazy(() => import("./pages/Vehicles"));
+const VehicleForm = lazy(() => import("./pages/VehicleForm"));
+const VehicleMaintenances = lazy(() => import("./pages/VehicleMaintenances"));
+const ServiceCallTrips = lazy(() => import("./pages/ServiceCallTrips"));
+
+// QueryClient otimizado para performance mobile
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,      // 1 minuto - dados são considerados frescos
+      gcTime: 5 * 60 * 1000,     // 5 minutos no cache
+      retry: 1,                   // Menos retries = mais rápido em caso de falha
+      refetchOnWindowFocus: false, // Não refetch ao focar - importante para mobile
+      refetchOnReconnect: true,   // Refetch ao reconectar
+    },
+  },
+});
+
+// Loading fallback leve para Suspense
+const PageLoader = () => (
+  <div className="flex min-h-screen items-center justify-center">
+    <div className="animate-pulse text-muted-foreground">Carregando...</div>
+  </div>
+);
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -58,11 +80,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div>Carregando...</div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return session ? <>{children}</> : <Navigate to="/auth" />;
@@ -79,10 +97,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/auth/reset-password" element={<ResetPassword />} />
-          <Route path="/relatorio-os/:osNumber" element={<RelatorioOS />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/relatorio-os/:osNumber" element={<RelatorioOS />} />
             <Route
               path="/"
               element={
@@ -99,281 +118,282 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-          <Route
-            path="/clients"
-            element={
-              <ProtectedRoute>
-                <Clients />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cadastros/clientes"
-            element={
-              <ProtectedRoute>
-                <CadastrosClientesFornecedores />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cadastros/novo"
-            element={
-              <ProtectedRoute>
-                <ClientForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cadastros/clientes/:id"
-            element={
-              <ProtectedRoute>
-                <CadastroDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cadastros/clientes/:id/editar"
-            element={
-              <ProtectedRoute>
-                <ClientForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cadastros/:id"
-            element={
-              <ProtectedRoute>
-                <CadastroRedirect />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/clients/new"
-            element={
-              <ProtectedRoute>
-                <ClientForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/clients/:id/edit"
-            element={
-              <ProtectedRoute>
-                <ClientForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/equipment"
-            element={
-              <ProtectedRoute>
-                <Equipment />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/equipment/new"
-            element={
-              <ProtectedRoute>
-                <EquipmentForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/equipment/:id/edit"
-            element={
-              <ProtectedRoute>
-                <EquipmentForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/technicians"
-            element={
-              <ProtectedRoute>
-                <Technicians />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/technicians/new"
-            element={
-              <ProtectedRoute>
-                <TechnicianForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/technicians/:id/edit"
-            element={
-              <ProtectedRoute>
-                <TechnicianForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-calls"
-            element={
-              <ProtectedRoute>
-                <ServiceCalls />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-calls/new"
-            element={
-              <ProtectedRoute>
-                <ServiceCallForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-calls/edit/:id"
-            element={
-              <ProtectedRoute>
-                <ServiceCallForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-types"
-            element={
-              <ProtectedRoute>
-                <ServiceTypes />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-types/new"
-            element={
-              <ProtectedRoute>
-                <ServiceTypeForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-types/:id/edit"
-            element={
-              <ProtectedRoute>
-                <ServiceTypeForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-call-statuses"
-            element={
-              <ProtectedRoute>
-                <ServiceCallStatuses />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-call-statuses/new"
-            element={
-              <ProtectedRoute>
-                <ServiceCallStatusForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-call-statuses/:id/edit"
-            element={
-              <ProtectedRoute>
-                <ServiceCallStatusForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vehicles"
-            element={
-              <ProtectedRoute>
-                <Vehicles />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vehicles/new"
-            element={
-              <ProtectedRoute>
-                <VehicleForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vehicles/:id/edit"
-            element={
-              <ProtectedRoute>
-                <VehicleForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vehicle-maintenances"
-            element={
-              <ProtectedRoute>
-                <VehicleMaintenances />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/service-call-trips"
-            element={
-              <ProtectedRoute>
-                <ServiceCallTrips />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/schedule"
-            element={
-              <ProtectedRoute>
-                <Schedule />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/checklists"
-            element={
-              <ProtectedRoute>
-                <Checklists />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/checklists/new"
-            element={
-              <ProtectedRoute>
-                <ChecklistForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/checklists/edit/:id"
-            element={
-              <ProtectedRoute>
-                <ChecklistForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/users"
-            element={
-              <ProtectedRoute>
-                <UserManagement />
-              </ProtectedRoute>
-            }
-          />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route
+              path="/clients"
+              element={
+                <ProtectedRoute>
+                  <Clients />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cadastros/clientes"
+              element={
+                <ProtectedRoute>
+                  <CadastrosClientesFornecedores />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cadastros/novo"
+              element={
+                <ProtectedRoute>
+                  <ClientForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cadastros/clientes/:id"
+              element={
+                <ProtectedRoute>
+                  <CadastroDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cadastros/clientes/:id/editar"
+              element={
+                <ProtectedRoute>
+                  <ClientForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cadastros/:id"
+              element={
+                <ProtectedRoute>
+                  <CadastroRedirect />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/clients/new"
+              element={
+                <ProtectedRoute>
+                  <ClientForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/clients/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <ClientForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipment"
+              element={
+                <ProtectedRoute>
+                  <Equipment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipment/new"
+              element={
+                <ProtectedRoute>
+                  <EquipmentForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipment/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EquipmentForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/technicians"
+              element={
+                <ProtectedRoute>
+                  <Technicians />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/technicians/new"
+              element={
+                <ProtectedRoute>
+                  <TechnicianForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/technicians/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <TechnicianForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-calls"
+              element={
+                <ProtectedRoute>
+                  <ServiceCalls />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-calls/new"
+              element={
+                <ProtectedRoute>
+                  <ServiceCallForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-calls/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <ServiceCallForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-types"
+              element={
+                <ProtectedRoute>
+                  <ServiceTypes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-types/new"
+              element={
+                <ProtectedRoute>
+                  <ServiceTypeForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-types/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <ServiceTypeForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-call-statuses"
+              element={
+                <ProtectedRoute>
+                  <ServiceCallStatuses />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-call-statuses/new"
+              element={
+                <ProtectedRoute>
+                  <ServiceCallStatusForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-call-statuses/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <ServiceCallStatusForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vehicles"
+              element={
+                <ProtectedRoute>
+                  <Vehicles />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vehicles/new"
+              element={
+                <ProtectedRoute>
+                  <VehicleForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vehicles/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <VehicleForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vehicle-maintenances"
+              element={
+                <ProtectedRoute>
+                  <VehicleMaintenances />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-call-trips"
+              element={
+                <ProtectedRoute>
+                  <ServiceCallTrips />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/schedule"
+              element={
+                <ProtectedRoute>
+                  <Schedule />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/checklists"
+              element={
+                <ProtectedRoute>
+                  <Checklists />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/checklists/new"
+              element={
+                <ProtectedRoute>
+                  <ChecklistForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/checklists/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <ChecklistForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute>
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
