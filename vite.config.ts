@@ -21,8 +21,9 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'Curitiba Inox Assistência Técnica',
-        short_name: 'Curitiba Inox',
+        id: '/',
+        name: 'Curitiba Inox App',
+        short_name: 'Curitiba Inox App',
         description: 'Sistema de Ordens de Serviço - Curitiba Inox',
         start_url: '/',
         scope: '/',
@@ -53,6 +54,8 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/supabase/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -80,6 +83,18 @@ export default defineConfig(({ mode }) => ({
               cacheableResponse: {
                 statuses: [0, 200]
               }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/kovspviddxhhlsekqlxa\.supabase\.co\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-api-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 5
+              },
+              networkTimeoutSeconds: 10
             }
           }
         ]
