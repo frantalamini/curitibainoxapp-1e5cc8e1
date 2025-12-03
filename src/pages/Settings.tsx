@@ -9,6 +9,10 @@ import { Upload, Image as ImageIcon, Save, Loader2, Palette } from "lucide-react
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { useColorPalette } from "@/hooks/useColorPalette";
 import { ColorCard } from "@/components/settings/ColorCard";
+import { LogoPaletteExtractor } from "@/components/settings/LogoPaletteExtractor";
+import { PaletteSuggestionModal } from "@/components/settings/PaletteSuggestionModal";
+import { PaletteEditModal } from "@/components/settings/PaletteEditModal";
+import { ExtractedColor } from "@/lib/colorExtractor";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -30,6 +34,11 @@ const Settings = () => {
   const [uploadingReportLogo, setUploadingReportLogo] = useState(false);
   const [previewLogoUrl, setPreviewLogoUrl] = useState<string | null>(null);
   const [previewReportLogoUrl, setPreviewReportLogoUrl] = useState<string | null>(null);
+  
+  // State for palette extraction
+  const [suggestedColors, setSuggestedColors] = useState<ExtractedColor[]>([]);
+  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<CompanyFormData>({
     values: {
@@ -105,6 +114,77 @@ const Settings = () => {
     } catch (error) {
       // Error handled by mutation
     }
+  };
+
+  const handlePaletteGenerated = (extractedColors: ExtractedColor[]) => {
+    setSuggestedColors(extractedColors);
+    setShowSuggestionModal(true);
+  };
+
+  const handleApplyExtractedPalette = async (colorsToApply: ExtractedColor[]) => {
+    try {
+      // Map extracted colors to database updates
+      const roleToDbRole: Record<string, string> = {
+        primary: 'primary',
+        secondary: 'secondary',
+        accent: 'accent',
+        success: 'success',
+        warning: 'warning',
+        destructive: 'destructive',
+      };
+
+      for (const extractedColor of colorsToApply) {
+        const existingColor = colors?.find(c => c.role === roleToDbRole[extractedColor.role]);
+        if (existingColor) {
+          await updateColor.mutateAsync({
+            id: existingColor.id,
+            hex: extractedColor.hex,
+            rgb_r: extractedColor.rgb.r,
+            rgb_g: extractedColor.rgb.g,
+            rgb_b: extractedColor.rgb.b,
+            hsl_h: extractedColor.hsl.h,
+            hsl_s: extractedColor.hsl.s,
+            hsl_l: extractedColor.hsl.l,
+            cmyk_c: extractedColor.cmyk.c,
+            cmyk_m: extractedColor.cmyk.m,
+            cmyk_y: extractedColor.cmyk.y,
+            cmyk_k: extractedColor.cmyk.k,
+          });
+        }
+      }
+
+      // Apply palette to CSS
+      applyPalette();
+      
+      toast.success("Paleta aplicada com sucesso!");
+    } catch (error) {
+      console.error("Error applying palette:", error);
+      toast.error("Erro ao aplicar a paleta");
+    }
+  };
+
+  const handleApplyFromSuggestion = async () => {
+    setShowSuggestionModal(false);
+    await handleApplyExtractedPalette(suggestedColors);
+  };
+
+  const handleEditFromSuggestion = () => {
+    setShowSuggestionModal(false);
+    setShowEditModal(true);
+  };
+
+  const handleCancelSuggestion = () => {
+    setShowSuggestionModal(false);
+    setSuggestedColors([]);
+  };
+
+  const handleSaveEditedPalette = async (editedColors: ExtractedColor[]) => {
+    setShowEditModal(false);
+    await handleApplyExtractedPalette(editedColors);
+  };
+
+  const handleCancelEdit = () => {
+    setShowEditModal(false);
   };
 
   const currentLogoUrl = previewLogoUrl || settings?.logo_url;
@@ -227,6 +307,9 @@ const Settings = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Importar Logo e Gerar Paleta Automática */}
+        <LogoPaletteExtractor onPaletteGenerated={handlePaletteGenerated} />
 
         {/* Paleta de Cores */}
         <Card>
@@ -360,6 +443,24 @@ const Settings = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modals */}
+      <PaletteSuggestionModal
+        open={showSuggestionModal}
+        onOpenChange={setShowSuggestionModal}
+        suggestedColors={suggestedColors}
+        onApply={handleApplyFromSuggestion}
+        onEdit={handleEditFromSuggestion}
+        onCancel={handleCancelSuggestion}
+      />
+
+      <PaletteEditModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        colors={suggestedColors}
+        onSave={handleSaveEditedPalette}
+        onCancel={handleCancelEdit}
+      />
     </MainLayout>
   );
 };
