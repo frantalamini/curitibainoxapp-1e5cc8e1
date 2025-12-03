@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Smartphone, CheckCircle, AlertTriangle, Share } from "lucide-react";
+import { Download, Smartphone, CheckCircle, AlertTriangle, Share, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -13,18 +14,28 @@ export default function Install() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isSafari, setIsSafari] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // Detectar iOS
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // Detectar iOS (incluindo iPadOS 13+)
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     setIsIOS(isIOSDevice);
 
-    // Detectar Safari (não Chrome, não Firefox, etc no iOS)
-    const isSafariBrowser = /^((?!chrome|android|crios|fxios|opera).)*safari/i.test(navigator.userAgent);
+    // Detectar Safari no iOS (não Chrome, Firefox, etc)
+    const ua = navigator.userAgent;
+    const isChrome = /CriOS/.test(ua);
+    const isFirefox = /FxiOS/.test(ua);
+    const isEdge = /EdgiOS/.test(ua);
+    const isSafariBrowser = isIOSDevice && !isChrome && !isFirefox && !isEdge && /Safari/.test(ua);
     setIsSafari(isSafariBrowser);
 
-    // Verificar se já está instalado
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    // Verificar se já está instalado (standalone ou fullscreen)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
+    const isIOSStandalone = (navigator as any).standalone === true;
+    
+    if (isStandalone || isFullscreen || isIOSStandalone) {
       setIsInstalled(true);
     }
 
@@ -46,6 +57,17 @@ export default function Install() {
       window.removeEventListener('beforeinstallprompt', handler);
     };
   }, []);
+
+  const copyURL = async () => {
+    try {
+      await navigator.clipboard.writeText('https://curitibainoxapp.com');
+      setCopied(true);
+      toast.success('Link copiado!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Não foi possível copiar o link');
+    }
+  };
 
   const handleInstall = async () => {
     if (deferredPrompt) {
@@ -99,39 +121,65 @@ export default function Install() {
             <div className="space-y-4">
               {/* Aviso se não estiver no Safari */}
               {!isSafari && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-lg">
-                  <div className="flex items-start gap-2">
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
+                  <div className="flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0" />
-                    <div>
+                    <div className="space-y-2">
                       <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
-                        Você precisa usar o Safari
+                        Abra no Safari para instalar
                       </p>
-                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                        No iOS, apenas o Safari permite instalar apps na tela inicial. 
-                        Copie o link e abra no Safari.
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                        No iOS, apenas o Safari permite adicionar apps à tela inicial.
                       </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={copyURL}
+                        className="mt-2 w-full"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Link copiado!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copiar link para abrir no Safari
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Instruções para iOS/Safari */}
+              {isSafari && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-200 font-medium flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Você está no Safari - Siga os passos abaixo
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-3 text-sm">
                 <p className="font-medium flex items-center gap-2">
                   <Share className="h-4 w-4" />
-                  No iPhone/iPad (Safari):
+                  Como instalar no iPhone/iPad:
                 </p>
                 <ol className="list-decimal list-inside space-y-3 text-muted-foreground">
                   <li className="leading-relaxed">
                     Toque no botão <strong className="text-foreground">Compartilhar</strong>
                     <span className="block text-xs mt-1 ml-5">
-                      (ícone de quadrado com seta para cima ⬆️ na barra inferior)
+                      (ícone ⬆️ na barra inferior do Safari)
                     </span>
                   </li>
                   <li className="leading-relaxed">
-                    Role a lista e toque em <strong className="text-foreground">"Adicionar à Tela de Início"</strong>
+                    Role para baixo e toque em <strong className="text-foreground">"Adicionar à Tela de Início"</strong>
                     <span className="block text-xs mt-1 ml-5">
-                      (pode estar mais abaixo na lista de opções)
+                      (ícone com + quadrado)
                     </span>
                   </li>
                   <li className="leading-relaxed">
@@ -142,8 +190,8 @@ export default function Install() {
 
               <div className="bg-muted p-3 rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  💡 Após instalar, o app abrirá em tela cheia como um aplicativo nativo, 
-                  sem a barra de endereço do Safari.
+                  ✅ Após instalar, o app abrirá em tela cheia sem a barra do Safari, 
+                  como um aplicativo nativo.
                 </p>
               </div>
             </div>
