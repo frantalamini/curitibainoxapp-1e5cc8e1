@@ -1,5 +1,5 @@
-import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/mobile-card";
-import { User, Hash, FileText } from "lucide-react";
+import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
+import { User, Hash, FileText, Cpu } from "lucide-react";
 
 interface Equipment {
   id: string;
@@ -7,6 +7,7 @@ interface Equipment {
   model: string;
   serial_number?: string | null;
   imei?: string | null;
+  notes?: string | null;
 }
 
 interface EquipmentMobileCardProps {
@@ -19,12 +20,9 @@ interface EquipmentMobileCardProps {
 
 export function EquipmentMobileCard({ equipment, clientName, onView, onEdit, onDelete }: EquipmentMobileCardProps) {
   return (
-    <MobileCard>
+    <MobileCard onClick={onView}>
       <MobileCardHeader
         title={`${equipment.brand} ${equipment.model}`}
-        onView={onView}
-        onEdit={onEdit}
-        onDelete={onDelete}
       />
       
       <div className="space-y-1">
@@ -39,19 +37,33 @@ export function EquipmentMobileCard({ equipment, clientName, onView, onEdit, onD
         {equipment.serial_number && (
           <MobileCardRow
             icon={<Hash className="h-4 w-4" />}
-            label="Serial"
+            label="Nº Serial"
             value={equipment.serial_number}
           />
         )}
         
         {equipment.imei && (
           <MobileCardRow
-            icon={<FileText className="h-4 w-4" />}
+            icon={<Cpu className="h-4 w-4" />}
             label="IMEI"
             value={equipment.imei}
           />
         )}
+        
+        {equipment.notes && (
+          <MobileCardRow
+            icon={<FileText className="h-4 w-4" />}
+            label="Observações"
+            value={<span className="line-clamp-2">{equipment.notes}</span>}
+          />
+        )}
       </div>
+      
+      <MobileCardFooter
+        onView={onView}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </MobileCard>
   );
 }

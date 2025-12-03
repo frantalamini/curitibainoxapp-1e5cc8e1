@@ -1,6 +1,6 @@
 import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
 import { ActiveBadge } from "@/components/ui/status-badge";
-import { Phone } from "lucide-react";
+import { Phone, Hash, Snowflake, Flame } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Technician {
@@ -15,10 +15,12 @@ interface Technician {
 
 interface TechnicianMobileCardProps {
   technician: Technician;
+  onView?: () => void;
   onEdit: () => void;
+  onDelete?: () => void;
 }
 
-export function TechnicianMobileCard({ technician, onEdit }: TechnicianMobileCardProps) {
+export function TechnicianMobileCard({ technician, onView, onEdit, onDelete }: TechnicianMobileCardProps) {
   const formatPhone = (phone: string) => {
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length === 11) {
@@ -28,27 +30,37 @@ export function TechnicianMobileCard({ technician, onEdit }: TechnicianMobileCar
   };
 
   return (
-    <MobileCard>
+    <MobileCard onClick={onEdit}>
       <MobileCardHeader
         title={technician.full_name}
-        subtitle={technician.technician_number ? `#${String(technician.technician_number).padStart(2, '0')}` : undefined}
+        subtitle={technician.technician_number ? `Técnico #${String(technician.technician_number).padStart(2, '0')}` : undefined}
         badge={<ActiveBadge active={technician.active} />}
-        onEdit={onEdit}
       />
       
       <div className="space-y-1">
         <MobileCardRow
           icon={<Phone className="h-4 w-4" />}
+          label="Telefone"
           value={formatPhone(technician.phone)}
         />
       </div>
       
-      <MobileCardFooter>
+      <MobileCardFooter
+        onView={onView}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      >
         {technician.specialty_refrigeration && (
-          <Badge variant="secondary" className="text-xs">Refrigeração</Badge>
+          <Badge variant="secondary" className="text-xs gap-1">
+            <Snowflake className="h-3 w-3" />
+            Refrigeração
+          </Badge>
         )}
         {technician.specialty_cooking && (
-          <Badge variant="secondary" className="text-xs">Cocção</Badge>
+          <Badge variant="secondary" className="text-xs gap-1">
+            <Flame className="h-3 w-3" />
+            Cocção
+          </Badge>
         )}
       </MobileCardFooter>
     </MobileCard>

@@ -1,17 +1,18 @@
 import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
 import { ActiveBadge } from "@/components/ui/status-badge";
-import { Car, FileText, Gauge } from "lucide-react";
+import { Car, FileText, Gauge, CreditCard } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Vehicle = Tables<"vehicles">;
 
 interface VehicleMobileCardProps {
   vehicle: Vehicle;
+  onView?: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export function VehicleMobileCard({ vehicle, onEdit, onDelete }: VehicleMobileCardProps) {
+export function VehicleMobileCard({ vehicle, onView, onEdit, onDelete }: VehicleMobileCardProps) {
   const formatOdometer = (km: number | null) => {
     if (!km) return "-";
     return km.toLocaleString('pt-BR') + ' km';
@@ -36,13 +37,11 @@ export function VehicleMobileCard({ vehicle, onEdit, onDelete }: VehicleMobileCa
   };
 
   return (
-    <MobileCard>
+    <MobileCard onClick={onEdit}>
       <MobileCardHeader
         title={vehicle.name}
         subtitle={vehicle.plate}
         badge={getStatusBadge()}
-        onEdit={onEdit}
-        onDelete={onDelete}
       />
       
       <div className="space-y-1">
@@ -56,7 +55,7 @@ export function VehicleMobileCard({ vehicle, onEdit, onDelete }: VehicleMobileCa
         
         {vehicle.renavam && (
           <MobileCardRow
-            icon={<FileText className="h-4 w-4" />}
+            icon={<CreditCard className="h-4 w-4" />}
             label="RENAVAM"
             value={vehicle.renavam}
           />
@@ -68,6 +67,12 @@ export function VehicleMobileCard({ vehicle, onEdit, onDelete }: VehicleMobileCa
           value={formatOdometer(vehicle.current_odometer_km)}
         />
       </div>
+      
+      <MobileCardFooter
+        onView={onView}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </MobileCard>
   );
 }
