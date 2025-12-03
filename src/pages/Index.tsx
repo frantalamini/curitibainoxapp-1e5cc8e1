@@ -4,14 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Users, Smartphone, Wrench, Plus, ClipboardList, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileHome from "@/components/mobile/MobileHome";
 
 const Index = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   // Queries otimizadas - apenas contagens, não carrega arrays completos
   const { data: counts, isLoading: countsLoading } = useDashboardCounts();
   const { data: recentClients, isLoading: clientsLoading } = useRecentClients();
   const { data: recentEquipment, isLoading: equipmentLoading } = useRecentEquipment();
+
+  // Renderiza a home mobile exclusiva
+  if (isMobile) {
+    return <MobileHome />;
+  }
 
   const stats = [
     {
