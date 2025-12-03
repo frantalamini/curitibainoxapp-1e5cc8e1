@@ -39,6 +39,7 @@ const Vehicles = lazy(() => import("./pages/Vehicles"));
 const VehicleForm = lazy(() => import("./pages/VehicleForm"));
 const VehicleMaintenances = lazy(() => import("./pages/VehicleMaintenances"));
 const ServiceCallTrips = lazy(() => import("./pages/ServiceCallTrips"));
+const Install = lazy(() => import("./pages/Install"));
 
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
@@ -102,6 +103,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/relatorio-os/:osNumber" element={<RelatorioOS />} />
+            <Route path="/install" element={<Install />} />
             <Route
               path="/"
               element={
