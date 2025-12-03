@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SignaturePadProps {
   title: string;
@@ -18,6 +19,13 @@ export const SignaturePad = ({ title, onSave, showExtraFields = false }: Signatu
   const [customerPosition, setCustomerPosition] = useState("");
   const [isSaved, setIsSaved] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+
+  // Traço mais grosso em dispositivos touch para melhor visibilidade
+  const strokeConfig = {
+    minWidth: isMobile ? 2 : 1.5,
+    maxWidth: isMobile ? 4.5 : 3.5,
+  };
 
   const clear = () => {
     sigPadRef.current?.clear();
@@ -72,7 +80,7 @@ export const SignaturePad = ({ title, onSave, showExtraFields = false }: Signatu
       </CardHeader>
       <CardContent className="space-y-4">
         {showExtraFields && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Nome do Responsável *</Label>
               <Input
@@ -92,14 +100,28 @@ export const SignaturePad = ({ title, onSave, showExtraFields = false }: Signatu
           </div>
         )}
         
-        <div className="border-2 border-muted rounded-lg bg-background">
-          <SignatureCanvas
-            ref={sigPadRef}
-            canvasProps={{
-              className: "w-full h-48 rounded-lg",
-            }}
-            backgroundColor="white"
-          />
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {isMobile ? "Use o dedo para assinar na área abaixo" : "Use o mouse para assinar na área abaixo"}
+          </p>
+          
+          <div className="border-2 border-muted rounded-lg bg-background overflow-hidden">
+            <SignatureCanvas
+              ref={sigPadRef}
+              canvasProps={{
+                className: "w-full h-48 sm:h-56 rounded-lg",
+                style: { 
+                  touchAction: "none",
+                  cursor: "crosshair"
+                }
+              }}
+              backgroundColor="white"
+              penColor="black"
+              minWidth={strokeConfig.minWidth}
+              maxWidth={strokeConfig.maxWidth}
+              velocityFilterWeight={0.7}
+            />
+          </div>
         </div>
 
         <div className="flex gap-2">
