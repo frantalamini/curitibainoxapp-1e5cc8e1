@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => ({
         short_name: 'Curitiba Inox',
         description: 'Sistema de Ordens de Serviço - Curitiba Inox',
         start_url: '/',
+        scope: '/',
         display: 'standalone',
         background_color: '#FFFFFF',
         theme_color: '#18487A',

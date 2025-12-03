@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Smartphone, CheckCircle } from "lucide-react";
+import { Download, Smartphone, CheckCircle, AlertTriangle, Share } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -12,18 +12,23 @@ export default function Install() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isSafari, setIsSafari] = useState(false);
 
   useEffect(() => {
     // Detectar iOS
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(isIOSDevice);
 
+    // Detectar Safari (não Chrome, não Firefox, etc no iOS)
+    const isSafariBrowser = /^((?!chrome|android|crios|fxios|opera).)*safari/i.test(navigator.userAgent);
+    setIsSafari(isSafariBrowser);
+
     // Verificar se já está instalado
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
     }
 
-    // Capturar evento de instalação
+    // Capturar evento de instalação (Android/Desktop)
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -82,7 +87,7 @@ export default function Install() {
           <img 
             src="/pwa-192x192.png" 
             alt="Curitiba Inox" 
-            className="h-20 w-20 mx-auto mb-2"
+            className="h-20 w-20 mx-auto mb-2 rounded-2xl"
           />
           <CardTitle className="text-primary">Instalar Curitiba Inox</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
@@ -91,16 +96,54 @@ export default function Install() {
         </CardHeader>
         <CardContent className="space-y-4">
           {isIOS ? (
-            <div className="space-y-3 text-sm">
-              <p className="font-medium">No iPhone/iPad:</p>
-              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                <li>Toque no botão <strong className="text-foreground">Compartilhar</strong> (ícone de quadrado com seta para cima)</li>
-                <li>Role para baixo e toque em <strong className="text-foreground">"Adicionar à Tela de Início"</strong></li>
-                <li>Toque em <strong className="text-foreground">"Adicionar"</strong> no canto superior direito</li>
-              </ol>
-              <div className="bg-muted p-3 rounded-lg mt-4">
+            <div className="space-y-4">
+              {/* Aviso se não estiver no Safari */}
+              {!isSafari && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                        Você precisa usar o Safari
+                      </p>
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                        No iOS, apenas o Safari permite instalar apps na tela inicial. 
+                        Copie o link e abra no Safari.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Instruções para iOS/Safari */}
+              <div className="space-y-3 text-sm">
+                <p className="font-medium flex items-center gap-2">
+                  <Share className="h-4 w-4" />
+                  No iPhone/iPad (Safari):
+                </p>
+                <ol className="list-decimal list-inside space-y-3 text-muted-foreground">
+                  <li className="leading-relaxed">
+                    Toque no botão <strong className="text-foreground">Compartilhar</strong>
+                    <span className="block text-xs mt-1 ml-5">
+                      (ícone de quadrado com seta para cima ⬆️ na barra inferior)
+                    </span>
+                  </li>
+                  <li className="leading-relaxed">
+                    Role a lista e toque em <strong className="text-foreground">"Adicionar à Tela de Início"</strong>
+                    <span className="block text-xs mt-1 ml-5">
+                      (pode estar mais abaixo na lista de opções)
+                    </span>
+                  </li>
+                  <li className="leading-relaxed">
+                    Toque em <strong className="text-foreground">"Adicionar"</strong> no canto superior direito
+                  </li>
+                </ol>
+              </div>
+
+              <div className="bg-muted p-3 rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  💡 Após instalar, o app abrirá em tela cheia como um aplicativo nativo.
+                  💡 Após instalar, o app abrirá em tela cheia como um aplicativo nativo, 
+                  sem a barra de endereço do Safari.
                 </p>
               </div>
             </div>
