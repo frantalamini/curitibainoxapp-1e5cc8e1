@@ -159,7 +159,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               <div className="flex h-full bg-sidebar">
                 {/* Main Menu Column */}
                 <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
-                  <img src={logoUrl} alt="Logo" className="w-16 h-16 mb-6" />
+                  <img src={settings?.logo_url || logoUrl} alt="Logo" className="w-16 h-16 mb-6 object-contain" />
                   <nav className="flex flex-col gap-2.5 flex-1">
                     {menuSections.map((section) => (
                       <Tooltip key={section.title}>
@@ -225,7 +225,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           {/* Column 1: Main Menu (90px) */}
           <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
             {/* Logo */}
-            <img src={logoUrl} alt="Logo" className="w-16 h-16 mb-6" />
+            <img src={settings?.logo_url || logoUrl} alt="Logo" className="w-16 h-16 mb-6 object-contain" />
 
             {/* Main Menu Icons */}
             <nav className="flex flex-col gap-2.5 flex-1">

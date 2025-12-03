@@ -5,7 +5,14 @@ import { toast } from "sonner";
 export interface SystemSettings {
   id: string;
   logo_url: string | null;
-  company_name: string;
+  report_logo: string | null;
+  company_name: string | null;
+  company_cnpj: string | null;
+  company_ie: string | null;
+  company_phone: string | null;
+  company_email: string | null;
+  company_website: string | null;
+  company_address: string | null;
   updated_at: string;
 }
 
@@ -23,6 +30,7 @@ export const useSystemSettings = () => {
       if (error) throw error;
       return data as SystemSettings;
     },
+    staleTime: 30 * 60 * 1000, // 30 minutes
   });
 
   const updateSettings = useMutation({
