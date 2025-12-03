@@ -1,25 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import {
-  Users,
-  ClipboardList,
-  Calendar,
-  BarChart3,
-  Menu,
-  LogOut,
-  Wrench,
-  Package,
-  Building2,
-  FileText,
-  Settings,
-  Tags,
-  FileCheck,
-  Activity,
-  DollarSign,
-  X,
-  Shield,
-  Car,
-} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/curitiba-logo.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -29,6 +9,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Icon, Icons, type IconName } from "@/components/ui/icons";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -36,13 +17,13 @@ interface MainLayoutProps {
 
 interface MenuSection {
   title: string;
-  icon: any;
+  icon: IconName;
   items: MenuItem[];
 }
 
 interface MenuItem {
   to: string;
-  icon: any;
+  icon: IconName;
   label: string;
 }
 
@@ -81,52 +62,52 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const menuSections: MenuSection[] = [
     {
       title: "Cadastros",
-      icon: Users,
+      icon: "usuarios",
       items: [
-        { icon: Building2, label: "Clientes e Fornecedores", to: "/cadastros/clientes" },
-        { icon: Package, label: "Produtos", to: "/equipment" },
-        { icon: Wrench, label: "Serviços", to: "/service-types" },
-        { icon: Activity, label: "Status de Chamado", to: "/service-call-statuses" },
-        { icon: Tags, label: "Categorias dos Produtos", to: "/categories" },
-        { icon: Users, label: "Vendedores", to: "/sellers" },
-        { icon: Package, label: "Embalagens", to: "/packaging" },
-        { icon: Car, label: "Veículos", to: "/vehicles" },
+        { icon: "clientesFornecedores", label: "Clientes e Fornecedores", to: "/cadastros/clientes" },
+        { icon: "equipamentos", label: "Produtos", to: "/equipment" },
+        { icon: "servicos", label: "Serviços", to: "/service-types" },
+        { icon: "atividade", label: "Status de Chamado", to: "/service-call-statuses" },
+        { icon: "categorias", label: "Categorias dos Produtos", to: "/categories" },
+        { icon: "usuarios", label: "Vendedores", to: "/sellers" },
+        { icon: "equipamentos", label: "Embalagens", to: "/packaging" },
+        { icon: "veiculo", label: "Veículos", to: "/vehicles" },
         ...(isAdmin
           ? [
-              { icon: Users, label: "Técnicos", to: "/technicians" },
-              { icon: Shield, label: "Gerenciar Usuários", to: "/admin/users" },
+              { icon: "usuarios" as IconName, label: "Técnicos", to: "/technicians" },
+              { icon: "seguranca" as IconName, label: "Gerenciar Usuários", to: "/admin/users" },
             ]
           : []),
-        { icon: FileText, label: "Checklists", to: "/checklists" },
+        { icon: "checklist", label: "Checklists", to: "/checklists" },
       ],
     },
     {
       title: "Serviços",
-      icon: Wrench,
+      icon: "servicos",
       items: [
-        { icon: FileText, label: "Contratos", to: "/contracts" },
-        { icon: ClipboardList, label: "Ordens de Serviço", to: "/service-calls" },
-        { icon: FileCheck, label: "Notas de Serviço", to: "/service-notes" },
-        { icon: BarChart3, label: "Relatórios", to: "/service-reports" },
+        { icon: "documentos", label: "Contratos", to: "/contracts" },
+        { icon: "chamadosTecnicos", label: "Ordens de Serviço", to: "/service-calls" },
+        { icon: "checklist", label: "Notas de Serviço", to: "/service-notes" },
+        { icon: "relatorios", label: "Relatórios", to: "/service-reports" },
       ],
     },
     {
       title: "Agenda",
-      icon: Calendar,
+      icon: "agenda",
       items: [
-        { icon: Calendar, label: "Compromissos", to: "/schedule" },
-        { icon: Wrench, label: "Técnicos em Campo", to: "/technicians" },
+        { icon: "agenda", label: "Compromissos", to: "/schedule" },
+        { icon: "servicos", label: "Técnicos em Campo", to: "/technicians" },
       ],
     },
     {
       title: "Relatórios",
-      icon: BarChart3,
+      icon: "relatorios",
       items: [
-        { icon: BarChart3, label: "Dashboard", to: "/dashboard" },
-        { icon: Activity, label: "Indicadores Técnicos", to: "/technical-indicators" },
-        { icon: DollarSign, label: "Financeiro", to: "/financial" },
-        { icon: Wrench, label: "Manutenções de Veículos", to: "/vehicle-maintenances" },
-        { icon: Car, label: "Deslocamentos", to: "/service-call-trips" },
+        { icon: "relatorios", label: "Dashboard", to: "/dashboard" },
+        { icon: "atividade", label: "Indicadores Técnicos", to: "/technical-indicators" },
+        { icon: "financeiro", label: "Financeiro", to: "/financial" },
+        { icon: "servicos", label: "Manutenções de Veículos", to: "/vehicle-maintenances" },
+        { icon: "veiculo", label: "Deslocamentos", to: "/service-call-trips" },
       ],
     },
   ];
@@ -151,7 +132,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
+                <Icon name="menu" size="lg" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-80">
@@ -173,7 +154,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                                 : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
                             )}
                           >
-                            <section.icon className="h-6 w-6" />
+                            <Icon name={section.icon} size="lg" color="current" />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="right">{section.title}</TooltipContent>
@@ -203,7 +184,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                                   : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
                               )}
                             >
-                              <item.icon className="h-4 w-4" />
+                              <Icon name={item.icon} size="sm" color="current" />
                               <span>{item.label}</span>
                             </Link>
                           ))}
@@ -241,7 +222,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                           : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
                       )}
                     >
-                      <section.icon className="h-6 w-6" />
+                      <Icon name={section.icon} size="lg" color="current" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right">{section.title}</TooltipContent>
@@ -260,7 +241,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                       onClick={() => navigate("/settings")}
                       className="h-12 w-12"
                     >
-                      <Settings className="h-5 w-5" />
+                      <Icon name="configuracoes" size="md" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="right">Configurações</TooltipContent>
@@ -275,7 +256,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                     onClick={handleLogout}
                     className="h-12 w-12"
                   >
-                    <LogOut className="h-5 w-5" />
+                    <Icon name="sair" size="md" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">Sair</TooltipContent>
@@ -311,7 +292,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                             : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
                         )}
                       >
-                        <item.icon className="h-4 w-4" />
+                        <Icon name={item.icon} size="sm" color="current" />
                         <span>{item.label}</span>
                       </Link>
                     ))}
