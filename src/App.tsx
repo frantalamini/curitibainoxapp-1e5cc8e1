@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import LazyLoadErrorBoundary from "@/components/LazyLoadErrorBoundary";
 
 // Componentes críticos carregados imediatamente (usados no primeiro render)
 import Auth from "./pages/Auth";
@@ -98,8 +99,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
+        <LazyLoadErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/relatorio-os/:osNumber" element={<RelatorioOS />} />
@@ -395,7 +397,8 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Suspense>
+          </Suspense>
+        </LazyLoadErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
