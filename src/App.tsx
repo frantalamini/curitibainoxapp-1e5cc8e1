@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import LazyLoadErrorBoundary from "@/components/LazyLoadErrorBoundary";
+import DynamicFavicon from "@/components/DynamicFavicon";
 
 // Componentes críticos carregados imediatamente (usados no primeiro render)
 import Auth from "./pages/Auth";
@@ -96,6 +97,7 @@ const CadastroRedirect = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <DynamicFavicon />
       <Toaster />
       <Sonner />
       <BrowserRouter>
