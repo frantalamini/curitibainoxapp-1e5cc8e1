@@ -134,13 +134,13 @@ const Schedule = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6 overflow-x-hidden max-w-full">
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold truncate">Agenda Técnica</h1>
-              <p className="text-sm text-muted-foreground truncate">{getSubtitle()}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold">Agenda Técnica</h1>
+              <p className="text-sm text-muted-foreground">{getSubtitle()}</p>
             </div>
             <Button onClick={() => navigate("/service-calls/new")} className="w-full sm:w-auto shrink-0">
               <Plus className="h-4 w-4 mr-2" />
@@ -159,7 +159,7 @@ const Schedule = () => {
           {/* Navigation Row */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             {/* Arrows + Title */}
-            <div className="flex items-center gap-1 min-w-0 flex-1">
+            <div className="flex items-center gap-1 min-w-0 flex-1 max-w-full">
               <Button
                 variant="outline"
                 size="icon"
@@ -168,7 +168,7 @@ const Schedule = () => {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-sm sm:text-base font-semibold text-center capitalize truncate flex-1 min-w-0 px-1">
+              <h2 className="text-xs sm:text-base font-semibold text-center capitalize flex-1 min-w-0 px-1 whitespace-normal break-words">
                 {getNavigationTitle()}
               </h2>
               <Button
@@ -194,7 +194,13 @@ const Schedule = () => {
                     <CalendarIcon className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-50" align="end">
+                <PopoverContent 
+                  className="w-auto p-0 z-50" 
+                  align="center"
+                  side="bottom"
+                  sideOffset={8}
+                  collisionPadding={16}
+                >
                   {viewMode === "monthly" ? (
                     // Seletor de Mês/Ano para modo MENSAL
                     <div className="p-4 space-y-4 min-w-[280px]">
