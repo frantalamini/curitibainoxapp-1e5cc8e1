@@ -20,10 +20,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useVehicleMaintenances, MaintenanceType } from "@/hooks/useVehicleMaintenances";
 import { useVehicles } from "@/hooks/useVehicles";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MaintenanceMobileCard } from "@/components/mobile/MaintenanceMobileCard";
+import { Wrench } from "lucide-react";
 
 const VehicleMaintenances = () => {
+  const isMobile = useIsMobile();
   const [vehicleFilter, setVehicleFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<MaintenanceType | "">("");
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -68,15 +72,20 @@ const VehicleMaintenances = () => {
 
   return (
     <MainLayout>
-      <div className="p-8">
-        <Card>
+      <div className="w-full max-w-full min-w-0 space-y-6">
+        <div className="flex items-center gap-3">
+          <Wrench className="h-8 w-8 flex-shrink-0" />
+          <h1 className="text-2xl sm:text-3xl font-bold">Manutenções de Veículos</h1>
+        </div>
+
+        <Card className="w-full max-w-full min-w-0">
           <CardHeader>
-            <CardTitle>Manutenções de Veículos</CardTitle>
+            <CardTitle>Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Veículo</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">Veículo</label>
                 <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Todos" />
@@ -92,8 +101,8 @@ const VehicleMaintenances = () => {
                 </Select>
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Tipo de Manutenção</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">Tipo de Manutenção</label>
                 <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as MaintenanceType | "")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Todas" />
@@ -107,8 +116,8 @@ const VehicleMaintenances = () => {
                 </Select>
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Data Início (De)</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">Data Início (De)</label>
                 <Input
                   type="date"
                   value={dateFrom}
@@ -116,8 +125,8 @@ const VehicleMaintenances = () => {
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">Data Início (Até)</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">Data Início (Até)</label>
                 <Input
                   type="date"
                   value={dateTo}
@@ -125,64 +134,73 @@ const VehicleMaintenances = () => {
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
 
+        <Card className="w-full max-w-full min-w-0">
+          <CardContent className="pt-6">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
               </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Veículo</TableHead>
-                      <TableHead>Tipo de Manutenção</TableHead>
-                      <TableHead>Data/Hora Início</TableHead>
-                      <TableHead>Data/Hora Fim</TableHead>
-                      <TableHead>Situação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {maintenances.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
-                          Nenhuma manutenção encontrada
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      maintenances.map((maintenance) => (
-                        <TableRow key={maintenance.id}>
-                          <TableCell>
-                            {maintenance.vehicles ? (
-                              <div>
-                                <div className="font-medium">{maintenance.vehicles.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {maintenance.vehicles.plate}
-                                  {maintenance.vehicles.brand && ` - ${maintenance.vehicles.brand}`}
-                                </div>
-                              </div>
-                            ) : (
-                              "-"
-                            )}
-                          </TableCell>
-                          <TableCell>{getMaintenanceTypeBadge(maintenance.maintenance_type)}</TableCell>
-                          <TableCell>
-                            {format(new Date(maintenance.started_at), "dd/MM/yyyy HH:mm")}
-                          </TableCell>
-                          <TableCell>
-                            {maintenance.finished_at
-                              ? format(new Date(maintenance.finished_at), "dd/MM/yyyy HH:mm")
-                              : "-"}
-                          </TableCell>
-                          <TableCell>{getStatusBadge(maintenance.finished_at)}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+            ) : maintenances.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhuma manutenção encontrada
               </div>
+            ) : isMobile ? (
+              // Mobile: Cards
+              <div className="space-y-3">
+                {maintenances.map((maintenance) => (
+                  <MaintenanceMobileCard
+                    key={maintenance.id}
+                    maintenance={maintenance}
+                  />
+                ))}
+              </div>
+            ) : (
+              // Desktop: Table
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Veículo</TableHead>
+                    <TableHead>Tipo de Manutenção</TableHead>
+                    <TableHead>Data/Hora Início</TableHead>
+                    <TableHead>Data/Hora Fim</TableHead>
+                    <TableHead>Situação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {maintenances.map((maintenance) => (
+                    <TableRow key={maintenance.id}>
+                      <TableCell>
+                        {maintenance.vehicles ? (
+                          <div>
+                            <div className="font-medium">{maintenance.vehicles.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {maintenance.vehicles.plate}
+                              {maintenance.vehicles.brand && ` - ${maintenance.vehicles.brand}`}
+                            </div>
+                          </div>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
+                      <TableCell>{getMaintenanceTypeBadge(maintenance.maintenance_type)}</TableCell>
+                      <TableCell>
+                        {format(new Date(maintenance.started_at), "dd/MM/yyyy HH:mm")}
+                      </TableCell>
+                      <TableCell>
+                        {maintenance.finished_at
+                          ? format(new Date(maintenance.finished_at), "dd/MM/yyyy HH:mm")
+                          : "-"}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(maintenance.finished_at)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>

@@ -9,13 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { useServiceCallTrips } from "@/hooks/useServiceCallTrips";
 import { useVehicles } from "@/hooks/useVehicles";
 import { useTechnicians } from "@/hooks/useTechnicians";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { Route, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { TripMobileCard } from "@/components/mobile/TripMobileCard";
 
 const ServiceCallTrips = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [filters, setFilters] = useState({
     startDate: "",
     endDate: "",
@@ -36,20 +39,20 @@ const ServiceCallTrips = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="w-full max-w-full min-w-0 space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <Route className="h-8 w-8" />
-            <h1 className="text-3xl font-bold">Deslocamentos</h1>
+            <Route className="h-8 w-8 flex-shrink-0" />
+            <h1 className="text-2xl sm:text-3xl font-bold">Deslocamentos</h1>
           </div>
         </div>
 
-        <Card>
+        <Card className="w-full max-w-full min-w-0">
           <CardHeader>
             <CardTitle>Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="start-date">Data Início</Label>
                 <Input
@@ -113,14 +116,26 @@ const ServiceCallTrips = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="w-full max-w-full min-w-0">
           <CardContent className="pt-6">
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin" />
               </div>
             ) : trips && trips.length > 0 ? (
-              <div className="overflow-x-auto">
+              isMobile ? (
+                // Mobile: Cards
+                <div className="space-y-3">
+                  {trips.map((trip) => (
+                    <TripMobileCard
+                      key={trip.id}
+                      trip={trip}
+                      onViewServiceCall={(id) => navigate(`/service-calls/${id}`)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                // Desktop: Table
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -181,7 +196,7 @@ const ServiceCallTrips = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+              )
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 Nenhum deslocamento encontrado
