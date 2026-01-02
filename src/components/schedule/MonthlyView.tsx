@@ -98,7 +98,7 @@ const MonthlyView = ({
       </div>
 
       {/* Calendar Days */}
-      <div className="grid grid-cols-7 auto-rows-fr min-h-[400px] sm:min-h-[600px]">
+      <div className="grid grid-cols-7 auto-rows-fr min-h-[300px] sm:min-h-[600px]">
         {calendarDays.map((day, index) => {
           if (!day) {
             return (
@@ -116,7 +116,7 @@ const MonthlyView = ({
           return (
             <div
               key={dateKey}
-              className={`border-r border-b p-1 sm:p-2 min-h-[80px] sm:min-h-[120px] ${
+              className={`border-r border-b p-1 sm:p-2 min-h-[60px] sm:min-h-[120px] ${
                 isCurrentDay ? "bg-primary/5" : ""
               }`}
             >
