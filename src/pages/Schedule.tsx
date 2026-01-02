@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import MainLayout from "@/components/MainLayout";
 import { useServiceCalls } from "@/hooks/useServiceCalls";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronLeft, ChevronRight, Plus, CalendarIcon } from "lucide-react";
 import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, startOfWeek, endOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +23,14 @@ const Schedule = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setCurrentDate(date);
+      setDatePickerOpen(false);
+    }
+  };
 
   const activeTechnicians = technicians?.filter((t) => t.active) || [];
 
@@ -119,37 +129,65 @@ const Schedule = () => {
         {/* Calendar Controls */}
         <div className="flex flex-col gap-3 bg-card p-3 sm:p-4 rounded-lg border">
           {/* Navigation Row */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {/* Arrows + Title */}
+            <div className="flex items-center gap-1 min-w-0 flex-1">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handlePrevious}
-                className="shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+                className="shrink-0 h-8 w-8"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-sm sm:text-lg font-semibold text-center capitalize truncate flex-1 min-w-0 px-1">
+              <h2 className="text-sm sm:text-base font-semibold text-center capitalize truncate flex-1 min-w-0 px-1">
                 {getNavigationTitle()}
               </h2>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handleNext}
-                className="shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+                className="shrink-0 h-8 w-8"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleToday}
-              className={`shrink-0 text-xs sm:text-sm ${isToday(currentDate) ? "opacity-50" : ""}`}
-              disabled={isToday(currentDate)}
-            >
-              Hoje
-            </Button>
+
+            {/* Date Picker + Today Button */}
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    title="Selecionar data"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={currentDate}
+                    onSelect={handleDateSelect}
+                    defaultMonth={currentDate}
+                    locale={ptBR}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleToday}
+                className={`text-xs h-8 px-2 sm:px-3 ${isToday(currentDate) ? "opacity-50" : ""}`}
+                disabled={isToday(currentDate)}
+              >
+                Hoje
+              </Button>
+            </div>
           </div>
 
           {/* Filter Row */}
