@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "@/components/MainLayout";
 import { useServiceCalls } from "@/hooks/useServiceCalls";
 import { useTechnicians } from "@/hooks/useTechnicians";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronLeft, ChevronRight, Plus, CalendarIcon } from "lucide-react";
-import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, startOfWeek, endOfWeek, isToday } from "date-fns";
+import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, startOfWeek, endOfWeek, isToday, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import ScheduleViewSelector, { ViewMode } from "@/components/schedule/ScheduleViewSelector";
@@ -24,12 +24,40 @@ const Schedule = () => {
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  
+  // Estado para seletor de mês/ano no modo mensal
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
 
+  // Sincronizar mês/ano selecionados quando currentDate mudar
+  useEffect(() => {
+    setSelectedMonth(currentDate.getMonth());
+    setSelectedYear(currentDate.getFullYear());
+  }, [currentDate]);
+
+  // Handler para seleção de data respeitando o modo
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
-      setCurrentDate(date);
+      switch (viewMode) {
+        case "monthly":
+          setCurrentDate(startOfMonth(date));
+          break;
+        case "weekly":
+          setCurrentDate(startOfWeek(date, { weekStartsOn: 1 }));
+          break;
+        case "daily":
+          setCurrentDate(date);
+          break;
+      }
       setDatePickerOpen(false);
     }
+  };
+
+  // Handler para confirmar seleção de mês/ano no modo mensal
+  const handleMonthYearConfirm = () => {
+    const newDate = new Date(selectedYear, selectedMonth, 1);
+    setCurrentDate(newDate);
+    setDatePickerOpen(false);
   };
 
   const activeTechnicians = technicians?.filter((t) => t.active) || [];
@@ -166,15 +194,72 @@ const Schedule = () => {
                     <CalendarIcon className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={currentDate}
-                    onSelect={handleDateSelect}
-                    defaultMonth={currentDate}
-                    locale={ptBR}
-                    className="pointer-events-auto"
-                  />
+                <PopoverContent className="w-auto p-0 z-50" align="end">
+                  {viewMode === "monthly" ? (
+                    // Seletor de Mês/Ano para modo MENSAL
+                    <div className="p-4 space-y-4 min-w-[280px]">
+                      <p className="text-sm font-medium text-center text-muted-foreground">
+                        Selecionar Mês e Ano
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select 
+                          value={selectedMonth.toString()} 
+                          onValueChange={(v) => setSelectedMonth(parseInt(v))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[60]">
+                            {Array.from({ length: 12 }, (_, i) => (
+                              <SelectItem key={i} value={i.toString()}>
+                                {format(new Date(2000, i, 1), "MMMM", { locale: ptBR })}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select 
+                          value={selectedYear.toString()} 
+                          onValueChange={(v) => setSelectedYear(parseInt(v))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-[60]">
+                            {Array.from({ length: 11 }, (_, i) => {
+                              const year = new Date().getFullYear() - 5 + i;
+                              return (
+                                <SelectItem key={year} value={year.toString()}>
+                                  {year}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <Button onClick={handleMonthYearConfirm} className="w-full">
+                        Ir para {format(new Date(selectedYear, selectedMonth, 1), "MMMM 'de' yyyy", { locale: ptBR })}
+                      </Button>
+                    </div>
+                  ) : (
+                    // Calendário para modos SEMANAL e DIÁRIO
+                    <div>
+                      {viewMode === "weekly" && (
+                        <p className="text-xs text-muted-foreground p-3 pb-0 text-center">
+                          Selecione um dia para ir à semana correspondente
+                        </p>
+                      )}
+                      <Calendar
+                        mode="single"
+                        selected={currentDate}
+                        onSelect={handleDateSelect}
+                        defaultMonth={currentDate}
+                        locale={ptBR}
+                        className="pointer-events-auto"
+                      />
+                    </div>
+                  )}
                 </PopoverContent>
               </Popover>
 
