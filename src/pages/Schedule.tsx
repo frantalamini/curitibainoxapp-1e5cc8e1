@@ -3,94 +3,86 @@ import MainLayout from "@/components/MainLayout";
 import { useServiceCalls } from "@/hooks/useServiceCalls";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, getDay } from "date-fns";
+import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, startOfWeek, endOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import ScheduleViewSelector, { ViewMode } from "@/components/schedule/ScheduleViewSelector";
+import MonthlyView from "@/components/schedule/MonthlyView";
+import WeeklyView from "@/components/schedule/WeeklyView";
+import DailyView from "@/components/schedule/DailyView";
 
 const Schedule = () => {
   const navigate = useNavigate();
   const { serviceCalls, isLoading: isLoadingCalls } = useServiceCalls();
   const { technicians, isLoading: isLoadingTechs } = useTechnicians();
-  
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("monthly");
 
-  // Get days for the calendar grid
-  const calendarDays = useMemo(() => {
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-    
-    // Add empty days at the start to align with the correct day of week
-    const startDayOfWeek = getDay(monthStart);
-    const emptyDays = Array(startDayOfWeek).fill(null);
-    
-    return [...emptyDays, ...days];
-  }, [currentDate]);
+  const activeTechnicians = technicians?.filter((t) => t.active) || [];
 
-  // Filter and group service calls by date
-  const callsByDate = useMemo(() => {
-    if (!serviceCalls) return new Map();
-    
-    const filtered = serviceCalls.filter(call => {
-      // Filter by month
-      const callDate = new Date(call.scheduled_date);
-      if (!isSameMonth(callDate, currentDate)) return false;
-      
-      // Filter by technician
-      if (selectedTechnicianId !== "all" && call.technician_id !== selectedTechnicianId) {
-        return false;
-      }
-      
-      return true;
-    });
-
-    const grouped = new Map<string, typeof filtered>();
-    
-    filtered.forEach(call => {
-      const dateKey = format(new Date(call.scheduled_date), "yyyy-MM-dd");
-      const existing = grouped.get(dateKey) || [];
-      grouped.set(dateKey, [...existing, call]);
-    });
-    
-    // Sort calls within each day by time
-    grouped.forEach((calls, date) => {
-      calls.sort((a, b) => {
-        const timeA = a.scheduled_time || "00:00";
-        const timeB = b.scheduled_time || "00:00";
-        return timeA.localeCompare(timeB);
-      });
-    });
-    
-    return grouped;
-  }, [serviceCalls, currentDate, selectedTechnicianId]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "border-l-yellow-500";
-      case "in_progress":
-        return "border-l-blue-500";
-      case "completed":
-        return "border-l-green-500";
-      case "cancelled":
-        return "border-l-red-500";
-      default:
-        return "border-l-gray-500";
+  // Navigation handlers based on view mode
+  const handlePrevious = () => {
+    switch (viewMode) {
+      case "monthly":
+        setCurrentDate(subMonths(currentDate, 1));
+        break;
+      case "weekly":
+        setCurrentDate(subWeeks(currentDate, 1));
+        break;
+      case "daily":
+        setCurrentDate(subDays(currentDate, 1));
+        break;
     }
   };
 
-  const getUrgencyColor = (urgency: string) => {
-    return urgency === "corrective" 
-      ? "bg-red-500 hover:bg-red-600" 
-      : "bg-blue-500 hover:bg-blue-600";
+  const handleNext = () => {
+    switch (viewMode) {
+      case "monthly":
+        setCurrentDate(addMonths(currentDate, 1));
+        break;
+      case "weekly":
+        setCurrentDate(addWeeks(currentDate, 1));
+        break;
+      case "daily":
+        setCurrentDate(addDays(currentDate, 1));
+        break;
+    }
   };
 
-  const activeTechnicians = technicians?.filter((t) => t.active) || [];
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // Format the navigation title based on view mode
+  const getNavigationTitle = () => {
+    switch (viewMode) {
+      case "monthly":
+        return format(currentDate, "MMMM 'de' yyyy", { locale: ptBR });
+      case "weekly": {
+        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+        return `${format(weekStart, "dd/MM", { locale: ptBR })} - ${format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}`;
+      }
+      case "daily":
+        return format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR });
+    }
+  };
+
+  // Get description text
+  const getSubtitle = () => {
+    switch (viewMode) {
+      case "monthly":
+        return "Calendário mensal de chamados técnicos";
+      case "weekly":
+        return "Visualização semanal de chamados";
+      case "daily":
+        return "Visualização diária de chamados";
+    }
+  };
 
   if (isLoadingCalls || isLoadingTechs) {
     return (
@@ -104,54 +96,70 @@ const Schedule = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Agenda Técnica</h1>
-            <p className="text-muted-foreground">Calendário mensal de chamados técnicos</p>
+      <div className="space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold truncate">Agenda Técnica</h1>
+              <p className="text-sm text-muted-foreground truncate">{getSubtitle()}</p>
+            </div>
+            <Button onClick={() => navigate("/service-calls/new")} className="w-full sm:w-auto shrink-0">
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Chamado
+            </Button>
           </div>
-          <Button onClick={() => navigate("/service-calls/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Chamado
-          </Button>
+
+          {/* View Selector */}
+          <div className="flex justify-center sm:justify-start">
+            <ScheduleViewSelector value={viewMode} onChange={setViewMode} />
+          </div>
         </div>
 
         {/* Calendar Controls */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-card p-4 rounded-lg border">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3 bg-card p-3 sm:p-4 rounded-lg border">
+          {/* Navigation Row */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePrevious}
+                className="shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h2 className="text-sm sm:text-lg font-semibold text-center capitalize truncate flex-1 min-w-0 px-1">
+                {getNavigationTitle()}
+              </h2>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNext}
+                className="shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
             <Button
               variant="outline"
-              size="icon"
-              onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-xl font-semibold min-w-[200px] text-center capitalize">
-              {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
-            </h2>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setCurrentDate(new Date())}
-              className="ml-2"
+              size="sm"
+              onClick={handleToday}
+              className={`shrink-0 text-xs sm:text-sm ${isToday(currentDate) ? "opacity-50" : ""}`}
+              disabled={isToday(currentDate)}
             >
               Hoje
             </Button>
           </div>
 
+          {/* Filter Row */}
           <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId}>
-            <SelectTrigger className="w-full md:w-[250px]">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Filtrar por técnico" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os técnicos</SelectItem>
-              {activeTechnicians.map(tech => (
+              {activeTechnicians.map((tech) => (
                 <SelectItem key={tech.id} value={tech.id}>
                   {tech.full_name}
                 </SelectItem>
@@ -160,112 +168,31 @@ const Schedule = () => {
           </Select>
         </div>
 
-        {/* Calendar Grid */}
-        <div className="bg-card rounded-lg border overflow-hidden">
-          {/* Weekday Headers */}
-          <div className="grid grid-cols-7 bg-muted/50 border-b">
-            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
-              <div
-                key={day}
-                className="p-2 text-center text-sm font-semibold text-muted-foreground"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 auto-rows-fr min-h-[600px]">
-            {calendarDays.map((day, index) => {
-              if (!day) {
-                return <div key={`empty-${index}`} className="border-r border-b bg-muted/20" />;
-              }
-
-              const dateKey = format(day, "yyyy-MM-dd");
-              const dayCalls = callsByDate.get(dateKey) || [];
-              const isCurrentDay = isToday(day);
-
-              return (
-                <div
-                  key={dateKey}
-                  className={`border-r border-b p-2 min-h-[120px] ${
-                    isCurrentDay ? "bg-primary/5" : ""
-                  }`}
-                >
-                  <div
-                    className={`text-sm font-medium mb-2 ${
-                      isCurrentDay
-                        ? "bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {format(day, "d")}
-                  </div>
-
-                  <div className="space-y-1 overflow-y-auto max-h-[200px]">
-                    {dayCalls.map((call) => {
-                      const techName = technicians?.find(t => t.id === call.technician_id)?.full_name || "Sem técnico";
-                      
-                      return (
-                        <TooltipProvider key={call.id}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div
-                                className={`text-xs p-1.5 rounded border-l-4 ${getStatusColor(call.status)} bg-muted/50 hover:bg-muted cursor-pointer transition-colors`}
-                              >
-                                <div className="font-medium truncate">
-                                  {call.scheduled_time} - {call.clients?.company_name || call.clients?.full_name}
-                                </div>
-                                <div className="text-muted-foreground truncate">
-                                  {call.equipment_description}
-                                </div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-[300px]">
-                              <div className="space-y-2">
-                                <div>
-                                  <div className="font-semibold">{call.clients?.company_name || call.clients?.full_name}</div>
-                                  <div className="text-sm">{call.clients?.phone}</div>
-                                </div>
-                                <div>
-                                  <div className="text-sm font-medium">Equipamento:</div>
-                                  <div className="text-sm">{call.equipment_description}</div>
-                                </div>
-                                <div>
-                                  <div className="text-sm font-medium">Técnico:</div>
-                                  <div className="text-sm">{techName}</div>
-                                </div>
-                                {call.notes && (
-                                  <div>
-                                    <div className="text-sm font-medium">Observações:</div>
-                                    <div className="text-sm">{call.notes}</div>
-                                  </div>
-                                )}
-                                <div className="flex gap-2 flex-wrap">
-                                  <Badge 
-                                    className={getUrgencyColor(call.urgency)}
-                                  >
-                                    {call.urgency === "corrective" ? "Corretiva" : "Preventiva"}
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    {call.status === "pending" && "Pendente"}
-                                    {call.status === "in_progress" && "Em Andamento"}
-                                    {call.status === "completed" && "Concluído"}
-                                    {call.status === "cancelled" && "Cancelado"}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* View Content */}
+        {viewMode === "monthly" && (
+          <MonthlyView
+            currentDate={currentDate}
+            serviceCalls={serviceCalls || []}
+            technicians={technicians || []}
+            selectedTechnicianId={selectedTechnicianId}
+          />
+        )}
+        {viewMode === "weekly" && (
+          <WeeklyView
+            currentDate={currentDate}
+            serviceCalls={serviceCalls || []}
+            technicians={technicians || []}
+            selectedTechnicianId={selectedTechnicianId}
+          />
+        )}
+        {viewMode === "daily" && (
+          <DailyView
+            currentDate={currentDate}
+            serviceCalls={serviceCalls || []}
+            technicians={technicians || []}
+            selectedTechnicianId={selectedTechnicianId}
+          />
+        )}
       </div>
     </MainLayout>
   );
