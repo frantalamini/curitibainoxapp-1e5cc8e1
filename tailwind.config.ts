@@ -26,6 +26,21 @@ export default {
       spacing: {
         'card': '1rem',
         'card-lg': '1.25rem',
+        'safe-top': 'var(--safe-area-top)',
+        'safe-bottom': 'var(--safe-area-bottom)',
+        'mobile-header': 'var(--mobile-header-height)',
+      },
+      // Min height with dynamic viewport
+      minHeight: {
+        'screen-dvh': '100dvh',
+        'screen-svh': '100svh',
+        'screen-fill': '-webkit-fill-available',
+      },
+      // Height with dynamic viewport
+      height: {
+        'screen-dvh': '100dvh',
+        'screen-svh': '100svh',
+        'screen-fill': '-webkit-fill-available',
       },
       // Transition durations
       transitionDuration: {
