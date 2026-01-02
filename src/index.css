@@ -118,6 +118,9 @@
 @layer base {
   * {
     @apply border-border;
+    /* Global text wrapping to prevent overflow */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
   body {
@@ -125,10 +128,22 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
-  /* Prevent horizontal scroll on mobile */
-  html, body {
+  /* GUARD RAILS: Prevent horizontal scroll everywhere */
+  html, body, #root {
+    width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
-    max-width: 100vw;
+  }
+
+  /* Responsive media elements */
+  img, video, canvas, iframe, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Tables never overflow container */
+  table {
+    max-width: 100%;
   }
 }
 
