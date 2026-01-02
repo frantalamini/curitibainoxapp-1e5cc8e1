@@ -46,9 +46,12 @@ const MobileHome = () => {
   const circleRadius = 120;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30 flex flex-col">
-      {/* Header */}
-      <header className="pt-8 pb-4 px-6">
+    <div className="mobile-layout bg-gradient-to-b from-background via-background to-muted/30">
+      {/* Header with Safe Area */}
+      <header 
+        className="pb-4 px-6"
+        style={{ paddingTop: 'calc(2rem + env(safe-area-inset-top, 0px))' }}
+      >
         <h1 className="text-lg font-semibold text-foreground text-center">
           Curitiba Inox
         </h1>
@@ -58,7 +61,10 @@ const MobileHome = () => {
       </header>
 
       {/* Main Navigation Circle */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
+      <main 
+        className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto"
+        style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
+      >
         <div 
           className="relative"
           style={{ 

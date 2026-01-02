@@ -126,79 +126,81 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="min-h-screen bg-background flex w-full">
-        {/* Mobile Header */}
-        <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-border z-50 flex items-center px-4">
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Icon name="menu" size="lg" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-80">
-              {/* Mobile Sidebar Content */}
-              <div className="flex h-full bg-sidebar">
-                {/* Main Menu Column */}
-                <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
-                  <img src={settings?.logo_url || logoUrl} alt="Logo" className="w-16 h-16 mb-6 object-contain" />
-                  <nav className="flex flex-col gap-2.5 flex-1">
-                    {menuSections.map((section) => (
-                      <Tooltip key={section.title}>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => setActiveSection(section.title)}
-                            className={cn(
-                              "w-16 h-16 flex items-center justify-center rounded-lg transition-all duration-200",
-                              activeSection === section.title
-                                ? "bg-white text-sidebar-primary shadow-sm"
-                                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
-                            )}
-                          >
-                            <Icon name={section.icon} size="lg" color="current" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">{section.title}</TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </nav>
-                </div>
-
-                {/* Submenu Column */}
-                <div className="flex-1 bg-white">
-                  {activeMenuSection && (
-                    <ScrollArea className="h-full">
-                      <div className="p-6">
-                        <h2 className="text-base font-semibold text-[#152752] mb-4 uppercase">
-                          {activeMenuSection.title}
-                        </h2>
-                        <nav className="space-y-1">
-                          {activeMenuSection.items.map((item) => (
-                            <Link
-                              key={item.to}
-                              to={item.to}
-                              onClick={() => setIsMobileMenuOpen(false)}
+      <div className="min-h-screen-dvh lg:min-h-screen bg-background flex w-full mobile-layout lg:block">
+        {/* Mobile Header with Safe Area */}
+        <header className="lg:hidden mobile-header px-4">
+          <div className="flex items-center h-16 w-full">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="touch-manipulation">
+                  <Icon name="menu" size="lg" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-80">
+                {/* Mobile Sidebar Content */}
+                <div className="flex h-full bg-sidebar">
+                  {/* Main Menu Column */}
+                  <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
+                    <img src={settings?.logo_url || logoUrl} alt="Logo" className="w-16 h-16 mb-6 object-contain" />
+                    <nav className="flex flex-col gap-2.5 flex-1">
+                      {menuSections.map((section) => (
+                        <Tooltip key={section.title}>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => setActiveSection(section.title)}
                               className={cn(
-                                "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
-                                isActive(item.to)
-                                  ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
-                                  : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
+                                "w-16 h-16 flex items-center justify-center rounded-lg transition-all duration-200 touch-manipulation",
+                                activeSection === section.title
+                                  ? "bg-white text-sidebar-primary shadow-sm"
+                                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
                               )}
                             >
-                              <Icon name={item.icon} size="sm" color="current" />
-                              <span>{item.label}</span>
-                            </Link>
-                          ))}
-                        </nav>
-                      </div>
-                    </ScrollArea>
-                  )}
+                              <Icon name={section.icon} size="lg" color="current" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">{section.title}</TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </nav>
+                  </div>
+
+                  {/* Submenu Column */}
+                  <div className="flex-1 bg-white">
+                    {activeMenuSection && (
+                      <ScrollArea className="h-full">
+                        <div className="p-6">
+                          <h2 className="text-base font-semibold text-[#152752] mb-4 uppercase">
+                            {activeMenuSection.title}
+                          </h2>
+                          <nav className="space-y-1">
+                            {activeMenuSection.items.map((item) => (
+                              <Link
+                                key={item.to}
+                                to={item.to}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={cn(
+                                  "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200 touch-manipulation",
+                                  isActive(item.to)
+                                    ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
+                                    : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
+                                )}
+                              >
+                                <Icon name={item.icon} size="sm" color="current" />
+                                <span>{item.label}</span>
+                              </Link>
+                            ))}
+                          </nav>
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-          <span className="ml-4 font-semibold text-lg">
-            {settings?.company_name || "Curitiba Inox"}
-          </span>
+              </SheetContent>
+            </Sheet>
+            <span className="ml-4 font-semibold text-lg truncate">
+              {settings?.company_name || "Curitiba Inox"}
+            </span>
+          </div>
         </header>
 
         {/* Desktop Sidebar - Two Column Layout */}
@@ -307,11 +309,13 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         <main
           className={cn(
             "flex-1 transition-all duration-[250ms]",
-            "pt-16 lg:pt-0",
+            // Mobile: use mobile-main class for safe areas
+            "mobile-main lg:mt-0 lg:pb-0 lg:pl-0 lg:pr-0",
+            // Desktop: margin for sidebar
             activeSection ? "lg:ml-[346px]" : "lg:ml-[90px]"
           )}
         >
-          <div className="container mx-auto p-6">{children}</div>
+          <div className="mobile-content lg:container lg:mx-auto lg:p-6">{children}</div>
         </main>
       </div>
     </TooltipProvider>
