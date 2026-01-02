@@ -12,6 +12,68 @@ Deno.serve(async (req) => {
   try {
     console.log("Processing request to get OS report");
 
+    // SECURITY: Verify user authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("No authorization header provided");
+      return new Response(
+        JSON.stringify({ error: "Não autorizado - token não fornecido" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create authenticated Supabase client to verify user
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
+    );
+
+    // Verify the user is authenticated
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Não autorizado - sessão inválida" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("User authenticated:", user.id);
+
+    // Check if user has admin or technician role (authorized to view reports)
+    const { data: userRoles, error: rolesError } = await supabaseAuth
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+
+    if (rolesError) {
+      console.error("Error checking user roles:", rolesError);
+      return new Response(
+        JSON.stringify({ error: "Erro ao verificar permissões" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const hasAccess = userRoles?.some(
+      (r) => r.role === "admin" || r.role === "technician"
+    );
+
+    if (!hasAccess) {
+      console.error("User lacks required role. User ID:", user.id);
+      return new Response(
+        JSON.stringify({ error: "Acesso negado - permissão insuficiente" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("User authorized with appropriate role");
+
     // Parse request body
     const { osNumber } = await req.json();
     console.log("OS Number requested:", osNumber);
@@ -24,7 +86,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create Supabase Admin client (bypasses RLS)
+    // Create Supabase Admin client (bypasses RLS) - only after authorization verified
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -41,6 +103,7 @@ Deno.serve(async (req) => {
         status,
         scheduled_date,
         equipment_description,
+        technician_id,
         clients (
           full_name,
           phone
@@ -63,6 +126,25 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Ordem de serviço não encontrada" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Additional authorization: technicians can only access their own service calls
+    const isAdmin = userRoles?.some((r) => r.role === "admin");
+    if (!isAdmin) {
+      // For technicians, verify they are assigned to this service call
+      const { data: technician } = await supabaseAdmin
+        .from("technicians")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!technician || technician.id !== serviceCall.technician_id) {
+        console.error("Technician not authorized for this OS. User:", user.id, "OS technician:", serviceCall.technician_id);
+        return new Response(
+          JSON.stringify({ error: "Acesso negado - você não está atribuído a esta OS" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     if (!serviceCall.report_pdf_path) {
