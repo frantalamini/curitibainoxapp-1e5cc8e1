@@ -9,6 +9,7 @@ import { Session } from "@supabase/supabase-js";
 import LazyLoadErrorBoundary from "@/components/LazyLoadErrorBoundary";
 import DynamicFavicon from "@/components/DynamicFavicon";
 import PaletteLoader from "@/components/PaletteLoader";
+import { AppShell } from "@/components/AppShell";
 
 // Componentes críticos carregados imediatamente (usados no primeiro render)
 import Auth from "./pages/Auth";
@@ -98,13 +99,14 @@ const CadastroRedirect = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <DynamicFavicon />
-      <PaletteLoader />
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <LazyLoadErrorBoundary>
-          <Suspense fallback={<PageLoader />}>
+      <AppShell>
+        <DynamicFavicon />
+        <PaletteLoader />
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <LazyLoadErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
             <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
@@ -402,8 +404,9 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
-        </LazyLoadErrorBoundary>
-      </BrowserRouter>
+          </LazyLoadErrorBoundary>
+        </BrowserRouter>
+      </AppShell>
     </TooltipProvider>
   </QueryClientProvider>
 );

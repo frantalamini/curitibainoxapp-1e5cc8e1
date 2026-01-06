@@ -47,7 +47,7 @@ export const CadastroViewSheet = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[500px] sm:w-[600px] overflow-y-auto">
+      <SheetContent className="w-[95vw] sm:w-[500px] md:w-[600px] max-w-full overflow-y-auto">
         <SheetHeader>
           <div className="flex items-center justify-between">
             <SheetTitle>Visualizar Cadastro</SheetTitle>
