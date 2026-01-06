@@ -21,7 +21,7 @@ export const PageContainer = ({ children, className }: PageContainerProps) => {
   return (
     <div 
       className={cn(
-        "w-full max-w-full min-w-0 overflow-x-hidden",
+        "w-full max-w-full min-w-0",
         "space-y-4 sm:space-y-6",
         className
       )}

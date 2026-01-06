@@ -33,7 +33,7 @@ export const CadastrosTable = ({
   const allSelected = cadastros.length > 0 && selectedIds.length === cadastros.length;
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/30">
