@@ -146,10 +146,7 @@
     overflow-y: auto;
   }
 
-  /* Prevent ALL child elements from causing overflow */
-  .app-shell * {
-    max-width: 100%;
-  }
+  /* Responsive media elements only - removed aggressive .app-shell * rule */
 
   /* Flex children must have min-width: 0 to prevent overflow */
   [class*="flex"] > * {
@@ -167,10 +164,7 @@
     height: auto;
   }
 
-  /* Tables never overflow container */
-  table {
-    max-width: 100%;
-  }
+  /* Tables: allow natural width, scroll handled by wrapper */
 }
 
 /* ============================================
@@ -349,9 +343,10 @@
   /* Mobile Content Wrapper */
   .mobile-content {
     width: 100%;
-    max-width: 100vw;
-    overflow-x: hidden;
+    max-width: 100%;  /* Respect parent container, not viewport */
+    min-width: 0;     /* Allow shrinking in flex */
     padding: 1rem;
+    /* Removed overflow-x: hidden to allow internal scroll wrappers */
   }
 
   /* Standalone PWA specific adjustments */
