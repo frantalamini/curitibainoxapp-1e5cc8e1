@@ -315,7 +315,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
             activeSection ? "lg:ml-[346px]" : "lg:ml-[90px]"
           )}
         >
-          <div className="mobile-content lg:container lg:mx-auto lg:p-6 max-w-full min-w-0">{children}</div>
+          <div className="mobile-content w-full max-w-full min-w-0 lg:p-6">{children}</div>
         </main>
       </div>
     </TooltipProvider>
