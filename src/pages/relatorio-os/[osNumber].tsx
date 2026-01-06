@@ -191,10 +191,10 @@ export default function RelatorioOS() {
             {/* PDF Preview */}
             <div className="mt-6">
               <p className="text-sm text-muted-foreground mb-2">Pré-visualização do Relatório</p>
-              <div className="border rounded-lg overflow-hidden bg-muted/30">
+              <div className="w-full max-w-full overflow-x-auto border rounded-lg bg-muted/30">
                 <iframe
                   src={reportData.pdfUrl}
-                  className="w-full h-[600px]"
+                  className="w-full min-w-[320px] h-[400px] sm:h-[600px]"
                   title="Relatório PDF"
                 />
               </div>

@@ -480,7 +480,7 @@ const ClientForm = () => {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[300px]">
+                <PopoverContent className="w-[90vw] sm:w-[300px] max-w-full" sideOffset={8} collisionPadding={16}>
                   <div className="space-y-2">
                     {(['cliente', 'fornecedor', 'transportador', 'colaborador', 'outro'] as CadastroTipo[]).map((tipo) => (
                       <div key={tipo} className="flex items-center space-x-2">

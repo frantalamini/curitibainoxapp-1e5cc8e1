@@ -190,12 +190,12 @@ const Dashboard = () => {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard Analítico</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Dashboard Analítico</h1>
             <p className="text-muted-foreground">Visão completa dos chamados técnicos</p>
           </div>
-          <Button onClick={handleExportPdf} variant="default">
+          <Button onClick={handleExportPdf} variant="default" className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
             Exportar PDF
           </Button>
@@ -205,13 +205,13 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle>Filtros</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-4">
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[240px] justify-start text-left font-normal",
+                    "w-full sm:w-[240px] justify-start text-left font-normal",
                     !startDate && "text-muted-foreground"
                   )}
                 >
@@ -219,7 +219,7 @@ const Dashboard = () => {
                   {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : "Data inicial"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0" align="start" sideOffset={8} collisionPadding={16}>
                 <Calendar
                   mode="single"
                   selected={startDate}
@@ -235,7 +235,7 @@ const Dashboard = () => {
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[240px] justify-start text-left font-normal",
+                    "w-full sm:w-[240px] justify-start text-left font-normal",
                     !endDate && "text-muted-foreground"
                   )}
                 >
@@ -243,7 +243,7 @@ const Dashboard = () => {
                   {endDate ? format(endDate, "dd/MM/yyyy", { locale: ptBR }) : "Data final"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0" align="start" sideOffset={8} collisionPadding={16}>
                 <Calendar
                   mode="single"
                   selected={endDate}
@@ -255,7 +255,7 @@ const Dashboard = () => {
             </Popover>
 
             <Select value={selectedTechnician} onValueChange={setSelectedTechnician}>
-              <SelectTrigger className="w-[240px]">
+              <SelectTrigger className="w-full sm:w-[240px]">
                 <SelectValue placeholder="Selecione um técnico" />
               </SelectTrigger>
               <SelectContent>
@@ -267,7 +267,7 @@ const Dashboard = () => {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={clearFilters}>
+            <Button variant="outline" onClick={clearFilters} className="w-full sm:w-auto">
               <X className="mr-2 h-4 w-4" />
               Limpar Filtros
             </Button>
