@@ -22,7 +22,7 @@ export const AppShell = ({ children, className }: AppShellProps) => {
     <div 
       className={cn(
         "app-shell w-full max-w-full min-w-0",
-        "min-h-dvh overflow-x-hidden overflow-y-auto",
+        "min-h-dvh overflow-y-auto",  // Removed overflow-x-hidden - guard rail is at html/body
         className
       )}
     >
