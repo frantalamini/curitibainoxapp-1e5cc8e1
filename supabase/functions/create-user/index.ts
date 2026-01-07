@@ -116,7 +116,7 @@ serve(async (req) => {
       }
     );
 
-    // Create the user using admin API
+    // Create the user using admin API - include username in metadata so trigger can use it
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -124,6 +124,7 @@ serve(async (req) => {
       user_metadata: {
         full_name,
         phone: phone || '',
+        username, // Include username so the handle_new_user trigger creates profile correctly
       }
     });
 
@@ -134,19 +135,7 @@ serve(async (req) => {
 
     console.log('User created successfully:', newUser.user.id);
 
-    // Update the profile with username (trigger creates basic profile)
-    const { error: profileUpdateError } = await supabaseAdmin
-      .from('profiles')
-      .update({ username })
-      .eq('user_id', newUser.user.id);
-
-    if (profileUpdateError) {
-      console.error('Error updating profile with username:', profileUpdateError);
-      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
-      throw new Error('Failed to set username');
-    }
-
-    // Now add the role
+    // Now add the role (profile is already created by trigger with username)
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
