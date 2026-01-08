@@ -43,6 +43,7 @@ import { ChecklistSelector } from "@/components/ChecklistSelector";
 import { ClientFormDialog } from "@/components/ClientFormDialog";
 import { TimePickerPopover } from "@/components/TimePickerPopover";
 import { Separator } from "@/components/ui/separator";
+import { MediaSlots } from "@/components/MediaSlots";
 
 import { generateOSPdf } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
@@ -138,11 +139,7 @@ const ServiceCallForm = () => {
   // Ref para chunks de áudio técnico (evita problemas de closure)
   const technicalAudioChunksRef = useRef<BlobPart[]>([]);
   
-  // Estados para preview de fotos/vídeos técnicos
-  const [photosBeforePreviews, setPhotosBeforePreviews] = useState<{file: File, url: string}[]>([]);
-  const [videoBeforePreview, setVideoBeforePreview] = useState<{file: File, url: string} | null>(null);
-  const [photosAfterPreviews, setPhotosAfterPreviews] = useState<{file: File, url: string}[]>([]);
-  const [videoAfterPreview, setVideoAfterPreview] = useState<{file: File, url: string} | null>(null);
+  // Estados de preview removidos - MediaSlots gerencia internamente
 
   const {
     register,
@@ -280,10 +277,7 @@ const ServiceCallForm = () => {
       if (audioURL) URL.revokeObjectURL(audioURL);
       if (technicalAudioURL) URL.revokeObjectURL(technicalAudioURL);
       mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-      photosBeforePreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-      photosAfterPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-      if (videoBeforePreview) URL.revokeObjectURL(videoBeforePreview.url);
-      if (videoAfterPreview) URL.revokeObjectURL(videoAfterPreview.url);
+      // Cleanup de previews de fotos/vídeos agora é feito pelo MediaSlots
     };
   }, []);
 
@@ -687,6 +681,50 @@ const ServiceCallForm = () => {
         technicalAudioUrl = signedData?.signedUrl || '';
       }
 
+      // Processar assinaturas - upload base64 para storage antes de salvar
+      const processedSignatures: Signature[] = [...((existingCall as any)?.signatures || [])];
+      
+      for (const sig of newSignatures) {
+        // Se é base64, fazer upload para storage
+        if (sig.image_url.startsWith('data:')) {
+          try {
+            const blob = await fetch(sig.image_url).then(r => r.blob());
+            const fileName = `signatures/${id || 'new'}-${sig.role}-${Date.now()}.png`;
+            
+            const { error } = await supabase.storage
+              .from('service-call-attachments')
+              .upload(fileName, blob, { 
+                contentType: 'image/png',
+                upsert: true 
+              });
+
+            if (error) throw error;
+
+            const { data: signedData } = await supabase.storage
+              .from('service-call-attachments')
+              .createSignedUrl(fileName, 31536000); // 1 ano
+
+            // Substituir base64 pela URL do storage
+            processedSignatures.push({
+              ...sig,
+              image_url: signedData?.signedUrl || sig.image_url
+            });
+          } catch (err) {
+            console.error('Erro ao fazer upload da assinatura:', err);
+            toast({
+              title: "Erro na assinatura",
+              description: "Falha ao salvar assinatura. Tente novamente.",
+              variant: "destructive"
+            });
+            setIsUploading(false);
+            return; // Abortar submit
+          }
+        } else {
+          // Já é URL, manter como está
+          processedSignatures.push(sig);
+        }
+      }
+
       const formattedData: any = {
         ...data,
         scheduled_date: format(selectedDate, "yyyy-MM-dd"),
@@ -703,11 +741,8 @@ const ServiceCallForm = () => {
         internal_notes_text: internalNotesText || null,
         internal_notes_audio_url: null,
         technical_diagnosis_audio_url: technicalAudioUrl,
-        // Assinaturas: append novas ao histórico existente
-        signatures: [
-          ...((existingCall as any)?.signatures || []),
-          ...newSignatures
-        ],
+        // Assinaturas: usar as processadas (com URLs do storage em vez de base64)
+        signatures: processedSignatures,
         // Manter campos antigos para compatibilidade (deprecated)
         technician_signature_data: (existingCall as any)?.technician_signature_data || null,
         technician_signature_url: (existingCall as any)?.technician_signature_url || null,
@@ -1299,249 +1334,33 @@ const ServiceCallForm = () => {
                     )}
                   </div>
 
-                  {/* Fotos/Vídeo Antes */}
-                  <div className="space-y-2">
-                    <Label>Fotos/Vídeo Antes da Manutenção</Label>
-                    <p className="text-xs text-muted-foreground">Máximo: 5 fotos OU 1 vídeo. Em celular, você pode tirar foto diretamente da câmera.</p>
-                    <Input
-                      type="file"
-                      accept="image/*,video/*"
-                      capture="environment"
-                      multiple
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        const images = files.filter(f => f.type.startsWith('image/'));
-                        const videos = files.filter(f => f.type.startsWith('video/'));
-                        
-                        if (images.length > 0) {
-                          const newImages = images.slice(0, 5 - photosBeforeFiles.length);
-                          setPhotosBeforeFiles(prev => [...prev, ...newImages].slice(0, 5));
-                          
-                          newImages.forEach(file => {
-                            const url = URL.createObjectURL(file);
-                            setPhotosBeforePreviews(prev => [...prev, { file, url }].slice(0, 5));
-                          });
-                        }
-                        if (videos.length > 0) {
-                          if (videoBeforePreview) URL.revokeObjectURL(videoBeforePreview.url);
-                          const url = URL.createObjectURL(videos[0]);
-                          setVideoBeforeFile(videos[0]);
-                          setVideoBeforePreview({ file: videos[0], url });
-                        }
-                        
-                        e.target.value = '';
-                      }}
-                    />
-                    
-                    {/* Preview de fotos/vídeos antes */}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {photosBeforePreviews.map((preview, index) => (
-                        <div key={`new-before-${index}`} className="relative">
-                          <img
-                            src={preview.url}
-                            alt={`Foto antes ${index + 1}`}
-                            className="w-24 h-24 object-cover rounded-md border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => {
-                              setPhotosBeforeFiles(prev => prev.filter(f => f !== preview.file));
-                              setPhotosBeforePreviews(prev => prev.filter(p => p.file !== preview.file));
-                              URL.revokeObjectURL(preview.url);
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                      
-                      {videoBeforePreview && (
-                        <div className="relative">
-                          <video
-                            src={videoBeforePreview.url}
-                            className="w-24 h-24 object-cover rounded-md border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => {
-                              URL.revokeObjectURL(videoBeforePreview.url);
-                              setVideoBeforeFile(null);
-                              setVideoBeforePreview(null);
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {existingPhotosBeforeUrls.map((url, index) => (
-                        <div key={`existing-before-${index}`} className="relative">
-                          <img
-                            src={url}
-                            alt={`Foto existente ${index + 1}`}
-                            className="w-24 h-24 object-cover rounded-md border-2 border-green-500"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => {
-                              setExistingPhotosBeforeUrls(prev => prev.filter(u => u !== url));
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                      
-                      {existingVideoBeforeUrl && (
-                        <div className="relative">
-                          <video
-                            src={existingVideoBeforeUrl}
-                            className="w-24 h-24 object-cover rounded-md border-2 border-green-500"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => setExistingVideoBeforeUrl(null)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  {/* Mídia Antes da Manutenção */}
+                  <MediaSlots
+                    mode="before"
+                    photoFiles={photosBeforeFiles}
+                    videoFile={videoBeforeFile}
+                    existingPhotoUrls={existingPhotosBeforeUrls}
+                    existingVideoUrl={existingVideoBeforeUrl}
+                    onPhotoFilesChange={setPhotosBeforeFiles}
+                    onVideoFileChange={setVideoBeforeFile}
+                    onExistingPhotoUrlsChange={setExistingPhotosBeforeUrls}
+                    onExistingVideoUrlChange={setExistingVideoBeforeUrl}
+                    disabled={isUploading}
+                  />
 
-                  {/* Fotos/Vídeo Depois */}
-                  <div className="space-y-2">
-                    <Label>Fotos/Vídeo Depois da Manutenção</Label>
-                    <p className="text-xs text-muted-foreground">Máximo: 5 fotos OU 1 vídeo. Em celular, você pode tirar foto diretamente da câmera.</p>
-                    <Input
-                      type="file"
-                      accept="image/*,video/*"
-                      capture="environment"
-                      multiple
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        const images = files.filter(f => f.type.startsWith('image/'));
-                        const videos = files.filter(f => f.type.startsWith('video/'));
-                        
-                        if (images.length > 0) {
-                          const newImages = images.slice(0, 5 - photosAfterFiles.length);
-                          setPhotosAfterFiles(prev => [...prev, ...newImages].slice(0, 5));
-                          
-                          newImages.forEach(file => {
-                            const url = URL.createObjectURL(file);
-                            setPhotosAfterPreviews(prev => [...prev, { file, url }].slice(0, 5));
-                          });
-                        }
-                        if (videos.length > 0) {
-                          if (videoAfterPreview) URL.revokeObjectURL(videoAfterPreview.url);
-                          const url = URL.createObjectURL(videos[0]);
-                          setVideoAfterFile(videos[0]);
-                          setVideoAfterPreview({ file: videos[0], url });
-                        }
-                        
-                        e.target.value = '';
-                      }}
-                    />
-                    
-                    {/* Preview de fotos/vídeos depois */}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {photosAfterPreviews.map((preview, index) => (
-                        <div key={`new-after-${index}`} className="relative">
-                          <img
-                            src={preview.url}
-                            alt={`Foto depois ${index + 1}`}
-                            className="w-24 h-24 object-cover rounded-md border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => {
-                              setPhotosAfterFiles(prev => prev.filter(f => f !== preview.file));
-                              setPhotosAfterPreviews(prev => prev.filter(p => p.file !== preview.file));
-                              URL.revokeObjectURL(preview.url);
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                      
-                      {videoAfterPreview && (
-                        <div className="relative">
-                          <video
-                            src={videoAfterPreview.url}
-                            className="w-24 h-24 object-cover rounded-md border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => {
-                              URL.revokeObjectURL(videoAfterPreview.url);
-                              setVideoAfterFile(null);
-                              setVideoAfterPreview(null);
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {existingPhotosAfterUrls.map((url, index) => (
-                        <div key={`existing-after-${index}`} className="relative">
-                          <img
-                            src={url}
-                            alt={`Foto existente ${index + 1}`}
-                            className="w-24 h-24 object-cover rounded-md border-2 border-green-500"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => {
-                              setExistingPhotosAfterUrls(prev => prev.filter(u => u !== url));
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                      
-                      {existingVideoAfterUrl && (
-                        <div className="relative">
-                          <video
-                            src={existingVideoAfterUrl}
-                            className="w-24 h-24 object-cover rounded-md border-2 border-green-500"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => setExistingVideoAfterUrl(null)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  {/* Mídia Depois da Manutenção */}
+                  <MediaSlots
+                    mode="after"
+                    photoFiles={photosAfterFiles}
+                    videoFile={videoAfterFile}
+                    existingPhotoUrls={existingPhotosAfterUrls}
+                    existingVideoUrl={existingVideoAfterUrl}
+                    onPhotoFilesChange={setPhotosAfterFiles}
+                    onVideoFileChange={setVideoAfterFile}
+                    onExistingPhotoUrlsChange={setExistingPhotosAfterUrls}
+                    onExistingVideoUrlChange={setExistingVideoAfterUrl}
+                    disabled={isUploading}
+                  />
 
                   {/* Checklist */}
                   {selectedChecklistId && selectedChecklist && (
