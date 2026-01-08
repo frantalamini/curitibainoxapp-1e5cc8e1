@@ -183,8 +183,17 @@ const ServiceCallForm = () => {
   };
 
   // Handlers para deslocamentos
-  const handleStartTrip = async (vehicleId: string, startOdometer: number) => {
+  const handleStartTrip = async (vehicleId: string) => {
     if (!id || !existingCall) return;
+
+    // Buscar quilometragem atual do veículo
+    const { data: vehicleData } = await supabase
+      .from("vehicles")
+      .select("current_odometer_km")
+      .eq("id", vehicleId)
+      .single();
+
+    const startOdometer = vehicleData?.current_odometer_km || 0;
 
     createTrip({
       service_call_id: id,
@@ -192,12 +201,6 @@ const ServiceCallForm = () => {
       vehicle_id: vehicleId,
       start_odometer_km: startOdometer,
     });
-
-    // Atualizar vehicles.current_odometer_km
-    await supabase
-      .from("vehicles")
-      .update({ current_odometer_km: startOdometer })
-      .eq("id", vehicleId);
 
     // Abrir Google Maps com endereço do cliente
     if (existingCall.clients) {
