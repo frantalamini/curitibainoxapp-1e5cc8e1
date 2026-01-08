@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useVehicles } from "@/hooks/useVehicles";
 import { Car } from "lucide-react";
@@ -10,43 +9,24 @@ import { Car } from "lucide-react";
 interface StartTripModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (vehicleId: string, startOdometer: number) => void;
+  onConfirm: (vehicleId: string) => void;
   isLoading?: boolean;
 }
 
 export const StartTripModal = ({ open, onOpenChange, onConfirm, isLoading }: StartTripModalProps) => {
   const { vehicles } = useVehicles();
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
-  const [startOdometer, setStartOdometer] = useState<string>("");
 
   const activeVehicles = vehicles?.filter(v => v.status === 'ativo') || [];
-  const selectedVehicle = activeVehicles.find(v => v.id === selectedVehicleId);
-
-  // Preencher automaticamente a quilometragem quando selecionar um veículo
-  useEffect(() => {
-    if (selectedVehicle?.current_odometer_km) {
-      setStartOdometer(selectedVehicle.current_odometer_km.toString());
-    }
-  }, [selectedVehicle]);
 
   const handleConfirm = () => {
-    if (!selectedVehicleId || !startOdometer) return;
-    
-    const odometerValue = parseFloat(startOdometer);
-    if (isNaN(odometerValue) || odometerValue < 0) {
-      return;
-    }
-
-    onConfirm(selectedVehicleId, odometerValue);
-    
-    // Reset form
+    if (!selectedVehicleId) return;
+    onConfirm(selectedVehicleId);
     setSelectedVehicleId("");
-    setStartOdometer("");
   };
 
   const handleCancel = () => {
     setSelectedVehicleId("");
-    setStartOdometer("");
     onOpenChange(false);
   };
 
@@ -77,24 +57,6 @@ export const StartTripModal = ({ open, onOpenChange, onConfirm, isLoading }: Sta
               </SelectContent>
             </Select>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="odometer">Quilometragem Atual (km) *</Label>
-            <Input
-              id="odometer"
-              type="number"
-              step="0.1"
-              min="0"
-              value={startOdometer}
-              onChange={(e) => setStartOdometer(e.target.value)}
-              placeholder="Ex: 15320.5"
-            />
-            {selectedVehicle?.current_odometer_km && (
-              <p className="text-sm text-muted-foreground">
-                Última quilometragem registrada: {selectedVehicle.current_odometer_km} km
-              </p>
-            )}
-          </div>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
@@ -109,7 +71,7 @@ export const StartTripModal = ({ open, onOpenChange, onConfirm, isLoading }: Sta
           <Button
             type="button"
             onClick={handleConfirm}
-            disabled={!selectedVehicleId || !startOdometer || isLoading}
+            disabled={!selectedVehicleId || isLoading}
           >
             {isLoading ? "Iniciando..." : "Iniciar Deslocamento"}
           </Button>
