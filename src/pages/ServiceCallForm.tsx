@@ -1482,6 +1482,16 @@ const ServiceCallForm = () => {
                       const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
                       setGeneratedPdfUrl(uploadResult.signedUrl);
                       
+                      // Salvar o caminho do PDF no banco de dados
+                      const { error: updateError } = await supabase
+                        .from('service_calls')
+                        .update({ report_pdf_path: uploadResult.filePath })
+                        .eq('id', existingCall.id);
+                      
+                      if (updateError) {
+                        console.error("Erro ao salvar caminho do PDF:", updateError);
+                      }
+                      
                       toast({
                         title: "PDF Gerado!",
                         description: "O relatório foi baixado e está pronto para envio.",
