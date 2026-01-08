@@ -213,24 +213,25 @@ const ServiceCallViewDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl flex items-center gap-3">
-              <span className="text-lg font-mono bg-primary/10 text-primary px-3 py-1 rounded">
+      <DialogContent className="w-[95vw] max-w-3xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <DialogTitle className="text-lg sm:text-xl flex flex-wrap items-center gap-2">
+              <span className="text-sm sm:text-base font-mono bg-primary/10 text-primary px-2 sm:px-3 py-1 rounded whitespace-nowrap">
                 OS #{call.os_number}
               </span>
-              <span>Detalhes do Chamado</span>
+              <span className="text-base sm:text-lg">Detalhes do Chamado</span>
             </DialogTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
+                className="h-9 px-3 text-sm"
                 onClick={handleGeneratePDF}
                 disabled={isGeneratingPDF}
               >
                 <FileDown className="w-4 h-4 mr-2" />
-                {isGeneratingPDF ? "Gerando..." : "Gerar Relatório PDF"}
+                {isGeneratingPDF ? "Gerando..." : "Gerar PDF"}
               </Button>
               <Badge variant={getStatusBadge(call.status).variant}>
                 {getStatusBadge(call.status).label}
@@ -241,21 +242,21 @@ const ServiceCallViewDialog = ({
         
         {pdfUrl && (
           <Card className="mt-4 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-200">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-green-800 dark:text-green-200">
                 <FileDown className="w-5 h-5" />
                 PDF Gerado com Sucesso
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
+            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 O relatório foi gerado com sucesso. Escolha uma ação:
               </p>
               
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={handleSavePdf}
-                  className="flex-1"
+                  className="flex-1 h-10 px-4 text-sm"
                   variant="default"
                 >
                   <FileDown className="mr-2 h-4 w-4" />
@@ -264,22 +265,22 @@ const ServiceCallViewDialog = ({
                 
                 <Button
                   onClick={() => setSendWhatsAppModalOpen(true)}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  className="flex-1 h-10 px-4 text-sm bg-green-600 hover:bg-green-700"
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
-                  Enviar via WhatsApp
+                  WhatsApp
                 </Button>
                 
                 <Button
                   onClick={() => setSendEmailModalOpen(true)}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 h-10 px-4 text-sm bg-blue-600 hover:bg-blue-700"
                 >
                   <Mail className="mr-2 h-4 w-4" />
-                  Enviar por E-mail
+                  E-mail
                 </Button>
               </div>
               
-              <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
+              <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded leading-relaxed">
                 <strong>Nota:</strong> Use "Salvar PDF" para escolher onde armazenar o arquivo localmente
               </div>
             </CardContent>
@@ -289,31 +290,31 @@ const ServiceCallViewDialog = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           {/* Informações do Cliente */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <User className="w-5 h-5" />
                 Cliente
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
               <div>
-                <Label className="text-muted-foreground">Nome Completo</Label>
-                <p className="font-medium">{call.clients?.full_name}</p>
+                <Label className="text-sm text-muted-foreground">Nome Completo</Label>
+                <p className="text-base font-medium leading-relaxed break-words">{call.clients?.full_name}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground flex items-center gap-1">
+                <Label className="text-sm text-muted-foreground flex items-center gap-1">
                   <Phone className="w-3 h-3" />
                   Telefone
                 </Label>
-                <p className="font-medium">{call.clients?.phone}</p>
+                <p className="font-medium whitespace-nowrap">{call.clients?.phone}</p>
               </div>
               {call.clients?.address && (
                 <div>
-                  <Label className="text-muted-foreground flex items-center gap-1">
+                  <Label className="text-sm text-muted-foreground flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
                     Endereço
                   </Label>
-                  <p className="font-medium text-sm">{call.clients.address}</p>
+                  <p className="text-sm font-medium leading-relaxed break-words">{call.clients.address}</p>
                 </div>
               )}
             </CardContent>
@@ -321,55 +322,55 @@ const ServiceCallViewDialog = ({
 
           {/* Informações do Técnico */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <Wrench className="w-5 h-5" />
                 Técnico Responsável
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
               <div>
-                <Label className="text-muted-foreground">Nome</Label>
-                <p className="font-medium">{call.technicians?.full_name}</p>
+                <Label className="text-sm text-muted-foreground">Nome</Label>
+                <p className="text-base font-medium leading-relaxed break-words">{call.technicians?.full_name}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground flex items-center gap-1">
+                <Label className="text-sm text-muted-foreground flex items-center gap-1">
                   <Phone className="w-3 h-3" />
                   Telefone
                 </Label>
-                <p className="font-medium">{call.technicians?.phone}</p>
+                <p className="font-medium whitespace-nowrap">{call.technicians?.phone}</p>
               </div>
             </CardContent>
           </Card>
 
           {/* Data e Horário */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
                 Agendamento
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
               <div>
-                <Label className="text-muted-foreground">Data</Label>
-                <p className="font-medium">
+                <Label className="text-sm text-muted-foreground">Data</Label>
+                <p className="text-base font-medium leading-relaxed">
                   {format(new Date(call.scheduled_date), "dd 'de' MMMM 'de' yyyy", {
                     locale: ptBR,
                   })}
                 </p>
               </div>
               <div>
-                <Label className="text-muted-foreground flex items-center gap-1">
+                <Label className="text-sm text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   Horário
                 </Label>
-                <p className="font-medium">{call.scheduled_time}</p>
+                <p className="font-medium whitespace-nowrap">{call.scheduled_time}</p>
               </div>
               {call.started_at && (
                 <div>
-                  <Label className="text-muted-foreground">Iniciado em</Label>
-                  <p className="font-medium text-sm">
+                  <Label className="text-sm text-muted-foreground">Iniciado em</Label>
+                  <p className="text-sm font-medium whitespace-nowrap">
                     {format(new Date(call.started_at), "dd/MM/yyyy 'às' HH:mm", {
                       locale: ptBR,
                     })}
@@ -382,13 +383,13 @@ const ServiceCallViewDialog = ({
           {/* Tipo de Chamado */}
           {call.service_types && (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
+              <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   Tipo de Chamado
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-5 pt-2">
                 <span
                   className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold"
                   style={{
@@ -407,18 +408,18 @@ const ServiceCallViewDialog = ({
         {/* Descrição do Equipamento e Problema */}
         <div className="grid grid-cols-1 gap-4 mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Equipamento</CardTitle>
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg">Equipamento</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
               <div>
-                <Label className="text-muted-foreground">Descrição</Label>
-                <p className="text-sm mt-1">{call.equipment_description}</p>
+                <Label className="text-sm text-muted-foreground">Descrição</Label>
+                <p className="text-sm leading-relaxed break-words mt-1">{call.equipment_description}</p>
               </div>
               {call.equipment_serial_number && (
                 <div>
-                  <Label className="text-muted-foreground">Número de Série</Label>
-                  <p className="text-sm font-mono bg-muted px-2 py-1 rounded inline-block mt-1">
+                  <Label className="text-sm text-muted-foreground">Número de Série</Label>
+                  <p className="text-sm font-mono bg-muted px-2 py-1 rounded inline-block mt-1 whitespace-nowrap">
                     {call.equipment_serial_number}
                   </p>
                 </div>
@@ -428,14 +429,14 @@ const ServiceCallViewDialog = ({
 
           {call.problem_description && (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
+              <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                   <AlertCircle className="w-5 h-5" />
                   Descrição do Problema
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">
+              <CardContent className="p-4 sm:p-5 pt-2">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                   {call.problem_description}
                 </p>
               </CardContent>
@@ -444,14 +445,14 @@ const ServiceCallViewDialog = ({
 
           {call.notes && (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
+              <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   Observações
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{call.notes}</p>
+              <CardContent className="p-4 sm:p-5 pt-2">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{call.notes}</p>
               </CardContent>
             </Card>
           )}
@@ -460,14 +461,14 @@ const ServiceCallViewDialog = ({
         {/* Áudio Anexado */}
         {call.audio_url && (
           <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <Volume2 className="w-5 h-5" />
                 Áudio Anexado
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="bg-muted/50 p-4 rounded-lg">
+            <CardContent className="p-4 sm:p-5 pt-2">
+              <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
                 <audio controls className="w-full" src={call.audio_url}>
                   Seu navegador não suporta o elemento de áudio.
                 </audio>
@@ -479,14 +480,14 @@ const ServiceCallViewDialog = ({
         {/* Fotos e Vídeos */}
         {call.media_urls && call.media_urls.length > 0 && (
           <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <ImageIcon className="w-5 h-5" />
                 Fotos e Vídeos ({call.media_urls.length})
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <CardContent className="p-4 sm:p-5 pt-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 {call.media_urls.map((url, index) => {
                   const isVideo =
                     url.includes(".mp4") ||
@@ -540,24 +541,24 @@ const ServiceCallViewDialog = ({
         {/* Diagnóstico Técnico */}
         {call.technical_diagnosis && (
           <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <Stethoscope className="w-5 h-5" />
                 Diagnóstico Técnico
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
               <div>
-                <Label className="text-muted-foreground">Diagnóstico</Label>
-                <p className="text-sm whitespace-pre-wrap mt-1">{call.technical_diagnosis}</p>
+                <Label className="text-sm text-muted-foreground">Diagnóstico</Label>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">{call.technical_diagnosis}</p>
               </div>
               {call.technical_diagnosis_audio_url && (
                 <div>
-                  <Label className="text-muted-foreground flex items-center gap-1 mb-2">
+                  <Label className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
                     <Volume2 className="w-3 h-3" />
                     Áudio do Diagnóstico
                   </Label>
-                  <div className="bg-muted/50 p-4 rounded-lg">
+                  <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
                     <audio controls className="w-full" src={call.technical_diagnosis_audio_url}>
                       Seu navegador não suporta o elemento de áudio.
                     </audio>
@@ -571,17 +572,17 @@ const ServiceCallViewDialog = ({
         {/* Fotos e Vídeo - Antes da Manutenção */}
         {((call.photos_before_urls && call.photos_before_urls.length > 0) || call.video_before_url) && (
           <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <ImageIcon className="w-5 h-5" />
                 Antes da Manutenção
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
               {call.photos_before_urls && call.photos_before_urls.length > 0 && (
                 <div>
-                  <Label className="text-muted-foreground mb-2 block">Fotos ({call.photos_before_urls.length})</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <Label className="text-sm text-muted-foreground mb-2 block">Fotos ({call.photos_before_urls.length})</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     {call.photos_before_urls.map((url, index) => (
                       <a
                         key={index}
@@ -603,7 +604,7 @@ const ServiceCallViewDialog = ({
               )}
               {call.video_before_url && (
                 <div>
-                  <Label className="text-muted-foreground mb-2 block flex items-center gap-1">
+                  <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-1">
                     <Video className="w-3 h-3" />
                     Vídeo
                   </Label>
@@ -621,17 +622,17 @@ const ServiceCallViewDialog = ({
         {/* Fotos e Vídeo - Depois da Manutenção */}
         {((call.photos_after_urls && call.photos_after_urls.length > 0) || call.video_after_url) && (
           <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <ImageIcon className="w-5 h-5" />
                 Depois da Manutenção
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
               {call.photos_after_urls && call.photos_after_urls.length > 0 && (
                 <div>
-                  <Label className="text-muted-foreground mb-2 block">Fotos ({call.photos_after_urls.length})</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <Label className="text-sm text-muted-foreground mb-2 block">Fotos ({call.photos_after_urls.length})</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     {call.photos_after_urls.map((url, index) => (
                       <a
                         key={index}
@@ -653,7 +654,7 @@ const ServiceCallViewDialog = ({
               )}
               {call.video_after_url && (
                 <div>
-                  <Label className="text-muted-foreground mb-2 block flex items-center gap-1">
+                  <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-1">
                     <Video className="w-3 h-3" />
                     Vídeo
                   </Label>
@@ -671,22 +672,22 @@ const ServiceCallViewDialog = ({
         {/* Checklist de Verificação */}
         {call.checklist_responses && Object.keys(call.checklist_responses).length > 0 && (
           <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 Checklist de Verificação
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-5 pt-2">
               <div className="space-y-2">
                 {Object.entries(call.checklist_responses as Record<string, boolean>).map(([item, checked]) => (
-                  <div key={item} className="flex items-center gap-2">
+                  <div key={item} className="flex items-start gap-2">
                     {checked ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-muted-foreground" />
+                      <XCircle className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                     )}
-                    <span className={cn("text-sm", !checked && "text-muted-foreground")}>
+                    <span className={cn("text-sm leading-relaxed break-words", !checked && "text-muted-foreground")}>
                       {item}
                     </span>
                   </div>
@@ -705,13 +706,13 @@ const ServiceCallViewDialog = ({
           
           return (hasTech || hasClient) && (
           <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <PenTool className="w-5 h-5" />
                 Assinaturas
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {/* Assinatura do Técnico */}
               {(() => {
                 const imgUrl = latestTech?.image_url || call.technician_signature_data || call.technician_signature_url;
@@ -726,9 +727,9 @@ const ServiceCallViewDialog = ({
                       alt="Assinatura do Técnico"
                       className="h-20 border rounded p-2 bg-white w-full object-contain"
                     />
-                    <p className="text-sm font-medium">{signedBy}</p>
+                    <p className="text-sm font-medium break-words">{signedBy}</p>
                     {signedAt && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground whitespace-nowrap">
                         {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </p>
                     )}
@@ -751,12 +752,12 @@ const ServiceCallViewDialog = ({
                       alt="Assinatura do Cliente"
                       className="h-20 border rounded p-2 bg-white w-full object-contain"
                     />
-                    {signedBy && <p className="text-sm font-medium">{signedBy}</p>}
+                    {signedBy && <p className="text-sm font-medium break-words">{signedBy}</p>}
                     {position && (
                       <p className="text-xs text-muted-foreground">Cargo: {position}</p>
                     )}
                     {signedAt && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground whitespace-nowrap">
                         {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </p>
                     )}
@@ -771,36 +772,36 @@ const ServiceCallViewDialog = ({
         {/* Observações Internas - Apenas Admin/Técnico */}
         {(isAdmin || isTechnician) && (call.internal_notes_text || call.internal_notes_audio_url) && (
           <Card className="mt-4 border-2 border-dashed border-orange-300 dark:border-orange-800">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-orange-500" />
                   Observações Internas
                 </CardTitle>
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs w-fit">
                   Privado • Não enviado ao cliente
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                 Estas informações são visíveis apenas para administradores e técnicos.
               </p>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
               {call.internal_notes_text && (
                 <div>
-                  <Label className="text-muted-foreground">Anotações</Label>
-                  <p className="text-sm whitespace-pre-wrap mt-1 bg-muted/50 p-3 rounded">
+                  <Label className="text-sm text-muted-foreground">Anotações</Label>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1 bg-muted/50 p-3 rounded">
                     {call.internal_notes_text}
                   </p>
                 </div>
               )}
               {call.internal_notes_audio_url && (
                 <div>
-                  <Label className="text-muted-foreground flex items-center gap-1 mb-2">
+                  <Label className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
                     <Volume2 className="w-3 h-3" />
                     Áudio das Observações
                   </Label>
-                  <div className="bg-muted/50 p-4 rounded-lg">
+                  <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
                     <audio controls className="w-full" src={call.internal_notes_audio_url}>
                       Seu navegador não suporta o elemento de áudio.
                     </audio>
@@ -813,23 +814,23 @@ const ServiceCallViewDialog = ({
 
         {/* Informações Adicionais */}
         <Card className="mt-4">
-          <CardHeader>
+          <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
             <CardTitle className="text-sm text-muted-foreground">
               Informações Adicionais
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <Label className="text-muted-foreground">Criado em</Label>
-              <p>
+              <Label className="text-sm text-muted-foreground">Criado em</Label>
+              <p className="whitespace-nowrap">
                 {format(new Date(call.created_at), "dd/MM/yyyy 'às' HH:mm", {
                   locale: ptBR,
                 })}
               </p>
             </div>
             <div>
-              <Label className="text-muted-foreground">Última atualização</Label>
-              <p>
+              <Label className="text-sm text-muted-foreground">Última atualização</Label>
+              <p className="whitespace-nowrap">
                 {format(new Date(call.updated_at), "dd/MM/yyyy 'às' HH:mm", {
                   locale: ptBR,
                 })}
