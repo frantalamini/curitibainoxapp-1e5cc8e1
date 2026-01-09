@@ -133,7 +133,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         {/* Mobile Header with Safe Area */}
         <header className="lg:hidden mobile-header px-4">
           <div className="flex items-center justify-between h-16 w-full">
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="touch-manipulation">
@@ -206,9 +206,20 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 </div>
               </SheetContent>
             </Sheet>
-              <span className="ml-4 font-semibold text-lg truncate">
-                {settings?.company_name || "Curitiba Inox"}
-              </span>
+              {/* Clickable logo/name to go Home */}
+              <button
+                onClick={() => navigate("/")}
+                className="flex items-center gap-2 touch-manipulation active:opacity-70 transition-opacity"
+              >
+                <img 
+                  src={settings?.logo_url || logoUrl} 
+                  alt="Logo" 
+                  className="h-8 w-8 object-contain"
+                />
+                <span className="font-semibold text-lg truncate max-w-[150px]">
+                  {settings?.company_name || "Curitiba Inox"}
+                </span>
+              </button>
             </div>
             {/* Notification Bell for technicians */}
             <NotificationBell />
