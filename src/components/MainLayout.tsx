@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Icon, Icons, type IconName } from "@/components/ui/icons";
@@ -34,6 +35,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const [activeSection, setActiveSection] = useState<string | null>("Cadastros");
   const { isAdmin } = useUserRole();
   const { settings } = useSystemSettings();
+  const { data: newCallsCount = 0 } = useNewServiceCallsCount();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -186,7 +188,12 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                                 )}
                               >
                                 <Icon name={item.icon} size="sm" color="current" />
-                                <span>{item.label}</span>
+                                <span className="flex-1">{item.label}</span>
+                                {item.to === "/service-calls" && newCallsCount > 0 && (
+                                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
+                                    {newCallsCount}
+                                  </span>
+                                )}
                               </Link>
                             ))}
                           </nav>
@@ -282,23 +289,28 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                   </h2>
 
                   {/* Submenu Items */}
-                  <nav className="space-y-1">
-                    {activeMenuSection.items.map((item) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
-                          isActive(item.to)
-                            ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
-                            : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
-                        )}
-                      >
-                        <Icon name={item.icon} size="sm" color="current" />
-                        <span>{item.label}</span>
-                      </Link>
-                    ))}
-                  </nav>
+                    <nav className="space-y-1">
+                      {activeMenuSection.items.map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          className={cn(
+                            "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors duration-200",
+                            isActive(item.to)
+                              ? "bg-[#F5F6F8] text-sidebar-primary font-medium border-l-[3px] border-sidebar-primary"
+                              : "text-[#434247] hover:bg-[#ECEFF1] hover:text-sidebar-primary"
+                          )}
+                        >
+                          <Icon name={item.icon} size="sm" color="current" />
+                          <span className="flex-1">{item.label}</span>
+                          {item.to === "/service-calls" && newCallsCount > 0 && (
+                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
+                              {newCallsCount}
+                            </span>
+                          )}
+                        </Link>
+                      ))}
+                    </nav>
                 </div>
               </ScrollArea>
             )}

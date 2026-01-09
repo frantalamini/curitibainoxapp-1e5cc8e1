@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateOSPdf } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
-import { ServiceCall } from "@/hooks/useServiceCalls";
+import { ServiceCall, useMarkServiceCallSeen } from "@/hooks/useServiceCalls";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useChecklists } from "@/hooks/useChecklists";
 import { useEquipment } from "@/hooks/useEquipment";
@@ -74,6 +74,22 @@ const ServiceCallViewDialog = ({
   const { checklists } = useChecklists();
   const { equipment } = useEquipment();
   const { settings: systemSettings } = useSystemSettings();
+  
+  // Marcar como visto ao abrir o modal
+  const markSeen = useMarkServiceCallSeen();
+  const hasMarkedRef = useRef(false);
+  
+  useEffect(() => {
+    if (open && call.id && !hasMarkedRef.current && !call.seen_by_tech_at) {
+      hasMarkedRef.current = true;
+      markSeen.mutate(call.id);
+    }
+    
+    // Reset quando fecha
+    if (!open) {
+      hasMarkedRef.current = false;
+    }
+  }, [open, call.id, call.seen_by_tech_at]);
 
   const getStatusBadge = (status: string) => {
     const statusMap = {

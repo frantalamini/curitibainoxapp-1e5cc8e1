@@ -399,6 +399,7 @@ export type Database = {
           report_pdf_path: string | null
           scheduled_date: string
           scheduled_time: string
+          seen_by_tech_at: string | null
           service_type_id: string | null
           signatures: Json | null
           started_at: string | null
@@ -441,6 +442,7 @@ export type Database = {
           report_pdf_path?: string | null
           scheduled_date: string
           scheduled_time: string
+          seen_by_tech_at?: string | null
           service_type_id?: string | null
           signatures?: Json | null
           started_at?: string | null
@@ -483,6 +485,7 @@ export type Database = {
           report_pdf_path?: string | null
           scheduled_date?: string
           scheduled_time?: string
+          seen_by_tech_at?: string | null
           service_type_id?: string | null
           signatures?: Json | null
           started_at?: string | null

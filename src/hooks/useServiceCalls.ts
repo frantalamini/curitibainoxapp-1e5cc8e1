@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export interface ServiceCall {
+  seen_by_tech_at?: string;
   id: string;
   os_number: number;
   client_id: string;
@@ -276,4 +277,32 @@ export const useServiceCalls = (limit: number = 30) => {
     updateServiceCall: updateMutation.mutate,
     deleteServiceCall: deleteMutation.mutate,
   };
+};
+
+/**
+ * Hook para marcar um chamado como visto pelo técnico.
+ * Atualiza seen_by_tech_at para now() se ainda estiver NULL.
+ */
+export const useMarkServiceCallSeen = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (callId: string) => {
+      const { error } = await supabase
+        .from("service_calls")
+        .update({ seen_by_tech_at: new Date().toISOString() })
+        .eq("id", callId)
+        .is("seen_by_tech_at", null); // Só atualiza se ainda não foi visto
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["new-service-calls-count"] });
+      queryClient.invalidateQueries({ queryKey: ["service-calls"] });
+    },
+    onError: (error) => {
+      // Fail silently - não bloqueia a UI
+      console.error("Erro ao marcar chamado como visto:", error);
+    },
+  });
 };
