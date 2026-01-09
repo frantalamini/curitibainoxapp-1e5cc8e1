@@ -41,6 +41,7 @@ import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ServiceCall } from "@/hooks/useServiceCalls";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 const ServiceCallViewDialog = lazy(() => import("@/components/ServiceCallViewDialog"));
 
@@ -199,7 +200,7 @@ const ServiceCalls = () => {
                     <TableCell>
                       <div>
                         <div className="text-sm">
-                          {format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
+                          {format(parseLocalDate(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {call.scheduled_time}

@@ -3,6 +3,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isTod
 import { ptBR } from "date-fns/locale";
 import ScheduleEventCard from "./ScheduleEventCard";
 import { Technician } from "@/hooks/useTechnicians";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface ServiceCall {
   id: string;
@@ -49,7 +50,7 @@ const MonthlyView = ({
   // Filter and group service calls by date
   const callsByDate = useMemo(() => {
     const filtered = serviceCalls.filter((call) => {
-      const callDate = new Date(call.scheduled_date);
+      const callDate = parseLocalDate(call.scheduled_date);
       if (!isSameMonth(callDate, currentDate)) return false;
 
       if (selectedTechnicianId !== "all" && call.technician_id !== selectedTechnicianId) {
@@ -62,7 +63,7 @@ const MonthlyView = ({
     const grouped = new Map<string, typeof filtered>();
 
     filtered.forEach((call) => {
-      const dateKey = format(new Date(call.scheduled_date), "yyyy-MM-dd");
+      const dateKey = format(parseLocalDate(call.scheduled_date), "yyyy-MM-dd");
       const existing = grouped.get(dateKey) || [];
       grouped.set(dateKey, [...existing, call]);
     });
