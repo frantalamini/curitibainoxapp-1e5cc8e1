@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ScheduleEventCard from "./ScheduleEventCard";
 import { Technician } from "@/hooks/useTechnicians";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ChevronRight } from "lucide-react";
 
 interface ServiceCall {
   id: string;
@@ -36,6 +38,18 @@ const MonthlyView = ({
   selectedTechnicianId,
   onCallClick,
 }: MonthlyViewProps) => {
+  // State for mobile day sheet
+  const [selectedDayCalls, setSelectedDayCalls] = useState<ServiceCall[]>([]);
+  const [selectedDayLabel, setSelectedDayLabel] = useState<string>("");
+  const [daySheetOpen, setDaySheetOpen] = useState(false);
+
+  // Handler for day click on mobile
+  const handleDayClick = (day: Date, calls: ServiceCall[]) => {
+    setSelectedDayLabel(format(day, "dd 'de' MMMM", { locale: ptBR }));
+    setSelectedDayCalls(calls);
+    setDaySheetOpen(true);
+  };
+
   // Get days for the calendar grid
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
@@ -133,12 +147,16 @@ const MonthlyView = ({
                 {format(day, "d")}
               </div>
 
-              {/* Mobile: show count only */}
+              {/* Mobile: show count only - clickable */}
               <div className="sm:hidden">
                 {dayCalls.length > 0 && (
-                  <div className="text-xs text-center bg-primary/10 text-primary rounded-full px-1.5 py-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleDayClick(day, dayCalls)}
+                    className="w-full text-xs text-center bg-primary/10 text-primary rounded-full px-1.5 py-0.5 cursor-pointer hover:bg-primary/20 active:bg-primary/30 transition-colors"
+                  >
                     {dayCalls.length}
-                  </div>
+                  </button>
                 )}
               </div>
 
@@ -164,8 +182,61 @@ const MonthlyView = ({
           );
         })}
       </div>
+
+      {/* Mobile: Sheet with day's calls */}
+      <Sheet open={daySheetOpen} onOpenChange={setDaySheetOpen}>
+        <SheetContent side="bottom" className="h-[70vh]">
+          <SheetHeader>
+            <SheetTitle>Chamados de {selectedDayLabel}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-3 overflow-y-auto max-h-[calc(70vh-80px)]">
+            {selectedDayCalls.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Nenhum chamado para este dia.
+              </p>
+            ) : (
+              selectedDayCalls.map((call) => {
+                const techName = technicians?.find((t) => t.id === call.technician_id)?.full_name || "Sem técnico";
+                return (
+                  <button
+                    key={call.id}
+                    type="button"
+                    onClick={() => {
+                      setDaySheetOpen(false);
+                      onCallClick?.(call.id);
+                    }}
+                    className="w-full text-left p-3 rounded-lg border bg-card cursor-pointer hover:shadow-md active:bg-muted/50 transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{call.scheduled_time}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {call.status === "pending" ? "Pendente" : 
+                             call.status === "in_progress" ? "Em Andamento" :
+                             call.status === "completed" ? "Concluído" : call.status}
+                          </span>
+                        </div>
+                        <p className="font-medium truncate mt-1">
+                          {call.clients?.company_name || call.clients?.full_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {call.equipment_description}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">{techName}</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
+
 
 export default MonthlyView;

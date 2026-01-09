@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Clock, User, Wrench } from "lucide-react";
+import { ChevronRight, Clock, User, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ServiceCallData {
@@ -81,25 +81,37 @@ const ScheduleEventCard = ({
 }: ScheduleEventCardProps) => {
   const clientName = call.clients?.company_name || call.clients?.full_name || "Cliente";
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClick?.();
+  };
+
   if (variant === "compact") {
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div
-              onClick={onClick}
+            <button
+              type="button"
+              onClick={handleClick}
               className={cn(
-                "text-xs p-1.5 rounded border-l-4 bg-muted/50 hover:bg-muted cursor-pointer transition-colors min-w-0",
+                "w-full text-left text-xs p-1.5 rounded border-l-4 bg-muted/50 hover:bg-muted cursor-pointer transition-colors min-w-0 active:bg-muted/80",
                 getStatusColor(call.status)
               )}
             >
-              <div className="font-medium truncate">
-                {call.scheduled_time} - {clientName}
+              <div className="flex items-center justify-between gap-1">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">
+                    {call.scheduled_time} - {clientName}
+                  </div>
+                  <div className="text-muted-foreground truncate">
+                    {call.equipment_description}
+                  </div>
+                </div>
+                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0 sm:hidden" />
               </div>
-              <div className="text-muted-foreground truncate">
-                {call.equipment_description}
-              </div>
-            </div>
+            </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="max-w-[300px]">
             <div className="space-y-2">
@@ -137,48 +149,54 @@ const ScheduleEventCard = ({
 
   // Normal and detailed variants
   return (
-    <div
-      onClick={onClick}
+    <button
+      type="button"
+      onClick={handleClick}
       className={cn(
-        "p-3 rounded-lg border-l-4 bg-card border hover:shadow-md cursor-pointer transition-all min-w-0",
+        "w-full text-left p-3 rounded-lg border-l-4 bg-card border hover:shadow-md cursor-pointer transition-all min-w-0 active:bg-muted/50",
         getStatusColor(call.status)
       )}
     >
-      <div className="flex flex-col gap-2">
-        {/* Time and Client */}
-        <div className="flex items-start gap-2 min-w-0">
-          <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-          <div className="min-w-0 flex-1">
-            <span className="font-semibold text-sm">{call.scheduled_time}</span>
-            <span className="mx-2 text-muted-foreground">-</span>
-            <span className="font-medium break-words">{clientName}</span>
-          </div>
-        </div>
-
-        {/* Equipment */}
-        <div className="flex items-start gap-2 min-w-0">
-          <Wrench className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-          <span className="text-sm text-muted-foreground break-words min-w-0">
-            {call.equipment_description}
-          </span>
-        </div>
-
-        {/* Technician */}
-        {showTechnician && technicianName && (
+      <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 flex-1 min-w-0">
+          {/* Time and Client */}
           <div className="flex items-start gap-2 min-w-0">
-            <User className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <span className="text-sm break-words min-w-0">{technicianName}</span>
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <span className="font-semibold text-sm">{call.scheduled_time}</span>
+              <span className="mx-2 text-muted-foreground">-</span>
+              <span className="font-medium break-words">{clientName}</span>
+            </div>
           </div>
-        )}
 
-        {/* Status Badge */}
-        <div className="flex items-center gap-2 flex-wrap mt-1">
-          <Badge variant="outline" className={cn("text-xs", getStatusBadgeVariant(call.status))}>
-            {getStatusLabel(call.status)}
-          </Badge>
+          {/* Equipment */}
+          <div className="flex items-start gap-2 min-w-0">
+            <Wrench className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <span className="text-sm text-muted-foreground break-words min-w-0">
+              {call.equipment_description}
+            </span>
+          </div>
+
+          {/* Technician */}
+          {showTechnician && technicianName && (
+            <div className="flex items-start gap-2 min-w-0">
+              <User className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <span className="text-sm break-words min-w-0">{technicianName}</span>
+            </div>
+          )}
+
+          {/* Status Badge */}
+          <div className="flex items-center gap-2 flex-wrap mt-1">
+            <Badge variant="outline" className={cn("text-xs", getStatusBadgeVariant(call.status))}>
+              {getStatusLabel(call.status)}
+            </Badge>
+          </div>
         </div>
+        
+        {/* Chevron indicator for mobile */}
+        <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 sm:hidden" />
       </div>
-    </div>
+    </button>
   );
 };
 
