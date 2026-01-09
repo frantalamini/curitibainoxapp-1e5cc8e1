@@ -27,6 +27,7 @@ interface WeeklyViewProps {
   serviceCalls: ServiceCall[];
   technicians: Technician[];
   selectedTechnicianId: string;
+  onCallClick?: (callId: string) => void;
 }
 
 const WeeklyView = ({
@@ -34,6 +35,7 @@ const WeeklyView = ({
   serviceCalls,
   technicians,
   selectedTechnicianId,
+  onCallClick,
 }: WeeklyViewProps) => {
   const isMobile = useIsMobile();
 
@@ -124,6 +126,7 @@ const WeeklyView = ({
                           call={call}
                           technicianName={techName}
                           variant="normal"
+                          onClick={() => onCallClick?.(call.id)}
                         />
                       );
                     })}
@@ -199,6 +202,7 @@ const WeeklyView = ({
                         call={call}
                         technicianName={techName}
                         variant="compact"
+                        onClick={() => onCallClick?.(call.id)}
                       />
                     );
                   })

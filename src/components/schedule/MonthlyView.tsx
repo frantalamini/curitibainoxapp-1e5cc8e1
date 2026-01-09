@@ -26,6 +26,7 @@ interface MonthlyViewProps {
   serviceCalls: ServiceCall[];
   technicians: Technician[];
   selectedTechnicianId: string;
+  onCallClick?: (callId: string) => void;
 }
 
 const MonthlyView = ({
@@ -33,6 +34,7 @@ const MonthlyView = ({
   serviceCalls,
   technicians,
   selectedTechnicianId,
+  onCallClick,
 }: MonthlyViewProps) => {
   // Get days for the calendar grid
   const calendarDays = useMemo(() => {
@@ -153,6 +155,7 @@ const MonthlyView = ({
                       call={call}
                       technicianName={techName}
                       variant="compact"
+                      onClick={() => onCallClick?.(call.id)}
                     />
                   );
                 })}
