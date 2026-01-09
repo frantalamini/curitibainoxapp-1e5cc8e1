@@ -1,8 +1,17 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { useHomeStats } from "@/hooks/useHomeStats";
+import { useTechnicianHomeStats } from "@/hooks/useTechnicianHomeStats";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
+import { useOpenTripsMap, useServiceCallTripsMutations } from "@/hooks/useServiceCallTrips";
 import { Icon, type IconName } from "@/components/ui/icons";
+import { TodayCallsPreview } from "./TodayCallsPreview";
+import { StartTripModal } from "@/components/StartTripModal";
+import { EndTripModal } from "@/components/EndTripModal";
+import { useOpenTrip } from "@/hooks/useServiceCallTrips";
 import defaultLogo from "@/assets/logo.png";
 
 interface NavItem {
@@ -20,10 +29,41 @@ interface QuickStatCardProps {
   onClick: () => void;
 }
 
+interface TripModalState {
+  isOpen: boolean;
+  serviceCallId: string | null;
+}
+
 const MobileHome = () => {
   const navigate = useNavigate();
   const { settings } = useSystemSettings();
-  const { data: stats, isLoading } = useHomeStats();
+  const { isTechnician } = useUserRole();
+  const { technicianId } = useCurrentTechnician();
+  
+  // Use stats filtradas para técnicos
+  const { data: globalStats, isLoading: isLoadingGlobal } = useHomeStats();
+  const { data: technicianStats, isLoading: isLoadingTech } = useTechnicianHomeStats();
+  
+  // Usar stats do técnico se for técnico, senão usar global
+  const stats = isTechnician ? technicianStats : globalStats;
+  const isLoading = isTechnician ? isLoadingTech : isLoadingGlobal;
+
+  // Get today's calls IDs for batch trip lookup
+  const todayCallsIds = stats?.upcomingCalls
+    ?.filter(c => c.scheduled_date === new Date().toISOString().split("T")[0])
+    .map(c => c.id) || [];
+  
+  const { data: openTripsMap = {} } = useOpenTripsMap(todayCallsIds);
+
+  // Trip modals state
+  const [startTripModal, setStartTripModal] = useState<TripModalState>({ isOpen: false, serviceCallId: null });
+  const [endTripModal, setEndTripModal] = useState<TripModalState>({ isOpen: false, serviceCallId: null });
+
+  // Get open trip for the end modal
+  const { data: openTrip } = useOpenTrip(endTripModal.serviceCallId || undefined);
+
+  // Trip mutations
+  const { createTrip, updateTrip, isCreating, isUpdating } = useServiceCallTripsMutations();
   
   const logoUrl = settings?.logo_url || defaultLogo;
 
@@ -45,6 +85,61 @@ const MobileHome = () => {
 
   const circleRadius = 120;
 
+  // Today's calls for preview
+  const today = new Date().toISOString().split("T")[0];
+  const todayCalls = (stats?.upcomingCalls || [])
+    .filter(c => c.scheduled_date === today)
+    .map(c => ({
+      id: c.id,
+      os_number: c.os_number,
+      scheduled_time: c.scheduled_time,
+      scheduled_date: c.scheduled_date,
+      client_name: c.client_name,
+      equipment_description: c.equipment_description,
+    }));
+
+  const handleOpenOS = (id: string) => {
+    navigate(`/service-calls?open=${id}`);
+  };
+
+  const handleStartTrip = (id: string) => {
+    setStartTripModal({ isOpen: true, serviceCallId: id });
+  };
+
+  const handleEndTrip = (id: string) => {
+    setEndTripModal({ isOpen: true, serviceCallId: id });
+  };
+
+  const handleConfirmStartTrip = (vehicleId: string) => {
+    if (!startTripModal.serviceCallId || !technicianId) return;
+
+    createTrip({
+      service_call_id: startTripModal.serviceCallId,
+      technician_id: technicianId,
+      vehicle_id: vehicleId,
+      start_odometer_km: 0, // Will be updated by the modal in future
+      status: "em_deslocamento",
+    });
+
+    setStartTripModal({ isOpen: false, serviceCallId: null });
+  };
+
+  const handleConfirmEndTrip = (endOdometer: number | null) => {
+    if (!openTrip) return;
+
+    updateTrip({
+      id: openTrip.id,
+      updates: {
+        finished_at: new Date().toISOString(),
+        end_odometer_km: endOdometer || undefined,
+        distance_km: endOdometer ? endOdometer - openTrip.start_odometer_km : undefined,
+        status: "concluido",
+      },
+    });
+
+    setEndTripModal({ isOpen: false, serviceCallId: null });
+  };
+
   return (
     <div className="mobile-layout bg-gradient-to-b from-background via-background to-muted/30">
       {/* Header with Safe Area */}
@@ -62,7 +157,7 @@ const MobileHome = () => {
 
       {/* Main Navigation Circle */}
       <main 
-        className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto"
+        className="flex-1 flex flex-col items-center justify-start px-6 overflow-y-auto"
         style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div 
@@ -123,7 +218,7 @@ const MobileHome = () => {
         </div>
 
         {/* Primary CTA Button */}
-        <div className="w-full max-w-sm mt-8 px-4 animate-fade-in opacity-0" style={{ animationDelay: '500ms', animationFillMode: 'forwards' }}>
+        <div className="w-full max-w-sm mt-4 px-4 animate-fade-in opacity-0" style={{ animationDelay: '500ms', animationFillMode: 'forwards' }}>
           <Button 
             onClick={() => navigate("/service-calls/new")}
             className="w-full h-14 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl gap-2"
@@ -135,7 +230,7 @@ const MobileHome = () => {
         </div>
 
         {/* Quick Stats Cards */}
-        <div className="w-full max-w-sm mt-6 px-4 animate-fade-in opacity-0" style={{ animationDelay: '600ms', animationFillMode: 'forwards' }}>
+        <div className="w-full max-w-sm mt-4 px-4 animate-fade-in opacity-0" style={{ animationDelay: '600ms', animationFillMode: 'forwards' }}>
           <div className="grid grid-cols-3 gap-3">
             <QuickStatCard 
               label="Pendentes" 
@@ -160,7 +255,40 @@ const MobileHome = () => {
             />
           </div>
         </div>
+
+        {/* Today's Calls Preview - only for technicians */}
+        {isTechnician && (
+          <div className="w-full max-w-sm mt-4 px-4 animate-fade-in opacity-0" style={{ animationDelay: '700ms', animationFillMode: 'forwards' }}>
+            <TodayCallsPreview
+              calls={todayCalls}
+              openTripsMap={openTripsMap}
+              onOpenOS={handleOpenOS}
+              onStartTrip={handleStartTrip}
+              onEndTrip={handleEndTrip}
+              isLoading={isLoading}
+            />
+          </div>
+        )}
       </main>
+
+      {/* Start Trip Modal */}
+      <StartTripModal
+        open={startTripModal.isOpen}
+        onOpenChange={(open) => setStartTripModal({ isOpen: open, serviceCallId: open ? startTripModal.serviceCallId : null })}
+        onConfirm={handleConfirmStartTrip}
+        isLoading={isCreating}
+      />
+
+      {/* End Trip Modal */}
+      {openTrip && (
+        <EndTripModal
+          open={endTripModal.isOpen}
+          onOpenChange={(open) => setEndTripModal({ isOpen: open, serviceCallId: open ? endTripModal.serviceCallId : null })}
+          onConfirm={handleConfirmEndTrip}
+          startOdometer={openTrip.start_odometer_km}
+          isLoading={isUpdating}
+        />
+      )}
     </div>
   );
 };

@@ -11,6 +11,7 @@ import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Icon, Icons, type IconName } from "@/components/ui/icons";
+import { NotificationBell } from "@/components/mobile/NotificationBell";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -131,13 +132,14 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       <div className="min-h-screen-dvh lg:min-h-screen bg-background flex w-full mobile-layout lg:block">
         {/* Mobile Header with Safe Area */}
         <header className="lg:hidden mobile-header px-4">
-          <div className="flex items-center h-16 w-full">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="touch-manipulation">
-                  <Icon name="menu" size="lg" />
-                </Button>
-              </SheetTrigger>
+          <div className="flex items-center justify-between h-16 w-full">
+            <div className="flex items-center">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="touch-manipulation">
+                    <Icon name="menu" size="lg" />
+                  </Button>
+                </SheetTrigger>
               <SheetContent side="left" className="p-0 w-80">
                 {/* Mobile Sidebar Content */}
                 <div className="flex h-full bg-sidebar">
@@ -204,9 +206,12 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 </div>
               </SheetContent>
             </Sheet>
-            <span className="ml-4 font-semibold text-lg truncate">
-              {settings?.company_name || "Curitiba Inox"}
-            </span>
+              <span className="ml-4 font-semibold text-lg truncate">
+                {settings?.company_name || "Curitiba Inox"}
+              </span>
+            </div>
+            {/* Notification Bell for technicians */}
+            <NotificationBell />
           </div>
         </header>
 
