@@ -3,6 +3,9 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 console.log("get-os-report Edge Function starting");
 
+// Generic error message for all failure scenarios (prevents information leakage)
+const GENERIC_ERROR = "Relatório indisponível";
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -16,19 +19,12 @@ Deno.serve(async (req) => {
     const { osNumber, token } = await req.json();
     console.log("OS Number requested:", osNumber);
 
-    if (!osNumber) {
-      console.error("OS number not provided");
+    // Validate required fields - return generic error
+    if (!osNumber || !token) {
+      console.error("Missing osNumber or token");
       return new Response(
-        JSON.stringify({ error: "Número da OS não fornecido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!token) {
-      console.error("Access token not provided");
-      return new Response(
-        JSON.stringify({ error: "Token de acesso não fornecido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: GENERIC_ERROR }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -40,20 +36,15 @@ Deno.serve(async (req) => {
 
     console.log("Fetching service call data for OS:", osNumber);
 
-    // Fetch service call by os_number AND validate token
+    // Fetch ONLY minimum required fields - no PII
     const { data: serviceCall, error: fetchError } = await supabaseAdmin
       .from("service_calls")
       .select(`
         os_number,
         report_pdf_path,
         report_access_token,
-        status,
-        scheduled_date,
-        equipment_description,
-        clients (
-          full_name,
-          phone
-        )
+        report_token_expires_at,
+        equipment_description
       `)
       .eq("os_number", osNumber)
       .maybeSingle();
@@ -61,33 +52,47 @@ Deno.serve(async (req) => {
     if (fetchError) {
       console.error("Error fetching service call:", fetchError);
       return new Response(
-        JSON.stringify({ error: "Erro ao buscar ordem de serviço" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!serviceCall) {
-      console.log("Service call not found for OS:", osNumber);
-      return new Response(
-        JSON.stringify({ error: "Ordem de serviço não encontrada" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate access token
-    if (serviceCall.report_access_token !== token) {
-      console.log("Invalid access token for OS:", osNumber);
-      return new Response(
-        JSON.stringify({ error: "Token de acesso inválido" }),
+        JSON.stringify({ error: GENERIC_ERROR }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Service call not found - return generic error (don't reveal if OS exists)
+    if (!serviceCall) {
+      console.log("Service call not found for OS:", osNumber);
+      return new Response(
+        JSON.stringify({ error: GENERIC_ERROR }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate access token - return generic error
+    if (serviceCall.report_access_token !== token) {
+      console.log("Invalid access token for OS:", osNumber);
+      return new Response(
+        JSON.stringify({ error: GENERIC_ERROR }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check token expiration
+    if (serviceCall.report_token_expires_at) {
+      const expiresAt = new Date(serviceCall.report_token_expires_at);
+      if (expiresAt < new Date()) {
+        console.log("Token expired for OS:", osNumber);
+        return new Response(
+          JSON.stringify({ error: GENERIC_ERROR }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // PDF not available - return generic error
     if (!serviceCall.report_pdf_path) {
       console.log("Report PDF path not found for OS:", osNumber);
       return new Response(
-        JSON.stringify({ error: "Relatório não disponível para esta OS" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: GENERIC_ERROR }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -101,21 +106,18 @@ Deno.serve(async (req) => {
     if (signedError || !signedData) {
       console.error("Error generating signed URL:", signedError);
       return new Response(
-        JSON.stringify({ error: "Erro ao gerar URL de acesso ao PDF" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: GENERIC_ERROR }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     console.log("Successfully generated signed URL for OS:", osNumber);
 
-    // Return OS data and PDF URL (limited info - no phone for public access)
+    // Return ONLY minimum data - no PII (no client name, phone, email, etc.)
     return new Response(
       JSON.stringify({
         osNumber: serviceCall.os_number,
-        clientName: (serviceCall.clients as any)?.full_name,
         equipmentDescription: serviceCall.equipment_description,
-        scheduledDate: serviceCall.scheduled_date,
-        status: serviceCall.status,
         pdfUrl: signedData.signedUrl,
       }),
       {
@@ -126,8 +128,8 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Unexpected error in get-os-report:", error);
     return new Response(
-      JSON.stringify({ error: "Erro interno do servidor" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: GENERIC_ERROR }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

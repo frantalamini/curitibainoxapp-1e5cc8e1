@@ -398,6 +398,7 @@ export type Database = {
           problem_description: string | null
           report_access_token: string | null
           report_pdf_path: string | null
+          report_token_expires_at: string | null
           scheduled_date: string
           scheduled_time: string
           seen_by_tech_at: string | null
@@ -442,6 +443,7 @@ export type Database = {
           problem_description?: string | null
           report_access_token?: string | null
           report_pdf_path?: string | null
+          report_token_expires_at?: string | null
           scheduled_date: string
           scheduled_time: string
           seen_by_tech_at?: string | null
@@ -486,6 +488,7 @@ export type Database = {
           problem_description?: string | null
           report_access_token?: string | null
           report_pdf_path?: string | null
+          report_token_expires_at?: string | null
           scheduled_date?: string
           scheduled_time?: string
           seen_by_tech_at?: string | null
