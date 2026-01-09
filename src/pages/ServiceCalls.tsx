@@ -28,12 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MainLayout from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { SearchBar } from "@/components/ui/search-bar";
 import { useServiceCalls } from "@/hooks/useServiceCalls";
 import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
+import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -47,11 +50,14 @@ const ServiceCalls = () => {
   const [searchParams] = useSearchParams();
   const { serviceCalls, isLoading, deleteServiceCall, updateServiceCall } = useServiceCalls();
   const { statuses } = useServiceCallStatuses();
+  const { technicianId } = useCurrentTechnician();
+  const { data: newCallsCount = 0 } = useNewServiceCallsCount();
   
   const technicalStatuses = statuses?.filter(s => s.status_type === 'tecnico') || [];
   const commercialStatuses = statuses?.filter(s => s.status_type === 'comercial') || [];
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"todos" | "novos">("todos");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedCall, setSelectedCall] = useState<ServiceCall | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -74,7 +80,11 @@ const ServiceCalls = () => {
     
     const matchesStatus = statusFilter === "all" || call.status_id === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    // Filtro por aba "Novos" - apenas chamados não vistos do técnico logado
+    const matchesTab = activeTab === "todos" || 
+      (activeTab === "novos" && call.technician_id === technicianId && !call.seen_by_tech_at);
+    
+    return matchesSearch && matchesStatus && matchesTab;
   });
 
   const handleDelete = () => {
@@ -114,6 +124,25 @@ const ServiceCalls = () => {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Tabs Todos | Novos */}
+        {technicianId && (
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "todos" | "novos")} className="w-full">
+            <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
+              <TabsTrigger value="todos" className="flex-1 sm:flex-none">
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="novos" className="flex-1 sm:flex-none relative">
+                Novos
+                {newCallsCount > 0 && (
+                  <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-destructive-foreground">
+                    {newCallsCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
 
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">
