@@ -5,6 +5,7 @@ import { useHomeStats } from "@/hooks/useHomeStats";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface StatCardProps {
   title: string;
@@ -98,7 +99,7 @@ const DesktopHome = () => {
   ];
 
   const formatDate = (dateStr: string) => {
-    return format(new Date(dateStr + "T00:00:00"), "dd/MM", { locale: ptBR });
+    return format(parseLocalDate(dateStr), "dd/MM", { locale: ptBR });
   };
 
   return (

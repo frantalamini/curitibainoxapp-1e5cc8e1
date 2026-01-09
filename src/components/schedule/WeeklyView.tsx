@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import ScheduleEventCard from "./ScheduleEventCard";
 import { Technician } from "@/hooks/useTechnicians";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface ServiceCall {
   id: string;
@@ -57,7 +58,7 @@ const WeeklyView = ({
     weekDays.forEach((day) => {
       const dateKey = format(day, "yyyy-MM-dd");
       const dayCalls = filtered.filter((call) =>
-        isSameDay(new Date(call.scheduled_date), day)
+        isSameDay(parseLocalDate(call.scheduled_date), day)
       );
       dayCalls.sort((a, b) => {
         const timeA = a.scheduled_time || "00:00";

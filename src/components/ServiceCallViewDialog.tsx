@@ -37,6 +37,7 @@ import { generateOSPdf } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 import { ServiceCall, useMarkServiceCallSeen } from "@/hooks/useServiceCalls";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useChecklists } from "@/hooks/useChecklists";
 import { useEquipment } from "@/hooks/useEquipment";
@@ -371,7 +372,7 @@ const ServiceCallViewDialog = ({
               <div>
                 <Label className="text-sm text-muted-foreground">Data</Label>
                 <p className="text-base font-medium leading-relaxed">
-                  {format(new Date(call.scheduled_date), "dd 'de' MMMM 'de' yyyy", {
+                  {format(parseLocalDate(call.scheduled_date), "dd 'de' MMMM 'de' yyyy", {
                     locale: ptBR,
                   })}
                 </p>

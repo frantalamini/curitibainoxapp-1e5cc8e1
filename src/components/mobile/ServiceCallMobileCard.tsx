@@ -4,6 +4,7 @@ import { Calendar, User, Wrench, MapPin, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ServiceCall } from "@/hooks/useServiceCalls";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface ServiceCallMobileCardProps {
   call: ServiceCall;
@@ -36,7 +37,7 @@ export function ServiceCallMobileCard({ call, onView, onEdit, onDelete }: Servic
         <MobileCardRow
           icon={<Calendar className="h-4 w-4" />}
           label="Data/Hora"
-          value={`${format(new Date(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })} às ${call.scheduled_time}`}
+          value={`${format(parseLocalDate(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })} às ${call.scheduled_time}`}
         />
         
         <MobileCardRow

@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import ScheduleEventCard from "./ScheduleEventCard";
 import { Technician } from "@/hooks/useTechnicians";
 import { CalendarX } from "lucide-react";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface ServiceCall {
   id: string;
@@ -37,7 +38,7 @@ const DailyView = ({
   // Filter service calls for the current day
   const dayCalls = useMemo(() => {
     const filtered = serviceCalls.filter((call) => {
-      if (!isSameDay(new Date(call.scheduled_date), currentDate)) return false;
+      if (!isSameDay(parseLocalDate(call.scheduled_date), currentDate)) return false;
 
       if (selectedTechnicianId !== "all" && call.technician_id !== selectedTechnicianId) {
         return false;

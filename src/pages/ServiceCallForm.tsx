@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle } from "lucide-react";
+import { parseLocalDate } from "@/lib/dateUtils";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -298,7 +299,7 @@ const ServiceCallForm = () => {
       setSelectedTechnicianId(existingCall.technician_id);
       setSelectedServiceTypeId(existingCall.service_type_id || "");
       setSelectedTime(existingCall.scheduled_time);
-      setSelectedDate(new Date(existingCall.scheduled_date));
+      setSelectedDate(parseLocalDate(existingCall.scheduled_date));
       setExistingAudioUrl(existingCall.audio_url || null);
       setExistingMediaUrls(existingCall.media_urls || []);
       setTechnicalDiagnosis(existingCall.technical_diagnosis || "");
