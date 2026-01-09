@@ -396,6 +396,7 @@ export type Database = {
           photos_after_urls: string[] | null
           photos_before_urls: string[] | null
           problem_description: string | null
+          report_access_token: string | null
           report_pdf_path: string | null
           scheduled_date: string
           scheduled_time: string
@@ -439,6 +440,7 @@ export type Database = {
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null
+          report_access_token?: string | null
           report_pdf_path?: string | null
           scheduled_date: string
           scheduled_time: string
@@ -482,6 +484,7 @@ export type Database = {
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null
+          report_access_token?: string | null
           report_pdf_path?: string | null
           scheduled_date?: string
           scheduled_time?: string
