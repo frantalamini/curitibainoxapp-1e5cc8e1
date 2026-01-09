@@ -45,12 +45,6 @@ const Schedule = () => {
       setSelectedTechnicianId(currentTechnicianId);
     }
   }, [isTechnician, currentTechnicianId]);
-  const [viewMode, setViewMode] = useState<ViewMode>("monthly");
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  
-  // Estado para seletor de mês/ano no modo mensal
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
-  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
 
   // Sincronizar mês/ano selecionados quando currentDate mudar
   useEffect(() => {

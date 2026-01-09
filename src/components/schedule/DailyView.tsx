@@ -27,6 +27,7 @@ interface DailyViewProps {
   serviceCalls: ServiceCall[];
   technicians: Technician[];
   selectedTechnicianId: string;
+  onCallClick?: (callId: string) => void;
 }
 
 const DailyView = ({
@@ -34,6 +35,7 @@ const DailyView = ({
   serviceCalls,
   technicians,
   selectedTechnicianId,
+  onCallClick,
 }: DailyViewProps) => {
   // Filter service calls for the current day
   const dayCalls = useMemo(() => {
@@ -101,6 +103,7 @@ const DailyView = ({
               call={call}
               technicianName={techName}
               variant="detailed"
+              onClick={() => onCallClick?.(call.id)}
             />
           );
         })}
