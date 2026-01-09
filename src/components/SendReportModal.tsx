@@ -36,6 +36,7 @@ interface SendReportModalProps {
   pdfUrl: string;
   clientData: any;
   companyName?: string;
+  reportAccessToken?: string;
 }
 
 /**
@@ -233,10 +234,21 @@ function extractEmailContacts(clientData: any): EmailContact[] {
  */
 const PUBLIC_BASE_URL = "https://curitibainoxapp.com";
 
-function buildMessage(osNumber: string, pdfUrl: string): string {
-  const publicReportUrl = `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}`;
+function buildMessage(osNumber: string, pdfUrl: string, reportAccessToken?: string): string {
+  // Include access token in URL if available
+  const publicReportUrl = reportAccessToken
+    ? `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}/${reportAccessToken}`
+    : `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}`;
   
   return `Olá! Seu relatório da OS nº ${osNumber} está pronto.\nAcesse pelo link: ${publicReportUrl}`;
+}
+
+function buildEmailBody(osNumber: string, companyName: string, reportAccessToken?: string): string {
+  const publicReportUrl = reportAccessToken
+    ? `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}/${reportAccessToken}`
+    : `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}`;
+  
+  return `Olá,\n\nSeu relatório da OS #${osNumber} está pronto.\n\nAcesse pelo link:\n${publicReportUrl}\n\nAtenciosamente,\n${companyName}`;
 }
 
 export const SendReportModal = ({
@@ -247,6 +259,7 @@ export const SendReportModal = ({
   pdfUrl,
   clientData,
   companyName = 'Curitiba Inox',
+  reportAccessToken,
 }: SendReportModalProps) => {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [manualPhone, setManualPhone] = useState('');
@@ -286,7 +299,7 @@ export const SendReportModal = ({
       return;
     }
     
-    const message = buildMessage(osNumber, pdfUrl);
+    const message = buildMessage(osNumber, pdfUrl, reportAccessToken);
     
     // 🆕 Usar a nova função com detecção mobile/desktop
     openWhatsApp(normalized.replace('+', ''), message);
@@ -316,7 +329,7 @@ export const SendReportModal = ({
     );
     
     if (mode === 'whatsapp') {
-      const message = buildMessage(osNumber, pdfUrl);
+      const message = buildMessage(osNumber, pdfUrl, reportAccessToken);
       
       // 🆕 Usar a nova função com detecção mobile/desktop
       (selected as WhatsAppContact[]).forEach(contact => {
@@ -335,10 +348,7 @@ export const SendReportModal = ({
     } else {
       const emails = (selected as EmailContact[]).map(c => c.email).join(',');
       const subject = encodeURIComponent(`Relatório OS #${osNumber} – ${companyName}`);
-      const publicReportUrl = `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}`;
-      const body = encodeURIComponent(
-        `Olá,\n\nSeu relatório da OS #${osNumber} está pronto.\n\nAcesse pelo link:\n${publicReportUrl}\n\nAtenciosamente,\n${companyName}`
-      );
+      const body = encodeURIComponent(buildEmailBody(osNumber, companyName, reportAccessToken));
       const mailtoLink = `mailto:${emails}?subject=${subject}&body=${body}`;
       
       window.location.href = mailtoLink;

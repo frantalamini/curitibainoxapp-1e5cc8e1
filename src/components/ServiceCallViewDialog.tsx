@@ -866,6 +866,7 @@ const ServiceCallViewDialog = ({
         pdfUrl={pdfUrl}
         clientData={call.clients!}
         companyName={systemSettings?.company_name || 'Curitiba Inox'}
+        reportAccessToken={call.report_access_token}
       />
 
       <SendReportModal
@@ -876,6 +877,7 @@ const ServiceCallViewDialog = ({
         pdfUrl={pdfUrl}
         clientData={call.clients!}
         companyName={systemSettings?.company_name || 'Curitiba Inox'}
+        reportAccessToken={call.report_access_token}
       />
     </Dialog>
   );

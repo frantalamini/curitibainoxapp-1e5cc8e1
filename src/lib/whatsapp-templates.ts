@@ -15,6 +15,7 @@ export interface WhatsAppMessageData {
 export interface WhatsAppPdfMessageData extends WhatsAppMessageData {
   pdfUrl?: string;
   reportDate?: string;
+  reportAccessToken?: string;
 }
 
 /**
@@ -61,10 +62,14 @@ const PUBLIC_BASE_URL = "https://curitibainoxapp.com";
 export const generateWhatsAppLinkWithPdf = (
   data: WhatsAppPdfMessageData
 ): string => {
-  const { phoneNumber, clientName, osNumber } = data;
+  const { phoneNumber, clientName, osNumber, reportAccessToken } = data;
   
   const cleanPhone = phoneNumber.replace(/\D/g, '');
-  const publicReportUrl = `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}`;
+  
+  // Include access token in URL if available
+  const publicReportUrl = reportAccessToken 
+    ? `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}/${reportAccessToken}`
+    : `${PUBLIC_BASE_URL}/relatorio-os/${osNumber}`;
   
   let message = `Olá! Seu relatório da OS nº ${osNumber} está pronto.\n`;
   message += `Acesse pelo link: ${publicReportUrl}`;

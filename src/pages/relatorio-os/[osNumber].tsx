@@ -10,7 +10,6 @@ import { ptBR } from "date-fns/locale";
 interface ReportData {
   osNumber: number;
   clientName: string;
-  clientPhone: string;
   equipmentDescription: string;
   scheduledDate: string;
   status: string;
@@ -18,7 +17,7 @@ interface ReportData {
 }
 
 export default function RelatorioOS() {
-  const { osNumber } = useParams<{ osNumber: string }>();
+  const { osNumber, token } = useParams<{ osNumber: string; token: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,15 +31,21 @@ export default function RelatorioOS() {
         return;
       }
 
+      if (!token) {
+        setError("Token de acesso não fornecido");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        // Call edge function to get report
+        // Call edge function to get report with token validation
         const { data, error: functionError } = await supabase.functions.invoke(
           "get-os-report",
           {
-            body: { osNumber: parseInt(osNumber) },
+            body: { osNumber: parseInt(osNumber), token },
           }
         );
 
@@ -65,7 +70,7 @@ export default function RelatorioOS() {
     };
 
     fetchReport();
-  }, [osNumber]);
+  }, [osNumber, token]);
 
   const handleDownload = () => {
     if (reportData?.pdfUrl) {
@@ -155,25 +160,19 @@ export default function RelatorioOS() {
                 <p className="font-semibold">{reportData.clientName}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Telefone</p>
-                <p className="font-semibold">{reportData.clientPhone}</p>
-              </div>
-            </div>
-
-            {/* Equipment & Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
                 <p className="text-sm text-muted-foreground">Equipamento</p>
                 <p className="font-semibold">{reportData.equipmentDescription}</p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Data Agendada</p>
-                <p className="font-semibold">
-                  {format(new Date(reportData.scheduledDate), "dd 'de' MMMM 'de' yyyy", {
-                    locale: ptBR,
-                  })}
-                </p>
-              </div>
+            </div>
+
+            {/* Date */}
+            <div>
+              <p className="text-sm text-muted-foreground">Data Agendada</p>
+              <p className="font-semibold">
+                {format(new Date(reportData.scheduledDate), "dd 'de' MMMM 'de' yyyy", {
+                  locale: ptBR,
+                })}
+              </p>
             </div>
 
             {/* Download Button */}

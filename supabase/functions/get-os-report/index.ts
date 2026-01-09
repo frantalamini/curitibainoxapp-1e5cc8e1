@@ -10,10 +10,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log("Processing public request to get OS report");
+    console.log("Processing request to get OS report");
 
     // Parse request body
-    const { osNumber } = await req.json();
+    const { osNumber, token } = await req.json();
     console.log("OS Number requested:", osNumber);
 
     if (!osNumber) {
@@ -24,7 +24,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create Supabase Admin client (public access to specific OS by number)
+    if (!token) {
+      console.error("Access token not provided");
+      return new Response(
+        JSON.stringify({ error: "Token de acesso não fornecido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create Supabase Admin client
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -32,12 +40,13 @@ Deno.serve(async (req) => {
 
     console.log("Fetching service call data for OS:", osNumber);
 
-    // Fetch service call by os_number
+    // Fetch service call by os_number AND validate token
     const { data: serviceCall, error: fetchError } = await supabaseAdmin
       .from("service_calls")
       .select(`
         os_number,
         report_pdf_path,
+        report_access_token,
         status,
         scheduled_date,
         equipment_description,
@@ -62,6 +71,15 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Ordem de serviço não encontrada" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate access token
+    if (serviceCall.report_access_token !== token) {
+      console.log("Invalid access token for OS:", osNumber);
+      return new Response(
+        JSON.stringify({ error: "Token de acesso inválido" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -90,12 +108,11 @@ Deno.serve(async (req) => {
 
     console.log("Successfully generated signed URL for OS:", osNumber);
 
-    // Return OS data and PDF URL (limited info for public access)
+    // Return OS data and PDF URL (limited info - no phone for public access)
     return new Response(
       JSON.stringify({
         osNumber: serviceCall.os_number,
         clientName: (serviceCall.clients as any)?.full_name,
-        clientPhone: (serviceCall.clients as any)?.phone,
         equipmentDescription: serviceCall.equipment_description,
         scheduledDate: serviceCall.scheduled_date,
         status: serviceCall.status,

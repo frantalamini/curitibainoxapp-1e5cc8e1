@@ -110,7 +110,7 @@ const App = () => (
             <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/relatorio-os/:osNumber" element={<RelatorioOS />} />
+            <Route path="/relatorio-os/:osNumber/:token" element={<RelatorioOS />} />
             <Route path="/install" element={<Install />} />
             <Route
               path="/"

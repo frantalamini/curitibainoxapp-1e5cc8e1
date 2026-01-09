@@ -42,6 +42,7 @@ export interface ServiceCall {
   equipment_serial_number?: string;
   internal_notes_text?: string;
   internal_notes_audio_url?: string;
+  report_access_token?: string;
   clients?: {
     full_name: string;
     phone: string;
