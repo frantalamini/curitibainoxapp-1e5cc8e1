@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import MainLayout from "@/components/MainLayout";
-import { useServiceCalls } from "@/hooks/useServiceCalls";
+import { useServiceCalls, type ServiceCall } from "@/hooks/useServiceCalls";
 import { useTechnicians } from "@/hooks/useTechnicians";
+import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
@@ -15,13 +17,34 @@ import MonthlyView from "@/components/schedule/MonthlyView";
 import WeeklyView from "@/components/schedule/WeeklyView";
 import DailyView from "@/components/schedule/DailyView";
 
+const ServiceCallViewDialog = lazy(() => import("@/components/ServiceCallViewDialog"));
+
 const Schedule = () => {
   const navigate = useNavigate();
   const { serviceCalls, isLoading: isLoadingCalls } = useServiceCalls();
   const { technicians, isLoading: isLoadingTechs } = useTechnicians();
+  const { technicianId: currentTechnicianId } = useCurrentTechnician();
+  const { isTechnician } = useUserRole();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("monthly");
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  
+  // Dialog state for viewing service calls
+  const [selectedCall, setSelectedCall] = useState<ServiceCall | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  
+  // Estado para seletor de mês/ano no modo mensal
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+
+  // Auto-select current technician for technician users
+  useEffect(() => {
+    if (isTechnician && currentTechnicianId) {
+      setSelectedTechnicianId(currentTechnicianId);
+    }
+  }, [isTechnician, currentTechnicianId]);
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   
@@ -304,6 +327,13 @@ const Schedule = () => {
             serviceCalls={serviceCalls || []}
             technicians={technicians || []}
             selectedTechnicianId={selectedTechnicianId}
+            onCallClick={(callId) => {
+              const call = serviceCalls?.find(c => c.id === callId);
+              if (call) {
+                setSelectedCall(call);
+                setViewDialogOpen(true);
+              }
+            }}
           />
         )}
         {viewMode === "weekly" && (
@@ -312,6 +342,13 @@ const Schedule = () => {
             serviceCalls={serviceCalls || []}
             technicians={technicians || []}
             selectedTechnicianId={selectedTechnicianId}
+            onCallClick={(callId) => {
+              const call = serviceCalls?.find(c => c.id === callId);
+              if (call) {
+                setSelectedCall(call);
+                setViewDialogOpen(true);
+              }
+            }}
           />
         )}
         {viewMode === "daily" && (
@@ -320,9 +357,27 @@ const Schedule = () => {
             serviceCalls={serviceCalls || []}
             technicians={technicians || []}
             selectedTechnicianId={selectedTechnicianId}
+            onCallClick={(callId) => {
+              const call = serviceCalls?.find(c => c.id === callId);
+              if (call) {
+                setSelectedCall(call);
+                setViewDialogOpen(true);
+              }
+            }}
           />
         )}
       </div>
+
+      {/* Service Call View Dialog */}
+      {selectedCall && (
+        <Suspense fallback={null}>
+          <ServiceCallViewDialog
+            call={selectedCall}
+            open={viewDialogOpen}
+            onOpenChange={setViewDialogOpen}
+          />
+        </Suspense>
+      )}
     </MainLayout>
   );
 };
