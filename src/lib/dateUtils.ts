@@ -3,6 +3,23 @@
  */
 
 /**
+ * Retorna a data de "hoje" no formato yyyy-MM-dd 
+ * no timezone local (não UTC).
+ * 
+ * Problema: new Date().toISOString().split("T")[0] retorna UTC,
+ * que pode estar 1 dia à frente/atrás dependendo do horário local.
+ * 
+ * @returns string no formato "yyyy-MM-dd" para o dia atual local
+ */
+export function getTodayLocalDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Parseia uma string de data (yyyy-MM-dd) como data LOCAL, não UTC.
  * 
  * Problema: new Date("2026-01-08") interpreta como UTC midnight,

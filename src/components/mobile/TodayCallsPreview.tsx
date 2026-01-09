@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Clock, ChevronRight, Calendar } from "lucide-react";
+import { Clock, ChevronRight, Calendar, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +19,7 @@ interface TodayCall {
 
 interface TodayCallsPreviewProps {
   calls: TodayCall[];
+  upcomingCalls?: TodayCall[];
   openTripsMap: Record<string, boolean>;
   onOpenOS: (id: string) => void;
   onStartTrip: (id: string) => void;
@@ -28,6 +29,7 @@ interface TodayCallsPreviewProps {
 
 export function TodayCallsPreview({
   calls,
+  upcomingCalls = [],
   openTripsMap,
   onOpenOS,
   onStartTrip,
@@ -47,86 +49,156 @@ export function TodayCallsPreview({
     );
   }
 
-  if (calls.length === 0) {
+  const hasTodayCalls = calls.length > 0;
+  const hasUpcomingCalls = upcomingCalls.length > 0;
+
+  // No calls at all
+  if (!hasTodayCalls && !hasUpcomingCalls) {
     return (
       <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 text-center">
         <Calendar className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-        <p className="text-sm text-muted-foreground">Nenhum chamado para hoje</p>
+        <p className="text-sm text-muted-foreground">Nenhum chamado agendado</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between p-3 border-b border-border/50">
-        <h3 className="font-semibold text-sm flex items-center gap-2">
-          <Clock className="h-4 w-4 text-primary" />
-          Chamados de Hoje
-        </h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs gap-1 -mr-2"
-          onClick={() => navigate("/schedule")}
-        >
-          Ver todos
-          <ChevronRight className="h-3 w-3" />
-        </Button>
-      </div>
-
-      <div className="divide-y divide-border/50">
-        {calls.slice(0, 3).map((call) => {
-          const hasOpenTrip = openTripsMap[call.id] || false;
-          
-          return (
-            <div
-              key={call.id}
-              className="p-3 hover:bg-muted/50 transition-colors"
+    <div className="space-y-3">
+      {/* Today's Calls Section */}
+      {hasTodayCalls && (
+        <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between p-3 border-b border-border/50">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              Chamados de Hoje
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs gap-1 -mr-2"
+              onClick={() => navigate("/schedule")}
             >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">OS #{call.os_number}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {call.scheduled_time}
-                    </span>
+              Ver todos
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
+
+          <div className="divide-y divide-border/50">
+            {calls.slice(0, 5).map((call) => {
+              const hasOpenTrip = openTripsMap[call.id] || false;
+              
+              return (
+                <div
+                  key={call.id}
+                  className="p-3 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm">OS #{call.os_number}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {call.scheduled_time}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground/80 break-words whitespace-normal">{call.client_name}</p>
+                      <p className="text-xs text-muted-foreground break-words whitespace-normal">{call.equipment_description}</p>
+                    </div>
+                    {call.status_color && (
+                      <span
+                        className="px-2 py-0.5 rounded-full text-xs font-medium text-white shrink-0"
+                        style={{ backgroundColor: call.status_color }}
+                      >
+                        {call.status_name}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-foreground/80 truncate">{call.client_name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{call.equipment_description}</p>
+
+                  <ServiceCallQuickActions
+                    onOpenOS={() => onOpenOS(call.id)}
+                    onStartTrip={() => onStartTrip(call.id)}
+                    onEndTrip={() => onEndTrip(call.id)}
+                    hasOpenTrip={hasOpenTrip}
+                    canStartTrip={true}
+                    showTripActions={true}
+                  />
                 </div>
-                {call.status_color && (
-                  <span
-                    className="px-2 py-0.5 rounded-full text-xs font-medium text-white shrink-0"
-                    style={{ backgroundColor: call.status_color }}
-                  >
-                    {call.status_name}
-                  </span>
-                )}
-              </div>
+              );
+            })}
+          </div>
 
-              <ServiceCallQuickActions
-                onOpenOS={() => onOpenOS(call.id)}
-                onStartTrip={() => onStartTrip(call.id)}
-                onEndTrip={() => onEndTrip(call.id)}
-                hasOpenTrip={hasOpenTrip}
-                canStartTrip={true}
-                showTripActions={true}
-              />
+          {calls.length > 5 && (
+            <div className="p-2 border-t border-border/50 text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs w-full"
+                onClick={() => navigate("/schedule")}
+              >
+                +{calls.length - 5} chamados mais
+              </Button>
             </div>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      )}
 
-      {calls.length > 3 && (
-        <div className="p-2 border-t border-border/50 text-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs w-full"
-            onClick={() => navigate("/schedule")}
-          >
-            +{calls.length - 3} chamados mais
-          </Button>
+      {/* Upcoming Calls Section (next days) */}
+      {hasUpcomingCalls && (
+        <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between p-3 border-b border-border/50">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              Próximos
+            </h3>
+          </div>
+
+          <div className="divide-y divide-border/50">
+            {upcomingCalls.slice(0, 5).map((call) => {
+              const formattedDate = format(parseLocalDate(call.scheduled_date), "dd/MM", { locale: ptBR });
+              
+              return (
+                <button
+                  key={call.id}
+                  onClick={() => onOpenOS(call.id)}
+                  className="w-full p-3 hover:bg-muted/50 transition-colors text-left flex items-center justify-between gap-2"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                        {formattedDate}
+                      </span>
+                      <span className="font-semibold text-sm">OS #{call.os_number}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {call.scheduled_time}
+                      </span>
+                    </div>
+                    <p className="text-sm text-foreground/80 break-words whitespace-normal mt-0.5">{call.client_name}</p>
+                    <p className="text-xs text-muted-foreground break-words whitespace-normal">{call.equipment_description}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+
+          {upcomingCalls.length > 5 && (
+            <div className="p-2 border-t border-border/50 text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs w-full"
+                onClick={() => navigate("/schedule")}
+              >
+                +{upcomingCalls.length - 5} chamados mais
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* If no today calls but has upcoming, show a message */}
+      {!hasTodayCalls && hasUpcomingCalls && (
+        <div className="text-center text-xs text-muted-foreground">
+          Nenhum chamado para hoje
         </div>
       )}
     </div>

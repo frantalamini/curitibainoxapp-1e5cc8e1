@@ -13,6 +13,7 @@ import { StartTripModal } from "@/components/StartTripModal";
 import { EndTripModal } from "@/components/EndTripModal";
 import { useOpenTrip } from "@/hooks/useServiceCallTrips";
 import defaultLogo from "@/assets/logo.png";
+import { getTodayLocalDate } from "@/lib/dateUtils";
 
 interface NavItem {
   icon: IconName;
@@ -48,9 +49,12 @@ const MobileHome = () => {
   const stats = isTechnician ? technicianStats : globalStats;
   const isLoading = isTechnician ? isLoadingTech : isLoadingGlobal;
 
+  // Get today's date in local timezone
+  const today = getTodayLocalDate();
+  
   // Get today's calls IDs for batch trip lookup
   const todayCallsIds = stats?.upcomingCalls
-    ?.filter(c => c.scheduled_date === new Date().toISOString().split("T")[0])
+    ?.filter(c => c.scheduled_date === today)
     .map(c => c.id) || [];
   
   const { data: openTripsMap = {} } = useOpenTripsMap(todayCallsIds);
@@ -85,10 +89,21 @@ const MobileHome = () => {
 
   const circleRadius = 120;
 
-  // Today's calls for preview
-  const today = new Date().toISOString().split("T")[0];
+  // Today's calls for preview (already have `today` from above)
   const todayCalls = (stats?.upcomingCalls || [])
     .filter(c => c.scheduled_date === today)
+    .map(c => ({
+      id: c.id,
+      os_number: c.os_number,
+      scheduled_time: c.scheduled_time,
+      scheduled_date: c.scheduled_date,
+      client_name: c.client_name,
+      equipment_description: c.equipment_description,
+    }));
+
+  // Upcoming calls (next 7 days, excluding today)
+  const upcomingCalls = (stats?.upcomingCalls || [])
+    .filter(c => c.scheduled_date > today)
     .map(c => ({
       id: c.id,
       os_number: c.os_number,
@@ -261,6 +276,7 @@ const MobileHome = () => {
           <div className="w-full max-w-sm mt-4 px-4 animate-fade-in opacity-0" style={{ animationDelay: '700ms', animationFillMode: 'forwards' }}>
             <TodayCallsPreview
               calls={todayCalls}
+              upcomingCalls={upcomingCalls}
               openTripsMap={openTripsMap}
               onOpenOS={handleOpenOS}
               onStartTrip={handleStartTrip}

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentTechnician } from "./useCurrentTechnician";
+import { getTodayLocalDate } from "@/lib/dateUtils";
 
 interface UpcomingCall {
   id: string;
@@ -33,7 +34,7 @@ export const useTechnicianHomeStats = () => {
         };
       }
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = getTodayLocalDate();
 
       // Buscar status IDs para filtrar chamados em aberto
       const { data: statuses } = await supabase
@@ -96,7 +97,7 @@ export const useTechnicianHomeStats = () => {
           .not("status_id", "in", `(${finishedStatusIds.join(",")})`)
           .order("scheduled_date", { ascending: true })
           .order("scheduled_time", { ascending: true })
-          .limit(5),
+          .limit(15),
       ]);
 
       const upcomingCalls: UpcomingCall[] = (upcomingCallsResult.data || []).map((call: any) => ({
