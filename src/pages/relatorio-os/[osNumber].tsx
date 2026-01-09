@@ -1,38 +1,31 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileDown, AlertCircle, Loader2 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
+// Minimal data interface - no PII
 interface ReportData {
   osNumber: number;
-  clientName: string;
   equipmentDescription: string;
-  scheduledDate: string;
-  status: string;
   pdfUrl: string;
 }
 
+// Generic error message for security
+const GENERIC_ERROR_MESSAGE = "Este link não é válido ou expirou.";
+
 export default function RelatorioOS() {
   const { osNumber, token } = useParams<{ osNumber: string; token: string }>();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
 
   useEffect(() => {
     const fetchReport = async () => {
-      if (!osNumber) {
-        setError("Número da OS não fornecido");
-        setLoading(false);
-        return;
-      }
-
-      if (!token) {
-        setError("Token de acesso não fornecido");
+      // Validate required params - generic error
+      if (!osNumber || !token) {
+        setError(GENERIC_ERROR_MESSAGE);
         setLoading(false);
         return;
       }
@@ -49,21 +42,16 @@ export default function RelatorioOS() {
           }
         );
 
-        if (functionError) {
-          console.error("Error calling edge function:", functionError);
-          setError("Erro ao buscar relatório. Tente novamente.");
-          return;
-        }
-
-        if (data.error) {
-          setError(data.error);
+        if (functionError || data?.error) {
+          console.error("Error fetching report");
+          setError(GENERIC_ERROR_MESSAGE);
           return;
         }
 
         setReportData(data);
       } catch (err) {
         console.error("Unexpected error:", err);
-        setError("Erro inesperado ao carregar relatório");
+        setError(GENERIC_ERROR_MESSAGE);
       } finally {
         setLoading(false);
       }
@@ -91,6 +79,7 @@ export default function RelatorioOS() {
     );
   }
 
+  // Generic error page - no information leakage
   if (error || !reportData) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -98,20 +87,16 @@ export default function RelatorioOS() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertCircle className="w-6 h-6" />
-              Relatório não encontrado
+              Relatório Indisponível
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              {error || "Relatório não encontrado. Entre em contato com o suporte da Curitiba Inox."}
+              {GENERIC_ERROR_MESSAGE}
             </p>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/auth")}
-              className="w-full"
-            >
-              Voltar para o Login
-            </Button>
+            <p className="text-sm text-muted-foreground">
+              Entre em contato com a Curitiba Inox para obter um novo link de acesso.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -153,26 +138,10 @@ export default function RelatorioOS() {
           </CardHeader>
 
           <CardContent className="space-y-6 py-6">
-            {/* Client Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Cliente</p>
-                <p className="font-semibold">{reportData.clientName}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Equipamento</p>
-                <p className="font-semibold">{reportData.equipmentDescription}</p>
-              </div>
-            </div>
-
-            {/* Date */}
+            {/* Equipment Info Only - No Client PII */}
             <div>
-              <p className="text-sm text-muted-foreground">Data Agendada</p>
-              <p className="font-semibold">
-                {format(new Date(reportData.scheduledDate), "dd 'de' MMMM 'de' yyyy", {
-                  locale: ptBR,
-                })}
-              </p>
+              <p className="text-sm text-muted-foreground">Equipamento</p>
+              <p className="font-semibold">{reportData.equipmentDescription}</p>
             </div>
 
             {/* Download Button */}
