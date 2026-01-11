@@ -166,13 +166,37 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                         </Tooltip>
                       ))}
                     </nav>
+                    
+                    {/* Mobile Logout Button - Always visible at bottom */}
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-14 h-14 flex items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition-all touch-manipulation mt-auto"
+                      title="Sair da conta"
+                    >
+                      <Icon name="sair" size="lg" color="current" />
+                    </button>
                   </div>
 
                   {/* Submenu Column */}
                   <div className="flex-1 bg-white flex flex-col">
+                    {/* Home Button - Always visible at top */}
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate("/");
+                      }}
+                      className="m-4 mb-2 p-3 rounded-lg bg-primary/10 text-primary flex items-center gap-2 touch-manipulation hover:bg-primary/20 transition-colors"
+                    >
+                      <Icon name="home" size="sm" />
+                      <span className="font-medium">Início</span>
+                    </button>
+                    
                     {activeMenuSection && (
                       <ScrollArea className="flex-1">
-                        <div className="p-6">
+                        <div className="px-6 pb-6">
                           <h2 className="text-base font-semibold text-[#152752] mb-4 uppercase">
                             {activeMenuSection.title}
                           </h2>
@@ -202,20 +226,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                         </div>
                       </ScrollArea>
                     )}
-                    {/* Mobile Logout Button */}
-                    <div className="p-4 border-t border-border">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          setIsMobileMenuOpen(false);
-                          handleLogout();
-                        }}
-                      >
-                        <Icon name="sair" size="sm" />
-                        Sair da conta
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </SheetContent>
