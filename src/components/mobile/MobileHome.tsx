@@ -14,6 +14,7 @@ import { EndTripModal } from "@/components/EndTripModal";
 import { useOpenTrip } from "@/hooks/useServiceCallTrips";
 import defaultLogo from "@/assets/logo.png";
 import { getTodayLocalDate } from "@/lib/dateUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NavItem {
   icon: IconName;
@@ -70,6 +71,11 @@ const MobileHome = () => {
   const { createTrip, updateTrip, isCreating, isUpdating } = useServiceCallTripsMutations();
   
   const logoUrl = settings?.logo_url || defaultLogo;
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
 
   const navItems: NavItem[] = [
     { icon: "chamadosTecnicos", label: "Chamados", path: "/service-calls", angle: 0 },
@@ -159,15 +165,25 @@ const MobileHome = () => {
     <div className="mobile-layout bg-gradient-to-b from-background via-background to-muted/30">
       {/* Header with Safe Area */}
       <header 
-        className="pb-4 px-6"
+        className="pb-4 px-6 flex items-center justify-between"
         style={{ paddingTop: 'calc(2rem + env(safe-area-inset-top, 0px))' }}
       >
-        <h1 className="text-lg font-semibold text-foreground text-center">
-          Curitiba Inox
-        </h1>
-        <p className="text-sm text-muted-foreground text-center mt-0.5">
-          Assistência Técnica
-        </p>
+        <div className="w-10" /> {/* Spacer */}
+        <div className="text-center flex-1">
+          <h1 className="text-lg font-semibold text-foreground">
+            Curitiba Inox
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Assistência Técnica
+          </p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted/50 transition-colors active:scale-95"
+          title="Sair da conta"
+        >
+          <Icon name="sair" size="md" color="muted" />
+        </button>
       </header>
 
       {/* Main Navigation Circle */}

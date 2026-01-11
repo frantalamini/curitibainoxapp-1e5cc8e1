@@ -169,9 +169,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                   </div>
 
                   {/* Submenu Column */}
-                  <div className="flex-1 bg-white">
+                  <div className="flex-1 bg-white flex flex-col">
                     {activeMenuSection && (
-                      <ScrollArea className="h-full">
+                      <ScrollArea className="flex-1">
                         <div className="p-6">
                           <h2 className="text-base font-semibold text-[#152752] mb-4 uppercase">
                             {activeMenuSection.title}
@@ -202,6 +202,20 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                         </div>
                       </ScrollArea>
                     )}
+                    {/* Mobile Logout Button */}
+                    <div className="p-4 border-t border-border">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          handleLogout();
+                        }}
+                      >
+                        <Icon name="sair" size="sm" />
+                        Sair da conta
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </SheetContent>
