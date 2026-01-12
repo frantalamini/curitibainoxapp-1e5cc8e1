@@ -226,6 +226,20 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                         </div>
                       </ScrollArea>
                     )}
+                    
+                    {/* Logout Button with text - visible at bottom */}
+                    <div className="p-4 border-t border-gray-100">
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full p-3 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center gap-2 hover:bg-destructive/20 transition-colors touch-manipulation"
+                      >
+                        <Icon name="sair" size="sm" />
+                        <span className="font-medium">Sair da conta</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </SheetContent>

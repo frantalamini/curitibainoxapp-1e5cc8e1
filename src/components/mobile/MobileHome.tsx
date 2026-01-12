@@ -179,10 +179,10 @@ const MobileHome = () => {
         </div>
         <button
           onClick={handleLogout}
-          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted/50 transition-colors active:scale-95"
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-destructive/10 hover:bg-destructive/20 transition-colors active:scale-95"
           title="Sair da conta"
         >
-          <Icon name="sair" size="md" color="muted" />
+          <Icon name="sair" size="md" color="destructive" />
         </button>
       </header>
 
