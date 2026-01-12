@@ -44,6 +44,7 @@ const VehicleForm = lazy(() => import("./pages/VehicleForm"));
 const VehicleMaintenances = lazy(() => import("./pages/VehicleMaintenances"));
 const ServiceCallTrips = lazy(() => import("./pages/ServiceCallTrips"));
 const Install = lazy(() => import("./pages/Install"));
+const Inicio = lazy(() => import("./pages/Inicio"));
 
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
@@ -117,6 +118,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Index />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inicio"
+              element={
+                <ProtectedRoute>
+                  <Inicio />
                 </ProtectedRoute>
               }
             />
