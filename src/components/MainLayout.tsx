@@ -186,7 +186,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                     <button
                       onClick={() => {
                         setIsMobileMenuOpen(false);
-                        navigate("/");
+                        navigate("/inicio");
                       }}
                       className="m-4 mb-2 p-3 rounded-lg bg-primary/10 text-primary flex items-center gap-2 touch-manipulation hover:bg-primary/20 transition-colors"
                     >
@@ -245,8 +245,19 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 </span>
               </button>
             </div>
-            {/* Notification Bell for technicians */}
-            <NotificationBell />
+            {/* Home button + Notification Bell */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/inicio")}
+                className="touch-manipulation"
+                title="Voltar ao início"
+              >
+                <Icon name="home" size="md" />
+              </Button>
+              <NotificationBell />
+            </div>
           </div>
         </header>
 
