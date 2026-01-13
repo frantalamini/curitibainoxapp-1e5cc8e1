@@ -235,6 +235,117 @@ export type Database = {
           },
         ]
       }
+      financial_transactions: {
+        Row: {
+          amount: number
+          client_id: string | null
+          created_at: string | null
+          direction: Database["public"]["Enums"]["transaction_direction"]
+          discount: number | null
+          due_date: string
+          id: string
+          installment_number: number | null
+          installments_group_id: string | null
+          installments_total: number | null
+          interest: number | null
+          notes: string | null
+          origin: Database["public"]["Enums"]["transaction_origin"]
+          paid_at: string | null
+          payment_method: string | null
+          service_call_id: string | null
+          status: Database["public"]["Enums"]["transaction_status"] | null
+        }
+        Insert: {
+          amount: number
+          client_id?: string | null
+          created_at?: string | null
+          direction: Database["public"]["Enums"]["transaction_direction"]
+          discount?: number | null
+          due_date: string
+          id?: string
+          installment_number?: number | null
+          installments_group_id?: string | null
+          installments_total?: number | null
+          interest?: number | null
+          notes?: string | null
+          origin: Database["public"]["Enums"]["transaction_origin"]
+          paid_at?: string | null
+          payment_method?: string | null
+          service_call_id?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"] | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          created_at?: string | null
+          direction?: Database["public"]["Enums"]["transaction_direction"]
+          discount?: number | null
+          due_date?: string
+          id?: string
+          installment_number?: number | null
+          installments_group_id?: string | null
+          installments_total?: number | null
+          interest?: number | null
+          notes?: string | null
+          origin?: Database["public"]["Enums"]["transaction_origin"]
+          paid_at?: string | null
+          payment_method?: string | null
+          service_call_id?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_service_call_id_fkey"
+            columns: ["service_call_id"]
+            isOneToOne: false
+            referencedRelation: "service_calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          sku: string | null
+          unit: string | null
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          sku?: string | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          sku?: string | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -270,6 +381,60 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      service_call_items: {
+        Row: {
+          created_at: string | null
+          description: string
+          discount_value: number | null
+          id: string
+          product_id: string | null
+          qty: number | null
+          service_call_id: string
+          total: number
+          type: Database["public"]["Enums"]["item_type"]
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          discount_value?: number | null
+          id?: string
+          product_id?: string | null
+          qty?: number | null
+          service_call_id: string
+          total: number
+          type: Database["public"]["Enums"]["item_type"]
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          discount_value?: number | null
+          id?: string
+          product_id?: string | null
+          qty?: number | null
+          service_call_id?: string
+          total?: number
+          type?: Database["public"]["Enums"]["item_type"]
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_call_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_call_items_service_call_id_fkey"
+            columns: ["service_call_id"]
+            isOneToOne: false
+            referencedRelation: "service_calls"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_call_statuses: {
         Row: {
@@ -784,6 +949,7 @@ export type Database = {
         | "funcionario"
         | "outro"
         | "colaborador"
+      item_type: "PRODUCT" | "SERVICE" | "FEE" | "DISCOUNT"
       maintenance_type: "preventiva" | "corretiva" | "colisao"
       os_status:
         | "pending"
@@ -799,6 +965,9 @@ export type Database = {
         | "on_hold"
       service_urgency: "corrective" | "preventive"
       status_type: "tecnico" | "comercial"
+      transaction_direction: "RECEIVE" | "PAY"
+      transaction_origin: "SERVICE_CALL" | "MANUAL"
+      transaction_status: "OPEN" | "PAID" | "CANCELED" | "PARTIAL"
       trip_status: "em_deslocamento" | "concluido"
       vehicle_status: "ativo" | "inativo" | "em_manutencao"
     }
@@ -938,6 +1107,7 @@ export const Constants = {
         "outro",
         "colaborador",
       ],
+      item_type: ["PRODUCT", "SERVICE", "FEE", "DISCOUNT"],
       maintenance_type: ["preventiva", "corretiva", "colisao"],
       os_status: [
         "pending",
@@ -955,6 +1125,9 @@ export const Constants = {
       ],
       service_urgency: ["corrective", "preventive"],
       status_type: ["tecnico", "comercial"],
+      transaction_direction: ["RECEIVE", "PAY"],
+      transaction_origin: ["SERVICE_CALL", "MANUAL"],
+      transaction_status: ["OPEN", "PAID", "CANCELED", "PARTIAL"],
       trip_status: ["em_deslocamento", "concluido"],
       vehicle_status: ["ativo", "inativo", "em_manutencao"],
     },

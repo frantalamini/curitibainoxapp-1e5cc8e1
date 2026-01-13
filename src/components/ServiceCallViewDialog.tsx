@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ import {
   PenTool,
   MessageCircle,
   Mail,
+  DollarSign,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateOSPdf } from "@/lib/generateOSPdf";
@@ -43,6 +45,7 @@ import { useChecklists } from "@/hooks/useChecklists";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { SendReportModal } from "@/components/SendReportModal";
+import { FinanceiroTab } from "@/components/os-financeiro/FinanceiroTab";
 import { supabase } from "@/integrations/supabase/client";
 
 const getLatestSignature = (signatures: any[] | undefined, role: 'tech' | 'client') => {
@@ -256,6 +259,20 @@ const ServiceCallViewDialog = ({
             </div>
           </div>
         </DialogHeader>
+
+        {/* Tabs - Detalhes e Financeiro (só Admin vê Financeiro) */}
+        <Tabs defaultValue="detalhes" className="mt-4">
+          <TabsList className="w-full justify-start">
+            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="financeiro" className="flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4" />
+                Financeiro
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          <TabsContent value="detalhes" className="mt-4">
         
         {pdfUrl && (
           <Card className="mt-4 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
@@ -855,6 +872,15 @@ const ServiceCallViewDialog = ({
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          {/* Aba Financeiro - Somente Admin */}
+          {isAdmin && (
+            <TabsContent value="financeiro" className="mt-4">
+              <FinanceiroTab serviceCallId={call.id} clientId={call.client_id} />
+            </TabsContent>
+          )}
+        </Tabs>
       </DialogContent>
       
       {/* Modais de Envio */}
