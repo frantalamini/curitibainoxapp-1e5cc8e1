@@ -37,6 +37,7 @@ import {
   Calculator,
   Receipt,
 } from "lucide-react";
+import { QuickProductForm } from "./QuickProductForm";
 
 interface FinanceiroTabProps {
   serviceCallId: string;
@@ -360,18 +361,21 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2 pt-2 border-t">
             <div className="col-span-2">
               <Label className="text-xs">Produto</Label>
-              <Select value={newProduct.product_id} onValueChange={handleProductSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} {p.sku ? `(${p.sku})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={newProduct.product_id} onValueChange={handleProductSelect}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name} {p.sku ? `(${p.sku})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <QuickProductForm onSuccess={(product) => handleProductSelect(product.id)} />
+              </div>
             </div>
             <div>
               <Label className="text-xs">Qtd</Label>

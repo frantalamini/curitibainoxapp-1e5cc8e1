@@ -11,6 +11,27 @@ export interface Product {
   active: boolean | null;
   created_at: string | null;
   updated_at: string | null;
+  // New fields
+  type: string | null;
+  brand: string | null;
+  model: string | null;
+  weight_kg: number | null;
+  length_cm: number | null;
+  width_cm: number | null;
+  height_cm: number | null;
+  ncm: string | null;
+  gtin: string | null;
+  cest: string | null;
+  origin: string | null;
+  tax_icms: number | null;
+  tax_pis: number | null;
+  tax_cofins: number | null;
+  cost_price: number | null;
+  sale_price: number | null;
+  track_stock: boolean | null;
+  min_stock: number | null;
+  // Computed from view
+  stock_balance?: number | null;
 }
 
 export interface ProductInsert {
@@ -20,6 +41,24 @@ export interface ProductInsert {
   unit?: string | null;
   unit_price?: number | null;
   active?: boolean | null;
+  type?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  weight_kg?: number | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  ncm?: string | null;
+  gtin?: string | null;
+  cest?: string | null;
+  origin?: string | null;
+  tax_icms?: number | null;
+  tax_pis?: number | null;
+  tax_cofins?: number | null;
+  cost_price?: number | null;
+  sale_price?: number | null;
+  track_stock?: boolean | null;
+  min_stock?: number | null;
 }
 
 export const useProducts = () => {
@@ -28,14 +67,32 @@ export const useProducts = () => {
   const { data: products, isLoading, error } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get products
+      const { data: productsData, error: productsError } = await supabase
         .from("products")
         .select("*")
         .eq("active", true)
         .order("name");
 
-      if (error) throw error;
-      return data as Product[];
+      if (productsError) throw productsError;
+
+      // Then get stock balances
+      const { data: stockData, error: stockError } = await supabase
+        .from("product_stock_balance")
+        .select("*");
+
+      if (stockError) {
+        console.warn("Could not fetch stock balances:", stockError);
+        return productsData as Product[];
+      }
+
+      // Merge stock balances into products
+      const stockMap = new Map(stockData?.map(s => [s.product_id, s.balance]) || []);
+      
+      return (productsData || []).map(p => ({
+        ...p,
+        stock_balance: stockMap.get(p.id) ?? 0,
+      })) as Product[];
     },
   });
 
