@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle, DollarSign } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ import { StartTripModal } from "@/components/StartTripModal";
 import { EndTripModal } from "@/components/EndTripModal";
 import { useOpenTrip, useHasCompletedTrip, useServiceCallTripsMutations } from "@/hooks/useServiceCallTrips";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FinanceiroTab } from "@/components/os-financeiro/FinanceiroTab";
 
 type Signature = {
   image_url: string;
@@ -889,9 +890,19 @@ const ServiceCallForm = () => {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Tabs defaultValue="geral" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className={cn(
+              "grid w-full mb-6",
+              isAdmin && isEditMode ? "grid-cols-3" : "grid-cols-2"
+            )}>
               <TabsTrigger value="geral">Geral</TabsTrigger>
               <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
+              {isAdmin && isEditMode && (
+                <TabsTrigger value="financeiro" className="flex items-center justify-center gap-1.5">
+                  <DollarSign className="w-4 h-4" />
+                  <span className="hidden sm:inline">Financeiro</span>
+                  <span className="sm:hidden">$</span>
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="geral">
@@ -1453,6 +1464,26 @@ const ServiceCallForm = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Aba Financeiro - Apenas Admin em modo edição */}
+            {isAdmin && isEditMode && (
+              <TabsContent value="financeiro">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5" />
+                      Financeiro
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <FinanceiroTab 
+                      serviceCallId={id!} 
+                      clientId={selectedClientId} 
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
           </Tabs>
 
           <div className="flex gap-4 mt-6">
