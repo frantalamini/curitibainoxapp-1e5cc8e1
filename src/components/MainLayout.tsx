@@ -68,12 +68,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       icon: "usuarios",
       items: [
         { icon: "clientesFornecedores", label: "Clientes e Fornecedores", to: "/cadastros/clientes" },
-        { icon: "equipamentos", label: "Produtos", to: "/equipment" },
+        { icon: "equipamentos", label: "Produtos", to: "/products" },
+        { icon: "equipamentos", label: "Equipamentos (Ativos)", to: "/equipment" },
         { icon: "servicos", label: "Serviços", to: "/service-types" },
         { icon: "atividade", label: "Status de Chamado", to: "/service-call-statuses" },
-        { icon: "categorias", label: "Categorias dos Produtos", to: "/categories" },
-        { icon: "usuarios", label: "Vendedores", to: "/sellers" },
-        { icon: "equipamentos", label: "Embalagens", to: "/packaging" },
         { icon: "veiculo", label: "Veículos", to: "/vehicles" },
         ...(isAdmin
           ? [
