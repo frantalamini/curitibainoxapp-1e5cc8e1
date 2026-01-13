@@ -313,36 +313,90 @@ export type Database = {
       products: {
         Row: {
           active: boolean | null
+          brand: string | null
+          cest: string | null
+          cost_price: number | null
           created_at: string | null
           description: string | null
+          gtin: string | null
+          height_cm: number | null
           id: string
+          length_cm: number | null
+          min_stock: number | null
+          model: string | null
           name: string
+          ncm: string | null
+          origin: string | null
+          sale_price: number | null
           sku: string | null
+          tax_cofins: number | null
+          tax_icms: number | null
+          tax_pis: number | null
+          track_stock: boolean | null
+          type: string | null
           unit: string | null
           unit_price: number | null
           updated_at: string | null
+          weight_kg: number | null
+          width_cm: number | null
         }
         Insert: {
           active?: boolean | null
+          brand?: string | null
+          cest?: string | null
+          cost_price?: number | null
           created_at?: string | null
           description?: string | null
+          gtin?: string | null
+          height_cm?: number | null
           id?: string
+          length_cm?: number | null
+          min_stock?: number | null
+          model?: string | null
           name: string
+          ncm?: string | null
+          origin?: string | null
+          sale_price?: number | null
           sku?: string | null
+          tax_cofins?: number | null
+          tax_icms?: number | null
+          tax_pis?: number | null
+          track_stock?: boolean | null
+          type?: string | null
           unit?: string | null
           unit_price?: number | null
           updated_at?: string | null
+          weight_kg?: number | null
+          width_cm?: number | null
         }
         Update: {
           active?: boolean | null
+          brand?: string | null
+          cest?: string | null
+          cost_price?: number | null
           created_at?: string | null
           description?: string | null
+          gtin?: string | null
+          height_cm?: number | null
           id?: string
+          length_cm?: number | null
+          min_stock?: number | null
+          model?: string | null
           name?: string
+          ncm?: string | null
+          origin?: string | null
+          sale_price?: number | null
           sku?: string | null
+          tax_cofins?: number | null
+          tax_icms?: number | null
+          tax_pis?: number | null
+          track_stock?: boolean | null
+          type?: string | null
           unit?: string | null
           unit_price?: number | null
           updated_at?: string | null
+          weight_kg?: number | null
+          width_cm?: number | null
         }
         Relationships: []
       }
@@ -744,6 +798,50 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          product_id: string
+          qty: number
+          reference_id: string | null
+          reference_type: string | null
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          unit_cost: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+          qty: number
+          reference_id?: string | null
+          reference_type?: string | null
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          unit_cost?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+          qty?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: Database["public"]["Enums"]["stock_movement_type"]
+          unit_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           company_address: string | null
@@ -928,7 +1026,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      product_stock_balance: {
+        Row: {
+          balance: number | null
+          product_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
@@ -965,6 +1077,7 @@ export type Database = {
         | "on_hold"
       service_urgency: "corrective" | "preventive"
       status_type: "tecnico" | "comercial"
+      stock_movement_type: "IN" | "OUT" | "ADJUST"
       transaction_direction: "RECEIVE" | "PAY"
       transaction_origin: "SERVICE_CALL" | "MANUAL"
       transaction_status: "OPEN" | "PAID" | "CANCELED" | "PARTIAL"
@@ -1125,6 +1238,7 @@ export const Constants = {
       ],
       service_urgency: ["corrective", "preventive"],
       status_type: ["tecnico", "comercial"],
+      stock_movement_type: ["IN", "OUT", "ADJUST"],
       transaction_direction: ["RECEIVE", "PAY"],
       transaction_origin: ["SERVICE_CALL", "MANUAL"],
       transaction_status: ["OPEN", "PAID", "CANCELED", "PARTIAL"],
