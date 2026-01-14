@@ -343,6 +343,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                       <TableCell className="text-right font-medium">{formatCurrency(item.total)}</TableCell>
                       <TableCell>
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteItem(item.id)}
@@ -407,7 +408,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleAddProduct} disabled={createItem.isPending} className="w-full">
+              <Button type="button" onClick={handleAddProduct} disabled={createItem.isPending} className="w-full">
                 <Plus className="h-4 w-4 mr-1" />
                 Adicionar
               </Button>
@@ -449,6 +450,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                       <TableCell className="text-right font-medium">{formatCurrency(item.total)}</TableCell>
                       <TableCell>
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteItem(item.id)}
@@ -503,7 +505,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleAddService} disabled={createItem.isPending} className="w-full">
+              <Button type="button" onClick={handleAddService} disabled={createItem.isPending} className="w-full">
                 <Plus className="h-4 w-4 mr-1" />
                 Adicionar
               </Button>
@@ -609,6 +611,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               )}
               <div className="flex items-end">
                 <Button 
+                  type="button"
                   onClick={handleGenerateInstallments} 
                   disabled={createManyTransactions.isPending || totals.grand <= 0}
                   className="w-full"
@@ -658,6 +661,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                         {t.status === "OPEN" && (
                           <div className="flex gap-1">
                             <Button
+                              type="button"
                               variant="ghost"
                               size="icon"
                               title="Marcar como pago"
@@ -666,6 +670,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                               <Check className="h-4 w-4 text-green-600" />
                             </Button>
                             <Button
+                              type="button"
                               variant="ghost"
                               size="icon"
                               title="Cancelar"
