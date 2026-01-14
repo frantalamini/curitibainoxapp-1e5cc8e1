@@ -89,6 +89,26 @@ export interface ServiceCallInsert {
   internal_notes_audio_url?: string;
 }
 
+// Helper para sanitizar campos UUID (converte "" para null)
+const UUID_FIELDS = [
+  'service_type_id',
+  'status_id',
+  'commercial_status_id',
+  'checklist_id',
+  'client_id',
+  'technician_id',
+] as const;
+
+const sanitizeUuidFields = <T extends object>(data: T): T => {
+  const sanitized = { ...data } as Record<string, unknown>;
+  UUID_FIELDS.forEach(field => {
+    if (field in sanitized && sanitized[field] === '') {
+      sanitized[field] = null;
+    }
+  });
+  return sanitized as T;
+};
+
 // Query select fields para reutilização
 const SERVICE_CALL_SELECT = `
   *,
@@ -193,9 +213,11 @@ export const useServiceCalls = (limit: number = 30) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      const sanitized = sanitizeUuidFields(newServiceCall);
+
       const { data, error } = await supabase
         .from("service_calls")
-        .insert([{ ...newServiceCall, created_by: user.id }])
+        .insert([{ ...sanitized, created_by: user.id }])
         .select()
         .single();
 
@@ -220,9 +242,11 @@ export const useServiceCalls = (limit: number = 30) => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ServiceCall> & { id: string }) => {
+      const sanitized = sanitizeUuidFields(updates);
+
       const { data, error } = await supabase
         .from("service_calls")
-        .update(updates)
+        .update(sanitized)
         .eq("id", id)
         .select()
         .single();
