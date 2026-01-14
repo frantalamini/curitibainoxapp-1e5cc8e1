@@ -248,6 +248,7 @@ export type Database = {
           installments_group_id: string | null
           installments_total: number | null
           interest: number | null
+          interval_days: number | null
           notes: string | null
           origin: Database["public"]["Enums"]["transaction_origin"]
           paid_at: string | null
@@ -267,6 +268,7 @@ export type Database = {
           installments_group_id?: string | null
           installments_total?: number | null
           interest?: number | null
+          interval_days?: number | null
           notes?: string | null
           origin: Database["public"]["Enums"]["transaction_origin"]
           paid_at?: string | null
@@ -286,6 +288,7 @@ export type Database = {
           installments_group_id?: string | null
           installments_total?: number | null
           interest?: number | null
+          interval_days?: number | null
           notes?: string | null
           origin?: Database["public"]["Enums"]["transaction_origin"]
           paid_at?: string | null
@@ -607,6 +610,12 @@ export type Database = {
           customer_signature_data: string | null
           customer_signature_date: string | null
           customer_signature_url: string | null
+          discount_parts_type: string | null
+          discount_parts_value: number | null
+          discount_services_type: string | null
+          discount_services_value: number | null
+          discount_total_type: string | null
+          discount_total_value: number | null
           equipment_description: string
           equipment_serial_number: string | null
           id: string
@@ -615,6 +624,7 @@ export type Database = {
           media_urls: string[] | null
           notes: string | null
           os_number: number
+          payment_config: Json | null
           photos_after_urls: string[] | null
           photos_before_urls: string[] | null
           problem_description: string | null
@@ -652,6 +662,12 @@ export type Database = {
           customer_signature_data?: string | null
           customer_signature_date?: string | null
           customer_signature_url?: string | null
+          discount_parts_type?: string | null
+          discount_parts_value?: number | null
+          discount_services_type?: string | null
+          discount_services_value?: number | null
+          discount_total_type?: string | null
+          discount_total_value?: number | null
           equipment_description: string
           equipment_serial_number?: string | null
           id?: string
@@ -660,6 +676,7 @@ export type Database = {
           media_urls?: string[] | null
           notes?: string | null
           os_number?: number
+          payment_config?: Json | null
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null
@@ -697,6 +714,12 @@ export type Database = {
           customer_signature_data?: string | null
           customer_signature_date?: string | null
           customer_signature_url?: string | null
+          discount_parts_type?: string | null
+          discount_parts_value?: number | null
+          discount_services_type?: string | null
+          discount_services_value?: number | null
+          discount_total_type?: string | null
+          discount_total_value?: number | null
           equipment_description?: string
           equipment_serial_number?: string | null
           id?: string
@@ -705,6 +728,7 @@ export type Database = {
           media_urls?: string[] | null
           notes?: string | null
           os_number?: number
+          payment_config?: Json | null
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null
