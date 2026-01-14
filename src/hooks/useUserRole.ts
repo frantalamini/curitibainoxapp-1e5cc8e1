@@ -24,7 +24,11 @@ export const useUserRole = () => {
           console.error("Error fetching roles:", error);
           setRoles([]);
         } else {
-          setRoles(data?.map((r) => r.role) || []);
+          const fetchedRoles = data?.map((r) => r.role) || [];
+          console.log("🔐 useUserRole - User ID:", user.id);
+          console.log("🔐 useUserRole - Roles fetched:", fetchedRoles);
+          console.log("🔐 useUserRole - isAdmin:", fetchedRoles.includes("admin"));
+          setRoles(fetchedRoles);
         }
       } catch (error) {
         console.error("Error in fetchRoles:", error);
