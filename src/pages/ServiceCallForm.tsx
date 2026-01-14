@@ -74,7 +74,7 @@ const ServiceCallForm = () => {
   const { data: existingCall, isLoading: isLoadingCall } = useServiceCall(id);
   const isEditMode = !!id;
   const { createServiceCall, updateServiceCall } = useServiceCalls();
-  const { isAdmin, isTechnician } = useUserRole();
+  const { isAdmin, isTechnician, loading: rolesLoading } = useUserRole();
   
   // Estados para deslocamentos
   const [startTripModalOpen, setStartTripModalOpen] = useState(false);
@@ -892,12 +892,20 @@ const ServiceCallForm = () => {
           <Tabs defaultValue="geral" className="w-full">
             <TabsList className={cn(
               "grid w-full mb-6",
-              isAdmin && isEditMode ? "grid-cols-3" : "grid-cols-2"
+              // Mostrar 3 colunas se admin em modo edição (ou loading para evitar piscar)
+              (isAdmin || rolesLoading) && isEditMode ? "grid-cols-3" : "grid-cols-2"
             )}>
               <TabsTrigger value="geral">Geral</TabsTrigger>
               <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
-              {isAdmin && isEditMode && (
-                <TabsTrigger value="financeiro" className="flex items-center justify-center gap-1.5">
+              {isEditMode && (isAdmin || rolesLoading) && (
+                <TabsTrigger 
+                  value="financeiro" 
+                  className={cn(
+                    "flex items-center justify-center gap-1.5",
+                    rolesLoading && "opacity-50 pointer-events-none"
+                  )}
+                  disabled={rolesLoading}
+                >
                   <DollarSign className="w-4 h-4" />
                   <span className="hidden sm:inline">Financeiro</span>
                   <span className="sm:hidden">$</span>
@@ -1466,7 +1474,7 @@ const ServiceCallForm = () => {
             </TabsContent>
 
             {/* Aba Financeiro - Apenas Admin em modo edição */}
-            {isAdmin && isEditMode && (
+            {isEditMode && (isAdmin || rolesLoading) && (
               <TabsContent value="financeiro">
                 <Card>
                   <CardHeader>
@@ -1476,10 +1484,20 @@ const ServiceCallForm = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <FinanceiroTab 
-                      serviceCallId={id!} 
-                      clientId={selectedClientId} 
-                    />
+                    {rolesLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+                      </div>
+                    ) : isAdmin ? (
+                      <FinanceiroTab 
+                        serviceCallId={id!} 
+                        clientId={selectedClientId} 
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center py-8 text-muted-foreground">
+                        Acesso restrito a administradores.
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
