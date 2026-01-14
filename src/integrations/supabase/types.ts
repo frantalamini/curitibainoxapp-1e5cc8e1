@@ -322,6 +322,7 @@ export type Database = {
           height_cm: number | null
           id: string
           length_cm: number | null
+          markup: number | null
           min_stock: number | null
           model: string | null
           name: string
@@ -351,6 +352,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           length_cm?: number | null
+          markup?: number | null
           min_stock?: number | null
           model?: string | null
           name: string
@@ -380,6 +382,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           length_cm?: number | null
+          markup?: number | null
           min_stock?: number | null
           model?: string | null
           name?: string
