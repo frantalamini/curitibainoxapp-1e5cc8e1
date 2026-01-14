@@ -131,7 +131,7 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="shrink-0">
+        <Button type="button" variant="outline" size="sm" className="shrink-0">
           <Plus className="h-4 w-4 mr-1" />
           <span className="hidden sm:inline">Novo</span>
         </Button>
