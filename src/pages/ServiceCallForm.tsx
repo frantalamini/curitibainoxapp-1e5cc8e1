@@ -141,6 +141,9 @@ const ServiceCallForm = () => {
   // Ref para chunks de áudio técnico (evita problemas de closure)
   const technicalAudioChunksRef = useRef<BlobPart[]>([]);
   
+  // Flag para evitar re-inicialização do formulário quando queries são invalidadas
+  const initializedRef = useRef(false);
+  
   // Estados de preview removidos - MediaSlots gerencia internamente
 
   const {
@@ -286,8 +289,15 @@ const ServiceCallForm = () => {
     };
   }, []);
 
+  // Resetar flag quando muda de OS (id muda)
   useEffect(() => {
-    if (existingCall && isEditMode) {
+    initializedRef.current = false;
+  }, [id]);
+
+  // Inicializa formulário apenas UMA VEZ quando existingCall é carregado
+  // Evita re-inicialização quando queries (products, etc) são invalidadas
+  useEffect(() => {
+    if (existingCall && isEditMode && !initializedRef.current) {
       setValue("client_id", existingCall.client_id);
       setValue("equipment_description", existingCall.equipment_description);
       setValue("problem_description", existingCall.problem_description || "");
@@ -317,6 +327,9 @@ const ServiceCallForm = () => {
       setEquipmentSerialNumber(existingCall.equipment_serial_number || "");
       setInternalNotesText(existingCall.internal_notes_text || "");
       setExistingTechnicalAudioUrl(existingCall.technical_diagnosis_audio_url || null);
+      
+      // Marca como inicializado para evitar re-inicializações
+      initializedRef.current = true;
     }
   }, [existingCall, isEditMode, setValue]);
 
