@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,26 +18,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/hooks/useProducts";
 import { useServiceCallItems, ItemType } from "@/hooks/useServiceCallItems";
 import { useFinancialTransactions } from "@/hooks/useFinancialTransactions";
-import { format, addDays, addMonths } from "date-fns";
+import { useServiceCall } from "@/hooks/useServiceCalls";
+import { 
+  useFinancialCalculations, 
+  generateInstallments, 
+  prepareWebhookPayload,
+  buildPaymentConfig,
+  parsePaymentConfig
+} from "@/hooks/useFinancialCalculations";
+import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Package,
   Wrench,
   Trash2,
   Plus,
-  DollarSign,
-  CreditCard,
-  Check,
-  X,
-  Calculator,
-  Receipt,
+  Save,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { QuickProductForm } from "./QuickProductForm";
+import { DiscountSection } from "./DiscountSection";
+import { InstallmentGenerator } from "./InstallmentGenerator";
+import { InstallmentTable } from "./InstallmentTable";
+import { PaymentMethodsSection } from "./PaymentMethodsSection";
+import { DiscountConfig, PaymentMethod, DiscountType } from "./types";
 
 interface FinanceiroTabProps {
   serviceCallId: string;
@@ -54,6 +62,7 @@ const formatCurrency = (value: number) => {
 export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) => {
   const { toast } = useToast();
   const { products } = useProducts();
+  const { data: serviceCall } = useServiceCall(serviceCallId);
   const {
     items,
     productItems,
@@ -67,8 +76,10 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const {
     transactions,
     createManyTransactions,
+    updateTransaction,
     markAsPaid,
     cancelTransaction,
+    deleteTransaction,
     summary,
     isLoading: isLoadingTransactions,
   } = useFinancialTransactions(serviceCallId);
@@ -88,11 +99,65 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     discount_value: 0,
   });
 
-  // Payment form state
-  const [paymentMethod, setPaymentMethod] = useState("pix");
-  const [paymentCondition, setPaymentCondition] = useState("avista");
-  const [installmentsCount, setInstallmentsCount] = useState(2);
-  const [generalDiscount, setGeneralDiscount] = useState(0);
+  // === NEW: Discount states ===
+  const [discounts, setDiscounts] = useState<DiscountConfig>({
+    parts: { type: 'value', value: 0, calculated: 0 },
+    services: { type: 'value', value: 0, calculated: 0 },
+    total: { type: 'value', value: 0, calculated: 0 },
+  });
+
+  // === NEW: Payment states ===
+  const [paymentStartDate, setPaymentStartDate] = useState<Date>(new Date());
+  const [installmentDays, setInstallmentDays] = useState<number[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // === Load existing discount values from service call ===
+  useEffect(() => {
+    if (serviceCall) {
+      const sc = serviceCall as Record<string, any>;
+      
+      // Load discounts
+      setDiscounts({
+        parts: {
+          type: (sc.discount_parts_type as DiscountType) || 'value',
+          value: sc.discount_parts_value || 0,
+          calculated: 0,
+        },
+        services: {
+          type: (sc.discount_services_type as DiscountType) || 'value',
+          value: sc.discount_services_value || 0,
+          calculated: 0,
+        },
+        total: {
+          type: (sc.discount_total_type as DiscountType) || 'value',
+          value: sc.discount_total_value || 0,
+          calculated: 0,
+        },
+      });
+
+      // Load payment config
+      const paymentConfig = parsePaymentConfig(sc.payment_config);
+      if (paymentConfig) {
+        if (paymentConfig.startDate) {
+          setPaymentStartDate(new Date(paymentConfig.startDate + "T12:00:00"));
+        }
+        if (paymentConfig.installmentDays.length > 0) {
+          setInstallmentDays(paymentConfig.installmentDays);
+        }
+        if (paymentConfig.paymentMethods.length > 0) {
+          setPaymentMethods(paymentConfig.paymentMethods);
+        }
+      }
+    }
+  }, [serviceCall]);
+
+  // === Calculate totals with discounts ===
+  const calculatedTotals = useFinancialCalculations({
+    subtotalParts: totals.products,
+    subtotalServices: totals.services,
+    discounts,
+  });
 
   // Add product item
   const handleAddProduct = async () => {
@@ -168,78 +233,53 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
-  // Generate installments
+  // Handle product selection to update unit price
+  const handleProductSelect = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    setNewProduct(prev => ({
+      ...prev,
+      product_id: productId,
+      unit_price: product?.unit_price || 0,
+    }));
+  };
+
+  // === NEW: Generate installments ===
   const handleGenerateInstallments = async () => {
-    const totalWithDiscount = totals.grand - generalDiscount;
-    
-    if (totalWithDiscount <= 0) {
+    if (installmentDays.length === 0) {
+      toast({ title: "Configure os dias das parcelas", variant: "destructive" });
+      return;
+    }
+
+    if (calculatedTotals.grandTotal <= 0) {
       toast({ title: "O valor total deve ser maior que zero", variant: "destructive" });
       return;
     }
 
     if (transactions.length > 0) {
-      toast({ title: "Já existem parcelas geradas para esta OS", variant: "destructive" });
+      toast({ title: "Já existem parcelas geradas. Delete-as primeiro.", variant: "destructive" });
       return;
     }
 
     const groupId = crypto.randomUUID();
-    const today = new Date();
-    let installmentsData: any[] = [];
+    const installments = generateInstallments(paymentStartDate, installmentDays, calculatedTotals.grandTotal);
 
-    if (paymentCondition === "avista") {
-      // À vista - uma única parcela
-      installmentsData = [{
-        direction: "RECEIVE" as const,
-        origin: "SERVICE_CALL" as const,
-        status: "OPEN" as const,
-        service_call_id: serviceCallId,
-        client_id: clientId,
-        due_date: format(today, "yyyy-MM-dd"),
-        amount: totalWithDiscount,
-        discount: generalDiscount,
-        payment_method: paymentMethod,
-        installment_number: 1,
-        installments_total: 1,
-        installments_group_id: groupId,
-      }];
-    } else if (paymentCondition === "parcelado") {
-      // Parcelado - N parcelas mensais
-      const installmentValue = totalWithDiscount / installmentsCount;
-      
-      for (let i = 0; i < installmentsCount; i++) {
-        const dueDate = addMonths(today, i);
-        installmentsData.push({
-          direction: "RECEIVE" as const,
-          origin: "SERVICE_CALL" as const,
-          status: "OPEN" as const,
-          service_call_id: serviceCallId,
-          client_id: clientId,
-          due_date: format(dueDate, "yyyy-MM-dd"),
-          amount: installmentValue,
-          discount: i === 0 ? generalDiscount : 0,
-          payment_method: paymentMethod,
-          installment_number: i + 1,
-          installments_total: installmentsCount,
-          installments_group_id: groupId,
-        });
-      }
-    } else if (paymentCondition === "boleto30") {
-      // Boleto 30 dias
-      installmentsData = [{
-        direction: "RECEIVE" as const,
-        origin: "SERVICE_CALL" as const,
-        status: "OPEN" as const,
-        service_call_id: serviceCallId,
-        client_id: clientId,
-        due_date: format(addDays(today, 30), "yyyy-MM-dd"),
-        amount: totalWithDiscount,
-        discount: generalDiscount,
-        payment_method: "boleto",
-        installment_number: 1,
-        installments_total: 1,
-        installments_group_id: groupId,
-      }];
-    }
+    // Determine primary payment method
+    const primaryMethod = paymentMethods.length > 0 ? paymentMethods[0].method : 'pix';
+
+    const installmentsData = installments.map((inst) => ({
+      direction: "RECEIVE" as const,
+      origin: "SERVICE_CALL" as const,
+      status: "OPEN" as const,
+      service_call_id: serviceCallId,
+      client_id: clientId,
+      due_date: format(inst.dueDate, "yyyy-MM-dd"),
+      amount: inst.amount,
+      payment_method: primaryMethod,
+      installment_number: inst.number,
+      installments_total: installments.length,
+      installments_group_id: groupId,
+      interval_days: inst.days,
+    }));
 
     try {
       await createManyTransactions.mutateAsync(installmentsData);
@@ -270,26 +310,76 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
-  // Handle product selection to update unit price
-  const handleProductSelect = (productId: string) => {
-    const product = products.find(p => p.id === productId);
-    setNewProduct(prev => ({
-      ...prev,
-      product_id: productId,
-      unit_price: product?.unit_price || 0,
-    }));
+  // Delete transaction
+  const handleDeleteTransaction = async (transactionId: string) => {
+    try {
+      await deleteTransaction.mutateAsync(transactionId);
+      toast({ title: "Parcela excluída" });
+    } catch (error) {
+      toast({ title: "Erro ao excluir parcela", variant: "destructive" });
+    }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "PAID":
-        return <Badge className="bg-green-500">Pago</Badge>;
-      case "CANCELED":
-        return <Badge variant="destructive">Cancelado</Badge>;
-      case "PARTIAL":
-        return <Badge className="bg-yellow-500">Parcial</Badge>;
-      default:
-        return <Badge variant="secondary">Em Aberto</Badge>;
+  // Update transaction
+  const handleUpdateTransaction = async (id: string, updates: any) => {
+    try {
+      await updateTransaction.mutateAsync({ id, ...updates });
+      toast({ title: "Parcela atualizada" });
+    } catch (error) {
+      toast({ title: "Erro ao atualizar parcela", variant: "destructive" });
+    }
+  };
+
+  // === NEW: Save financial data ===
+  const handleSaveFinancial = async () => {
+    setIsSaving(true);
+    try {
+      // Build payment config JSON
+      const paymentConfig = buildPaymentConfig(paymentStartDate, installmentDays, paymentMethods);
+
+      // Update service call with discount and payment data
+      const { error } = await supabase
+        .from("service_calls")
+        .update({
+          discount_parts_type: discounts.parts.type,
+          discount_parts_value: discounts.parts.value,
+          discount_services_type: discounts.services.type,
+          discount_services_value: discounts.services.value,
+          discount_total_type: discounts.total.type,
+          discount_total_value: discounts.total.value,
+          payment_config: paymentConfig as unknown as Record<string, unknown>,
+        } as any)
+        .eq("id", serviceCallId);
+
+      if (error) throw error;
+
+      // Prepare webhook payload (for future integration)
+      const webhookPayload = prepareWebhookPayload(
+        serviceCallId,
+        clientId,
+        serviceCall?.os_number,
+        discounts,
+        calculatedTotals,
+        { startDate: paymentStartDate, installmentDays },
+        transactions.map(t => ({
+          number: t.installment_number || 1,
+          days: (t as any).interval_days || 0,
+          dueDate: new Date(t.due_date + "T12:00:00"),
+          amount: t.amount,
+          status: t.status,
+        })),
+        paymentMethods
+      );
+
+      // Log webhook payload for debugging (future: send to webhook)
+      console.log("[Webhook Payload]", webhookPayload);
+
+      toast({ title: "Dados financeiros salvos com sucesso" });
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Erro ao salvar dados financeiros", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -321,7 +411,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                     <TableHead>Produto</TableHead>
                     <TableHead className="text-right">Qtd</TableHead>
                     <TableHead className="text-right">Preço Unit.</TableHead>
-                    <TableHead className="text-right">Desconto</TableHead>
+                    <TableHead className="text-right">Desc. Linha</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
@@ -398,7 +488,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               />
             </div>
             <div>
-              <Label className="text-xs">Desconto</Label>
+              <Label className="text-xs">Desc. Linha</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -435,7 +525,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                     <TableHead>Descrição</TableHead>
                     <TableHead className="text-right">Qtd</TableHead>
                     <TableHead className="text-right">Preço</TableHead>
-                    <TableHead className="text-right">Desconto</TableHead>
+                    <TableHead className="text-right">Desc. Linha</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
@@ -495,7 +585,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               />
             </div>
             <div>
-              <Label className="text-xs">Desconto</Label>
+              <Label className="text-xs">Desc. Linha</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -514,199 +604,59 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         </CardContent>
       </Card>
 
-      {/* Resumo */}
-      <Card className="bg-muted/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Calculator className="w-5 h-5" />
-            Resumo
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <Label className="text-xs text-muted-foreground">Total Peças</Label>
-              <p className="text-lg font-semibold">{formatCurrency(totals.products)}</p>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Total Serviços</Label>
-              <p className="text-lg font-semibold">{formatCurrency(totals.services)}</p>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Desconto Geral</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={generalDiscount}
-                onChange={e => setGeneralDiscount(Number(e.target.value))}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">TOTAL OS</Label>
-              <p className="text-2xl font-bold text-primary">
-                {formatCurrency(totals.grand - generalDiscount)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* === NEW: Discount Section === */}
+      <DiscountSection
+        subtotalParts={totals.products}
+        subtotalServices={totals.services}
+        discounts={discounts}
+        onDiscountsChange={setDiscounts}
+        calculatedTotals={calculatedTotals}
+      />
 
-      {/* Pagamento / Contas a Receber */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
-            Pagamento / Contas a Receber
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Payment configuration */}
-          {transactions.length === 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b">
-              <div>
-                <Label className="text-xs">Forma de Pagamento</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
-                    <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="transferencia">Transferência</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Condição</Label>
-                <Select value={paymentCondition} onValueChange={setPaymentCondition}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="avista">À Vista</SelectItem>
-                    <SelectItem value="parcelado">Parcelado</SelectItem>
-                    <SelectItem value="boleto30">Boleto 30 dias</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {paymentCondition === "parcelado" && (
-                <div>
-                  <Label className="text-xs">Nº Parcelas</Label>
-                  <Select value={String(installmentsCount)} onValueChange={v => setInstallmentsCount(Number(v))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[2, 3, 4, 5, 6, 10, 12].map(n => (
-                        <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div className="flex items-end">
-                <Button 
-                  type="button"
-                  onClick={handleGenerateInstallments} 
-                  disabled={createManyTransactions.isPending || totals.grand <= 0}
-                  className="w-full"
-                >
-                  <Receipt className="h-4 w-4 mr-1" />
-                  Gerar Parcelas
-                </Button>
-              </div>
-            </div>
-          )}
+      {/* === NEW: Payment Methods Section === */}
+      <PaymentMethodsSection
+        total={calculatedTotals.grandTotal}
+        methods={paymentMethods}
+        onMethodsChange={setPaymentMethods}
+      />
 
-          {/* Installments list */}
-          {transactions.length > 0 && (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Pago em</TableHead>
-                    <TableHead className="w-24">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map(t => (
-                    <TableRow key={t.id}>
-                      <TableCell>
-                        {t.installments_total && t.installments_total > 1
-                          ? `${t.installment_number}/${t.installments_total}`
-                          : "Única"}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(t.due_date + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(t.amount)}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(t.status)}</TableCell>
-                      <TableCell>
-                        {t.paid_at
-                          ? format(new Date(t.paid_at), "dd/MM/yyyy", { locale: ptBR })
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {t.status === "OPEN" && (
-                          <div className="flex gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              title="Marcar como pago"
-                              onClick={() => handleMarkAsPaid(t.id)}
-                            >
-                              <Check className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              title="Cancelar"
-                              onClick={() => handleCancelTransaction(t.id)}
-                            >
-                              <X className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+      {/* === NEW: Installment Generator === */}
+      <InstallmentGenerator
+        total={calculatedTotals.grandTotal}
+        startDate={paymentStartDate}
+        onStartDateChange={setPaymentStartDate}
+        installmentDays={installmentDays}
+        onInstallmentDaysChange={setInstallmentDays}
+        onGenerate={handleGenerateInstallments}
+        hasExistingInstallments={transactions.length > 0}
+        isGenerating={createManyTransactions.isPending}
+      />
 
-          {/* Summary */}
-          {transactions.length > 0 && (
-            <div className="flex justify-end gap-6 pt-4 border-t text-sm">
-              <div>
-                <span className="text-muted-foreground">Total:</span>{" "}
-                <span className="font-semibold">{formatCurrency(summary.total)}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Pago:</span>{" "}
-                <span className="font-semibold text-green-600">{formatCurrency(summary.paid)}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Em Aberto:</span>{" "}
-                <span className="font-semibold text-orange-600">{formatCurrency(summary.open)}</span>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* === NEW: Installment Table === */}
+      {transactions.length > 0 && (
+        <InstallmentTable
+          transactions={transactions}
+          onMarkAsPaid={handleMarkAsPaid}
+          onCancel={handleCancelTransaction}
+          onDelete={handleDeleteTransaction}
+          onUpdate={handleUpdateTransaction}
+          summary={summary}
+          isUpdating={updateTransaction.isPending}
+        />
+      )}
+
+      {/* === Save Button === */}
+      <div className="flex justify-end pt-4">
+        <Button
+          type="button"
+          onClick={handleSaveFinancial}
+          disabled={isSaving}
+          className="min-w-[200px]"
+        >
+          <Save className="h-4 w-4 mr-2" />
+          {isSaving ? "Salvando..." : "Salvar Dados Financeiros"}
+        </Button>
+      </div>
     </div>
   );
 };
