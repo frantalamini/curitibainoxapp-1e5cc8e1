@@ -28,6 +28,7 @@ export interface Product {
   tax_cofins: number | null;
   cost_price: number | null;
   sale_price: number | null;
+  markup: number | null;
   track_stock: boolean | null;
   min_stock: number | null;
   // Computed from view
@@ -57,6 +58,7 @@ export interface ProductInsert {
   tax_cofins?: number | null;
   cost_price?: number | null;
   sale_price?: number | null;
+  markup?: number | null;
   track_stock?: boolean | null;
   min_stock?: number | null;
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { useProducts, Product } from "@/hooks/useProducts";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Plus, Package, Save } from "lucide-react";
 
 const PRODUCT_TYPES = [
@@ -47,6 +48,7 @@ interface QuickProductFormProps {
 export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
   const { toast } = useToast();
   const { createProduct } = useProducts();
+  const { isAdmin, isTechnician } = useUserRole();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -56,9 +58,18 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
     type: "",
     unit: "UN",
     cost_price: null as number | null,
-    sale_price: null as number | null,
+    markup: 0,
     track_stock: true,
   });
+
+  // Cálculo automático do preço de venda baseado no markup
+  const calculatedSalePrice = useMemo(() => {
+    if (formData.cost_price && formData.cost_price > 0) {
+      const result = formData.cost_price * (1 + formData.markup / 100);
+      return Math.round(result * 100) / 100; // Arredondar para 2 casas decimais
+    }
+    return null;
+  }, [formData.cost_price, formData.markup]);
 
   const resetForm = () => {
     setFormData({
@@ -67,7 +78,7 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
       type: "",
       unit: "UN",
       cost_price: null,
-      sale_price: null,
+      markup: 0,
       track_stock: true,
     });
   };
@@ -89,8 +100,9 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
         type: formData.type || null,
         unit: formData.unit || null,
         cost_price: formData.cost_price,
-        sale_price: formData.sale_price,
-        unit_price: formData.sale_price,
+        markup: formData.markup,
+        sale_price: calculatedSalePrice,
+        unit_price: calculatedSalePrice,
         track_stock: formData.track_stock,
       });
 
@@ -109,6 +121,12 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
       setIsLoading(false);
     }
   };
+
+  // Técnicos não veem o formulário de cadastro rápido de produto
+  // pois não podem ver informações financeiras
+  if (isTechnician && !isAdmin) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -191,9 +209,10 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
             </Select>
           </div>
 
+          {/* Campos financeiros - apenas para Admin */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="quick-cost">Preço Custo</Label>
+              <Label htmlFor="quick-cost">Preço Custo *</Label>
               <Input
                 id="quick-cost"
                 type="number"
@@ -211,22 +230,39 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
             </div>
 
             <div>
-              <Label htmlFor="quick-sale">Preço Venda</Label>
+              <Label htmlFor="quick-markup">Markup (%)</Label>
               <Input
-                id="quick-sale"
+                id="quick-markup"
                 type="number"
                 step="0.01"
                 min="0"
-                value={formData.sale_price ?? ""}
+                value={formData.markup}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    sale_price: e.target.value ? Number(e.target.value) : null,
+                    markup: e.target.value ? Number(e.target.value) : 0,
                   }))
                 }
-                placeholder="0,00"
+                placeholder="0"
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="quick-sale">Preço Venda (calculado)</Label>
+            <Input
+              id="quick-sale"
+              type="number"
+              step="0.01"
+              min="0"
+              value={calculatedSalePrice ?? ""}
+              readOnly
+              className="bg-muted cursor-not-allowed"
+              placeholder="Automático"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Preço de venda calculado automaticamente com base no custo e markup
+            </p>
           </div>
 
           <div className="flex items-center justify-between py-2">
