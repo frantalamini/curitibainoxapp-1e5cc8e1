@@ -4,7 +4,7 @@ import {
   DiscountConfig, 
   CalculatedTotals, 
   Installment, 
-  PaymentMethod, 
+  OSPaymentEntry, 
   FinancialWebhookPayload,
   PaymentConfig 
 } from "@/components/os-financeiro/types";
@@ -90,7 +90,7 @@ export const generateInstallments = (
 
 // Validate payment methods sum
 export const validatePaymentMethods = (
-  methods: PaymentMethod[],
+  methods: OSPaymentEntry[],
   total: number
 ): { valid: boolean; diff: number } => {
   const sum = methods.reduce((acc, m) => acc + m.amount, 0);
@@ -112,7 +112,7 @@ export const prepareWebhookPayload = (
     installmentDays: number[];
   },
   installments: Array<{ number: number; days: number; dueDate: Date; amount: number; status: string }>,
-  paymentMethods: PaymentMethod[]
+  paymentMethods: OSPaymentEntry[]
 ): FinancialWebhookPayload => {
   return {
     os_id: serviceCallId,
@@ -181,7 +181,7 @@ export const parsePaymentConfig = (config: unknown): PaymentConfig | null => {
 export const buildPaymentConfig = (
   startDate: Date,
   installmentDays: number[],
-  paymentMethods: PaymentMethod[]
+  paymentMethods: OSPaymentEntry[]
 ): Record<string, unknown> => {
   return {
     start_date: format(startDate, 'yyyy-MM-dd'),

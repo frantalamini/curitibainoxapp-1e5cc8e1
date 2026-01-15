@@ -23,7 +23,8 @@ export type PaymentMethodType =
   | 'transferencia' 
   | 'outros';
 
-export interface PaymentMethod {
+// Renamed to avoid conflict with PaymentMethod from usePaymentMethods.ts
+export interface OSPaymentEntry {
   id: string;
   method: PaymentMethodType;
   amount: number;
@@ -44,7 +45,7 @@ export interface Installment {
 export interface PaymentConfig {
   startDate: string;
   installmentDays: number[];
-  paymentMethods: PaymentMethod[];
+  paymentMethods: OSPaymentEntry[];
 }
 
 export interface CalculatedTotals {
