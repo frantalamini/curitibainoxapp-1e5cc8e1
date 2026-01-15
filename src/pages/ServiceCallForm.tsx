@@ -53,7 +53,7 @@ import { StartTripModal } from "@/components/StartTripModal";
 import { EndTripModal } from "@/components/EndTripModal";
 import { useOpenTrip, useHasCompletedTrip, useServiceCallTripsMutations } from "@/hooks/useServiceCallTrips";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FinanceiroTab } from "@/components/os-financeiro/FinanceiroTab";
+import { FinanceiroGuard } from "@/components/os-financeiro/FinanceiroGuard";
 
 type Signature = {
   image_url: string;
@@ -293,6 +293,37 @@ const ServiceCallForm = () => {
   useEffect(() => {
     initializedRef.current = false;
   }, [id]);
+
+  // CHECK DE REGRESSÃO: Verifica se a aba Financeiro existe no DOM em modo edição
+  // Se este check falhar, significa que algo removeu a aba indevidamente
+  useEffect(() => {
+    if (isEditMode) {
+      const checkFinanceiroTab = () => {
+        const financeiroTrigger = document.querySelector('[data-testid="financeiro-tab-trigger"]');
+        const financeiroContent = document.querySelector('[data-testid="financeiro-tab-content"]');
+        
+        if (!financeiroTrigger) {
+          console.error(
+            "🚨 REGRESSÃO DETECTADA: Aba Financeiro (trigger) não encontrada no DOM!",
+            { isEditMode, id, pathname: window.location.pathname }
+          );
+        }
+        if (!financeiroContent) {
+          console.error(
+            "🚨 REGRESSÃO DETECTADA: Aba Financeiro (content) não encontrada no DOM!",
+            { isEditMode, id, pathname: window.location.pathname }
+          );
+        }
+        if (financeiroTrigger && financeiroContent) {
+          console.log("✅ Check Financeiro: Aba presente no DOM");
+        }
+      };
+      
+      // Verificar após render completo
+      const timeout = setTimeout(checkFinanceiroTab, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [isEditMode, id]);
 
   // Inicializa formulário apenas UMA VEZ quando existingCall é carregado
   // Evita re-inicialização quando queries (products, etc) são invalidadas
@@ -903,21 +934,22 @@ const ServiceCallForm = () => {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Tabs defaultValue="geral" className="w-full">
+            {/* 
+              BLINDAGEM: A aba Financeiro SEMPRE existe em modo edição.
+              A decisão de mostrar conteúdo ou placeholder é feita pelo FinanceiroGuard.
+              NÃO REMOVER esta estrutura - ela garante que a aba nunca "some".
+            */}
             <TabsList className={cn(
               "grid w-full mb-6",
-              // Mostrar 3 colunas se admin em modo edição (ou loading para evitar piscar)
-              (isAdmin || rolesLoading) && isEditMode ? "grid-cols-3" : "grid-cols-2"
+              isEditMode ? "grid-cols-3" : "grid-cols-2"
             )}>
               <TabsTrigger value="geral">Geral</TabsTrigger>
               <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
-              {isEditMode && (isAdmin || rolesLoading) && (
+              {isEditMode && (
                 <TabsTrigger 
                   value="financeiro" 
-                  className={cn(
-                    "flex items-center justify-center gap-1.5",
-                    rolesLoading && "opacity-50 pointer-events-none"
-                  )}
-                  disabled={rolesLoading}
+                  className="flex items-center justify-center gap-1.5"
+                  data-testid="financeiro-tab-trigger"
                 >
                   <DollarSign className="w-4 h-4" />
                   <span className="hidden sm:inline">Financeiro</span>
@@ -1486,9 +1518,18 @@ const ServiceCallForm = () => {
               </Card>
             </TabsContent>
 
-            {/* Aba Financeiro - Apenas Admin em modo edição */}
-            {isEditMode && (isAdmin || rolesLoading) && (
-              <TabsContent value="financeiro">
+            {/* 
+              BLINDAGEM: Aba Financeiro SEMPRE presente em modo edição.
+              O FinanceiroGuard gerencia internamente:
+              - Loading: mostra "Carregando permissões..."
+              - Erro: mostra alerta com botão retry
+              - Não-admin: mostra placeholder "Acesso Restrito"
+              - Admin: renderiza FinanceiroTab
+              
+              NÃO REMOVER ou CONDICIONAR esta TabsContent!
+            */}
+            {isEditMode && (
+              <TabsContent value="financeiro" data-testid="financeiro-tab-content">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -1497,20 +1538,10 @@ const ServiceCallForm = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {rolesLoading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="animate-pulse text-muted-foreground">Carregando...</div>
-                      </div>
-                    ) : isAdmin ? (
-                      <FinanceiroTab 
-                        serviceCallId={id!} 
-                        clientId={selectedClientId} 
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center py-8 text-muted-foreground">
-                        Acesso restrito a administradores.
-                      </div>
-                    )}
+                    <FinanceiroGuard 
+                      serviceCallId={id!} 
+                      clientId={selectedClientId} 
+                    />
                   </CardContent>
                 </Card>
               </TabsContent>
