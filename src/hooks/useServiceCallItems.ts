@@ -11,6 +11,7 @@ export interface ServiceCallItem {
   description: string;
   qty: number;
   unit_price: number;
+  discount_type: string | null;
   discount_value: number;
   total: number;
   created_at: string;
@@ -29,6 +30,7 @@ export interface ServiceCallItemInsert {
   description: string;
   qty?: number;
   unit_price?: number;
+  discount_type?: string | null;
   discount_value?: number;
   total: number;
 }
