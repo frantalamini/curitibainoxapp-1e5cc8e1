@@ -72,6 +72,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: "equipamentos", label: "Equipamentos (Ativos)", to: "/equipment" },
         { icon: "servicos", label: "Serviços", to: "/service-types" },
         { icon: "atividade", label: "Status de Chamado", to: "/service-call-statuses" },
+        { icon: "financeiro", label: "Formas de Pagamento", to: "/payment-methods" },
         { icon: "veiculo", label: "Veículos", to: "/vehicles" },
         ...(isAdmin
           ? [

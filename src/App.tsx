@@ -48,6 +48,8 @@ const Install = lazy(() => import("./pages/Install"));
 const Inicio = lazy(() => import("./pages/Inicio"));
 const Products = lazy(() => import("./pages/Products"));
 const ProductForm = lazy(() => import("./pages/ProductForm"));
+const PaymentMethods = lazy(() => import("./pages/PaymentMethods"));
+const PaymentMethodForm = lazy(() => import("./pages/PaymentMethodForm"));
 
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
@@ -464,6 +466,30 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment-methods"
+              element={
+                <ProtectedRoute>
+                  <PaymentMethods />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment-methods/new"
+              element={
+                <ProtectedRoute>
+                  <PaymentMethodForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment-methods/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <PaymentMethodForm />
                 </ProtectedRoute>
               }
             />

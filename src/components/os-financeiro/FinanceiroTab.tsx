@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -20,9 +21,10 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/hooks/useProducts";
-import { useServiceCallItems, ItemType } from "@/hooks/useServiceCallItems";
+import { useServiceCallItems, ItemType, ServiceCallItem } from "@/hooks/useServiceCallItems";
 import { useFinancialTransactions } from "@/hooks/useFinancialTransactions";
 import { useServiceCall } from "@/hooks/useServiceCalls";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { 
   useFinancialCalculations, 
   generateInstallments, 
@@ -38,14 +40,24 @@ import {
   Trash2,
   Plus,
   Save,
+  Percent,
+  DollarSign,
+  CreditCard,
+  Receipt,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Calendar as CalendarIcon,
+  Check,
+  ListOrdered,
+  Trash,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QuickProductForm } from "./QuickProductForm";
-import { DiscountSection } from "./DiscountSection";
-import { InstallmentGenerator } from "./InstallmentGenerator";
-import { InstallmentTable } from "./InstallmentTable";
-import { PaymentMethodsSection } from "./PaymentMethodsSection";
 import { DiscountConfig, PaymentMethod, DiscountType } from "./types";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface FinanceiroTabProps {
   serviceCallId: string;
@@ -62,12 +74,14 @@ const formatCurrency = (value: number) => {
 export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) => {
   const { toast } = useToast();
   const { products } = useProducts();
+  const { activePaymentMethods } = usePaymentMethods();
   const { data: serviceCall } = useServiceCall(serviceCallId);
   const {
     items,
     productItems,
     serviceItems,
     createItem,
+    updateItem,
     deleteItem,
     totals,
     isLoading: isLoadingItems,
@@ -89,61 +103,48 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     product_id: "",
     qty: 1,
     unit_price: 0,
+    discount_percent: 0,
     discount_value: 0,
+    discount_type: "value" as "percent" | "value",
   });
 
   const [newService, setNewService] = useState({
     description: "",
     qty: 1,
     unit_price: 0,
+    discount_percent: 0,
     discount_value: 0,
+    discount_type: "value" as "percent" | "value",
   });
 
-  // === NEW: Discount states ===
-  const [discounts, setDiscounts] = useState<DiscountConfig>({
-    parts: { type: 'value', value: 0, calculated: 0 },
-    services: { type: 'value', value: 0, calculated: 0 },
-    total: { type: 'value', value: 0, calculated: 0 },
-  });
+  // Simplified discount - only OS general discount
+  const [osDiscountType, setOsDiscountType] = useState<DiscountType>("value");
+  const [osDiscountValue, setOsDiscountValue] = useState(0);
 
-  // === NEW: Payment states ===
+  // Payment states
   const [paymentStartDate, setPaymentStartDate] = useState<Date>(new Date());
-  const [installmentDays, setInstallmentDays] = useState<number[]>([]);
+  const [installmentCount, setInstallmentCount] = useState(1);
+  const [installmentInterval, setInstallmentInterval] = useState(30);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // === Load existing discount values from service call ===
+  // Editing state for inline installment editing
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [editDays, setEditDays] = useState(0);
+  const [editDueDate, setEditDueDate] = useState<Date | undefined>();
+  const [editAmount, setEditAmount] = useState(0);
+
+  // Load existing data from service call
   useEffect(() => {
     if (serviceCall) {
       const sc = serviceCall as Record<string, any>;
-      
-      // Load discounts
-      setDiscounts({
-        parts: {
-          type: (sc.discount_parts_type as DiscountType) || 'value',
-          value: sc.discount_parts_value || 0,
-          calculated: 0,
-        },
-        services: {
-          type: (sc.discount_services_type as DiscountType) || 'value',
-          value: sc.discount_services_value || 0,
-          calculated: 0,
-        },
-        total: {
-          type: (sc.discount_total_type as DiscountType) || 'value',
-          value: sc.discount_total_value || 0,
-          calculated: 0,
-        },
-      });
+      setOsDiscountType((sc.discount_total_type as DiscountType) || "value");
+      setOsDiscountValue(sc.discount_total_value || 0);
 
-      // Load payment config
       const paymentConfig = parsePaymentConfig(sc.payment_config);
       if (paymentConfig) {
         if (paymentConfig.startDate) {
           setPaymentStartDate(new Date(paymentConfig.startDate + "T12:00:00"));
-        }
-        if (paymentConfig.installmentDays.length > 0) {
-          setInstallmentDays(paymentConfig.installmentDays);
         }
         if (paymentConfig.paymentMethods.length > 0) {
           setPaymentMethods(paymentConfig.paymentMethods);
@@ -152,12 +153,33 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   }, [serviceCall]);
 
-  // === Calculate totals with discounts ===
-  const calculatedTotals = useFinancialCalculations({
-    subtotalParts: totals.products,
-    subtotalServices: totals.services,
-    discounts,
-  });
+  // Calculate totals
+  const subtotalParts = totals.products;
+  const subtotalServices = totals.services;
+  const subtotalOS = subtotalParts + subtotalServices;
+  
+  const osDiscount = useMemo(() => {
+    if (osDiscountType === "percent") {
+      return (subtotalOS * osDiscountValue) / 100;
+    }
+    return Math.min(osDiscountValue, subtotalOS);
+  }, [osDiscountType, osDiscountValue, subtotalOS]);
+  
+  const grandTotal = subtotalOS - osDiscount;
+
+  // Generate installment days array
+  const installmentDays = useMemo(() => {
+    return Array.from({ length: installmentCount }, (_, i) => installmentInterval * (i + 1));
+  }, [installmentCount, installmentInterval]);
+
+  // Calculate item total with discount
+  const calculateItemTotal = (qty: number, unitPrice: number, discountType: "percent" | "value", discountPercent: number, discountValue: number) => {
+    const subtotal = qty * unitPrice;
+    if (discountType === "percent") {
+      return subtotal - (subtotal * discountPercent / 100);
+    }
+    return subtotal - discountValue;
+  };
 
   // Add product item
   const handleAddProduct = async () => {
@@ -171,8 +193,10 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
 
     const qty = newProduct.qty || 1;
     const unitPrice = newProduct.unit_price || product.unit_price || 0;
-    const discount = newProduct.discount_value || 0;
-    const total = qty * unitPrice - discount;
+    const discountVal = newProduct.discount_type === "percent" 
+      ? (qty * unitPrice * newProduct.discount_percent / 100)
+      : newProduct.discount_value;
+    const total = qty * unitPrice - discountVal;
 
     try {
       await createItem.mutateAsync({
@@ -182,12 +206,12 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         description: product.name,
         qty,
         unit_price: unitPrice,
-        discount_value: discount,
+        discount_value: discountVal,
         total,
       });
 
-      setNewProduct({ product_id: "", qty: 1, unit_price: 0, discount_value: 0 });
-      toast({ title: "Peça adicionada com sucesso" });
+      setNewProduct({ product_id: "", qty: 1, unit_price: 0, discount_percent: 0, discount_value: 0, discount_type: "value" });
+      toast({ title: "Peça adicionada" });
     } catch (error) {
       toast({ title: "Erro ao adicionar peça", variant: "destructive" });
     }
@@ -202,8 +226,10 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
 
     const qty = newService.qty || 1;
     const unitPrice = newService.unit_price || 0;
-    const discount = newService.discount_value || 0;
-    const total = qty * unitPrice - discount;
+    const discountVal = newService.discount_type === "percent" 
+      ? (qty * unitPrice * newService.discount_percent / 100)
+      : newService.discount_value;
+    const total = qty * unitPrice - discountVal;
 
     try {
       await createItem.mutateAsync({
@@ -212,12 +238,12 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         description: newService.description,
         qty,
         unit_price: unitPrice,
-        discount_value: discount,
+        discount_value: discountVal,
         total,
       });
 
-      setNewService({ description: "", qty: 1, unit_price: 0, discount_value: 0 });
-      toast({ title: "Serviço adicionado com sucesso" });
+      setNewService({ description: "", qty: 1, unit_price: 0, discount_percent: 0, discount_value: 0, discount_type: "value" });
+      toast({ title: "Serviço adicionado" });
     } catch (error) {
       toast({ title: "Erro ao adicionar serviço", variant: "destructive" });
     }
@@ -233,7 +259,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
-  // Handle product selection to update unit price
+  // Handle product selection
   const handleProductSelect = (productId: string) => {
     const product = products.find(p => p.id === productId);
     setNewProduct(prev => ({
@@ -243,28 +269,45 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }));
   };
 
-  // === NEW: Generate installments ===
-  const handleGenerateInstallments = async () => {
-    if (installmentDays.length === 0) {
-      toast({ title: "Configure os dias das parcelas", variant: "destructive" });
-      return;
-    }
+  // Payment methods handlers
+  const handleAddPaymentMethod = () => {
+    const defaultMethod = activePaymentMethods[0]?.name || "PIX";
+    const newMethod: PaymentMethod = {
+      id: crypto.randomUUID(),
+      method: defaultMethod.toLowerCase().replace(/\s+/g, "_") as any,
+      amount: paymentMethods.length === 0 ? grandTotal : 0,
+      details: "",
+    };
+    setPaymentMethods([...paymentMethods, newMethod]);
+  };
 
-    if (calculatedTotals.grandTotal <= 0) {
+  const handleRemovePaymentMethod = (id: string) => {
+    setPaymentMethods(paymentMethods.filter(m => m.id !== id));
+  };
+
+  const handlePaymentMethodChange = (id: string, field: keyof PaymentMethod, value: any) => {
+    setPaymentMethods(paymentMethods.map(m => m.id === id ? { ...m, [field]: value } : m));
+  };
+
+  const paymentMethodsTotal = paymentMethods.reduce((sum, m) => sum + m.amount, 0);
+  const paymentMethodsDiff = grandTotal - paymentMethodsTotal;
+  const paymentMethodsValid = Math.abs(paymentMethodsDiff) < 0.01;
+
+  // Generate installments
+  const handleGenerateInstallments = async () => {
+    if (grandTotal <= 0) {
       toast({ title: "O valor total deve ser maior que zero", variant: "destructive" });
       return;
     }
 
     if (transactions.length > 0) {
-      toast({ title: "Já existem parcelas geradas. Delete-as primeiro.", variant: "destructive" });
+      toast({ title: "Limpe as parcelas existentes primeiro", variant: "destructive" });
       return;
     }
 
     const groupId = crypto.randomUUID();
-    const installments = generateInstallments(paymentStartDate, installmentDays, calculatedTotals.grandTotal);
-
-    // Determine primary payment method
-    const primaryMethod = paymentMethods.length > 0 ? paymentMethods[0].method : 'pix';
+    const installments = generateInstallments(paymentStartDate, installmentDays, grandTotal);
+    const primaryMethod = paymentMethods.length > 0 ? paymentMethods[0].method : "pix";
 
     const installmentsData = installments.map((inst) => ({
       direction: "RECEIVE" as const,
@@ -285,99 +328,68 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       await createManyTransactions.mutateAsync(installmentsData);
       toast({ title: "Parcelas geradas com sucesso" });
     } catch (error) {
-      console.error(error);
       toast({ title: "Erro ao gerar parcelas", variant: "destructive" });
     }
   };
 
-  // Mark as paid
-  const handleMarkAsPaid = async (transactionId: string) => {
+  // Clear all installments
+  const handleClearInstallments = async () => {
     try {
-      await markAsPaid.mutateAsync(transactionId);
-      toast({ title: "Parcela marcada como paga" });
+      for (const t of transactions) {
+        await deleteTransaction.mutateAsync(t.id);
+      }
+      toast({ title: "Parcelas removidas" });
     } catch (error) {
-      toast({ title: "Erro ao marcar como paga", variant: "destructive" });
+      toast({ title: "Erro ao remover parcelas", variant: "destructive" });
     }
   };
 
-  // Cancel transaction
-  const handleCancelTransaction = async (transactionId: string) => {
-    try {
-      await cancelTransaction.mutateAsync(transactionId);
-      toast({ title: "Parcela cancelada" });
-    } catch (error) {
-      toast({ title: "Erro ao cancelar parcela", variant: "destructive" });
-    }
+  // Inline edit handlers
+  const handleStartEditTransaction = (t: any) => {
+    setEditingTransactionId(t.id);
+    setEditDays((t as any).interval_days || 0);
+    setEditDueDate(new Date(t.due_date + "T12:00:00"));
+    setEditAmount(t.amount);
   };
 
-  // Delete transaction
-  const handleDeleteTransaction = async (transactionId: string) => {
+  const handleSaveEditTransaction = async () => {
+    if (!editingTransactionId || !editDueDate) return;
     try {
-      await deleteTransaction.mutateAsync(transactionId);
-      toast({ title: "Parcela excluída" });
-    } catch (error) {
-      toast({ title: "Erro ao excluir parcela", variant: "destructive" });
-    }
-  };
-
-  // Update transaction
-  const handleUpdateTransaction = async (id: string, updates: any) => {
-    try {
-      await updateTransaction.mutateAsync({ id, ...updates });
+      await updateTransaction.mutateAsync({
+        id: editingTransactionId,
+        amount: editAmount,
+        due_date: format(editDueDate, "yyyy-MM-dd"),
+      });
+      setEditingTransactionId(null);
       toast({ title: "Parcela atualizada" });
     } catch (error) {
-      toast({ title: "Erro ao atualizar parcela", variant: "destructive" });
+      toast({ title: "Erro ao atualizar", variant: "destructive" });
     }
   };
 
-  // === NEW: Save financial data ===
+  // Save financial data
   const handleSaveFinancial = async () => {
     setIsSaving(true);
     try {
-      // Build payment config JSON
       const paymentConfig = buildPaymentConfig(paymentStartDate, installmentDays, paymentMethods);
 
-      // Update service call with discount and payment data
       const { error } = await supabase
         .from("service_calls")
         .update({
-          discount_parts_type: discounts.parts.type,
-          discount_parts_value: discounts.parts.value,
-          discount_services_type: discounts.services.type,
-          discount_services_value: discounts.services.value,
-          discount_total_type: discounts.total.type,
-          discount_total_value: discounts.total.value,
+          discount_parts_type: "value",
+          discount_parts_value: 0,
+          discount_services_type: "value",
+          discount_services_value: 0,
+          discount_total_type: osDiscountType,
+          discount_total_value: osDiscountValue,
           payment_config: paymentConfig as unknown as Record<string, unknown>,
         } as any)
         .eq("id", serviceCallId);
 
       if (error) throw error;
-
-      // Prepare webhook payload (for future integration)
-      const webhookPayload = prepareWebhookPayload(
-        serviceCallId,
-        clientId,
-        serviceCall?.os_number,
-        discounts,
-        calculatedTotals,
-        { startDate: paymentStartDate, installmentDays },
-        transactions.map(t => ({
-          number: t.installment_number || 1,
-          days: (t as any).interval_days || 0,
-          dueDate: new Date(t.due_date + "T12:00:00"),
-          amount: t.amount,
-          status: t.status,
-        })),
-        paymentMethods
-      );
-
-      // Log webhook payload for debugging (future: send to webhook)
-      console.log("[Webhook Payload]", webhookPayload);
-
-      toast({ title: "Dados financeiros salvos com sucesso" });
+      toast({ title: "Dados financeiros salvos" });
     } catch (error) {
-      console.error(error);
-      toast({ title: "Erro ao salvar dados financeiros", variant: "destructive" });
+      toast({ title: "Erro ao salvar", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -386,81 +398,87 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   if (isLoadingItems || isLoadingTransactions) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Peças/Produtos */}
+    <div className="space-y-4">
+      {/* Peças/Produtos - Compact */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Package className="w-5 h-5" />
+        <CardHeader className="py-2 px-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Package className="w-4 h-4" />
             Peças / Produtos
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Table of existing products */}
+        <CardContent className="p-2 space-y-2">
           {productItems.length > 0 && (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Produto</TableHead>
-                    <TableHead className="text-right">Qtd</TableHead>
-                    <TableHead className="text-right">Preço Unit.</TableHead>
-                    <TableHead className="text-right">Desc. Linha</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                  <TableRow className="text-xs">
+                    <TableHead className="py-1 px-2">Item</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-14">Qtd</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-20">Unit.</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-20">Subtot.</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-16">Desc.</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-20">Total</TableHead>
+                    <TableHead className="py-1 px-2 w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {productItems.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{item.description}</p>
+                  {productItems.map(item => {
+                    const subtotal = item.qty * item.unit_price;
+                    return (
+                      <TableRow key={item.id} className="text-xs">
+                        <TableCell className="py-1 px-2">
+                          <span className="font-medium">{item.description}</span>
                           {item.products?.sku && (
-                            <p className="text-xs text-muted-foreground">SKU: {item.products.sku}</p>
+                            <span className="text-muted-foreground ml-1">({item.products.sku})</span>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">{item.qty}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.discount_value)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(item.total)}</TableCell>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-right">{item.qty}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="py-1 px-2 text-right text-muted-foreground">{formatCurrency(subtotal)}</TableCell>
+                        <TableCell className="py-1 px-2 text-right text-destructive">
+                          {item.discount_value > 0 ? `-${formatCurrency(item.discount_value)}` : "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-right font-medium">{formatCurrency(item.total)}</TableCell>
+                        <TableCell className="py-1 px-2">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteItem(item.id)}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           )}
+          
+          {/* Total Peças */}
+          {productItems.length > 0 && (
+            <div className="text-right text-sm font-medium py-1 border-t">
+              Total Peças: {formatCurrency(subtotalParts)}
+            </div>
+          )}
 
-          {/* Add new product form */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 pt-2 border-t">
+          {/* Add product form - compact */}
+          <div className="grid grid-cols-2 md:grid-cols-7 gap-1 pt-1 border-t text-xs">
             <div className="col-span-2">
-              <Label className="text-xs">Produto</Label>
-              <div className="flex gap-2">
+              <Label className="text-[10px]">Produto</Label>
+              <div className="flex gap-1">
                 <Select value={newProduct.product_id} onValueChange={handleProductSelect}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
                     {products.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name} {p.sku ? `(${p.sku})` : ""}
+                      <SelectItem key={p.id} value={p.id} className="text-xs">
+                        {p.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -469,83 +487,249 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               </div>
             </div>
             <div>
-              <Label className="text-xs">Qtd</Label>
-              <Input
-                type="number"
-                min="1"
-                value={newProduct.qty}
-                onChange={e => setNewProduct(prev => ({ ...prev, qty: Number(e.target.value) }))}
-              />
+              <Label className="text-[10px]">Qtd</Label>
+              <Input type="number" min="1" className="h-8 text-xs" value={newProduct.qty}
+                onChange={e => setNewProduct(prev => ({ ...prev, qty: Number(e.target.value) }))} />
             </div>
             <div>
-              <Label className="text-xs">Preço Unit.</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={newProduct.unit_price}
-                onChange={e => setNewProduct(prev => ({ ...prev, unit_price: Number(e.target.value) }))}
-              />
+              <Label className="text-[10px]">Unit.</Label>
+              <Input type="number" step="0.01" min="0" className="h-8 text-xs" value={newProduct.unit_price}
+                onChange={e => setNewProduct(prev => ({ ...prev, unit_price: Number(e.target.value) }))} />
             </div>
             <div>
-              <Label className="text-xs">Desc. Linha</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={newProduct.discount_value}
-                onChange={e => setNewProduct(prev => ({ ...prev, discount_value: Number(e.target.value) }))}
-              />
+              <Label className="text-[10px]">%Desc</Label>
+              <Input type="number" min="0" max="100" className="h-8 text-xs" 
+                value={newProduct.discount_type === "percent" ? newProduct.discount_percent : ""}
+                placeholder="-"
+                onChange={e => setNewProduct(prev => ({ 
+                  ...prev, 
+                  discount_type: "percent",
+                  discount_percent: Number(e.target.value),
+                  discount_value: 0
+                }))} />
+            </div>
+            <div>
+              <Label className="text-[10px]">R$Desc</Label>
+              <Input type="number" step="0.01" min="0" className="h-8 text-xs" 
+                value={newProduct.discount_type === "value" ? newProduct.discount_value : ""}
+                placeholder="-"
+                onChange={e => setNewProduct(prev => ({ 
+                  ...prev, 
+                  discount_type: "value",
+                  discount_value: Number(e.target.value),
+                  discount_percent: 0
+                }))} />
             </div>
             <div className="flex items-end">
-              <Button type="button" onClick={handleAddProduct} disabled={createItem.isPending} className="w-full">
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar
+              <Button type="button" size="sm" className="h-8 w-full text-xs" onClick={handleAddProduct} disabled={createItem.isPending}>
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Serviços */}
+      {/* Serviços - Compact */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Wrench className="w-5 h-5" />
+        <CardHeader className="py-2 px-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Wrench className="w-4 h-4" />
             Serviços
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Table of existing services */}
+        <CardContent className="p-2 space-y-2">
           {serviceItems.length > 0 && (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right">Qtd</TableHead>
-                    <TableHead className="text-right">Preço</TableHead>
-                    <TableHead className="text-right">Desc. Linha</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                  <TableRow className="text-xs">
+                    <TableHead className="py-1 px-2">Descrição</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-14">Qtd</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-20">Unit.</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-20">Subtot.</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-16">Desc.</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-20">Total</TableHead>
+                    <TableHead className="py-1 px-2 w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {serviceItems.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.description}</TableCell>
-                      <TableCell className="text-right">{item.qty}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.discount_value)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(item.total)}</TableCell>
-                      <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                  {serviceItems.map(item => {
+                    const subtotal = item.qty * item.unit_price;
+                    return (
+                      <TableRow key={item.id} className="text-xs">
+                        <TableCell className="py-1 px-2 font-medium">{item.description}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{item.qty}</TableCell>
+                        <TableCell className="py-1 px-2 text-right">{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="py-1 px-2 text-right text-muted-foreground">{formatCurrency(subtotal)}</TableCell>
+                        <TableCell className="py-1 px-2 text-right text-destructive">
+                          {item.discount_value > 0 ? `-${formatCurrency(item.discount_value)}` : "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-right font-medium">{formatCurrency(item.total)}</TableCell>
+                        <TableCell className="py-1 px-2">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteItem(item.id)}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Total Serviços */}
+          {serviceItems.length > 0 && (
+            <div className="text-right text-sm font-medium py-1 border-t">
+              Total Serviços: {formatCurrency(subtotalServices)}
+            </div>
+          )}
+
+          {/* Add service form - compact */}
+          <div className="grid grid-cols-2 md:grid-cols-7 gap-1 pt-1 border-t text-xs">
+            <div className="col-span-2">
+              <Label className="text-[10px]">Descrição</Label>
+              <Input placeholder="Ex: Mão de obra..." className="h-8 text-xs" value={newService.description}
+                onChange={e => setNewService(prev => ({ ...prev, description: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-[10px]">Qtd</Label>
+              <Input type="number" min="1" className="h-8 text-xs" value={newService.qty}
+                onChange={e => setNewService(prev => ({ ...prev, qty: Number(e.target.value) }))} />
+            </div>
+            <div>
+              <Label className="text-[10px]">Unit.</Label>
+              <Input type="number" step="0.01" min="0" className="h-8 text-xs" value={newService.unit_price}
+                onChange={e => setNewService(prev => ({ ...prev, unit_price: Number(e.target.value) }))} />
+            </div>
+            <div>
+              <Label className="text-[10px]">%Desc</Label>
+              <Input type="number" min="0" max="100" className="h-8 text-xs"
+                value={newService.discount_type === "percent" ? newService.discount_percent : ""}
+                placeholder="-"
+                onChange={e => setNewService(prev => ({ 
+                  ...prev, 
+                  discount_type: "percent",
+                  discount_percent: Number(e.target.value),
+                  discount_value: 0
+                }))} />
+            </div>
+            <div>
+              <Label className="text-[10px]">R$Desc</Label>
+              <Input type="number" step="0.01" min="0" className="h-8 text-xs"
+                value={newService.discount_type === "value" ? newService.discount_value : ""}
+                placeholder="-"
+                onChange={e => setNewService(prev => ({ 
+                  ...prev, 
+                  discount_type: "value",
+                  discount_value: Number(e.target.value),
+                  discount_percent: 0
+                }))} />
+            </div>
+            <div className="flex items-end">
+              <Button type="button" size="sm" className="h-8 w-full text-xs" onClick={handleAddService} disabled={createItem.isPending}>
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Totais e Desconto Geral - Compact */}
+      <Card className="bg-muted/30">
+        <CardContent className="p-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end text-sm">
+            <div>
+              <span className="text-[10px] text-muted-foreground">Total Peças</span>
+              <p className="font-semibold">{formatCurrency(subtotalParts)}</p>
+            </div>
+            <div>
+              <span className="text-[10px] text-muted-foreground">Total Serviços</span>
+              <p className="font-semibold">{formatCurrency(subtotalServices)}</p>
+            </div>
+            <div className="flex gap-1 items-end">
+              <div className="flex-1">
+                <span className="text-[10px] text-muted-foreground">Desc. OS</span>
+                <div className="flex gap-1">
+                  <Select value={osDiscountType} onValueChange={(v) => setOsDiscountType(v as DiscountType)}>
+                    <SelectTrigger className="h-8 w-16 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percent"><Percent className="h-3 w-3" /></SelectItem>
+                      <SelectItem value="value"><DollarSign className="h-3 w-3" /></SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input type="number" step="0.01" min="0" className="h-8 text-xs w-20"
+                    value={osDiscountValue} onChange={e => setOsDiscountValue(Number(e.target.value))} />
+                </div>
+              </div>
+            </div>
+            <div>
+              <span className="text-[10px] text-muted-foreground">Desconto Calculado</span>
+              <p className="font-medium text-destructive">-{formatCurrency(osDiscount)}</p>
+            </div>
+            <div>
+              <span className="text-[10px] text-muted-foreground">TOTAL OS</span>
+              <p className="text-xl font-bold text-primary">{formatCurrency(grandTotal)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Formas de Pagamento - Compact */}
+      <Card>
+        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <CreditCard className="w-4 h-4" />
+            Formas de Pagamento
+          </CardTitle>
+          <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleAddPaymentMethod}>
+            <Plus className="h-3 w-3 mr-1" /> Adicionar
+          </Button>
+        </CardHeader>
+        <CardContent className="p-2 space-y-2">
+          {paymentMethods.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-2">Nenhuma forma adicionada</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="text-xs">
+                    <TableHead className="py-1 px-2">Forma</TableHead>
+                    <TableHead className="py-1 px-2 text-right">Valor</TableHead>
+                    <TableHead className="py-1 px-2">Obs.</TableHead>
+                    <TableHead className="py-1 px-2 w-8"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentMethods.map(m => (
+                    <TableRow key={m.id} className="text-xs">
+                      <TableCell className="py-1 px-2">
+                        <Select value={m.method} onValueChange={(v) => handlePaymentMethodChange(m.id, "method", v)}>
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {activePaymentMethods.map(pm => (
+                              <SelectItem key={pm.id} value={pm.name.toLowerCase().replace(/\s+/g, "_")} className="text-xs">
+                                {pm.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="py-1 px-2">
+                        <Input type="number" step="0.01" min="0" className="h-7 text-xs w-24 text-right"
+                          value={m.amount} onChange={e => handlePaymentMethodChange(m.id, "amount", Number(e.target.value))} />
+                      </TableCell>
+                      <TableCell className="py-1 px-2">
+                        <Input className="h-7 text-xs" placeholder="Chave PIX, etc."
+                          value={m.details || ""} onChange={e => handlePaymentMethodChange(m.id, "details", e.target.value)} />
+                      </TableCell>
+                      <TableCell className="py-1 px-2">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemovePaymentMethod(m.id)}>
+                          <Trash2 className="h-3 w-3 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -554,107 +738,218 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               </Table>
             </div>
           )}
-
-          {/* Add new service form */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 pt-2 border-t">
-            <div className="col-span-2">
-              <Label className="text-xs">Descrição</Label>
-              <Input
-                placeholder="Ex: Mão de obra..."
-                value={newService.description}
-                onChange={e => setNewService(prev => ({ ...prev, description: e.target.value }))}
-              />
+          
+          {paymentMethods.length > 0 && (
+            <div className={cn(
+              "flex items-center gap-2 p-2 rounded text-xs",
+              paymentMethodsValid ? "bg-green-500/10" : "bg-yellow-500/10"
+            )}>
+              {paymentMethodsValid ? (
+                <CheckCircle className="h-3 w-3 text-green-600" />
+              ) : (
+                <AlertCircle className="h-3 w-3 text-yellow-600" />
+              )}
+              <span>Soma: {formatCurrency(paymentMethodsTotal)} / Total: {formatCurrency(grandTotal)}</span>
+              {!paymentMethodsValid && <span className="text-yellow-700">Diferença: {formatCurrency(paymentMethodsDiff)}</span>}
             </div>
-            <div>
-              <Label className="text-xs">Qtd</Label>
-              <Input
-                type="number"
-                min="1"
-                value={newService.qty}
-                onChange={e => setNewService(prev => ({ ...prev, qty: Number(e.target.value) }))}
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Preço</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={newService.unit_price}
-                onChange={e => setNewService(prev => ({ ...prev, unit_price: Number(e.target.value) }))}
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Desc. Linha</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={newService.discount_value}
-                onChange={e => setNewService(prev => ({ ...prev, discount_value: Number(e.target.value) }))}
-              />
-            </div>
-            <div className="flex items-end">
-              <Button type="button" onClick={handleAddService} disabled={createItem.isPending} className="w-full">
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar
-              </Button>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* === NEW: Discount Section === */}
-      <DiscountSection
-        subtotalParts={totals.products}
-        subtotalServices={totals.services}
-        discounts={discounts}
-        onDiscountsChange={setDiscounts}
-        calculatedTotals={calculatedTotals}
-      />
+      {/* Condição de Pagamento (1-12x) - Compact */}
+      <Card>
+        <CardHeader className="py-2 px-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Receipt className="w-4 h-4" />
+            Condição de Pagamento
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-2 space-y-2">
+          {transactions.length > 0 && (
+            <div className="flex items-center gap-2 p-2 bg-yellow-500/10 rounded text-xs">
+              <AlertCircle className="h-3 w-3 text-yellow-600" />
+              <span>Já existem parcelas. Limpe antes de gerar novas.</span>
+              <Button type="button" variant="outline" size="sm" className="h-6 text-xs ml-auto" onClick={handleClearInstallments}>
+                <Trash className="h-3 w-3 mr-1" /> Limpar
+              </Button>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+            <div>
+              <Label className="text-[10px]">Data Início</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full h-8 text-xs justify-start">
+                    <CalendarIcon className="h-3 w-3 mr-1" />
+                    {format(paymentStartDate, "dd/MM/yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={paymentStartDate} onSelect={(d) => d && setPaymentStartDate(d)} locale={ptBR} />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
+              <Label className="text-[10px]">Qtd Parcelas</Label>
+              <Select value={String(installmentCount)} onValueChange={(v) => setInstallmentCount(Number(v))}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
+                    <SelectItem key={n} value={String(n)} className="text-xs">{n}x</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[10px]">Intervalo (dias)</Label>
+              <Input type="number" min="1" className="h-8 text-xs" value={installmentInterval}
+                onChange={e => setInstallmentInterval(Number(e.target.value) || 30)} />
+            </div>
+            <div className="md:col-span-2 flex items-end">
+              <Button type="button" className="h-8 w-full text-xs" onClick={handleGenerateInstallments}
+                disabled={grandTotal <= 0 || transactions.length > 0 || createManyTransactions.isPending}>
+                <Receipt className="h-3 w-3 mr-1" />
+                {createManyTransactions.isPending ? "Gerando..." : `Gerar ${installmentCount}x`}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Preview */}
+          {transactions.length === 0 && installmentCount > 0 && grandTotal > 0 && (
+            <div className="bg-muted/50 rounded p-2 text-xs">
+              <span className="text-muted-foreground">Prévia: </span>
+              {installmentDays.map((days, i) => {
+                const dueDate = addDays(paymentStartDate, days);
+                return (
+                  <Badge key={i} variant="secondary" className="mr-1 text-[10px]">
+                    {i+1}/{installmentCount} - {format(dueDate, "dd/MM")} - {formatCurrency(grandTotal / installmentCount)}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* === NEW: Payment Methods Section === */}
-      <PaymentMethodsSection
-        total={calculatedTotals.grandTotal}
-        methods={paymentMethods}
-        onMethodsChange={setPaymentMethods}
-      />
-
-      {/* === NEW: Installment Generator === */}
-      <InstallmentGenerator
-        total={calculatedTotals.grandTotal}
-        startDate={paymentStartDate}
-        onStartDateChange={setPaymentStartDate}
-        installmentDays={installmentDays}
-        onInstallmentDaysChange={setInstallmentDays}
-        onGenerate={handleGenerateInstallments}
-        hasExistingInstallments={transactions.length > 0}
-        isGenerating={createManyTransactions.isPending}
-      />
-
-      {/* === NEW: Installment Table === */}
+      {/* Parcelas Geradas - Compact with inline edit */}
       {transactions.length > 0 && (
-        <InstallmentTable
-          transactions={transactions}
-          onMarkAsPaid={handleMarkAsPaid}
-          onCancel={handleCancelTransaction}
-          onDelete={handleDeleteTransaction}
-          onUpdate={handleUpdateTransaction}
-          summary={summary}
-          isUpdating={updateTransaction.isPending}
-        />
+        <Card>
+          <CardHeader className="py-2 px-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ListOrdered className="w-4 h-4" />
+              Parcelas Geradas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-2">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="text-xs">
+                    <TableHead className="py-1 px-2 w-12">#</TableHead>
+                    <TableHead className="py-1 px-2">Vencimento</TableHead>
+                    <TableHead className="py-1 px-2 text-right">Valor</TableHead>
+                    <TableHead className="py-1 px-2">Forma</TableHead>
+                    <TableHead className="py-1 px-2">Status</TableHead>
+                    <TableHead className="py-1 px-2">Pago em</TableHead>
+                    <TableHead className="py-1 px-2 w-24">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.map(t => (
+                    <TableRow key={t.id} className={cn("text-xs", editingTransactionId === t.id && "bg-muted/50")}>
+                      <TableCell className="py-1 px-2 font-medium">
+                        {t.installments_total && t.installments_total > 1 ? `${t.installment_number}/${t.installments_total}` : "1x"}
+                      </TableCell>
+                      <TableCell className="py-1 px-2">
+                        {editingTransactionId === t.id ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-7 text-xs w-28">
+                                <CalendarIcon className="h-3 w-3 mr-1" />
+                                {editDueDate ? format(editDueDate, "dd/MM/yyyy") : "-"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" selected={editDueDate} onSelect={setEditDueDate} locale={ptBR} />
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span className={cn(t.status === "OPEN" && "cursor-pointer hover:underline")}
+                            onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}>
+                            {format(new Date(t.due_date + "T12:00:00"), "dd/MM/yyyy")}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1 px-2 text-right">
+                        {editingTransactionId === t.id ? (
+                          <Input type="number" step="0.01" min="0" className="h-7 text-xs w-20 text-right"
+                            value={editAmount} onChange={e => setEditAmount(Number(e.target.value))} />
+                        ) : (
+                          <span className={cn("font-medium", t.status === "OPEN" && "cursor-pointer hover:underline")}
+                            onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}>
+                            {formatCurrency(t.amount)}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1 px-2">{t.payment_method || "-"}</TableCell>
+                      <TableCell className="py-1 px-2">
+                        {t.status === "PAID" && <Badge className="bg-green-500 text-[10px]">Pago</Badge>}
+                        {t.status === "CANCELED" && <Badge variant="destructive" className="text-[10px]">Cancelado</Badge>}
+                        {t.status === "OPEN" && <Badge variant="secondary" className="text-[10px]">Em Aberto</Badge>}
+                      </TableCell>
+                      <TableCell className="py-1 px-2">
+                        {t.paid_at ? format(new Date(t.paid_at), "dd/MM/yyyy") : "-"}
+                      </TableCell>
+                      <TableCell className="py-1 px-2">
+                        {editingTransactionId === t.id ? (
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleSaveEditTransaction}>
+                              <Check className="h-3 w-3 text-green-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingTransactionId(null)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : t.status === "OPEN" ? (
+                          <div className="flex gap-0.5">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Pago" onClick={() => markAsPaid.mutateAsync(t.id)}>
+                              <Check className="h-3 w-3 text-green-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Cancelar" onClick={() => cancelTransaction.mutateAsync(t.id)}>
+                              <X className="h-3 w-3 text-destructive" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Excluir" onClick={() => deleteTransaction.mutateAsync(t.id)}>
+                              <Trash2 className="h-3 w-3 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Summary */}
+            <div className="flex justify-end gap-4 pt-2 border-t text-xs">
+              <span>Total: <strong>{formatCurrency(summary.total)}</strong></span>
+              <span>Pago: <strong className="text-green-600">{formatCurrency(summary.paid)}</strong></span>
+              <span>Aberto: <strong className="text-orange-600">{formatCurrency(summary.open)}</strong></span>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* === Save Button === */}
-      <div className="flex justify-end pt-4">
-        <Button
-          type="button"
-          onClick={handleSaveFinancial}
-          disabled={isSaving}
-          className="min-w-[200px]"
-        >
+      {/* Save Button */}
+      <div className="flex justify-end pt-2">
+        <Button type="button" onClick={handleSaveFinancial} disabled={isSaving} className="min-w-[160px]">
           <Save className="h-4 w-4 mr-2" />
-          {isSaving ? "Salvando..." : "Salvar Dados Financeiros"}
+          {isSaving ? "Salvando..." : "Salvar Financeiro"}
         </Button>
       </div>
     </div>

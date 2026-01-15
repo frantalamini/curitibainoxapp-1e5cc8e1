@@ -313,6 +313,33 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           active: boolean | null
@@ -446,6 +473,7 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string
+          discount_type: string | null
           discount_value: number | null
           id: string
           product_id: string | null
@@ -458,6 +486,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           description: string
+          discount_type?: string | null
           discount_value?: number | null
           id?: string
           product_id?: string | null
@@ -470,6 +499,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           description?: string
+          discount_type?: string | null
           discount_value?: number | null
           id?: string
           product_id?: string | null
