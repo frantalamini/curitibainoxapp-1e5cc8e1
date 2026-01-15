@@ -54,7 +54,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QuickProductForm } from "./QuickProductForm";
-import { DiscountConfig, PaymentMethod, DiscountType } from "./types";
+import { DiscountConfig, OSPaymentEntry, DiscountType } from "./types";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -125,7 +125,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const [paymentStartDate, setPaymentStartDate] = useState<Date>(new Date());
   const [installmentCount, setInstallmentCount] = useState(1);
   const [installmentInterval, setInstallmentInterval] = useState(30);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<OSPaymentEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   // Editing state for inline installment editing
@@ -274,7 +274,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   // Payment methods handlers
   const handleAddPaymentMethod = () => {
     const defaultMethod = activePaymentMethods[0]?.name || "PIX";
-    const newMethod: PaymentMethod = {
+    const newMethod: OSPaymentEntry = {
       id: crypto.randomUUID(),
       method: defaultMethod.toLowerCase().replace(/\s+/g, "_") as any,
       amount: paymentMethods.length === 0 ? grandTotal : 0,
@@ -287,7 +287,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     setPaymentMethods(paymentMethods.filter(m => m.id !== id));
   };
 
-  const handlePaymentMethodChange = (id: string, field: keyof PaymentMethod, value: any) => {
+  const handlePaymentMethodChange = (id: string, field: keyof OSPaymentEntry, value: any) => {
     setPaymentMethods(paymentMethods.map(m => m.id === id ? { ...m, [field]: value } : m));
   };
 

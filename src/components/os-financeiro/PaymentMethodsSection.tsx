@@ -10,13 +10,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CreditCard, Plus, Trash2, AlertCircle, CheckCircle } from "lucide-react";
-import { PaymentMethod, PaymentMethodType } from "./types";
+import { OSPaymentEntry, PaymentMethodType } from "./types";
 import { cn } from "@/lib/utils";
 
 interface PaymentMethodsSectionProps {
   total: number;
-  methods: PaymentMethod[];
-  onMethodsChange: (methods: PaymentMethod[]) => void;
+  methods: OSPaymentEntry[];
+  onMethodsChange: (methods: OSPaymentEntry[]) => void;
 }
 
 const formatCurrency = (value: number) => {
@@ -42,7 +42,7 @@ export const PaymentMethodsSection = ({
   onMethodsChange,
 }: PaymentMethodsSectionProps) => {
   const handleAddMethod = () => {
-    const newMethod: PaymentMethod = {
+    const newMethod: OSPaymentEntry = {
       id: crypto.randomUUID(),
       method: "pix",
       amount: methods.length === 0 ? total : 0,
@@ -57,7 +57,7 @@ export const PaymentMethodsSection = ({
 
   const handleMethodChange = (
     id: string,
-    field: keyof PaymentMethod,
+    field: keyof OSPaymentEntry,
     value: string | number
   ) => {
     onMethodsChange(
