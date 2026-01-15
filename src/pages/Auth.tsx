@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { sanitizeRedirectPath } from "@/lib/authStorage";
 
 // Schema de validação para login (aceita username ou email)
 const loginSchema = z.object({
@@ -75,7 +76,15 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Extract and sanitize redirect from URL
+  const redirectTarget = useMemo(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const redirect = searchParams.get("redirect");
+    return sanitizeRedirectPath(redirect);
+  }, [location.search]);
 
   const form = useForm<LoginFormData | SignupFormData | ForgotPasswordFormData>({
     resolver: zodResolver(
@@ -94,10 +103,10 @@ const Auth = () => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/");
+        navigate(redirectTarget, { replace: true });
       }
     });
-  }, [navigate]);
+  }, [navigate, redirectTarget]);
 
   const handleAuth = async (values: LoginFormData | SignupFormData | ForgotPasswordFormData) => {
     try {
@@ -147,7 +156,7 @@ const Auth = () => {
           description: "Redirecionando...",
         });
 
-        navigate("/");
+        navigate(redirectTarget, { replace: true });
       } else {
         const signupValues = values as SignupFormData;
         const { error } = await supabase.auth.signUp({
