@@ -206,6 +206,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         description: product.name,
         qty,
         unit_price: unitPrice,
+        discount_type: newProduct.discount_type,
         discount_value: discountVal,
         total,
       });
@@ -238,6 +239,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         description: newService.description,
         qty,
         unit_price: unitPrice,
+        discount_type: newService.discount_type,
         discount_value: discountVal,
         total,
       });
@@ -423,7 +425,8 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                     <TableHead className="py-1 px-2 text-right w-14">Qtd</TableHead>
                     <TableHead className="py-1 px-2 text-right w-20">Unit.</TableHead>
                     <TableHead className="py-1 px-2 text-right w-20">Subtot.</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-16">Desc.</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-14">%Desc</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-16">R$Desc</TableHead>
                     <TableHead className="py-1 px-2 text-right w-20">Total</TableHead>
                     <TableHead className="py-1 px-2 w-8"></TableHead>
                   </TableRow>
@@ -431,6 +434,9 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                 <TableBody>
                   {productItems.map(item => {
                     const subtotal = item.qty * item.unit_price;
+                    const discountPercent = item.discount_type === "percent" && subtotal > 0 
+                      ? Math.round((item.discount_value / subtotal) * 100) 
+                      : 0;
                     return (
                       <TableRow key={item.id} className="text-xs">
                         <TableCell className="py-1 px-2">
@@ -443,7 +449,14 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                         <TableCell className="py-1 px-2 text-right">{formatCurrency(item.unit_price)}</TableCell>
                         <TableCell className="py-1 px-2 text-right text-muted-foreground">{formatCurrency(subtotal)}</TableCell>
                         <TableCell className="py-1 px-2 text-right text-destructive">
-                          {item.discount_value > 0 ? `-${formatCurrency(item.discount_value)}` : "-"}
+                          {item.discount_type === "percent" && item.discount_value > 0 
+                            ? `-${discountPercent}%` 
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-right text-destructive">
+                          {item.discount_type === "value" && item.discount_value > 0 
+                            ? `-${formatCurrency(item.discount_value)}` 
+                            : "-"}
                         </TableCell>
                         <TableCell className="py-1 px-2 text-right font-medium">{formatCurrency(item.total)}</TableCell>
                         <TableCell className="py-1 px-2">
@@ -547,7 +560,8 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                     <TableHead className="py-1 px-2 text-right w-14">Qtd</TableHead>
                     <TableHead className="py-1 px-2 text-right w-20">Unit.</TableHead>
                     <TableHead className="py-1 px-2 text-right w-20">Subtot.</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-16">Desc.</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-14">%Desc</TableHead>
+                    <TableHead className="py-1 px-2 text-right w-16">R$Desc</TableHead>
                     <TableHead className="py-1 px-2 text-right w-20">Total</TableHead>
                     <TableHead className="py-1 px-2 w-8"></TableHead>
                   </TableRow>
@@ -555,6 +569,9 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                 <TableBody>
                   {serviceItems.map(item => {
                     const subtotal = item.qty * item.unit_price;
+                    const discountPercent = item.discount_type === "percent" && subtotal > 0 
+                      ? Math.round((item.discount_value / subtotal) * 100) 
+                      : 0;
                     return (
                       <TableRow key={item.id} className="text-xs">
                         <TableCell className="py-1 px-2 font-medium">{item.description}</TableCell>
@@ -562,7 +579,14 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                         <TableCell className="py-1 px-2 text-right">{formatCurrency(item.unit_price)}</TableCell>
                         <TableCell className="py-1 px-2 text-right text-muted-foreground">{formatCurrency(subtotal)}</TableCell>
                         <TableCell className="py-1 px-2 text-right text-destructive">
-                          {item.discount_value > 0 ? `-${formatCurrency(item.discount_value)}` : "-"}
+                          {item.discount_type === "percent" && item.discount_value > 0 
+                            ? `-${discountPercent}%` 
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="py-1 px-2 text-right text-destructive">
+                          {item.discount_type === "value" && item.discount_value > 0 
+                            ? `-${formatCurrency(item.discount_value)}` 
+                            : "-"}
                         </TableCell>
                         <TableCell className="py-1 px-2 text-right font-medium">{formatCurrency(item.total)}</TableCell>
                         <TableCell className="py-1 px-2">
