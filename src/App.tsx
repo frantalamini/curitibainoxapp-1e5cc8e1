@@ -1,15 +1,16 @@
-import React, { useEffect, useState, lazy, Suspense } from "react";
+import React, { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import LazyLoadErrorBoundary from "@/components/LazyLoadErrorBoundary";
 import DynamicFavicon from "@/components/DynamicFavicon";
 import PaletteLoader from "@/components/PaletteLoader";
 import { AppShell } from "@/components/AppShell";
+import { clearSupabaseAuthKeys, getCurrentPathForRedirect } from "@/lib/authStorage";
 
 // Componentes críticos carregados imediatamente (usados no primeiro render)
 import Auth from "./pages/Auth";
@@ -71,27 +72,58 @@ const PageLoader = () => (
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const didCleanupRef = useRef(false);
 
   useEffect(() => {
+    // Set up listener FIRST to not miss any auth events
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
     return () => subscription.unsubscribe();
   }, []);
+
+  // Handle cleanup and redirect when session is null (after loading)
+  useEffect(() => {
+    if (loading) return;
+    if (session) {
+      // Reset cleanup flag when we have a valid session
+      didCleanupRef.current = false;
+      return;
+    }
+    // Session is null and we're not loading
+    if (!didCleanupRef.current && !location.pathname.startsWith("/auth")) {
+      didCleanupRef.current = true;
+      // Clean up any stale auth tokens
+      supabase.auth.signOut({ scope: "local" }).catch(() => {
+        // Ignore signOut errors, we're cleaning up anyway
+      });
+      clearSupabaseAuthKeys(localStorage);
+    }
+  }, [loading, session, location.pathname]);
 
   if (loading) {
     return <PageLoader />;
   }
 
-  return session ? <>{children}</> : <Navigate to="/auth" />;
+  if (!session) {
+    // Build redirect URL with current path
+    const currentPath = getCurrentPathForRedirect(location);
+    const redirectTo = `/auth?redirect=${encodeURIComponent(currentPath)}`;
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  return <>{children}</>;
 };
 
 const CadastroRedirect = () => {
