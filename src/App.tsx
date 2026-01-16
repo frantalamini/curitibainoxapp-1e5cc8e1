@@ -51,6 +51,12 @@ const ProductForm = lazy(() => import("./pages/ProductForm"));
 const PaymentMethods = lazy(() => import("./pages/PaymentMethods"));
 const PaymentMethodForm = lazy(() => import("./pages/PaymentMethodForm"));
 
+// Módulo Finanças
+const ContasAPagar = lazy(() => import("./pages/financas/ContasAPagar"));
+const ContasAReceber = lazy(() => import("./pages/financas/ContasAReceber"));
+const FluxoDeCaixa = lazy(() => import("./pages/financas/FluxoDeCaixa"));
+const ConfiguracoesFinanceiras = lazy(() => import("./pages/financas/ConfiguracoesFinanceiras"));
+
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -490,6 +496,39 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PaymentMethodForm />
+                </ProtectedRoute>
+              }
+            />
+            {/* MÓDULO FINANÇAS - Admin Only */}
+            <Route
+              path="/financas/contas-a-pagar"
+              element={
+                <ProtectedRoute>
+                  <ContasAPagar />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financas/contas-a-receber"
+              element={
+                <ProtectedRoute>
+                  <ContasAReceber />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financas/fluxo-de-caixa"
+              element={
+                <ProtectedRoute>
+                  <FluxoDeCaixa />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financas/configuracoes"
+              element={
+                <ProtectedRoute>
+                  <ConfiguracoesFinanceiras />
                 </ProtectedRoute>
               }
             />

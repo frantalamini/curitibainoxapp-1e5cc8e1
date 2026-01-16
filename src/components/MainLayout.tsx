@@ -112,6 +112,21 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: "veiculo", label: "Deslocamentos", to: "/service-call-trips" },
       ],
     },
+    // Módulo Finanças - Admin Only
+    ...(isAdmin
+      ? [
+          {
+            title: "Finanças",
+            icon: "financeiro" as IconName,
+            items: [
+              { icon: "documentos" as IconName, label: "Contas a Pagar", to: "/financas/contas-a-pagar" },
+              { icon: "financeiro" as IconName, label: "Contas a Receber", to: "/financas/contas-a-receber" },
+              { icon: "relatorios" as IconName, label: "Fluxo de Caixa", to: "/financas/fluxo-de-caixa" },
+              { icon: "configuracoes" as IconName, label: "Configurações", to: "/financas/configuracoes" },
+            ],
+          },
+        ]
+      : []),
   ];
 
   // Auto-activate section containing active route
