@@ -159,12 +159,12 @@ export default function ContasAReceber() {
               </div>
               <div>
                 <Label className="text-xs">Cliente</Label>
-                <Select value={clientFilter} onValueChange={setClientFilter}>
+                <Select value={clientFilter || "__all__"} onValueChange={(v) => setClientFilter(v === "__all__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="__all__">Todos</SelectItem>
                     {clients?.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
                     ))}
@@ -288,12 +288,12 @@ export default function ContasAReceber() {
               </div>
               <div>
                 <Label>Conta Bancária (opcional)</Label>
-                <Select value={payAccountId} onValueChange={setPayAccountId}>
+                <Select value={payAccountId || "__none__"} onValueChange={(v) => setPayAccountId(v === "__none__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
                     {accounts?.filter(a => a.is_active).map((a) => (
                       <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                     ))}
