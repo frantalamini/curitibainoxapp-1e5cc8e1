@@ -101,18 +101,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: "servicos", label: "Técnicos em Campo", to: "/technicians" },
       ],
     },
-    {
-      title: "Relatórios",
-      icon: "relatorios",
-      items: [
-        { icon: "relatorios", label: "Dashboard", to: "/dashboard" },
-        { icon: "atividade", label: "Indicadores Técnicos", to: "/technical-indicators" },
-        { icon: "financeiro", label: "Financeiro", to: "/financial" },
-        { icon: "servicos", label: "Manutenções de Veículos", to: "/vehicle-maintenances" },
-        { icon: "veiculo", label: "Deslocamentos", to: "/service-call-trips" },
-      ],
-    },
-    // Módulo Finanças - Admin Only
+    // Módulo Finanças - Admin Only (após Agenda)
     ...(isAdmin
       ? [
           {
@@ -127,6 +116,17 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           },
         ]
       : []),
+    {
+      title: "Relatórios",
+      icon: "relatorios",
+      items: [
+        { icon: "relatorios", label: "Dashboard", to: "/dashboard" },
+        { icon: "atividade", label: "Indicadores Técnicos", to: "/technical-indicators" },
+        { icon: "financeiro", label: "Financeiro", to: "/financial" },
+        { icon: "servicos", label: "Manutenções de Veículos", to: "/vehicle-maintenances" },
+        { icon: "veiculo", label: "Deslocamentos", to: "/service-call-trips" },
+      ],
+    },
   ];
 
   // Auto-activate section containing active route
