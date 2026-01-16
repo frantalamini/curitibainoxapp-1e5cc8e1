@@ -336,11 +336,15 @@ export type Database = {
       financial_transactions: {
         Row: {
           amount: number
+          category_id: string | null
           client_id: string | null
+          cost_center_id: string | null
           created_at: string | null
+          description: string | null
           direction: Database["public"]["Enums"]["transaction_direction"]
           discount: number | null
           due_date: string
+          financial_account_id: string | null
           id: string
           installment_number: number | null
           installments_group_id: string | null
@@ -356,11 +360,15 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category_id?: string | null
           client_id?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
+          description?: string | null
           direction: Database["public"]["Enums"]["transaction_direction"]
           discount?: number | null
           due_date: string
+          financial_account_id?: string | null
           id?: string
           installment_number?: number | null
           installments_group_id?: string | null
@@ -376,11 +384,15 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category_id?: string | null
           client_id?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
+          description?: string | null
           direction?: Database["public"]["Enums"]["transaction_direction"]
           discount?: number | null
           due_date?: string
+          financial_account_id?: string | null
           id?: string
           installment_number?: number | null
           installments_group_id?: string | null
@@ -396,10 +408,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "financial_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "financial_transactions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_financial_account_id_fkey"
+            columns: ["financial_account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
             referencedColumns: ["id"]
           },
           {
