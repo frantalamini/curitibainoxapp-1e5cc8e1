@@ -54,10 +54,11 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QuickProductForm } from "./QuickProductForm";
-import { DiscountConfig, OSPaymentEntry, DiscountType } from "./types";
+import { DiscountType, PaymentMode } from "./types";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface FinanceiroTabProps {
   serviceCallId: string;
@@ -121,11 +122,13 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const [osDiscountType, setOsDiscountType] = useState<DiscountType>("value");
   const [osDiscountValue, setOsDiscountValue] = useState(0);
 
-  // Payment states
+  // Payment states - NEW: Payment mode (single/multiple)
   const [paymentStartDate, setPaymentStartDate] = useState<Date>(new Date());
   const [installmentCount, setInstallmentCount] = useState(1);
   const [installmentInterval, setInstallmentInterval] = useState(30);
-  const [paymentMethods, setPaymentMethods] = useState<OSPaymentEntry[]>([]);
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('single');
+  const [singlePaymentMethod, setSinglePaymentMethod] = useState<string>('');
+  const [allowedPaymentMethods, setAllowedPaymentMethods] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   // Editing state for inline installment editing
@@ -133,6 +136,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const [editDays, setEditDays] = useState(0);
   const [editDueDate, setEditDueDate] = useState<Date | undefined>();
   const [editAmount, setEditAmount] = useState(0);
+  const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
 
   // Load existing data from service call
   useEffect(() => {
@@ -146,9 +150,9 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         if (paymentConfig.startDate) {
           setPaymentStartDate(new Date(paymentConfig.startDate + "T12:00:00"));
         }
-        if (paymentConfig.paymentMethods.length > 0) {
-          setPaymentMethods(paymentConfig.paymentMethods);
-        }
+        setPaymentMode(paymentConfig.paymentMode || 'single');
+        setSinglePaymentMethod(paymentConfig.singlePaymentMethod || '');
+        setAllowedPaymentMethods(paymentConfig.allowedPaymentMethods || []);
       }
     }
   }, [serviceCall]);
@@ -271,29 +275,26 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }));
   };
 
-  // Payment methods handlers
-  const handleAddPaymentMethod = () => {
-    const defaultMethod = activePaymentMethods[0]?.name || "PIX";
-    const newMethod: OSPaymentEntry = {
-      id: crypto.randomUUID(),
-      method: defaultMethod.toLowerCase().replace(/\s+/g, "_") as any,
-      amount: paymentMethods.length === 0 ? grandTotal : 0,
-      details: "",
-    };
-    setPaymentMethods([...paymentMethods, newMethod]);
+  // Handle allowed payment methods toggle (for multiple mode)
+  const handleToggleAllowedMethod = (methodName: string, checked: boolean) => {
+    if (checked) {
+      setAllowedPaymentMethods(prev => [...prev, methodName]);
+    } else {
+      setAllowedPaymentMethods(prev => prev.filter(m => m !== methodName));
+    }
   };
 
-  const handleRemovePaymentMethod = (id: string) => {
-    setPaymentMethods(paymentMethods.filter(m => m.id !== id));
+  // Get available payment methods for installment dropdown
+  const getAvailablePaymentMethods = () => {
+    if (paymentMode === 'single' && singlePaymentMethod) {
+      return [singlePaymentMethod];
+    }
+    if (paymentMode === 'multiple' && allowedPaymentMethods.length > 0) {
+      return allowedPaymentMethods;
+    }
+    // Fallback: all active methods
+    return activePaymentMethods.map(pm => pm.name);
   };
-
-  const handlePaymentMethodChange = (id: string, field: keyof OSPaymentEntry, value: any) => {
-    setPaymentMethods(paymentMethods.map(m => m.id === id ? { ...m, [field]: value } : m));
-  };
-
-  const paymentMethodsTotal = paymentMethods.reduce((sum, m) => sum + m.amount, 0);
-  const paymentMethodsDiff = grandTotal - paymentMethodsTotal;
-  const paymentMethodsValid = Math.abs(paymentMethodsDiff) < 0.01;
 
   // Generate installments
   const handleGenerateInstallments = async () => {
@@ -307,9 +308,16 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       return;
     }
 
+    // Determine default payment method based on mode
+    let defaultMethod: string | null = null;
+    if (paymentMode === 'single' && singlePaymentMethod) {
+      defaultMethod = singlePaymentMethod;
+    } else if (paymentMode === 'multiple' && allowedPaymentMethods.length > 0) {
+      defaultMethod = allowedPaymentMethods[0];
+    }
+
     const groupId = crypto.randomUUID();
     const installments = generateInstallments(paymentStartDate, installmentDays, grandTotal);
-    const primaryMethod = paymentMethods.length > 0 ? paymentMethods[0].method : "pix";
 
     const installmentsData = installments.map((inst) => ({
       direction: "RECEIVE" as const,
@@ -319,7 +327,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       client_id: clientId,
       due_date: format(inst.dueDate, "yyyy-MM-dd"),
       amount: inst.amount,
-      payment_method: primaryMethod,
+      payment_method: defaultMethod,
       installment_number: inst.number,
       installments_total: installments.length,
       installments_group_id: groupId,
@@ -352,6 +360,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     setEditDays((t as any).interval_days || 0);
     setEditDueDate(new Date(t.due_date + "T12:00:00"));
     setEditAmount(t.amount);
+    setEditPaymentMethod(t.payment_method || '');
   };
 
   const handleSaveEditTransaction = async () => {
@@ -361,6 +370,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         id: editingTransactionId,
         amount: editAmount,
         due_date: format(editDueDate, "yyyy-MM-dd"),
+        payment_method: editPaymentMethod || undefined,
       });
       setEditingTransactionId(null);
       toast({ title: "Parcela atualizada" });
@@ -369,11 +379,29 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
+  // Update payment method for a single transaction
+  const handleUpdateTransactionPaymentMethod = async (transactionId: string, method: string) => {
+    try {
+      await updateTransaction.mutateAsync({
+        id: transactionId,
+        payment_method: method,
+      });
+    } catch (error) {
+      toast({ title: "Erro ao atualizar forma de pagamento", variant: "destructive" });
+    }
+  };
+
   // Save financial data
   const handleSaveFinancial = async () => {
     setIsSaving(true);
     try {
-      const paymentConfig = buildPaymentConfig(paymentStartDate, installmentDays, paymentMethods);
+      const paymentConfig = buildPaymentConfig(
+        paymentStartDate, 
+        installmentDays, 
+        paymentMode,
+        singlePaymentMethod,
+        allowedPaymentMethods
+      );
 
       const { error } = await supabase
         .from("service_calls")
@@ -701,82 +729,76 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         </CardContent>
       </Card>
 
-      {/* Formas de Pagamento - Compact */}
+      {/* Formas de Pagamento - NEW: Modo Único/Múltiplas */}
       <Card>
-        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between">
+        <CardHeader className="py-2 px-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <CreditCard className="w-4 h-4" />
             Formas de Pagamento
           </CardTitle>
-          <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleAddPaymentMethod}>
-            <Plus className="h-3 w-3 mr-1" /> Adicionar
-          </Button>
         </CardHeader>
-        <CardContent className="p-2 space-y-2">
-          {paymentMethods.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-2">Nenhuma forma adicionada</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-xs">
-                    <TableHead className="py-1 px-2">Forma</TableHead>
-                    <TableHead className="py-1 px-2 text-right">Valor</TableHead>
-                    <TableHead className="py-1 px-2">Obs.</TableHead>
-                    <TableHead className="py-1 px-2 w-8"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paymentMethods.map(m => (
-                    <TableRow key={m.id} className="text-xs">
-                      <TableCell className="py-1 px-2">
-                        <Select value={m.method} onValueChange={(v) => handlePaymentMethodChange(m.id, "method", v)}>
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {activePaymentMethods.map(pm => (
-                              <SelectItem key={pm.id} value={pm.name.toLowerCase().replace(/\s+/g, "_")} className="text-xs">
-                                {pm.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="py-1 px-2">
-                        <Input type="number" step="0.01" min="0" className="h-7 text-xs w-24 text-right"
-                          value={m.amount} onChange={e => handlePaymentMethodChange(m.id, "amount", Number(e.target.value))} />
-                      </TableCell>
-                      <TableCell className="py-1 px-2">
-                        <Input className="h-7 text-xs" placeholder="Chave PIX, etc."
-                          value={m.details || ""} onChange={e => handlePaymentMethodChange(m.id, "details", e.target.value)} />
-                      </TableCell>
-                      <TableCell className="py-1 px-2">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemovePaymentMethod(m.id)}>
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+        <CardContent className="p-3 space-y-3">
+          {/* Payment Mode Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Modo de Pagamento</Label>
+              <Select value={paymentMode} onValueChange={(v) => setPaymentMode(v as PaymentMode)}>
+                <SelectTrigger className="h-8 text-xs mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single" className="text-xs">Único</SelectItem>
+                  <SelectItem value="multiple" className="text-xs">Múltiplas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Single Mode: Single payment method dropdown */}
+            {paymentMode === 'single' && (
+              <div>
+                <Label className="text-xs">Forma de Pagamento</Label>
+                <Select value={singlePaymentMethod} onValueChange={setSinglePaymentMethod}>
+                  <SelectTrigger className="h-8 text-xs mt-1">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activePaymentMethods.map(pm => (
+                      <SelectItem key={pm.id} value={pm.name} className="text-xs">
+                        {pm.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Multiple Mode: Checkboxes for allowed methods */}
+          {paymentMode === 'multiple' && (
+            <div>
+              <Label className="text-xs">Formas Permitidas</Label>
+              <div className="flex flex-wrap gap-3 mt-2">
+                {activePaymentMethods.map(pm => (
+                  <div key={pm.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`pm-${pm.id}`}
+                      checked={allowedPaymentMethods.includes(pm.name)}
+                      onCheckedChange={(checked) => handleToggleAllowedMethod(pm.name, !!checked)}
+                    />
+                    <label htmlFor={`pm-${pm.id}`} className="text-xs cursor-pointer">
+                      {pm.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-          
-          {paymentMethods.length > 0 && (
-            <div className={cn(
-              "flex items-center gap-2 p-2 rounded text-xs",
-              paymentMethodsValid ? "bg-green-500/10" : "bg-yellow-500/10"
-            )}>
-              {paymentMethodsValid ? (
-                <CheckCircle className="h-3 w-3 text-green-600" />
-              ) : (
-                <AlertCircle className="h-3 w-3 text-yellow-600" />
-              )}
-              <span>Soma: {formatCurrency(paymentMethodsTotal)} / Total: {formatCurrency(grandTotal)}</span>
-              {!paymentMethodsValid && <span className="text-yellow-700">Diferença: {formatCurrency(paymentMethodsDiff)}</span>}
-            </div>
-          )}
+
+          {/* Informative message */}
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1 border-t">
+            <AlertCircle className="h-3 w-3" />
+            O valor é definido nas parcelas geradas.
+          </p>
         </CardContent>
       </Card>
 
@@ -918,7 +940,27 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="py-1 px-2">{t.payment_method || "-"}</TableCell>
+                      <TableCell className="py-1 px-2">
+                        {t.status === "OPEN" ? (
+                          <Select 
+                            value={t.payment_method || ''} 
+                            onValueChange={(v) => handleUpdateTransactionPaymentMethod(t.id, v)}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-28">
+                              <SelectValue placeholder="Selecionar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getAvailablePaymentMethods().map(pm => (
+                                <SelectItem key={pm} value={pm} className="text-xs">
+                                  {pm}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-xs">{t.payment_method || "-"}</span>
+                        )}
+                      </TableCell>
                       <TableCell className="py-1 px-2">
                         {t.status === "PAID" && <Badge className="bg-green-500 text-[10px]">Pago</Badge>}
                         {t.status === "CANCELED" && <Badge variant="destructive" className="text-[10px]">Cancelado</Badge>}

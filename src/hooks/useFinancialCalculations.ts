@@ -6,7 +6,8 @@ import {
   Installment, 
   OSPaymentEntry, 
   FinancialWebhookPayload,
-  PaymentConfig 
+  PaymentConfig,
+  PaymentMode 
 } from "@/components/os-financeiro/types";
 
 interface UseFinancialCalculationsProps {
@@ -164,16 +165,19 @@ export const parsePaymentConfig = (config: unknown): PaymentConfig | null => {
   const c = config as Record<string, unknown>;
   
   return {
-    startDate: c.start_date as string || '',
-    installmentDays: Array.isArray(c.installment_days) ? c.installment_days : [],
-    paymentMethods: Array.isArray(c.payment_methods) 
-      ? c.payment_methods.map((pm: any) => ({
-          id: pm.id || crypto.randomUUID(),
-          method: pm.method,
-          amount: pm.amount,
-          details: pm.details,
-        }))
-      : [],
+    startDate: (c.start_date as string) || (c.startDate as string) || '',
+    installmentDays: Array.isArray(c.installment_days) 
+      ? c.installment_days 
+      : Array.isArray(c.installmentDays) 
+        ? c.installmentDays 
+        : [],
+    paymentMode: (c.payment_mode as PaymentMode) || (c.paymentMode as PaymentMode) || 'single',
+    singlePaymentMethod: (c.single_payment_method as string) || (c.singlePaymentMethod as string),
+    allowedPaymentMethods: Array.isArray(c.allowed_payment_methods) 
+      ? c.allowed_payment_methods 
+      : Array.isArray(c.allowedPaymentMethods)
+        ? c.allowedPaymentMethods
+        : [],
   };
 };
 
@@ -181,16 +185,15 @@ export const parsePaymentConfig = (config: unknown): PaymentConfig | null => {
 export const buildPaymentConfig = (
   startDate: Date,
   installmentDays: number[],
-  paymentMethods: OSPaymentEntry[]
+  paymentMode: PaymentMode,
+  singlePaymentMethod?: string,
+  allowedPaymentMethods?: string[]
 ): Record<string, unknown> => {
   return {
     start_date: format(startDate, 'yyyy-MM-dd'),
     installment_days: installmentDays,
-    payment_methods: paymentMethods.map(pm => ({
-      id: pm.id,
-      method: pm.method,
-      amount: pm.amount,
-      details: pm.details,
-    })),
+    payment_mode: paymentMode,
+    single_payment_method: paymentMode === 'single' ? singlePaymentMethod : undefined,
+    allowed_payment_methods: paymentMode === 'multiple' ? allowedPaymentMethods : undefined,
   };
 };

@@ -2,6 +2,8 @@
 
 export type DiscountType = 'percent' | 'value';
 
+export type PaymentMode = 'single' | 'multiple';
+
 export interface DiscountCategory {
   type: DiscountType;
   value: number;
@@ -45,7 +47,9 @@ export interface Installment {
 export interface PaymentConfig {
   startDate: string;
   installmentDays: number[];
-  paymentMethods: OSPaymentEntry[];
+  paymentMode: PaymentMode;
+  singlePaymentMethod?: string;
+  allowedPaymentMethods?: string[];
 }
 
 export interface CalculatedTotals {
