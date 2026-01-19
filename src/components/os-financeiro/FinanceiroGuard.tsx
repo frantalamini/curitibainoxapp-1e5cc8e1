@@ -22,7 +22,10 @@ interface FinanceiroGuardProps {
  * sem revisão cuidadosa. A aba Financeiro DEVE sempre existir no DOM.
  */
 export const FinanceiroGuard = ({ serviceCallId, clientId }: FinanceiroGuardProps) => {
-  const { isAdmin, loading, error, refetch } = useUserRole();
+  const { isAdmin, loading, error, refetch, roles } = useUserRole();
+  
+  // DEBUG: Log para diagnóstico
+  console.log("🔐 FinanceiroGuard - loading:", loading, "error:", error, "isAdmin:", isAdmin, "roles:", roles);
 
   // Estado: Carregando permissões
   if (loading) {
