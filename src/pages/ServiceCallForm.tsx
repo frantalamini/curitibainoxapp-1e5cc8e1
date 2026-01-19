@@ -932,6 +932,9 @@ const ServiceCallForm = () => {
           </Card>
         )}
 
+        {/* DEBUG: Log para diagnóstico da aba Financeiro */}
+        {(() => { console.log("📊 ServiceCallForm - isEditMode:", isEditMode, "id:", id); return null; })()}
+        
         <form onSubmit={handleSubmit(onSubmit)}>
           <Tabs defaultValue="geral" className="w-full">
             {/* 
