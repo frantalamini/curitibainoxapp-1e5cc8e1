@@ -5,6 +5,7 @@ import { CadastroTipo } from "./useCadastros";
 
 export type Client = {
   id: string;
+  client_number?: number;
   full_name: string;
   nome_fantasia?: string;
   email?: string;

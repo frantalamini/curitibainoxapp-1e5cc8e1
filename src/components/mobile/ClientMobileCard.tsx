@@ -3,6 +3,7 @@ import { Phone, Mail, MapPin, Building2, FileText } from "lucide-react";
 
 interface Client {
   id: string;
+  client_number?: number | null;
   full_name: string;
   nome_fantasia?: string | null;
   phone: string;
@@ -39,6 +40,7 @@ export function ClientMobileCard({ client, onView, onEdit, onDelete }: ClientMob
       <MobileCardHeader
         title={client.full_name}
         subtitle={client.nome_fantasia || undefined}
+        badge={client.client_number ? `#${client.client_number}` : undefined}
       />
       
       <div className="space-y-1">

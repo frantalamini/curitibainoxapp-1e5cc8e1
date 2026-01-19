@@ -44,6 +44,7 @@ export const CadastrosTable = ({
                 aria-label="Selecionar todos"
               />
             </TableHead>
+            <TableHead className="w-20">Código</TableHead>
             <TableHead>
               <Button
                 variant="ghost"
@@ -89,7 +90,12 @@ export const CadastrosTable = ({
                   aria-label={`Selecionar ${cadastro.full_name}`}
                 />
               </TableCell>
-              <TableCell 
+              <TableCell>
+                <span className="text-sm font-mono text-muted-foreground">
+                  {cadastro.client_number ? `#${cadastro.client_number}` : '-'}
+                </span>
+              </TableCell>
+              <TableCell
                 onClick={() => onView(cadastro.id)}
                 className="max-w-[250px] cursor-pointer hover:underline hover:text-blue-600 transition-colors"
               >
