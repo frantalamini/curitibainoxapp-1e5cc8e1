@@ -49,6 +49,7 @@ export type Database = {
           address: string | null
           cep: string | null
           city: string | null
+          client_number: number | null
           complement: string | null
           cpf_cnpj: string | null
           created_at: string
@@ -76,6 +77,7 @@ export type Database = {
           address?: string | null
           cep?: string | null
           city?: string | null
+          client_number?: number | null
           complement?: string | null
           cpf_cnpj?: string | null
           created_at?: string
@@ -103,6 +105,7 @@ export type Database = {
           address?: string | null
           cep?: string | null
           city?: string | null
+          client_number?: number | null
           complement?: string | null
           cpf_cnpj?: string | null
           created_at?: string

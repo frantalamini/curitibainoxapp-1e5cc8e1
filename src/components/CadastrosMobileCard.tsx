@@ -36,7 +36,14 @@ export const CadastrosMobileCard = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm truncate">{cadastro.full_name}</h3>
+                <div className="flex items-center gap-2">
+                  {cadastro.client_number && (
+                    <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                      #{cadastro.client_number}
+                    </span>
+                  )}
+                  <h3 className="font-semibold text-sm truncate">{cadastro.full_name}</h3>
+                </div>
                 {cadastro.nome_fantasia && (
                   <p className="text-xs text-muted-foreground truncate">{cadastro.nome_fantasia}</p>
                 )}
