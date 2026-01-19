@@ -321,19 +321,20 @@ const ServiceCalls = () => {
                           }}
                           title="Visualizar chamado"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 text-muted-foreground" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => navigate(`/service-calls/edit/${call.id}`)}
+                          title="Editar chamado"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4" />
+                            <Button variant="ghost" size="sm" title="Excluir chamado">
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
