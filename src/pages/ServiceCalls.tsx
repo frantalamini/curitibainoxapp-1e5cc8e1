@@ -178,60 +178,64 @@ const ServiceCalls = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24">Nº OS</TableHead>
-                  <TableHead className="w-32">Data/Hora</TableHead>
-                  <TableHead className="w-48">Cliente</TableHead>
-                  <TableHead>Equipamento</TableHead>
-                  <TableHead className="w-40">Tipo de Chamado</TableHead>
-                  <TableHead className="w-36">Técnico</TableHead>
-                  <TableHead className="w-40">Status Técnico</TableHead>
-                  <TableHead className="w-40">Status Comercial</TableHead>
-                  <TableHead className="text-right w-24">Ações</TableHead>
+                  <TableHead className="w-14">Nº OS</TableHead>
+                  <TableHead className="w-20">Data/Hora</TableHead>
+                  <TableHead className="min-w-[100px] max-w-[140px]">Cliente</TableHead>
+                  <TableHead className="min-w-[80px] max-w-[120px]">Equipamento</TableHead>
+                  <TableHead className="w-24">Tipo</TableHead>
+                  <TableHead className="w-20">Técnico</TableHead>
+                  <TableHead className="w-28">St. Técnico</TableHead>
+                  <TableHead className="w-28">St. Comercial</TableHead>
+                  <TableHead className="text-right w-20">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCalls.map((call) => (
                   <TableRow key={call.id}>
                     <TableCell>
-                      <span className="font-mono text-lg font-semibold">
+                      <span className="font-mono text-sm font-semibold">
                         {call.os_number}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <div className="text-sm">
-                          {format(parseLocalDate(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {call.scheduled_time}
-                        </div>
+                      <div className="text-xs">
+                        <div>{format(parseLocalDate(call.scheduled_date), "dd/MM/yy", { locale: ptBR })}</div>
+                        <div className="text-muted-foreground">{call.scheduled_time}</div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{call.clients?.full_name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {call.clients?.phone}
-                        </div>
+                    <TableCell className="max-w-[140px]">
+                      <div className="truncate font-medium text-sm" title={call.clients?.full_name}>
+                        {call.clients?.full_name}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {call.clients?.phone}
                       </div>
                     </TableCell>
-                    <TableCell>{call.equipment_description}</TableCell>
+                    <TableCell className="max-w-[120px]">
+                      <span className="truncate block text-sm" title={call.equipment_description}>
+                        {call.equipment_description}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       {call.service_types ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <div
-                            className="w-4 h-4 rounded-sm flex-shrink-0"
+                            className="w-3 h-3 rounded-sm flex-shrink-0"
                             style={{ backgroundColor: call.service_types.color }}
                           />
-                          <span className="text-sm">
+                          <span className="text-xs truncate max-w-[60px]" title={call.service_types.name}>
                             {call.service_types.name}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell>{call.technicians?.full_name}</TableCell>
+                    <TableCell className="max-w-[80px]">
+                      <span className="truncate block text-sm" title={call.technicians?.full_name}>
+                        {call.technicians?.full_name?.split(' ')[0]}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Select
                         value={call.status_id || ""}
@@ -241,15 +245,15 @@ const ServiceCalls = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-[110px] h-8 text-xs">
                           <SelectValue placeholder="Selecionar">
                             {call.service_call_statuses && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
                                 <div
-                                  className="w-4 h-4 rounded-sm flex-shrink-0"
+                                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                                   style={{ backgroundColor: call.service_call_statuses.color }}
                                 />
-                                <span className="text-sm">
+                                <span className="text-xs truncate">
                                   {call.service_call_statuses.name}
                                 </span>
                               </div>
@@ -259,9 +263,9 @@ const ServiceCalls = () => {
                         <SelectContent>
                           {technicalStatuses.map((status) => (
                             <SelectItem key={status.id} value={status.id}>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
                                 <div
-                                  className="w-4 h-4 rounded-sm flex-shrink-0"
+                                  className="w-3 h-3 rounded-sm flex-shrink-0"
                                   style={{ backgroundColor: status.color }}
                                 />
                                 <span className="text-sm">{status.name}</span>
@@ -280,15 +284,15 @@ const ServiceCalls = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-[110px] h-8 text-xs">
                           <SelectValue placeholder="Selecionar">
                             {call.commercial_status && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
                                 <div
-                                  className="w-4 h-4 rounded-sm flex-shrink-0"
+                                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                                   style={{ backgroundColor: call.commercial_status.color }}
                                 />
-                                <span className="text-sm">
+                                <span className="text-xs truncate">
                                   {call.commercial_status.name}
                                 </span>
                               </div>
@@ -298,9 +302,9 @@ const ServiceCalls = () => {
                         <SelectContent>
                           {commercialStatuses.map((status) => (
                             <SelectItem key={status.id} value={status.id}>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
                                 <div
-                                  className="w-4 h-4 rounded-sm flex-shrink-0"
+                                  className="w-3 h-3 rounded-sm flex-shrink-0"
                                   style={{ backgroundColor: status.color }}
                                 />
                                 <span className="text-sm">{status.name}</span>
@@ -311,30 +315,32 @@ const ServiceCalls = () => {
                       </Select>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          className="h-7 w-7"
                           onClick={() => {
                             setSelectedCall(call);
                             setViewDialogOpen(true);
                           }}
                           title="Visualizar chamado"
                         >
-                          <Eye className="h-4 w-4 text-muted-foreground" />
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          className="h-7 w-7"
                           onClick={() => navigate(`/service-calls/edit/${call.id}`)}
                           title="Editar chamado"
                         >
-                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" title="Excluir chamado">
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir chamado">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>

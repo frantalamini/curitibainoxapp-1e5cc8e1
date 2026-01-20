@@ -91,12 +91,12 @@ const Clients = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Endereço</TableHead>
-                  <TableHead>Insc. Estadual</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="min-w-[120px]">Nome</TableHead>
+                  <TableHead className="w-28">Telefone</TableHead>
+                  <TableHead className="w-36">Email</TableHead>
+                  <TableHead className="min-w-[100px] max-w-[180px]">Endereço</TableHead>
+                  <TableHead className="w-24">Insc. Est.</TableHead>
+                  <TableHead className="text-right w-20">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -115,35 +115,38 @@ const Clients = () => {
 
                   return (
                     <TableRow key={client.id}>
-                      <TableCell className="font-medium">{client.full_name}</TableCell>
-                      <TableCell>{client.phone}</TableCell>
-                      <TableCell>{client.email || "-"}</TableCell>
-                      <TableCell className="max-w-xs truncate" title={formatAddress()}>
+                      <TableCell className="font-medium max-w-[150px] truncate" title={client.full_name}>{client.full_name}</TableCell>
+                      <TableCell className="text-sm">{client.phone}</TableCell>
+                      <TableCell className="max-w-[140px] truncate text-sm" title={client.email || undefined}>{client.email || "-"}</TableCell>
+                      <TableCell className="max-w-[180px] truncate text-sm" title={formatAddress()}>
                         {formatAddress()}
                       </TableCell>
-                      <TableCell>{client.state_registration || "-"}</TableCell>
+                      <TableCell className="text-sm">{client.state_registration || "-"}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-7 w-7"
                             onClick={() => navigate(`/clients/${client.id}`)}
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-7 w-7"
                             onClick={() => navigate(`/clients/${client.id}/edit`)}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-7 w-7"
                             onClick={() => setDeleteId(client.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </TableCell>

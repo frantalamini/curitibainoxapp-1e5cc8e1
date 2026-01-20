@@ -85,12 +85,12 @@ const Technicians = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Especialidades</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="w-16">ID</TableHead>
+                  <TableHead className="min-w-[100px]">Nome</TableHead>
+                  <TableHead className="w-28">Telefone</TableHead>
+                  <TableHead className="min-w-[100px]">Especialidades</TableHead>
+                  <TableHead className="w-20">Status</TableHead>
+                  <TableHead className="text-right w-16">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -103,15 +103,15 @@ const Technicians = () => {
 
                   return (
                     <TableRow key={tech.id}>
-                      <TableCell className="font-mono text-sm">#{tech.technician_number}</TableCell>
-                      <TableCell className="font-medium">{tech.full_name}</TableCell>
-                      <TableCell>{formattedPhone}</TableCell>
+                      <TableCell className="font-mono text-xs">#{tech.technician_number}</TableCell>
+                      <TableCell className="font-medium text-sm max-w-[140px] truncate" title={tech.full_name}>{tech.full_name}</TableCell>
+                      <TableCell className="text-sm">{formattedPhone}</TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           {specialties.length > 0 ? (
                             specialties.map((spec, idx) => (
-                              <Badge key={idx} variant="secondary">
-                                {spec}
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {spec === "Refrigeração Comercial" ? "Refrig." : spec}
                               </Badge>
                             ))
                           ) : (
@@ -120,7 +120,7 @@ const Technicians = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={tech.active ? "default" : "secondary"}>
+                        <Badge variant={tech.active ? "default" : "secondary"} className="text-xs">
                           {tech.active ? "Ativo" : "Inativo"}
                         </Badge>
                       </TableCell>
@@ -128,9 +128,10 @@ const Technicians = () => {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-7 w-7"
                           onClick={() => navigate(`/technicians/${tech.id}/edit`)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
                     </TableRow>
