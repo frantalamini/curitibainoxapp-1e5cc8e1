@@ -164,11 +164,11 @@ const VehicleMaintenances = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Veículo</TableHead>
-                    <TableHead>Tipo de Manutenção</TableHead>
-                    <TableHead>Data/Hora Início</TableHead>
-                    <TableHead>Data/Hora Fim</TableHead>
-                    <TableHead>Situação</TableHead>
+                    <TableHead className="min-w-[100px]">Veículo</TableHead>
+                    <TableHead className="w-28">Tipo</TableHead>
+                    <TableHead className="w-32">Início</TableHead>
+                    <TableHead className="w-32">Fim</TableHead>
+                    <TableHead className="w-24">Situação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -177,10 +177,9 @@ const VehicleMaintenances = () => {
                       <TableCell>
                         {maintenance.vehicles ? (
                           <div>
-                            <div className="font-medium">{maintenance.vehicles.name}</div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="font-medium text-sm">{maintenance.vehicles.name}</div>
+                            <div className="text-xs text-muted-foreground">
                               {maintenance.vehicles.plate}
-                              {maintenance.vehicles.brand && ` - ${maintenance.vehicles.brand}`}
                             </div>
                           </div>
                         ) : (
@@ -188,12 +187,12 @@ const VehicleMaintenances = () => {
                         )}
                       </TableCell>
                       <TableCell>{getMaintenanceTypeBadge(maintenance.maintenance_type)}</TableCell>
-                      <TableCell>
-                        {format(new Date(maintenance.started_at), "dd/MM/yyyy HH:mm")}
+                      <TableCell className="text-sm">
+                        {format(new Date(maintenance.started_at), "dd/MM/yy HH:mm")}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm">
                         {maintenance.finished_at
-                          ? format(new Date(maintenance.finished_at), "dd/MM/yyyy HH:mm")
+                          ? format(new Date(maintenance.finished_at), "dd/MM/yy HH:mm")
                           : "-"}
                       </TableCell>
                       <TableCell>{getStatusBadge(maintenance.finished_at)}</TableCell>

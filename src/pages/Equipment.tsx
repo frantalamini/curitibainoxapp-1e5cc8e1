@@ -97,42 +97,45 @@ const Equipment = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Marca</TableHead>
-                  <TableHead>Modelo</TableHead>
-                  <TableHead>Serial/IMEI</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="min-w-[100px] max-w-[160px]">Cliente</TableHead>
+                  <TableHead className="w-24">Marca</TableHead>
+                  <TableHead className="w-28">Modelo</TableHead>
+                  <TableHead className="w-32">Serial/IMEI</TableHead>
+                  <TableHead className="text-right w-20">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredEquipment?.map((eq) => (
                   <TableRow key={eq.id}>
-                    <TableCell className="font-medium">{getClientName(eq.client_id)}</TableCell>
-                    <TableCell>{eq.brand}</TableCell>
-                    <TableCell>{eq.model}</TableCell>
-                    <TableCell>{eq.serial_number || eq.imei || "-"}</TableCell>
+                    <TableCell className="font-medium max-w-[160px] truncate" title={getClientName(eq.client_id)}>{getClientName(eq.client_id)}</TableCell>
+                    <TableCell className="text-sm">{eq.brand}</TableCell>
+                    <TableCell className="text-sm max-w-[110px] truncate" title={eq.model}>{eq.model}</TableCell>
+                    <TableCell className="text-sm max-w-[120px] truncate" title={eq.serial_number || eq.imei || undefined}>{eq.serial_number || eq.imei || "-"}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-7 w-7"
                           onClick={() => navigate(`/equipment/${eq.id}`)}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-7 w-7"
                           onClick={() => navigate(`/equipment/${eq.id}/edit`)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-7 w-7"
                           onClick={() => setDeleteId(eq.id)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </TableCell>

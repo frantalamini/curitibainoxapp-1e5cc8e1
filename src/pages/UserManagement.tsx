@@ -267,25 +267,25 @@ export default function UserManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Username</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Roles</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="min-w-[100px]">Nome</TableHead>
+                      <TableHead className="w-28">Username</TableHead>
+                      <TableHead className="w-28">Telefone</TableHead>
+                      <TableHead className="min-w-[100px]">Roles</TableHead>
+                      <TableHead className="text-right min-w-[200px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers?.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.full_name}</TableCell>
+                        <TableCell className="font-medium text-sm max-w-[150px] truncate" title={user.full_name}>{user.full_name}</TableCell>
                         <TableCell>
                           {user.username ? (
-                            <code className="text-sm bg-muted px-2 py-0.5 rounded">@{user.username}</code>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">@{user.username}</code>
                           ) : (
                             "-"
                           )}
                         </TableCell>
-                        <TableCell>{user.phone || "-"}</TableCell>
+                        <TableCell className="text-sm">{user.phone || "-"}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {user.roles.length === 0 ? (
@@ -316,32 +316,35 @@ export default function UserManagement() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex gap-1 justify-end flex-wrap">
                             <Button
                               size="sm"
                               variant="outline"
+                              className="h-7 text-xs px-2"
                               onClick={() => {
                                 setSelectedUserForEdit(user);
                                 setEditUserDialogOpen(true);
                               }}
                             >
-                              <Pencil className="h-4 w-4 mr-1" />
+                              <Pencil className="h-3 w-3 mr-1" />
                               Editar
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
+                              className="h-7 text-xs px-2"
                               onClick={() => {
                                 setSelectedUser(user.user_id);
                                 setAddRoleDialogOpen(true);
                               }}
                             >
-                              <UserPlus className="h-4 w-4 mr-1" />
-                              Adicionar Role
+                              <UserPlus className="h-3 w-3 mr-1" />
+                              Role
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
+                              className="h-7 text-xs px-2"
                               onClick={() => {
                                 setDeleteUserDialog({ 
                                   open: true, 
@@ -351,7 +354,7 @@ export default function UserManagement() {
                               }}
                               disabled={user.user_id === currentUserId}
                             >
-                              <Trash2 className="h-4 w-4 mr-1" />
+                              <Trash2 className="h-3 w-3 mr-1" />
                               Deletar
                             </Button>
                           </div>

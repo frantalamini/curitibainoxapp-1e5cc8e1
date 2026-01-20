@@ -96,40 +96,44 @@ const Vehicles = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Marca</TableHead>
-                  <TableHead>Placa</TableHead>
-                  <TableHead>RENAVAM</TableHead>
-                  <TableHead>Quilometragem</TableHead>
-                  <TableHead>Status</TableHead>
-                  {isAdmin && <TableHead className="text-right">Ações</TableHead>}
+                  <TableHead className="min-w-[80px]">Nome</TableHead>
+                  <TableHead className="w-20">Marca</TableHead>
+                  <TableHead className="w-20">Placa</TableHead>
+                  <TableHead className="w-28">RENAVAM</TableHead>
+                  <TableHead className="w-24">Km</TableHead>
+                  <TableHead className="w-24">Status</TableHead>
+                  {isAdmin && <TableHead className="text-right w-20">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {vehicles.map((vehicle) => (
                   <TableRow key={vehicle.id}>
-                    <TableCell className="font-medium">{vehicle.name}</TableCell>
-                    <TableCell>{vehicle.brand || "-"}</TableCell>
-                    <TableCell>{vehicle.plate}</TableCell>
-                    <TableCell>{vehicle.renavam || "-"}</TableCell>
-                    <TableCell>{formatOdometer(vehicle.current_odometer_km)}</TableCell>
+                    <TableCell className="font-medium text-sm">{vehicle.name}</TableCell>
+                    <TableCell className="text-sm">{vehicle.brand || "-"}</TableCell>
+                    <TableCell className="text-sm">{vehicle.plate}</TableCell>
+                    <TableCell className="text-sm">{vehicle.renavam || "-"}</TableCell>
+                    <TableCell className="text-sm">{formatOdometer(vehicle.current_odometer_km)}</TableCell>
                     <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
                     {isAdmin && (
-                      <TableCell className="text-right space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteId(vehicle.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setDeleteId(vehicle.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>

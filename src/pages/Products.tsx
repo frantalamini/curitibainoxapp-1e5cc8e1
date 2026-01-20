@@ -149,32 +149,32 @@ export default function Products() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead className="text-right">Preço Venda</TableHead>
-                    <TableHead className="text-right">Estoque</TableHead>
-                    <TableHead className="w-24"></TableHead>
+                    <TableHead className="min-w-[120px]">Nome</TableHead>
+                    <TableHead className="w-20">SKU</TableHead>
+                    <TableHead className="w-24">Tipo</TableHead>
+                    <TableHead className="w-16">Un.</TableHead>
+                    <TableHead className="text-right w-24">Preço</TableHead>
+                    <TableHead className="text-right w-20">Estoque</TableHead>
+                    <TableHead className="w-20"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.map((product) => (
                     <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.sku || "-"}</TableCell>
-                      <TableCell>{getProductTypeLabel(product.type)}</TableCell>
-                      <TableCell>{product.unit || "-"}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="font-medium text-sm max-w-[150px] truncate" title={product.name}>{product.name}</TableCell>
+                      <TableCell className="text-sm">{product.sku || "-"}</TableCell>
+                      <TableCell className="text-xs">{getProductTypeLabel(product.type)}</TableCell>
+                      <TableCell className="text-sm">{product.unit || "-"}</TableCell>
+                      <TableCell className="text-right text-sm">
                         {formatCurrency(product.sale_price)}
                       </TableCell>
                       <TableCell className="text-right">
                         {product.track_stock ? (
-                          <Badge variant="secondary">
-                            {product.stock_balance ?? 0} {product.unit || "un"}
+                          <Badge variant="secondary" className="text-xs">
+                            {product.stock_balance ?? 0}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground text-sm">-</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -182,16 +182,18 @@ export default function Products() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-7 w-7"
                             onClick={() => navigate(`/products/${product.id}/edit`)}
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-7 w-7"
                             onClick={() => handleDelete(product.id)}
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </div>
                       </TableCell>
