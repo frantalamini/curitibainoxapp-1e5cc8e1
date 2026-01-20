@@ -402,13 +402,13 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
             "flex-1 min-w-0 transition-all duration-[250ms]",
             // Mobile: use mobile-main class for safe areas
             "mobile-main lg:mt-0 lg:pb-0 lg:pl-0 lg:pr-0",
-            // Desktop: margin AND calculated width for sidebar
+            // Desktop: only margin, flex-1 handles remaining width
             activeSection 
-              ? "lg:ml-[346px] lg:w-[calc(100%-346px)]" 
-              : "lg:ml-[90px] lg:w-[calc(100%-90px)]"
+              ? "lg:ml-[346px]" 
+              : "lg:ml-[90px]"
           )}
         >
-          <div className="w-full min-w-0 lg:p-6">{children}</div>
+          <div className="w-full max-w-full min-w-0 lg:p-6">{children}</div>
         </main>
       </div>
     </TooltipProvider>

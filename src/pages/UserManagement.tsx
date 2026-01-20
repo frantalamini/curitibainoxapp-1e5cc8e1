@@ -267,25 +267,27 @@ export default function UserManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-[100px]">Nome</TableHead>
-                      <TableHead className="w-28">Username</TableHead>
-                      <TableHead className="w-28">Telefone</TableHead>
-                      <TableHead className="min-w-[100px]">Roles</TableHead>
-                      <TableHead className="text-right min-w-[200px]">Ações</TableHead>
+                      <TableHead className="w-[28%]">Nome</TableHead>
+                      <TableHead className="w-[15%]">Username</TableHead>
+                      <TableHead className="w-[12%]">Telefone</TableHead>
+                      <TableHead className="w-[20%]">Roles</TableHead>
+                      <TableHead className="w-[25%] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers?.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium text-sm max-w-[150px] truncate" title={user.full_name}>{user.full_name}</TableCell>
+                        <TableCell className="font-medium text-sm">
+                          <span className="cell-multiline" title={user.full_name}>{user.full_name}</span>
+                        </TableCell>
                         <TableCell>
                           {user.username ? (
-                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">@{user.username}</code>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded cell-truncate block">@{user.username}</code>
                           ) : (
                             "-"
                           )}
                         </TableCell>
-                        <TableCell className="text-sm">{user.phone || "-"}</TableCell>
+                        <TableCell className="text-sm cell-truncate">{user.phone || "-"}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {user.roles.length === 0 ? (
@@ -316,7 +318,7 @@ export default function UserManagement() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex gap-1 justify-end flex-wrap">
+                          <div className="flex gap-1 justify-end">
                             <Button
                               size="sm"
                               variant="outline"

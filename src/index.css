@@ -168,6 +168,29 @@
 }
 
 /* ============================================
+   TABLE CELL RESPONSIVE UTILITIES
+   ============================================ */
+@layer utilities {
+  /* Cell that wraps up to 2 lines then truncates */
+  .cell-multiline {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Cell that truncates on 1 line */
+  .cell-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ============================================
    TYPOGRAPHY - Inter / SF Pro
    ============================================ */
 @layer base {
