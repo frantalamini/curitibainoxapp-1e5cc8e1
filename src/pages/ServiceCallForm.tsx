@@ -932,16 +932,6 @@ const ServiceCallForm = () => {
           </Card>
         )}
 
-        {/* DEBUG: Log para diagnóstico da aba Financeiro */}
-        {(() => { console.log("📊 ServiceCallForm - isEditMode:", isEditMode, "id:", id); return null; })()}
-        
-        {/* DEBUG VISUAL TEMPORÁRIO - REMOVER APÓS DIAGNÓSTICO */}
-        <div className="fixed bottom-4 right-4 bg-yellow-100 border border-yellow-400 p-3 rounded-lg text-xs z-50 shadow-lg">
-          <div className="font-bold text-yellow-800 mb-1">🔍 Debug Financeiro</div>
-          <div>isEditMode: <span className={isEditMode ? "text-green-600 font-bold" : "text-red-600 font-bold"}>{isEditMode ? "SIM ✓" : "NÃO ✗"}</span></div>
-          <div>ID: <span className="font-mono">{id || "null"}</span></div>
-          <div>URL: <span className="font-mono text-[10px]">{window.location.pathname}</span></div>
-        </div>
         
         <form onSubmit={handleSubmit(onSubmit)}>
           <Tabs defaultValue="geral" className="w-full">
