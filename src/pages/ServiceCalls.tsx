@@ -174,19 +174,19 @@ const ServiceCalls = () => {
             ))}
           </div>
         ) : (
-          <div className="border rounded-lg">
+          <div className="border rounded-lg w-full max-w-full min-w-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-14">Nº OS</TableHead>
-                  <TableHead className="w-20">Data/Hora</TableHead>
-                  <TableHead className="min-w-[100px] max-w-[140px]">Cliente</TableHead>
-                  <TableHead className="min-w-[80px] max-w-[120px]">Equipamento</TableHead>
-                  <TableHead className="w-24">Tipo</TableHead>
-                  <TableHead className="w-20">Técnico</TableHead>
-                  <TableHead className="w-28">St. Técnico</TableHead>
-                  <TableHead className="w-28">St. Comercial</TableHead>
-                  <TableHead className="text-right w-20">Ações</TableHead>
+                  <TableHead className="w-[6%]">Nº OS</TableHead>
+                  <TableHead className="w-[8%]">Data/Hora</TableHead>
+                  <TableHead className="w-[16%]">Cliente</TableHead>
+                  <TableHead className="w-[14%]">Equipamento</TableHead>
+                  <TableHead className="w-[10%]">Tipo</TableHead>
+                  <TableHead className="w-[8%]">Técnico</TableHead>
+                  <TableHead className="w-[14%]">St. Técnico</TableHead>
+                  <TableHead className="w-[14%]">St. Comercial</TableHead>
+                  <TableHead className="w-[10%] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -203,16 +203,16 @@ const ServiceCalls = () => {
                         <div className="text-muted-foreground">{call.scheduled_time}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-[140px]">
-                      <div className="truncate font-medium text-sm" title={call.clients?.full_name}>
+                    <TableCell>
+                      <div className="cell-multiline font-medium text-sm" title={call.clients?.full_name}>
                         {call.clients?.full_name}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate">
+                      <div className="text-xs text-muted-foreground cell-truncate">
                         {call.clients?.phone}
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-[120px]">
-                      <span className="truncate block text-sm" title={call.equipment_description}>
+                    <TableCell>
+                      <span className="cell-multiline text-sm" title={call.equipment_description}>
                         {call.equipment_description}
                       </span>
                     </TableCell>
@@ -223,7 +223,7 @@ const ServiceCalls = () => {
                             className="w-3 h-3 rounded-sm flex-shrink-0"
                             style={{ backgroundColor: call.service_types.color }}
                           />
-                          <span className="text-xs truncate max-w-[60px]" title={call.service_types.name}>
+                          <span className="text-xs cell-truncate" title={call.service_types.name}>
                             {call.service_types.name}
                           </span>
                         </div>
@@ -231,8 +231,8 @@ const ServiceCalls = () => {
                         <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-[80px]">
-                      <span className="truncate block text-sm" title={call.technicians?.full_name}>
+                    <TableCell>
+                      <span className="cell-truncate block text-sm" title={call.technicians?.full_name}>
                         {call.technicians?.full_name?.split(' ')[0]}
                       </span>
                     </TableCell>
