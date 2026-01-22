@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useLayoutEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Eye } from "lucide-react";
 import {
@@ -62,6 +62,45 @@ const ServiceCalls = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedCall, setSelectedCall] = useState<ServiceCall | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Escape hatch: override global overflow constraints ONLY on this page
+  useLayoutEffect(() => {
+    if (isMobile) return;
+
+    const html = document.documentElement;
+    const body = document.body;
+    const root = document.getElementById('root');
+    const appShell = document.querySelector('.app-shell') as HTMLElement | null;
+
+    // Store original styles
+    const originals = {
+      htmlOverflow: html.style.overflowX,
+      bodyOverflow: body.style.overflowX,
+      rootOverflow: root?.style.overflowX || '',
+      appShellMaxWidth: appShell?.style.maxWidth || '',
+      appShellOverflow: appShell?.style.overflowX || '',
+    };
+
+    // Apply overrides
+    html.style.overflowX = 'visible';
+    body.style.overflowX = 'visible';
+    if (root) root.style.overflowX = 'visible';
+    if (appShell) {
+      appShell.style.maxWidth = '100%';
+      appShell.style.overflowX = 'visible';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      html.style.overflowX = originals.htmlOverflow;
+      body.style.overflowX = originals.bodyOverflow;
+      if (root) root.style.overflowX = originals.rootOverflow;
+      if (appShell) {
+        appShell.style.maxWidth = originals.appShellMaxWidth;
+        appShell.style.overflowX = originals.appShellOverflow;
+      }
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
@@ -181,13 +220,13 @@ const ServiceCalls = () => {
                   <tr>
                     <th className="w-[70px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Nº OS</th>
                     <th className="w-[100px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Data/Hora</th>
-                    <th className="w-[200px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Cliente</th>
-                    <th className="w-[180px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Equipamento</th>
-                    <th className="w-[120px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Tipo</th>
+                    <th className="w-[200px] max-w-[220px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Cliente</th>
+                    <th className="w-[160px] max-w-[200px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Equipamento</th>
+                    <th className="w-[120px] max-w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Tipo</th>
                     <th className="w-[100px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Técnico</th>
-                    <th className="w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Técnico</th>
-                    <th className="w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Comercial</th>
-                    <th className="w-[120px] min-w-[120px] h-10 px-2 text-right align-top font-medium text-muted-foreground text-xs whitespace-normal break-words sticky right-0 z-20 bg-background shadow-[-6px_0_8px_-8px_rgba(0,0,0,0.15)]">Ações</th>
+                    <th className="w-[130px] max-w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Técnico</th>
+                    <th className="w-[130px] max-w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Comercial</th>
+                    <th className="w-[140px] min-w-[140px] h-10 px-2 text-right align-top font-medium text-muted-foreground text-xs whitespace-normal break-words sticky right-0 z-20 bg-white dark:bg-gray-900" style={{ boxShadow: '-6px 0 8px -8px rgba(0,0,0,0.3)' }}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -204,7 +243,7 @@ const ServiceCalls = () => {
                           <div className="text-muted-foreground">{call.scheduled_time}</div>
                         </div>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[220px]">
                         <div className="font-medium text-sm break-words" title={call.clients?.full_name}>
                           {call.clients?.full_name}
                         </div>
@@ -212,12 +251,12 @@ const ServiceCalls = () => {
                           {call.clients?.phone}
                         </div>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[200px]">
                         <span className="text-sm break-words" title={call.equipment_description}>
                           {call.equipment_description}
                         </span>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[140px]">
                         {call.service_types ? (
                           <div className="flex items-start gap-1">
                             <div
@@ -237,7 +276,7 @@ const ServiceCalls = () => {
                           {call.technicians?.full_name?.split(' ')[0]}
                         </span>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[140px]">
                         <Select
                           value={call.status_id || ""}
                           onValueChange={(value) => {
@@ -246,15 +285,15 @@ const ServiceCalls = () => {
                             }
                           }}
                         >
-                          <SelectTrigger className="w-full h-8 text-xs">
+                          <SelectTrigger className="w-full h-8 text-xs min-w-0">
                             <SelectValue placeholder="Selecionar">
                               {call.service_call_statuses && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 min-w-0">
                                   <div
                                     className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                                     style={{ backgroundColor: call.service_call_statuses.color }}
                                   />
-                                  <span className="text-xs break-words">
+                                  <span className="text-xs break-words min-w-0">
                                     {call.service_call_statuses.name}
                                   </span>
                                 </div>
@@ -276,7 +315,7 @@ const ServiceCalls = () => {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[140px]">
                         <Select
                           value={call.commercial_status_id || ""}
                           onValueChange={(value) => {
@@ -285,15 +324,15 @@ const ServiceCalls = () => {
                             }
                           }}
                         >
-                          <SelectTrigger className="w-full h-8 text-xs">
+                          <SelectTrigger className="w-full h-8 text-xs min-w-0">
                             <SelectValue placeholder="Selecionar">
                               {call.commercial_status && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 min-w-0">
                                   <div
                                     className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                                     style={{ backgroundColor: call.commercial_status.color }}
                                   />
-                                  <span className="text-xs break-words">
+                                  <span className="text-xs break-words min-w-0">
                                     {call.commercial_status.name}
                                   </span>
                                 </div>
@@ -315,7 +354,7 @@ const ServiceCalls = () => {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="w-[120px] min-w-[120px] px-2 py-2 align-top text-right sticky right-0 z-20 bg-background shadow-[-6px_0_8px_-8px_rgba(0,0,0,0.15)]">
+                      <td className="w-[140px] min-w-[140px] px-2 py-2 align-top text-right sticky right-0 z-20 bg-white dark:bg-gray-900" style={{ boxShadow: '-6px 0 8px -8px rgba(0,0,0,0.3)' }}>
                         <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
@@ -327,7 +366,7 @@ const ServiceCalls = () => {
                             }}
                             title="Visualizar chamado"
                           >
-                            <Eye className="h-3.5 w-3.5" />
+                            <Eye className="h-3.5 w-3.5 text-foreground" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -336,7 +375,7 @@ const ServiceCalls = () => {
                             onClick={() => navigate(`/service-calls/edit/${call.id}`)}
                             title="Editar chamado"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Pencil className="h-3.5 w-3.5 text-foreground" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
