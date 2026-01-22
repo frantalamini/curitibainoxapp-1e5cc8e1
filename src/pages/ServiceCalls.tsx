@@ -174,196 +174,198 @@ const ServiceCalls = () => {
             ))}
           </div>
         ) : (
-          <div className="border rounded-lg w-full overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[60px]">Nº OS</TableHead>
-                  <TableHead className="w-[80px]">Data/Hora</TableHead>
-                  <TableHead className="max-w-[180px]">Cliente</TableHead>
-                  <TableHead className="max-w-[160px]">Equipamento</TableHead>
-                  <TableHead className="max-w-[100px]">Tipo</TableHead>
-                  <TableHead className="max-w-[90px]">Técnico</TableHead>
-                  <TableHead className="max-w-[120px]">St. Técnico</TableHead>
-                  <TableHead className="max-w-[120px]">St. Comercial</TableHead>
-                  <TableHead className="w-[100px] sticky-actions-cell text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCalls.map((call) => (
-                  <TableRow key={call.id}>
-                    <TableCell>
-                      <span className="font-mono text-sm font-semibold">
-                        {call.os_number}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-xs">
-                        <div>{format(parseLocalDate(call.scheduled_date), "dd/MM/yy", { locale: ptBR })}</div>
-                        <div className="text-muted-foreground">{call.scheduled_time}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-[180px]">
-                      <div className="font-medium text-sm" title={call.clients?.full_name}>
-                        {call.clients?.full_name}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {call.clients?.phone}
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-[160px]">
-                      <span className="text-sm" title={call.equipment_description}>
-                        {call.equipment_description}
-                      </span>
-                    </TableCell>
-                    <TableCell className="max-w-[100px]">
-                      {call.service_types ? (
-                        <div className="flex items-center gap-1">
-                          <div
-                            className="w-3 h-3 rounded-sm flex-shrink-0"
-                            style={{ backgroundColor: call.service_types.color }}
-                          />
-                          <span className="text-xs truncate" title={call.service_types.name}>
-                            {call.service_types.name}
-                          </span>
+          <div className="w-full max-w-full overflow-x-auto border rounded-lg">
+            <div className="min-w-[1100px]">
+              <table className="w-full min-w-full text-sm table-fixed border-collapse">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="w-[70px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Nº OS</th>
+                    <th className="w-[100px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Data/Hora</th>
+                    <th className="w-[200px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Cliente</th>
+                    <th className="w-[180px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Equipamento</th>
+                    <th className="w-[120px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Tipo</th>
+                    <th className="w-[100px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Técnico</th>
+                    <th className="w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Técnico</th>
+                    <th className="w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Comercial</th>
+                    <th className="w-[120px] min-w-[120px] h-10 px-2 text-right align-top font-medium text-muted-foreground text-xs whitespace-normal break-words sticky right-0 z-20 bg-background shadow-[-6px_0_8px_-8px_rgba(0,0,0,0.15)]">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCalls.map((call) => (
+                    <tr key={call.id} className="border-t border-border hover:bg-muted/50 transition-colors">
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                        <span className="font-mono text-sm font-semibold">
+                          {call.os_number}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                        <div className="text-xs">
+                          <div>{format(parseLocalDate(call.scheduled_date), "dd/MM/yy", { locale: ptBR })}</div>
+                          <div className="text-muted-foreground">{call.scheduled_time}</div>
                         </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[90px]">
-                      <span className="truncate block text-sm" title={call.technicians?.full_name}>
-                        {call.technicians?.full_name?.split(' ')[0]}
-                      </span>
-                    </TableCell>
-                    <TableCell className="max-w-[120px]">
-                      <Select
-                        value={call.status_id || ""}
-                        onValueChange={(value) => {
-                          if (value && value !== "") {
-                            updateServiceCall({ id: call.id, status_id: value });
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="w-full h-8 text-xs">
-                          <SelectValue placeholder="Selecionar">
-                            {call.service_call_statuses && (
-                              <div className="flex items-center gap-1">
-                                <div
-                                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                                  style={{ backgroundColor: call.service_call_statuses.color }}
-                                />
-                                <span className="text-xs truncate">
-                                  {call.service_call_statuses.name}
-                                </span>
-                              </div>
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {technicalStatuses.map((status) => (
-                            <SelectItem key={status.id} value={status.id}>
-                              <div className="flex items-center gap-1">
-                                <div
-                                  className="w-3 h-3 rounded-sm flex-shrink-0"
-                                  style={{ backgroundColor: status.color }}
-                                />
-                                <span className="text-sm">{status.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="max-w-[120px]">
-                      <Select
-                        value={call.commercial_status_id || ""}
-                        onValueChange={(value) => {
-                          if (value && value !== "") {
-                            updateServiceCall({ id: call.id, commercial_status_id: value });
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="w-full h-8 text-xs">
-                          <SelectValue placeholder="Selecionar">
-                            {call.commercial_status && (
-                              <div className="flex items-center gap-1">
-                                <div
-                                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                                  style={{ backgroundColor: call.commercial_status.color }}
-                                />
-                                <span className="text-xs truncate">
-                                  {call.commercial_status.name}
-                                </span>
-                              </div>
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {commercialStatuses.map((status) => (
-                            <SelectItem key={status.id} value={status.id}>
-                              <div className="flex items-center gap-1">
-                                <div
-                                  className="w-3 h-3 rounded-sm flex-shrink-0"
-                                  style={{ backgroundColor: status.color }}
-                                />
-                                <span className="text-sm">{status.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="w-[100px] sticky-actions-cell text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => {
-                            setSelectedCall(call);
-                            setViewDialogOpen(true);
+                      </td>
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                        <div className="font-medium text-sm break-words" title={call.clients?.full_name}>
+                          {call.clients?.full_name}
+                        </div>
+                        <div className="text-xs text-muted-foreground break-words">
+                          {call.clients?.phone}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                        <span className="text-sm break-words" title={call.equipment_description}>
+                          {call.equipment_description}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                        {call.service_types ? (
+                          <div className="flex items-start gap-1">
+                            <div
+                              className="w-3 h-3 rounded-sm flex-shrink-0 mt-0.5"
+                              style={{ backgroundColor: call.service_types.color }}
+                            />
+                            <span className="text-xs break-words" title={call.service_types.name}>
+                              {call.service_types.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                        <span className="break-words text-sm" title={call.technicians?.full_name}>
+                          {call.technicians?.full_name?.split(' ')[0]}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                        <Select
+                          value={call.status_id || ""}
+                          onValueChange={(value) => {
+                            if (value && value !== "") {
+                              updateServiceCall({ id: call.id, status_id: value });
+                            }
                           }}
-                          title="Visualizar chamado"
                         >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => navigate(`/service-calls/edit/${call.id}`)}
-                          title="Editar chamado"
+                          <SelectTrigger className="w-full h-8 text-xs">
+                            <SelectValue placeholder="Selecionar">
+                              {call.service_call_statuses && (
+                                <div className="flex items-center gap-1">
+                                  <div
+                                    className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                                    style={{ backgroundColor: call.service_call_statuses.color }}
+                                  />
+                                  <span className="text-xs break-words">
+                                    {call.service_call_statuses.name}
+                                  </span>
+                                </div>
+                              )}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {technicalStatuses.map((status) => (
+                              <SelectItem key={status.id} value={status.id}>
+                                <div className="flex items-center gap-1">
+                                  <div
+                                    className="w-3 h-3 rounded-sm flex-shrink-0"
+                                    style={{ backgroundColor: status.color }}
+                                  />
+                                  <span className="text-sm">{status.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                        <Select
+                          value={call.commercial_status_id || ""}
+                          onValueChange={(value) => {
+                            if (value && value !== "") {
+                              updateServiceCall({ id: call.id, commercial_status_id: value });
+                            }
+                          }}
                         >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir chamado">
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir este chamado técnico? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteServiceCall(call.id)}>
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                          <SelectTrigger className="w-full h-8 text-xs">
+                            <SelectValue placeholder="Selecionar">
+                              {call.commercial_status && (
+                                <div className="flex items-center gap-1">
+                                  <div
+                                    className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                                    style={{ backgroundColor: call.commercial_status.color }}
+                                  />
+                                  <span className="text-xs break-words">
+                                    {call.commercial_status.name}
+                                  </span>
+                                </div>
+                              )}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {commercialStatuses.map((status) => (
+                              <SelectItem key={status.id} value={status.id}>
+                                <div className="flex items-center gap-1">
+                                  <div
+                                    className="w-3 h-3 rounded-sm flex-shrink-0"
+                                    style={{ backgroundColor: status.color }}
+                                  />
+                                  <span className="text-sm">{status.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="w-[120px] min-w-[120px] px-2 py-2 align-top text-right sticky right-0 z-20 bg-background shadow-[-6px_0_8px_-8px_rgba(0,0,0,0.15)]">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setSelectedCall(call);
+                              setViewDialogOpen(true);
+                            }}
+                            title="Visualizar chamado"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => navigate(`/service-calls/edit/${call.id}`)}
+                            title="Editar chamado"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir chamado">
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir este chamado técnico? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteServiceCall(call.id)}>
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
