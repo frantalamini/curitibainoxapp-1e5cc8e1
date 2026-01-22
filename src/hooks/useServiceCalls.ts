@@ -198,8 +198,7 @@ export const useServiceCalls = (limit: number = 30) => {
       const { data, error } = await supabase
         .from("service_calls")
         .select(SERVICE_CALL_SELECT)
-        .order("scheduled_date", { ascending: false })
-        .order("os_number", { ascending: false }) // Desempate: OS mais nova primeiro
+        .order("os_number", { ascending: false }) // Sempre ordenar por Nº OS decrescente
         .limit(limit); // OTIMIZAÇÃO: Limita a quantidade de registros
 
       if (error) throw error;

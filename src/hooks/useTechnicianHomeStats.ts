@@ -95,8 +95,7 @@ export const useTechnicianHomeStats = () => {
           .eq("technician_id", technicianId)
           .gte("scheduled_date", today)
           .not("status_id", "in", `(${finishedStatusIds.join(",")})`)
-          .order("scheduled_date", { ascending: true })
-          .order("scheduled_time", { ascending: true })
+          .order("os_number", { ascending: false })
           .limit(15),
       ]);
 
