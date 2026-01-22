@@ -199,6 +199,7 @@ export const useServiceCalls = (limit: number = 30) => {
         .from("service_calls")
         .select(SERVICE_CALL_SELECT)
         .order("scheduled_date", { ascending: false })
+        .order("os_number", { ascending: false }) // Desempate: OS mais nova primeiro
         .limit(limit); // OTIMIZAÇÃO: Limita a quantidade de registros
 
       if (error) throw error;
