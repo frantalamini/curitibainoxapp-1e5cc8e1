@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useState, useEffect, lazy, Suspense, useLayoutEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Eye } from "lucide-react";
 import {
@@ -63,44 +63,7 @@ const ServiceCalls = () => {
   const [selectedCall, setSelectedCall] = useState<ServiceCall | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Escape hatch: override global overflow constraints ONLY on this page
-  useLayoutEffect(() => {
-    if (isMobile) return;
-
-    const html = document.documentElement;
-    const body = document.body;
-    const root = document.getElementById('root');
-    const appShell = document.querySelector('.app-shell') as HTMLElement | null;
-
-    // Store original styles
-    const originals = {
-      htmlOverflow: html.style.overflowX,
-      bodyOverflow: body.style.overflowX,
-      rootOverflow: root?.style.overflowX || '',
-      appShellMaxWidth: appShell?.style.maxWidth || '',
-      appShellOverflow: appShell?.style.overflowX || '',
-    };
-
-    // Apply overrides
-    html.style.overflowX = 'visible';
-    body.style.overflowX = 'visible';
-    if (root) root.style.overflowX = 'visible';
-    if (appShell) {
-      appShell.style.maxWidth = '100%';
-      appShell.style.overflowX = 'visible';
-    }
-
-    // Cleanup on unmount
-    return () => {
-      html.style.overflowX = originals.htmlOverflow;
-      body.style.overflowX = originals.bodyOverflow;
-      if (root) root.style.overflowX = originals.rootOverflow;
-      if (appShell) {
-        appShell.style.maxWidth = originals.appShellMaxWidth;
-        appShell.style.overflowX = originals.appShellOverflow;
-      }
-    };
-  }, [isMobile]);
+  // Layout global agora suporta scroll interno - escape hatch não é mais necessário
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
