@@ -178,15 +178,15 @@ const ServiceCalls = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[6%]">Nº OS</TableHead>
-                  <TableHead className="w-[8%]">Data/Hora</TableHead>
-                  <TableHead className="w-[16%]">Cliente</TableHead>
-                  <TableHead className="w-[14%]">Equipamento</TableHead>
-                  <TableHead className="w-[10%]">Tipo</TableHead>
-                  <TableHead className="w-[8%]">Técnico</TableHead>
-                  <TableHead className="w-[14%]">St. Técnico</TableHead>
-                  <TableHead className="w-[14%]">St. Comercial</TableHead>
-                  <TableHead className="w-[10%] text-right">Ações</TableHead>
+                  <TableHead className="w-[5%]">Nº OS</TableHead>
+                  <TableHead className="w-[7%]">Data/Hora</TableHead>
+                  <TableHead className="w-[15%]">Cliente</TableHead>
+                  <TableHead className="w-[13%]">Equipamento</TableHead>
+                  <TableHead className="w-[9%]">Tipo</TableHead>
+                  <TableHead className="w-[7%]">Técnico</TableHead>
+                  <TableHead className="w-[12%]">St. Técnico</TableHead>
+                  <TableHead className="w-[12%]">St. Comercial</TableHead>
+                  <TableHead className="w-[20%] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -245,7 +245,7 @@ const ServiceCalls = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-[110px] h-8 text-xs">
+                        <SelectTrigger className="w-full max-w-[100px] h-8 text-xs">
                           <SelectValue placeholder="Selecionar">
                             {call.service_call_statuses && (
                               <div className="flex items-center gap-1">
@@ -284,7 +284,7 @@ const ServiceCalls = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-[110px] h-8 text-xs">
+                        <SelectTrigger className="w-full max-w-[100px] h-8 text-xs">
                           <SelectValue placeholder="Selecionar">
                             {call.commercial_status && (
                               <div className="flex items-center gap-1">
