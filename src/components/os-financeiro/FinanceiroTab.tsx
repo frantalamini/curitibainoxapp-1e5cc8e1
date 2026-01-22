@@ -19,6 +19,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/hooks/useProducts";
 import { useServiceCallItems, ItemType, ServiceCallItem } from "@/hooks/useServiceCallItems";
@@ -32,7 +42,7 @@ import {
   buildPaymentConfig,
   parsePaymentConfig
 } from "@/hooks/useFinancialCalculations";
-import { format, addDays } from "date-fns";
+import { format, addDays, parse, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Package,
@@ -51,6 +61,7 @@ import {
   Check,
   ListOrdered,
   Trash,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QuickProductForm } from "./QuickProductForm";
@@ -58,7 +69,6 @@ import { DiscountType, PaymentMode } from "./types";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Checkbox } from "@/components/ui/checkbox";
 
 interface FinanceiroTabProps {
   serviceCallId: string;
@@ -70,6 +80,21 @@ const formatCurrency = (value: number) => {
     style: "currency",
     currency: "BRL",
   }).format(value);
+};
+
+// Format date input as dd/mm/yyyy
+const formatDateInput = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+};
+
+// Parse dd/mm/yyyy to Date
+const parseDateString = (dateStr: string): Date | null => {
+  if (!dateStr || dateStr.length < 10) return null;
+  const parsed = parse(dateStr, "dd/MM/yyyy", new Date());
+  return isValid(parsed) ? parsed : null;
 };
 
 export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) => {
@@ -90,6 +115,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   
   const {
     transactions,
+    createTransaction,
     createManyTransactions,
     updateTransaction,
     markAsPaid,
@@ -122,21 +148,25 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const [osDiscountType, setOsDiscountType] = useState<DiscountType>("value");
   const [osDiscountValue, setOsDiscountValue] = useState(0);
 
-  // Payment states - NEW: Payment mode (single/multiple)
-  const [paymentStartDate, setPaymentStartDate] = useState<Date>(new Date());
-  const [installmentCount, setInstallmentCount] = useState(1);
-  const [installmentInterval, setInstallmentInterval] = useState(30);
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('single');
-  const [singlePaymentMethod, setSinglePaymentMethod] = useState<string>('');
-  const [allowedPaymentMethods, setAllowedPaymentMethods] = useState<string[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
+  // === NEW: Formas de Pagamento - Lista simples ===
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>([]);
 
-  // Editing state for inline installment editing
+  // === NEW: Condição de Pagamento ===
+  const [installmentCount, setInstallmentCount] = useState(1);
+  const [startDateInput, setStartDateInput] = useState(format(new Date(), "dd/MM/yyyy"));
+  const [installmentInterval, setInstallmentInterval] = useState(30);
+  
+  // Confirm dialog for regenerating
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+
+  // === NEW: Inline editing state for installments ===
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
-  const [editDays, setEditDays] = useState(0);
   const [editDueDate, setEditDueDate] = useState<Date | undefined>();
   const [editAmount, setEditAmount] = useState(0);
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
+  const [editNotes, setEditNotes] = useState<string>('');
+
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load existing data from service call
   useEffect(() => {
@@ -148,11 +178,19 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       const paymentConfig = parsePaymentConfig(sc.payment_config);
       if (paymentConfig) {
         if (paymentConfig.startDate) {
-          setPaymentStartDate(new Date(paymentConfig.startDate + "T12:00:00"));
+          const d = new Date(paymentConfig.startDate + "T12:00:00");
+          setStartDateInput(format(d, "dd/MM/yyyy"));
         }
-        setPaymentMode(paymentConfig.paymentMode || 'single');
-        setSinglePaymentMethod(paymentConfig.singlePaymentMethod || '');
-        setAllowedPaymentMethods(paymentConfig.allowedPaymentMethods || []);
+        if (paymentConfig.allowedPaymentMethods && paymentConfig.allowedPaymentMethods.length > 0) {
+          setSelectedPaymentMethods(paymentConfig.allowedPaymentMethods);
+        }
+        if (paymentConfig.installmentDays && paymentConfig.installmentDays.length > 0) {
+          setInstallmentCount(paymentConfig.installmentDays.length);
+          // Infer interval from days array
+          if (paymentConfig.installmentDays.length > 1) {
+            setInstallmentInterval(paymentConfig.installmentDays[1] - paymentConfig.installmentDays[0]);
+          }
+        }
       }
     }
   }, [serviceCall]);
@@ -171,10 +209,18 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   
   const grandTotal = subtotalOS - osDiscount;
 
-  // Generate installment days array
-  const installmentDays = useMemo(() => {
-    return Array.from({ length: installmentCount }, (_, i) => installmentInterval * (i + 1));
-  }, [installmentCount, installmentInterval]);
+  // Calculate totals difference
+  const totalInstallments = transactions.reduce((sum, t) => sum + t.amount, 0);
+  const diferenca = Math.abs(grandTotal - totalInstallments);
+  const hasDiferenca = diferenca > 0.01 && transactions.length > 0;
+
+  // Parse start date
+  const paymentStartDate = useMemo(() => {
+    return parseDateString(startDateInput) || new Date();
+  }, [startDateInput]);
+
+  // Check if can generate
+  const canGenerate = startDateInput.length === 10 && parseDateString(startDateInput) !== null && grandTotal > 0;
 
   // Calculate item total with discount
   const calculateItemTotal = (qty: number, unitPrice: number, discountType: "percent" | "value", discountPercent: number, discountValue: number) => {
@@ -183,6 +229,23 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       return subtotal - (subtotal * discountPercent / 100);
     }
     return subtotal - discountValue;
+  };
+
+  // === Payment Methods Handlers ===
+  const handleAddPaymentMethod = () => {
+    setSelectedPaymentMethods(prev => [...prev, '']);
+  };
+
+  const handleRemovePaymentMethod = (index: number) => {
+    setSelectedPaymentMethods(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleChangePaymentMethod = (index: number, value: string) => {
+    setSelectedPaymentMethods(prev => {
+      const newMethods = [...prev];
+      newMethods[index] = value;
+      return newMethods;
+    });
   };
 
   // Add product item
@@ -275,64 +338,58 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }));
   };
 
-  // Handle allowed payment methods toggle (for multiple mode)
-  const handleToggleAllowedMethod = (methodName: string, checked: boolean) => {
-    if (checked) {
-      setAllowedPaymentMethods(prev => [...prev, methodName]);
-    } else {
-      setAllowedPaymentMethods(prev => prev.filter(m => m !== methodName));
-    }
-  };
-
-  // Get available payment methods for installment dropdown
-  const getAvailablePaymentMethods = () => {
-    if (paymentMode === 'single' && singlePaymentMethod) {
-      return [singlePaymentMethod];
-    }
-    if (paymentMode === 'multiple' && allowedPaymentMethods.length > 0) {
-      return allowedPaymentMethods;
-    }
-    // Fallback: all active methods
-    return activePaymentMethods.map(pm => pm.name);
-  };
-
-  // Generate installments
+  // === Generate Installments ===
   const handleGenerateInstallments = async () => {
     if (grandTotal <= 0) {
       toast({ title: "O valor total deve ser maior que zero", variant: "destructive" });
       return;
     }
 
+    // Check if there are existing transactions - show confirm dialog
     if (transactions.length > 0) {
-      toast({ title: "Limpe as parcelas existentes primeiro", variant: "destructive" });
+      setShowRegenerateConfirm(true);
       return;
     }
 
-    // Determine default payment method based on mode
-    let defaultMethod: string | null = null;
-    if (paymentMode === 'single' && singlePaymentMethod) {
-      defaultMethod = singlePaymentMethod;
-    } else if (paymentMode === 'multiple' && allowedPaymentMethods.length > 0) {
-      defaultMethod = allowedPaymentMethods[0];
+    await doGenerateInstallments();
+  };
+
+  const doGenerateInstallments = async () => {
+    // Clear existing first
+    if (transactions.length > 0) {
+      for (const t of transactions) {
+        await deleteTransaction.mutateAsync(t.id);
+      }
     }
 
     const groupId = crypto.randomUUID();
-    const installments = generateInstallments(paymentStartDate, installmentDays, grandTotal);
-
-    const installmentsData = installments.map((inst) => ({
-      direction: "RECEIVE" as const,
-      origin: "SERVICE_CALL" as const,
-      status: "OPEN" as const,
-      service_call_id: serviceCallId,
-      client_id: clientId,
-      due_date: format(inst.dueDate, "yyyy-MM-dd"),
-      amount: inst.amount,
-      payment_method: defaultMethod,
-      installment_number: inst.number,
-      installments_total: installments.length,
-      installments_group_id: groupId,
-      interval_days: inst.days,
-    }));
+    const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * i);
+    
+    // Default payment method from selected list
+    const defaultMethod = selectedPaymentMethods.length > 0 ? selectedPaymentMethods[0] : null;
+    
+    // Generate installments
+    const installmentsData = installmentDays.map((days, i) => {
+      const dueDate = addDays(paymentStartDate, days);
+      const amount = i === installmentCount - 1 
+        ? grandTotal - (Math.floor((grandTotal / installmentCount) * 100) / 100) * (installmentCount - 1)
+        : Math.floor((grandTotal / installmentCount) * 100) / 100;
+      
+      return {
+        direction: "RECEIVE" as const,
+        origin: "SERVICE_CALL" as const,
+        status: "OPEN" as const,
+        service_call_id: serviceCallId,
+        client_id: clientId,
+        due_date: format(dueDate, "yyyy-MM-dd"),
+        amount,
+        payment_method: defaultMethod,
+        installment_number: i + 1,
+        installments_total: installmentCount,
+        installments_group_id: groupId,
+        notes: null,
+      };
+    });
 
     try {
       await createManyTransactions.mutateAsync(installmentsData);
@@ -342,7 +399,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
-  // Clear all installments
+  // === Clear all installments ===
   const handleClearInstallments = async () => {
     try {
       for (const t of transactions) {
@@ -354,23 +411,59 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
-  // Inline edit handlers
+  // === Add manual installment ===
+  const handleAddInstallment = async () => {
+    const lastInstallment = transactions[transactions.length - 1];
+    const newInstallmentNumber = (lastInstallment?.installment_number || 0) + 1;
+    const newDueDate = lastInstallment 
+      ? addDays(new Date(lastInstallment.due_date + "T12:00:00"), installmentInterval)
+      : new Date();
+
+    try {
+      await createTransaction.mutateAsync({
+        direction: "RECEIVE",
+        origin: "SERVICE_CALL",
+        status: "OPEN",
+        service_call_id: serviceCallId,
+        client_id: clientId,
+        due_date: format(newDueDate, "yyyy-MM-dd"),
+        amount: 0,
+        payment_method: selectedPaymentMethods[0] || null,
+        installment_number: newInstallmentNumber,
+        installments_total: transactions.length + 1,
+        installments_group_id: lastInstallment?.installments_group_id || crypto.randomUUID(),
+        notes: null,
+      });
+      toast({ title: "Parcela adicionada" });
+    } catch (error) {
+      toast({ title: "Erro ao adicionar parcela", variant: "destructive" });
+    }
+  };
+
+  // === Inline edit handlers ===
   const handleStartEditTransaction = (t: any) => {
     setEditingTransactionId(t.id);
-    setEditDays((t as any).interval_days || 0);
     setEditDueDate(new Date(t.due_date + "T12:00:00"));
     setEditAmount(t.amount);
     setEditPaymentMethod(t.payment_method || '');
+    setEditNotes(t.notes || '');
   };
 
   const handleSaveEditTransaction = async () => {
     if (!editingTransactionId || !editDueDate) return;
+    
+    if (!editAmount || editAmount <= 0) {
+      toast({ title: "O valor deve ser maior que zero", variant: "destructive" });
+      return;
+    }
+
     try {
       await updateTransaction.mutateAsync({
         id: editingTransactionId,
         amount: editAmount,
         due_date: format(editDueDate, "yyyy-MM-dd"),
-        payment_method: editPaymentMethod || undefined,
+        payment_method: editPaymentMethod || null,
+        notes: editNotes || null,
       });
       setEditingTransactionId(null);
       toast({ title: "Parcela atualizada" });
@@ -379,7 +472,11 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
-  // Update payment method for a single transaction
+  const handleCancelEdit = () => {
+    setEditingTransactionId(null);
+  };
+
+  // === Update payment method for a single transaction (inline select) ===
   const handleUpdateTransactionPaymentMethod = async (transactionId: string, method: string) => {
     try {
       await updateTransaction.mutateAsync({
@@ -391,16 +488,32 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
-  // Save financial data
+  // === Calculate days from first installment ===
+  const calculateDays = (t: any, index: number): number => {
+    if (transactions.length === 0) return 0;
+    const firstDate = new Date(transactions[0].due_date + "T12:00:00");
+    const currentDate = new Date(t.due_date + "T12:00:00");
+    return Math.round((currentDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  // === Save financial data ===
   const handleSaveFinancial = async () => {
+    // Validate parcels before saving
+    const invalidParcels = transactions.filter(t => !t.due_date || t.amount <= 0);
+    if (invalidParcels.length > 0) {
+      toast({ title: "Todas as parcelas devem ter data e valor válidos", variant: "destructive" });
+      return;
+    }
+
     setIsSaving(true);
     try {
+      const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * i);
       const paymentConfig = buildPaymentConfig(
         paymentStartDate, 
         installmentDays, 
-        paymentMode,
-        singlePaymentMethod,
-        allowedPaymentMethods
+        'multiple',
+        undefined,
+        selectedPaymentMethods.filter(m => m)
       );
 
       const { error } = await supabase
@@ -729,80 +842,47 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         </CardContent>
       </Card>
 
-      {/* Formas de Pagamento - NEW: Modo Único/Múltiplas */}
+      {/* === NEW: Formas de Pagamento - Lista Simples === */}
       <Card>
         <CardHeader className="py-2 px-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <CreditCard className="w-4 h-4" />
-            Formas de Pagamento
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <CreditCard className="w-4 h-4" />
+              Formas de Pagamento
+            </CardTitle>
+            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleAddPaymentMethod}>
+              <Plus className="h-3 w-3 mr-1" />
+              Adicionar Forma
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="p-3 space-y-3">
-          {/* Payment Mode Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Modo de Pagamento</Label>
-              <Select value={paymentMode} onValueChange={(v) => setPaymentMode(v as PaymentMode)}>
-                <SelectTrigger className="h-8 text-xs mt-1">
-                  <SelectValue />
+        <CardContent className="p-3 space-y-2">
+          {selectedPaymentMethods.length === 0 && (
+            <p className="text-xs text-muted-foreground">Nenhuma forma de pagamento selecionada.</p>
+          )}
+          {selectedPaymentMethods.map((method, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <Select value={method} onValueChange={(v) => handleChangePaymentMethod(index, v)}>
+                <SelectTrigger className="h-8 text-xs flex-1">
+                  <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="single" className="text-xs">Único</SelectItem>
-                  <SelectItem value="multiple" className="text-xs">Múltiplas</SelectItem>
+                  {activePaymentMethods.map(pm => (
+                    <SelectItem key={pm.id} value={pm.name} className="text-xs">
+                      {pm.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemovePaymentMethod(index)}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
             </div>
-
-            {/* Single Mode: Single payment method dropdown */}
-            {paymentMode === 'single' && (
-              <div>
-                <Label className="text-xs">Forma de Pagamento</Label>
-                <Select value={singlePaymentMethod} onValueChange={setSinglePaymentMethod}>
-                  <SelectTrigger className="h-8 text-xs mt-1">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activePaymentMethods.map(pm => (
-                      <SelectItem key={pm.id} value={pm.name} className="text-xs">
-                        {pm.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          {/* Multiple Mode: Checkboxes for allowed methods */}
-          {paymentMode === 'multiple' && (
-            <div>
-              <Label className="text-xs">Formas Permitidas</Label>
-              <div className="flex flex-wrap gap-3 mt-2">
-                {activePaymentMethods.map(pm => (
-                  <div key={pm.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`pm-${pm.id}`}
-                      checked={allowedPaymentMethods.includes(pm.name)}
-                      onCheckedChange={(checked) => handleToggleAllowedMethod(pm.name, !!checked)}
-                    />
-                    <label htmlFor={`pm-${pm.id}`} className="text-xs cursor-pointer">
-                      {pm.name}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Informative message */}
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1 border-t">
-            <AlertCircle className="h-3 w-3" />
-            O valor é definido nas parcelas geradas.
-          </p>
+          ))}
         </CardContent>
       </Card>
 
-      {/* Condição de Pagamento (1-12x) - Compact */}
+      {/* === NEW: Condição de Pagamento - 3 campos lado a lado + botão === */}
       <Card>
         <CardHeader className="py-2 px-3">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -810,36 +890,12 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
             Condição de Pagamento
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-2 space-y-2">
-          {transactions.length > 0 && (
-            <div className="flex items-center gap-2 p-2 bg-yellow-500/10 rounded text-xs">
-              <AlertCircle className="h-3 w-3 text-yellow-600" />
-              <span>Já existem parcelas. Limpe antes de gerar novas.</span>
-              <Button type="button" variant="outline" size="sm" className="h-6 text-xs ml-auto" onClick={handleClearInstallments}>
-                <Trash className="h-3 w-3 mr-1" /> Limpar
-              </Button>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-            <div>
-              <Label className="text-[10px]">Data Início</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full h-8 text-xs justify-start">
-                    <CalendarIcon className="h-3 w-3 mr-1" />
-                    {format(paymentStartDate, "dd/MM/yyyy")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={paymentStartDate} onSelect={(d) => d && setPaymentStartDate(d)} locale={ptBR} />
-                </PopoverContent>
-              </Popover>
-            </div>
+        <CardContent className="p-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             <div>
               <Label className="text-[10px]">Qtd Parcelas</Label>
               <Select value={String(installmentCount)} onValueChange={(v) => setInstallmentCount(Number(v))}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 text-xs mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -850,166 +906,274 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               </Select>
             </div>
             <div>
-              <Label className="text-[10px]">Intervalo (dias)</Label>
-              <Input type="number" min="1" className="h-8 text-xs" value={installmentInterval}
-                onChange={e => setInstallmentInterval(Number(e.target.value) || 30)} />
+              <Label className="text-[10px]">Data Início (1ª)</Label>
+              <Input 
+                type="text" 
+                placeholder="dd/mm/aaaa" 
+                className="h-8 text-xs mt-1"
+                value={startDateInput}
+                onChange={e => setStartDateInput(formatDateInput(e.target.value))}
+                maxLength={10}
+              />
             </div>
-            <div className="md:col-span-2 flex items-end">
-              <Button type="button" className="h-8 w-full text-xs" onClick={handleGenerateInstallments}
-                disabled={grandTotal <= 0 || transactions.length > 0 || createManyTransactions.isPending}>
+            <div>
+              <Label className="text-[10px]">Intervalo (dias)</Label>
+              <Input 
+                type="number" 
+                min="1" 
+                className="h-8 text-xs mt-1" 
+                value={installmentInterval}
+                onChange={e => setInstallmentInterval(Number(e.target.value) || 30)} 
+              />
+            </div>
+            <div className="flex items-end">
+              <Button 
+                type="button" 
+                className="h-8 w-full text-xs" 
+                onClick={handleGenerateInstallments}
+                disabled={!canGenerate || createManyTransactions.isPending}
+              >
                 <Receipt className="h-3 w-3 mr-1" />
-                {createManyTransactions.isPending ? "Gerando..." : `Gerar ${installmentCount}x`}
+                {createManyTransactions.isPending ? "Gerando..." : "GERAR PARCELAS"}
               </Button>
             </div>
           </div>
-          
-          {/* Preview */}
-          {transactions.length === 0 && installmentCount > 0 && grandTotal > 0 && (
-            <div className="bg-muted/50 rounded p-2 text-xs">
-              <span className="text-muted-foreground">Prévia: </span>
-              {installmentDays.map((days, i) => {
-                const dueDate = addDays(paymentStartDate, days);
-                return (
-                  <Badge key={i} variant="secondary" className="mr-1 text-[10px]">
-                    {i+1}/{installmentCount} - {format(dueDate, "dd/MM")} - {formatCurrency(grandTotal / installmentCount)}
-                  </Badge>
-                );
-              })}
+
+          {/* Actions row */}
+          {transactions.length > 0 && (
+            <div className="flex items-center gap-2 mt-3 pt-2 border-t">
+              <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleClearInstallments}>
+                <Trash className="h-3 w-3 mr-1" />
+                Limpar Parcelas
+              </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Parcelas Geradas - Compact with inline edit */}
-      {transactions.length > 0 && (
-        <Card>
-          <CardHeader className="py-2 px-3">
+      {/* === NEW: Parcelas Geradas - Tabela com todas as colunas === */}
+      <Card>
+        <CardHeader className="py-2 px-3">
+          <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
               <ListOrdered className="w-4 h-4" />
               Parcelas Geradas
             </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-xs">
-                    <TableHead className="py-1 px-2 w-12">#</TableHead>
-                    <TableHead className="py-1 px-2">Vencimento</TableHead>
-                    <TableHead className="py-1 px-2 text-right">Valor</TableHead>
-                    <TableHead className="py-1 px-2">Forma</TableHead>
-                    <TableHead className="py-1 px-2">Status</TableHead>
-                    <TableHead className="py-1 px-2">Pago em</TableHead>
-                    <TableHead className="py-1 px-2 w-24">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map(t => (
-                    <TableRow key={t.id} className={cn("text-xs", editingTransactionId === t.id && "bg-muted/50")}>
-                      <TableCell className="py-1 px-2 font-medium">
-                        {t.installments_total && t.installments_total > 1 ? `${t.installment_number}/${t.installments_total}` : "1x"}
-                      </TableCell>
-                      <TableCell className="py-1 px-2">
-                        {editingTransactionId === t.id ? (
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" size="sm" className="h-7 text-xs w-28">
-                                <CalendarIcon className="h-3 w-3 mr-1" />
-                                {editDueDate ? format(editDueDate, "dd/MM/yyyy") : "-"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar mode="single" selected={editDueDate} onSelect={setEditDueDate} locale={ptBR} />
-                            </PopoverContent>
-                          </Popover>
-                        ) : (
-                          <span className={cn(t.status === "OPEN" && "cursor-pointer hover:underline")}
-                            onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}>
-                            {format(new Date(t.due_date + "T12:00:00"), "dd/MM/yyyy")}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-1 px-2 text-right">
-                        {editingTransactionId === t.id ? (
-                          <Input type="number" step="0.01" min="0" className="h-7 text-xs w-20 text-right"
-                            value={editAmount} onChange={e => setEditAmount(Number(e.target.value))} />
-                        ) : (
-                          <span className={cn("font-medium", t.status === "OPEN" && "cursor-pointer hover:underline")}
-                            onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}>
-                            {formatCurrency(t.amount)}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-1 px-2">
-                        {t.status === "OPEN" ? (
-                          <Select 
-                            value={t.payment_method || ''} 
-                            onValueChange={(v) => handleUpdateTransactionPaymentMethod(t.id, v)}
-                          >
-                            <SelectTrigger className="h-7 text-xs w-28">
-                              <SelectValue placeholder="Selecionar" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {getAvailablePaymentMethods().map(pm => (
-                                <SelectItem key={pm} value={pm} className="text-xs">
-                                  {pm}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <span className="text-xs">{t.payment_method || "-"}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-1 px-2">
-                        {t.status === "PAID" && <Badge className="bg-green-500 text-[10px]">Pago</Badge>}
-                        {t.status === "CANCELED" && <Badge variant="destructive" className="text-[10px]">Cancelado</Badge>}
-                        {t.status === "OPEN" && <Badge variant="secondary" className="text-[10px]">Em Aberto</Badge>}
-                      </TableCell>
-                      <TableCell className="py-1 px-2">
-                        {t.paid_at ? format(new Date(t.paid_at), "dd/MM/yyyy") : "-"}
-                      </TableCell>
-                      <TableCell className="py-1 px-2">
-                        {editingTransactionId === t.id ? (
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleSaveEditTransaction}>
-                              <Check className="h-3 w-3 text-green-600" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingTransactionId(null)}>
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : t.status === "OPEN" ? (
-                          <div className="flex gap-0.5">
-                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Pago" onClick={() => markAsPaid.mutateAsync(t.id)}>
-                              <Check className="h-3 w-3 text-green-600" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Cancelar" onClick={() => cancelTransaction.mutateAsync(t.id)}>
-                              <X className="h-3 w-3 text-destructive" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Excluir" onClick={() => deleteTransaction.mutateAsync(t.id)}>
-                              <Trash2 className="h-3 w-3 text-muted-foreground" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
+            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleAddInstallment}>
+              <Plus className="h-3 w-3 mr-1" />
+              Adicionar Parcela
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-2">
+          {transactions.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">
+              Nenhuma parcela gerada. Use o botão "GERAR PARCELAS" acima.
+            </p>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="text-xs">
+                      <TableHead className="py-1 px-2 w-12">Nº</TableHead>
+                      <TableHead className="py-1 px-2 w-14 text-right">Dias</TableHead>
+                      <TableHead className="py-1 px-2 w-28">Data</TableHead>
+                      <TableHead className="py-1 px-2 w-24 text-right">Valor</TableHead>
+                      <TableHead className="py-1 px-2 w-32">Forma</TableHead>
+                      <TableHead className="py-1 px-2 min-w-[120px]">Observação</TableHead>
+                      <TableHead className="py-1 px-2 w-24">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            
-            {/* Summary */}
-            <div className="flex justify-end gap-4 pt-2 border-t text-xs">
-              <span>Total: <strong>{formatCurrency(summary.total)}</strong></span>
-              <span>Pago: <strong className="text-green-600">{formatCurrency(summary.paid)}</strong></span>
-              <span>Aberto: <strong className="text-orange-600">{formatCurrency(summary.open)}</strong></span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.map((t, index) => {
+                      const isEditing = editingTransactionId === t.id;
+                      const days = calculateDays(t, index);
+                      
+                      return (
+                        <TableRow key={t.id} className={cn("text-xs", isEditing && "bg-muted/50")}>
+                          {/* Nº */}
+                          <TableCell className="py-1 px-2 font-medium">
+                            {t.installments_total && t.installments_total > 1 
+                              ? `${t.installment_number}/${t.installments_total}` 
+                              : "1x"}
+                          </TableCell>
+                          
+                          {/* Dias */}
+                          <TableCell className="py-1 px-2 text-right text-muted-foreground">
+                            {days}
+                          </TableCell>
+                          
+                          {/* Data */}
+                          <TableCell className="py-1 px-2">
+                            {isEditing ? (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" size="sm" className="h-7 text-xs w-full justify-start">
+                                    <CalendarIcon className="h-3 w-3 mr-1" />
+                                    {editDueDate ? format(editDueDate, "dd/MM/yyyy") : "-"}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar 
+                                    mode="single" 
+                                    selected={editDueDate} 
+                                    onSelect={setEditDueDate} 
+                                    locale={ptBR}
+                                    className="pointer-events-auto" 
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <span 
+                                className={cn(t.status === "OPEN" && "cursor-pointer hover:underline")}
+                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}
+                              >
+                                {format(new Date(t.due_date + "T12:00:00"), "dd/MM/yyyy")}
+                              </span>
+                            )}
+                          </TableCell>
+                          
+                          {/* Valor */}
+                          <TableCell className="py-1 px-2 text-right">
+                            {isEditing ? (
+                              <Input 
+                                type="number" 
+                                step="0.01" 
+                                min="0" 
+                                className="h-7 text-xs w-full text-right"
+                                value={editAmount} 
+                                onChange={e => setEditAmount(Number(e.target.value))} 
+                              />
+                            ) : (
+                              <span 
+                                className={cn("font-medium", t.status === "OPEN" && "cursor-pointer hover:underline")}
+                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}
+                              >
+                                {formatCurrency(t.amount)}
+                              </span>
+                            )}
+                          </TableCell>
+                          
+                          {/* Forma */}
+                          <TableCell className="py-1 px-2">
+                            {isEditing ? (
+                              <Select value={editPaymentMethod} onValueChange={setEditPaymentMethod}>
+                                <SelectTrigger className="h-7 text-xs w-full">
+                                  <SelectValue placeholder="Selecionar" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {activePaymentMethods.map(pm => (
+                                    <SelectItem key={pm.id} value={pm.name} className="text-xs">
+                                      {pm.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : t.status === "OPEN" ? (
+                              <Select 
+                                value={t.payment_method || ''} 
+                                onValueChange={(v) => handleUpdateTransactionPaymentMethod(t.id, v)}
+                              >
+                                <SelectTrigger className="h-7 text-xs w-full">
+                                  <SelectValue placeholder="Selecionar" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {activePaymentMethods.map(pm => (
+                                    <SelectItem key={pm.id} value={pm.name} className="text-xs">
+                                      {pm.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span className="text-xs">{t.payment_method || "-"}</span>
+                            )}
+                          </TableCell>
+                          
+                          {/* Observação */}
+                          <TableCell className="py-1 px-2">
+                            {isEditing ? (
+                              <Input 
+                                type="text" 
+                                placeholder="Observação..."
+                                className="h-7 text-xs w-full"
+                                value={editNotes} 
+                                onChange={e => setEditNotes(e.target.value)} 
+                              />
+                            ) : (
+                              <span 
+                                className={cn("text-muted-foreground", t.status === "OPEN" && "cursor-pointer hover:underline")}
+                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}
+                              >
+                                {t.notes || "-"}
+                              </span>
+                            )}
+                          </TableCell>
+                          
+                          {/* Ações */}
+                          <TableCell className="py-1 px-2">
+                            {isEditing ? (
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleSaveEditTransaction}>
+                                  <Check className="h-3 w-3 text-green-600" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCancelEdit}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : t.status === "OPEN" ? (
+                              <div className="flex gap-0.5">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Pago" onClick={() => markAsPaid.mutateAsync(t.id)}>
+                                  <Check className="h-3 w-3 text-green-600" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Cancelar" onClick={() => cancelTransaction.mutateAsync(t.id)}>
+                                  <X className="h-3 w-3 text-destructive" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Excluir" onClick={() => deleteTransaction.mutateAsync(t.id)}>
+                                  <Trash2 className="h-3 w-3 text-muted-foreground" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                {t.status === "PAID" && <Badge className="bg-green-500 text-[10px]">Pago</Badge>}
+                                {t.status === "CANCELED" && <Badge variant="destructive" className="text-[10px]">Canc.</Badge>}
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Summary */}
+              <div className="flex flex-wrap justify-between items-center gap-4 pt-3 border-t text-xs">
+                <div className="flex gap-4">
+                  <span>Total Parcelas: <strong>{formatCurrency(totalInstallments)}</strong></span>
+                  <span>Pago: <strong className="text-green-600">{formatCurrency(summary.paid)}</strong></span>
+                  <span>Aberto: <strong className="text-orange-600">{formatCurrency(summary.open)}</strong></span>
+                </div>
+                
+                {/* Diferença warning */}
+                {hasDiferenca && (
+                  <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>Diferença: {formatCurrency(diferenca)} (Total OS: {formatCurrency(grandTotal)})</span>
+                  </div>
+                )}
+                {!hasDiferenca && transactions.length > 0 && (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <CheckCircle className="h-3 w-3" />
+                    <span>Valores conferem</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Save Button */}
       <div className="flex justify-end pt-2">
@@ -1018,6 +1182,24 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
           {isSaving ? "Salvando..." : "Salvar Financeiro"}
         </Button>
       </div>
+
+      {/* Confirm Regenerate Dialog */}
+      <AlertDialog open={showRegenerateConfirm} onOpenChange={setShowRegenerateConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Regenerar Parcelas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Já existem parcelas geradas. Deseja limpar e gerar novas parcelas com as configurações atuais?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowRegenerateConfirm(false); doGenerateInstallments(); }}>
+              Limpar e Gerar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
