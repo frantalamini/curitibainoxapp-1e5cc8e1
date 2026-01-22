@@ -547,7 +547,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0 max-w-full">
       {/* Peças/Produtos - Compact */}
       <Card>
         <CardHeader className="py-2 px-3">
@@ -621,7 +621,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
           )}
 
           {/* Add product form - compact */}
-          <div className="grid grid-cols-2 md:grid-cols-7 gap-1 pt-1 border-t text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2 pt-2 border-t text-xs">
             <div className="col-span-2">
               <Label className="text-[10px]">Produto</Label>
               <div className="flex gap-1">
@@ -751,7 +751,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
           )}
 
           {/* Add service form - compact */}
-          <div className="grid grid-cols-2 md:grid-cols-7 gap-1 pt-1 border-t text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2 pt-2 border-t text-xs">
             <div className="col-span-2">
               <Label className="text-[10px]">Descrição</Label>
               <Input placeholder="Ex: Mão de obra..." className="h-8 text-xs" value={newService.description}
@@ -803,7 +803,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       {/* Totais e Desconto Geral - Compact */}
       <Card className="bg-muted/30">
         <CardContent className="p-3">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end text-sm">
             <div>
               <span className="text-[10px] text-muted-foreground">Total Peças</span>
               <p className="font-semibold">{formatCurrency(subtotalParts)}</p>
@@ -891,7 +891,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <div>
               <Label className="text-[10px]">Qtd Parcelas</Label>
               <Select value={String(installmentCount)} onValueChange={(v) => setInstallmentCount(Number(v))}>
