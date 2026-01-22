@@ -174,19 +174,19 @@ const ServiceCalls = () => {
             ))}
           </div>
         ) : (
-          <div className="border rounded-lg w-full max-w-full min-w-0">
+          <div className="border rounded-lg w-full overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[5%]">Nº OS</TableHead>
-                  <TableHead className="w-[7%]">Data/Hora</TableHead>
-                  <TableHead className="w-[15%]">Cliente</TableHead>
-                  <TableHead className="w-[13%]">Equipamento</TableHead>
-                  <TableHead className="w-[9%]">Tipo</TableHead>
-                  <TableHead className="w-[7%]">Técnico</TableHead>
-                  <TableHead className="w-[12%]">St. Técnico</TableHead>
-                  <TableHead className="w-[12%]">St. Comercial</TableHead>
-                  <TableHead className="w-[20%] text-right">Ações</TableHead>
+                  <TableHead className="w-[60px]">Nº OS</TableHead>
+                  <TableHead className="w-[80px]">Data/Hora</TableHead>
+                  <TableHead className="max-w-[180px]">Cliente</TableHead>
+                  <TableHead className="max-w-[160px]">Equipamento</TableHead>
+                  <TableHead className="max-w-[100px]">Tipo</TableHead>
+                  <TableHead className="max-w-[90px]">Técnico</TableHead>
+                  <TableHead className="max-w-[120px]">St. Técnico</TableHead>
+                  <TableHead className="max-w-[120px]">St. Comercial</TableHead>
+                  <TableHead className="w-[100px] sticky-actions-cell text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -203,27 +203,27 @@ const ServiceCalls = () => {
                         <div className="text-muted-foreground">{call.scheduled_time}</div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="cell-multiline font-medium text-sm" title={call.clients?.full_name}>
+                    <TableCell className="max-w-[180px]">
+                      <div className="font-medium text-sm" title={call.clients?.full_name}>
                         {call.clients?.full_name}
                       </div>
-                      <div className="text-xs text-muted-foreground cell-truncate">
+                      <div className="text-xs text-muted-foreground truncate">
                         {call.clients?.phone}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <span className="cell-multiline text-sm" title={call.equipment_description}>
+                    <TableCell className="max-w-[160px]">
+                      <span className="text-sm" title={call.equipment_description}>
                         {call.equipment_description}
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[100px]">
                       {call.service_types ? (
                         <div className="flex items-center gap-1">
                           <div
                             className="w-3 h-3 rounded-sm flex-shrink-0"
                             style={{ backgroundColor: call.service_types.color }}
                           />
-                          <span className="text-xs cell-truncate" title={call.service_types.name}>
+                          <span className="text-xs truncate" title={call.service_types.name}>
                             {call.service_types.name}
                           </span>
                         </div>
@@ -231,12 +231,12 @@ const ServiceCalls = () => {
                         <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <span className="cell-truncate block text-sm" title={call.technicians?.full_name}>
+                    <TableCell className="max-w-[90px]">
+                      <span className="truncate block text-sm" title={call.technicians?.full_name}>
                         {call.technicians?.full_name?.split(' ')[0]}
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[120px]">
                       <Select
                         value={call.status_id || ""}
                         onValueChange={(value) => {
@@ -245,7 +245,7 @@ const ServiceCalls = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full max-w-[100px] h-8 text-xs">
+                        <SelectTrigger className="w-full h-8 text-xs">
                           <SelectValue placeholder="Selecionar">
                             {call.service_call_statuses && (
                               <div className="flex items-center gap-1">
@@ -275,7 +275,7 @@ const ServiceCalls = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[120px]">
                       <Select
                         value={call.commercial_status_id || ""}
                         onValueChange={(value) => {
@@ -284,7 +284,7 @@ const ServiceCalls = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full max-w-[100px] h-8 text-xs">
+                        <SelectTrigger className="w-full h-8 text-xs">
                           <SelectValue placeholder="Selecionar">
                             {call.commercial_status && (
                               <div className="flex items-center gap-1">
@@ -314,7 +314,7 @@ const ServiceCalls = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="w-[100px] sticky-actions-cell text-right">
                       <div className="flex justify-end gap-1">
                         <Button
                           variant="ghost"
