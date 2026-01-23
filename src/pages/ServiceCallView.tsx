@@ -235,9 +235,9 @@ const ServiceCallView = () => {
     <MainLayout>
       <div className="space-y-4 md:space-y-6">
         {/* Header estilo Tiny - Breadcrumb + Ações */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Lado esquerdo: Voltar + Breadcrumb */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
               size="sm" 
@@ -247,28 +247,28 @@ const ServiceCallView = () => {
               <ArrowLeft className="h-4 w-4" />
               Voltar
             </Button>
-            <span className="text-muted-foreground hidden sm:inline">›</span>
-            <span className="text-muted-foreground text-sm hidden sm:inline">Chamados</span>
-            <span className="text-muted-foreground hidden sm:inline">›</span>
-            <span className="font-semibold text-sm hidden sm:inline">OS #{call.os_number}</span>
+            <span className="text-muted-foreground">›</span>
+            <span className="text-muted-foreground text-sm">Chamados</span>
+            <span className="text-muted-foreground">›</span>
+            <span className="font-semibold text-sm">OS #{call.os_number}</span>
           </div>
           
           {/* Lado direito: Botões de Ação - SEMPRE VISÍVEIS */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               onClick={() => navigate(`/service-calls/edit/${call.id}`)}
-              className="bg-primary hover:bg-primary/90 gap-2"
+              size="default"
             >
-              <Pencil className="h-4 w-4" />
+              <Pencil className="mr-2 h-4 w-4" />
               Editar
             </Button>
             <Button
               variant="outline"
+              size="default"
               onClick={handleGeneratePDF}
               disabled={isGeneratingPDF}
-              className="gap-2"
             >
-              <FileDown className="h-4 w-4" />
+              <FileDown className="mr-2 h-4 w-4" />
               {isGeneratingPDF ? "Gerando..." : "PDF"}
             </Button>
           </div>
