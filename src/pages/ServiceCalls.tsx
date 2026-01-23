@@ -135,21 +135,33 @@ const ServiceCalls = () => {
             ))}
           </div>
         ) : (
-          <div className="w-full max-w-full overflow-x-auto border rounded-lg">
-            <div className="min-w-[950px]">
-              <table className="w-full min-w-full text-sm table-fixed border-collapse">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="w-[80px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Nº OS</th>
-                    <th className="w-[100px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Data/Hora</th>
-                    <th className="w-[200px] max-w-[220px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Cliente</th>
-                    <th className="w-[160px] max-w-[200px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Equipamento</th>
-                    <th className="w-[120px] max-w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Tipo</th>
-                    <th className="w-[100px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Técnico</th>
-                    <th className="w-[140px] max-w-[150px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Técnico</th>
-                    <th className="w-[140px] max-w-[150px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Comercial</th>
-                  </tr>
-                </thead>
+          <div className="w-full overflow-x-auto border rounded-lg">
+            <table 
+              className="w-full text-sm border-collapse"
+              style={{ tableLayout: 'fixed', minWidth: '950px' }}
+            >
+              <colgroup>
+                <col style={{ width: '70px' }} />
+                <col style={{ width: '85px' }} />
+                <col style={{ width: '180px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '100px' }} />
+                <col style={{ width: '80px' }} />
+                <col style={{ width: '135px' }} />
+                <col style={{ width: '135px' }} />
+              </colgroup>
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Nº OS</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Data/Hora</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Cliente</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Equipamento</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Tipo</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Técnico</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Técnico</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Comercial</th>
+                </tr>
+              </thead>
                 <tbody>
                   {filteredCalls.map((call) => (
                     <tr 
@@ -289,7 +301,6 @@ const ServiceCalls = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
           </div>
         )}
       </div>
