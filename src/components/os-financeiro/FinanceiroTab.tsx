@@ -165,6 +165,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const [editAmount, setEditAmount] = useState(0);
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
   const [editNotes, setEditNotes] = useState<string>('');
+  const [editDays, setEditDays] = useState<number>(0);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -441,12 +442,27 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   };
 
   // === Inline edit handlers ===
-  const handleStartEditTransaction = (t: any) => {
+  const handleStartEditTransaction = (t: any, index: number) => {
     setEditingTransactionId(t.id);
     setEditDueDate(new Date(t.due_date + "T12:00:00"));
     setEditAmount(t.amount);
     setEditPaymentMethod(t.payment_method || '');
     setEditNotes(t.notes || '');
+    // Calculate days from first transaction
+    const days = transactions.length > 0 && index > 0
+      ? Math.round((new Date(t.due_date + "T12:00:00").getTime() - new Date(transactions[0].due_date + "T12:00:00").getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+    setEditDays(days);
+  };
+
+  // When days change, recalculate due date
+  const handleDaysChange = (newDays: number) => {
+    setEditDays(newDays);
+    if (transactions.length > 0) {
+      const firstDate = new Date(transactions[0].due_date + "T12:00:00");
+      const newDueDate = addDays(firstDate, newDays);
+      setEditDueDate(newDueDate);
+    }
   };
 
   const handleSaveEditTransaction = async () => {
@@ -842,47 +858,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         </CardContent>
       </Card>
 
-      {/* === NEW: Formas de Pagamento - Lista Simples === */}
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <CreditCard className="w-4 h-4" />
-              Formas de Pagamento
-            </CardTitle>
-            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleAddPaymentMethod}>
-              <Plus className="h-3 w-3 mr-1" />
-              Adicionar Forma
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-3 space-y-2">
-          {selectedPaymentMethods.length === 0 && (
-            <p className="text-xs text-muted-foreground">Nenhuma forma de pagamento selecionada.</p>
-          )}
-          {selectedPaymentMethods.map((method, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Select value={method} onValueChange={(v) => handleChangePaymentMethod(index, v)}>
-                <SelectTrigger className="h-8 text-xs flex-1">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {activePaymentMethods.map(pm => (
-                    <SelectItem key={pm.id} value={pm.name} className="text-xs">
-                      {pm.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemovePaymentMethod(index)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* === NEW: Condição de Pagamento - 3 campos lado a lado + botão === */}
+      {/* === UNIFIED: Condição de Pagamento (Formas + Parcelas Config) === */}
       <Card>
         <CardHeader className="py-2 px-3">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -890,10 +866,49 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
             Condição de Pagamento
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            <div>
-              <Label className="text-[10px]">Qtd Parcelas</Label>
+        <CardContent className="p-3 space-y-3">
+          {/* Formas de Pagamento Aceitas */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] text-muted-foreground font-medium">Formas de Pagamento Aceitas</Label>
+              <Button type="button" variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={handleAddPaymentMethod}>
+                <Plus className="h-3 w-3 mr-1" />
+                Adicionar
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {selectedPaymentMethods.length === 0 && (
+                <span className="text-xs text-muted-foreground italic">Nenhuma forma selecionada</span>
+              )}
+              {selectedPaymentMethods.map((method, index) => (
+                <div key={index} className="flex items-center gap-1">
+                  <Select value={method} onValueChange={(v) => handleChangePaymentMethod(index, v)}>
+                    <SelectTrigger className="h-7 text-xs w-32">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activePaymentMethods.map(pm => (
+                        <SelectItem key={pm.id} value={pm.name} className="text-xs">
+                          {pm.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemovePaymentMethod(index)}>
+                    <Trash2 className="h-3 w-3 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Linha separadora */}
+          <div className="border-t" />
+
+          {/* Condição de Pagamento - Menu Horizontal */}
+          <div className="flex flex-wrap items-end gap-3 text-xs">
+            <div className="min-w-[80px]">
+              <Label className="text-[10px]">Condição</Label>
               <Select value={String(installmentCount)} onValueChange={(v) => setInstallmentCount(Number(v))}>
                 <SelectTrigger className="h-8 text-xs mt-1">
                   <SelectValue />
@@ -905,8 +920,8 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-[10px]">Data Início (1ª)</Label>
+            <div className="min-w-[110px]">
+              <Label className="text-[10px]">Data Início 1ª Parcela</Label>
               <Input 
                 type="text" 
                 placeholder="dd/mm/aaaa" 
@@ -916,7 +931,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                 maxLength={10}
               />
             </div>
-            <div>
+            <div className="min-w-[80px]">
               <Label className="text-[10px]">Intervalo (dias)</Label>
               <Input 
                 type="number" 
@@ -926,44 +941,32 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                 onChange={e => setInstallmentInterval(Number(e.target.value) || 30)} 
               />
             </div>
-            <div className="flex items-end">
-              <Button 
-                type="button" 
-                className="h-8 w-full text-xs" 
-                onClick={handleGenerateInstallments}
-                disabled={!canGenerate || createManyTransactions.isPending}
-              >
-                <Receipt className="h-3 w-3 mr-1" />
-                {createManyTransactions.isPending ? "Gerando..." : "GERAR PARCELAS"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Actions row */}
-          {transactions.length > 0 && (
-            <div className="flex items-center gap-2 mt-3 pt-2 border-t">
-              <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleClearInstallments}>
+            <Button 
+              type="button" 
+              className="h-8 text-xs px-4" 
+              onClick={handleGenerateInstallments}
+              disabled={!canGenerate || createManyTransactions.isPending}
+            >
+              <Receipt className="h-3 w-3 mr-1" />
+              {createManyTransactions.isPending ? "Gerando..." : "GERAR PARCELAS"}
+            </Button>
+            {transactions.length > 0 && (
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleClearInstallments}>
                 <Trash className="h-3 w-3 mr-1" />
-                Limpar Parcelas
+                Limpar
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* === NEW: Parcelas Geradas - Tabela com todas as colunas === */}
+      {/* === Parcelas Geradas - Tabela com todas as colunas === */}
       <Card>
         <CardHeader className="py-2 px-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <ListOrdered className="w-4 h-4" />
-              Parcelas Geradas
-            </CardTitle>
-            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleAddInstallment}>
-              <Plus className="h-3 w-3 mr-1" />
-              Adicionar Parcela
-            </Button>
-          </div>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <ListOrdered className="w-4 h-4" />
+            Parcelas
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-2">
           {transactions.length === 0 ? (
@@ -999,9 +1002,24 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                               : "1x"}
                           </TableCell>
                           
-                          {/* Dias */}
-                          <TableCell className="py-1 px-2 text-right text-muted-foreground">
-                            {days}
+                          {/* Dias - Editável */}
+                          <TableCell className="py-1 px-2 text-right">
+                            {isEditing ? (
+                              <Input 
+                                type="number" 
+                                min="0" 
+                                className="h-7 text-xs w-16 text-right"
+                                value={editDays} 
+                                onChange={e => handleDaysChange(Number(e.target.value))} 
+                              />
+                            ) : (
+                              <span 
+                                className={cn("text-muted-foreground", t.status === "OPEN" && "cursor-pointer hover:underline")}
+                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t, index)}
+                              >
+                                {days}
+                              </span>
+                            )}
                           </TableCell>
                           
                           {/* Data */}
@@ -1027,7 +1045,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                             ) : (
                               <span 
                                 className={cn(t.status === "OPEN" && "cursor-pointer hover:underline")}
-                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}
+                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t, index)}
                               >
                                 {format(new Date(t.due_date + "T12:00:00"), "dd/MM/yyyy")}
                               </span>
@@ -1048,7 +1066,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                             ) : (
                               <span 
                                 className={cn("font-medium", t.status === "OPEN" && "cursor-pointer hover:underline")}
-                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}
+                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t, index)}
                               >
                                 {formatCurrency(t.amount)}
                               </span>
@@ -1104,7 +1122,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                             ) : (
                               <span 
                                 className={cn("text-muted-foreground", t.status === "OPEN" && "cursor-pointer hover:underline")}
-                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t)}
+                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t, index)}
                               >
                                 {t.notes || "-"}
                               </span>
@@ -1146,6 +1164,20 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                     })}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Adicionar parcela - Link abaixo da tabela */}
+              <div className="py-2">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 text-xs text-primary hover:text-primary/80 px-0" 
+                  onClick={handleAddInstallment}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  + adicionar outra parcela
+                </Button>
               </div>
               
               {/* Summary */}
