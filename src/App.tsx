@@ -27,6 +27,7 @@ const EquipmentForm = lazy(() => import("./pages/EquipmentForm"));
 const Technicians = lazy(() => import("./pages/Technicians"));
 const TechnicianForm = lazy(() => import("./pages/TechnicianForm"));
 const ServiceCalls = lazy(() => import("./pages/ServiceCalls"));
+const ServiceCallView = lazy(() => import("./pages/ServiceCallView"));
 const ServiceCallForm = lazy(() => import("./pages/ServiceCallForm"));
 const ServiceTypes = lazy(() => import("./pages/ServiceTypes"));
 const ServiceTypeForm = lazy(() => import("./pages/ServiceTypeForm"));
@@ -320,6 +321,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ServiceCalls />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-calls/:id"
+              element={
+                <ProtectedRoute>
+                  <ServiceCallView />
                 </ProtectedRoute>
               }
             />

@@ -1,26 +1,5 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useState, useEffect, lazy, Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Eye } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -40,16 +19,13 @@ import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import type { ServiceCall } from "@/hooks/useServiceCalls";
 import { parseLocalDate } from "@/lib/dateUtils";
-
-const ServiceCallViewDialog = lazy(() => import("@/components/ServiceCallViewDialog"));
 
 const ServiceCalls = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
-  const { serviceCalls, isLoading, deleteServiceCall, updateServiceCall } = useServiceCalls();
+  const { serviceCalls, isLoading, updateServiceCall } = useServiceCalls();
   const { statuses } = useServiceCallStatuses();
   const { technicianId } = useCurrentTechnician();
   const { data: newCallsCount = 0 } = useNewServiceCallsCount();
@@ -59,11 +35,6 @@ const ServiceCalls = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"todos" | "novos">("todos");
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [selectedCall, setSelectedCall] = useState<ServiceCall | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  // Layout global agora suporta scroll interno - escape hatch não é mais necessário
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
@@ -89,13 +60,6 @@ const ServiceCalls = () => {
     
     return matchesSearch && matchesStatus && matchesTab;
   });
-
-  const handleDelete = () => {
-    if (deleteId) {
-      deleteServiceCall(deleteId);
-      setDeleteId(null);
-    }
-  };
 
   return (
     <MainLayout>
@@ -166,39 +130,43 @@ const ServiceCalls = () => {
               <ServiceCallMobileCard
                 key={call.id}
                 call={call}
-                onView={() => {
-                  setSelectedCall(call);
-                  setViewDialogOpen(true);
-                }}
-                onEdit={() => navigate(`/service-calls/edit/${call.id}`)}
-                onDelete={() => setDeleteId(call.id)}
+                onClick={() => navigate(`/service-calls/${call.id}`)}
               />
             ))}
           </div>
         ) : (
           <div className="w-full max-w-full overflow-x-auto border rounded-lg">
-            <div className="min-w-[1100px]">
+            <div className="min-w-[950px]">
               <table className="w-full min-w-full text-sm table-fixed border-collapse">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="w-[70px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Nº OS</th>
+                    <th className="w-[80px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Nº OS</th>
                     <th className="w-[100px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Data/Hora</th>
                     <th className="w-[200px] max-w-[220px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Cliente</th>
                     <th className="w-[160px] max-w-[200px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Equipamento</th>
                     <th className="w-[120px] max-w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Tipo</th>
                     <th className="w-[100px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">Técnico</th>
-                    <th className="w-[130px] max-w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Técnico</th>
-                    <th className="w-[130px] max-w-[140px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Comercial</th>
-                    <th className="w-[140px] min-w-[140px] h-10 px-2 text-right align-top font-medium text-muted-foreground text-xs whitespace-normal break-words sticky right-0 z-20 bg-white dark:bg-gray-900" style={{ boxShadow: '-6px 0 8px -8px rgba(0,0,0,0.3)' }}>Ações</th>
+                    <th className="w-[140px] max-w-[150px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Técnico</th>
+                    <th className="w-[140px] max-w-[150px] h-10 px-2 text-left align-top font-medium text-muted-foreground text-xs whitespace-normal break-words">St. Comercial</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredCalls.map((call) => (
-                    <tr key={call.id} className="border-t border-border hover:bg-muted/50 transition-colors">
+                    <tr 
+                      key={call.id} 
+                      className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/service-calls/${call.id}`)}
+                    >
                       <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
-                        <span className="font-mono text-sm font-semibold">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/service-calls/${call.id}`);
+                          }}
+                          className="font-mono text-sm font-semibold text-primary hover:underline cursor-pointer"
+                        >
                           {call.os_number}
-                        </span>
+                        </button>
                       </td>
                       <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
                         <div className="text-xs">
@@ -239,7 +207,7 @@ const ServiceCalls = () => {
                           {call.technicians?.full_name?.split(' ')[0]}
                         </span>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[140px]">
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[150px]" onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={call.status_id || ""}
                           onValueChange={(value) => {
@@ -278,7 +246,7 @@ const ServiceCalls = () => {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[140px]">
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[150px]" onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={call.commercial_status_id || ""}
                           onValueChange={(value) => {
@@ -317,52 +285,6 @@ const ServiceCalls = () => {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="w-[140px] min-w-[140px] px-2 py-2 align-top text-right sticky right-0 z-20 bg-white dark:bg-gray-900" style={{ boxShadow: '-6px 0 8px -8px rgba(0,0,0,0.3)' }}>
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => {
-                              setSelectedCall(call);
-                              setViewDialogOpen(true);
-                            }}
-                            title="Visualizar chamado"
-                          >
-                            <Eye className="h-3.5 w-3.5 text-foreground" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => navigate(`/service-calls/edit/${call.id}`)}
-                            title="Editar chamado"
-                          >
-                            <Pencil className="h-3.5 w-3.5 text-foreground" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Excluir chamado">
-                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tem certeza que deseja excluir este chamado técnico? Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteServiceCall(call.id)}>
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -371,32 +293,6 @@ const ServiceCalls = () => {
           </div>
         )}
       </div>
-
-      {/* Delete Dialog for Mobile */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este chamado técnico? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {selectedCall && (
-        <Suspense fallback={<div className="fixed inset-0 bg-background/80 flex items-center justify-center"><div className="animate-pulse">Carregando...</div></div>}>
-          <ServiceCallViewDialog
-            call={selectedCall}
-            open={viewDialogOpen}
-            onOpenChange={setViewDialogOpen}
-          />
-        </Suspense>
-      )}
     </MainLayout>
   );
 };
