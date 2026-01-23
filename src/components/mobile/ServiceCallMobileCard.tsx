@@ -8,12 +8,10 @@ import { parseLocalDate } from "@/lib/dateUtils";
 
 interface ServiceCallMobileCardProps {
   call: ServiceCall;
-  onView: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onClick: () => void;
 }
 
-export function ServiceCallMobileCard({ call, onView, onEdit, onDelete }: ServiceCallMobileCardProps) {
+export function ServiceCallMobileCard({ call, onClick }: ServiceCallMobileCardProps) {
   const formatAddress = () => {
     if (call.clients?.street && call.clients?.city) {
       return `${call.clients.street}, ${call.clients.number || 'S/N'} - ${call.clients.city}/${call.clients.state}`;
@@ -22,7 +20,7 @@ export function ServiceCallMobileCard({ call, onView, onEdit, onDelete }: Servic
   };
 
   return (
-    <MobileCard onClick={onView}>
+    <MobileCard onClick={onClick}>
       <MobileCardHeader
         title={`OS #${call.os_number}`}
         badge={call.service_call_statuses && (
@@ -76,11 +74,7 @@ export function ServiceCallMobileCard({ call, onView, onEdit, onDelete }: Servic
         )}
       </div>
       
-      <MobileCardFooter
-        onView={onView}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      >
+      <MobileCardFooter>
         {call.service_types && (
           <StatusBadge 
             color={call.service_types.color} 
