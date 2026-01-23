@@ -234,41 +234,55 @@ const ServiceCallView = () => {
   return (
     <MainLayout>
       <div className="space-y-4 md:space-y-6">
-        {/* Header com botões de ação */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => navigate("/service-calls")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
+        {/* Header estilo Tiny - Breadcrumb + Ações */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Lado esquerdo: Voltar + Breadcrumb */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate("/service-calls")}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
               Voltar
             </Button>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-lg font-semibold bg-primary/10 text-primary px-3 py-1 rounded">
-                OS #{call.os_number}
-              </span>
-              <Badge variant={getStatusBadge(call.status).variant}>
-                {getStatusBadge(call.status).label}
-              </Badge>
-            </div>
+            <span className="text-muted-foreground hidden sm:inline">›</span>
+            <span className="text-muted-foreground text-sm hidden sm:inline">Chamados</span>
+            <span className="text-muted-foreground hidden sm:inline">›</span>
+            <span className="font-semibold text-sm hidden sm:inline">OS #{call.os_number}</span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          
+          {/* Lado direito: Botões de Ação - SEMPRE VISÍVEIS */}
+          <div className="flex items-center gap-2">
             <Button
-              variant="outline"
-              size="sm"
               onClick={() => navigate(`/service-calls/edit/${call.id}`)}
+              className="bg-primary hover:bg-primary/90 gap-2"
             >
-              <Pencil className="mr-2 h-4 w-4" />
+              <Pencil className="h-4 w-4" />
               Editar
             </Button>
             <Button
-              variant="default"
-              size="sm"
+              variant="outline"
               onClick={handleGeneratePDF}
               disabled={isGeneratingPDF}
+              className="gap-2"
             >
-              <FileDown className="mr-2 h-4 w-4" />
-              {isGeneratingPDF ? "Gerando..." : "Gerar PDF"}
+              <FileDown className="h-4 w-4" />
+              {isGeneratingPDF ? "Gerando..." : "PDF"}
             </Button>
           </div>
+        </div>
+
+        {/* Título e Status */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-xl font-bold">Ordem de Serviço</h1>
+          <span className="font-mono text-lg font-semibold bg-primary/10 text-primary px-3 py-1 rounded">
+            #{call.os_number}
+          </span>
+          <Badge variant={getStatusBadge(call.status).variant}>
+            {getStatusBadge(call.status).label}
+          </Badge>
         </div>
 
         {/* PDF gerado - ações */}
