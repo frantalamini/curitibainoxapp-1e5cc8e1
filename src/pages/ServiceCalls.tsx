@@ -130,7 +130,7 @@ const ServiceCalls = () => {
               <ServiceCallMobileCard
                 key={call.id}
                 call={call}
-                onClick={() => navigate(`/service-calls/edit/${call.id}`)}
+                onClick={() => navigate(`/service-calls/${call.id}`)}
               />
             ))}
           </div>
@@ -155,13 +155,13 @@ const ServiceCalls = () => {
                     <tr 
                       key={call.id} 
                       className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/service-calls/edit/${call.id}`)}
+                      onClick={() => navigate(`/service-calls/${call.id}`)}
                     >
                       <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/service-calls/edit/${call.id}`);
+                            navigate(`/service-calls/${call.id}`);
                           }}
                           className="font-mono text-sm font-semibold text-primary hover:underline cursor-pointer"
                         >
