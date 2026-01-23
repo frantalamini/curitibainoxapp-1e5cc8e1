@@ -198,7 +198,7 @@ export const useServiceCalls = (limit: number = 30) => {
       const { data, error } = await supabase
         .from("service_calls")
         .select(SERVICE_CALL_SELECT)
-        .order("os_number", { ascending: false }) // Sempre ordenar por Nº OS decrescente
+        .order("created_at", { ascending: false }) // TRAVA DEFINITIVA: sempre por data de criação
         .limit(limit); // OTIMIZAÇÃO: Limita a quantidade de registros
 
       if (error) throw error;
