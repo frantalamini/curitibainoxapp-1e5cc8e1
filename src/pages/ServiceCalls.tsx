@@ -136,20 +136,21 @@ const ServiceCalls = () => {
           </div>
         ) : (
           <div className="w-full overflow-x-auto border rounded-lg">
-            <table 
-              className="w-full text-sm border-collapse"
-              style={{ tableLayout: 'fixed', minWidth: '950px' }}
-            >
-              <colgroup>
-                <col style={{ width: '70px' }} />
-                <col style={{ width: '85px' }} />
-                <col style={{ width: '180px' }} />
-                <col style={{ width: '150px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '80px' }} />
-                <col style={{ width: '135px' }} />
-                <col style={{ width: '135px' }} />
-              </colgroup>
+            <div style={{ minWidth: '1020px' }}>
+              <table 
+                className="w-full text-sm border-collapse"
+                style={{ tableLayout: 'fixed' }}
+              >
+                <colgroup>
+                  <col style={{ width: '70px' }} />
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '200px' }} />
+                  <col style={{ width: '170px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '140px' }} />
+                </colgroup>
               <thead className="bg-muted/50">
                 <tr>
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Nº OS</th>
@@ -300,7 +301,8 @@ const ServiceCalls = () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+            </div>
           </div>
         )}
       </div>
