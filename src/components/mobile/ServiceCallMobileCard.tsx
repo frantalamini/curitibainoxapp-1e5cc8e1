@@ -1,6 +1,6 @@
 import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Calendar, User, Wrench, MapPin, Clock } from "lucide-react";
+import { Calendar, User, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ServiceCall } from "@/hooks/useServiceCalls";
@@ -12,13 +12,6 @@ interface ServiceCallMobileCardProps {
 }
 
 export function ServiceCallMobileCard({ call, onClick }: ServiceCallMobileCardProps) {
-  const formatAddress = () => {
-    if (call.clients?.street && call.clients?.city) {
-      return `${call.clients.street}, ${call.clients.number || 'S/N'} - ${call.clients.city}/${call.clients.state}`;
-    }
-    return null;
-  };
-
   return (
     <MobileCard onClick={onClick}>
       <MobileCardHeader
@@ -50,20 +43,6 @@ export function ServiceCallMobileCard({ call, onClick }: ServiceCallMobileCardPr
             </div>
           }
         />
-        
-        <MobileCardRow
-          icon={<Wrench className="h-4 w-4" />}
-          label="Equipamento"
-          value={call.equipment_description}
-        />
-        
-        {formatAddress() && (
-          <MobileCardRow
-            icon={<MapPin className="h-4 w-4" />}
-            label="Endereço"
-            value={formatAddress()}
-          />
-        )}
         
         {call.technicians && (
           <MobileCardRow

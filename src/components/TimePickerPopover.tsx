@@ -14,12 +14,14 @@ interface TimePickerPopoverProps {
   value: string;
   onChange: (time: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export const TimePickerPopover = ({
   value,
   onChange,
   placeholder = "--:--",
+  disabled = false,
 }: TimePickerPopoverProps) => {
   const [open, setOpen] = useState(false);
   const [tmpHour, setTmpHour] = useState<string | undefined>();
@@ -89,13 +91,15 @@ export const TimePickerPopover = ({
   );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          disabled={disabled}
           className={cn(
             "w-[150px] justify-start text-left font-normal",
-            !value && "text-muted-foreground"
+            !value && "text-muted-foreground",
+            disabled && "bg-muted cursor-not-allowed opacity-70"
           )}
         >
           <Clock className="mr-2 h-4 w-4" />
