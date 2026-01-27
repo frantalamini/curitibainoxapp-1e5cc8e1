@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   Select,
@@ -135,7 +135,7 @@ const ServiceCalls = () => {
             ))}
           </div>
         ) : (
-          <div className="w-full overflow-x-auto border rounded-lg">
+          <div className="w-full max-w-full overflow-x-auto min-w-0 border rounded-lg">
             <div style={{ minWidth: '1020px' }}>
               <table 
                 className="w-full text-sm border-collapse"
@@ -144,12 +144,13 @@ const ServiceCalls = () => {
                 <colgroup>
                   <col style={{ width: '70px' }} />
                   <col style={{ width: '90px' }} />
-                  <col style={{ width: '200px' }} />
-                  <col style={{ width: '170px' }} />
-                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '180px' }} />
+                  <col style={{ width: '150px' }} />
+                  <col style={{ width: '100px' }} />
                   <col style={{ width: '90px' }} />
-                  <col style={{ width: '140px' }} />
-                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '80px' }} />
                 </colgroup>
               <thead className="bg-muted/50">
                 <tr>
@@ -161,6 +162,12 @@ const ServiceCalls = () => {
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Técnico</th>
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Técnico</th>
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Comercial</th>
+                  <th 
+                    className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs"
+                    style={{ position: 'sticky', right: 0, backgroundColor: 'white', zIndex: 10 }}
+                  >
+                    Ações
+                  </th>
                 </tr>
               </thead>
                 <tbody>
@@ -171,15 +178,13 @@ const ServiceCalls = () => {
                       onClick={() => navigate(`/service-calls/${call.id}`)}
                     >
                       <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/service-calls/${call.id}`);
-                          }}
+                        <Link
+                          to={`/service-calls/${call.id}`}
+                          onClick={(e) => e.stopPropagation()}
                           className="font-mono text-sm font-semibold text-primary hover:underline cursor-pointer"
                         >
                           {call.os_number}
-                        </button>
+                        </Link>
                       </td>
                       <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
                         <div className="text-xs">
@@ -297,6 +302,18 @@ const ServiceCalls = () => {
                             ))}
                           </SelectContent>
                         </Select>
+                      </td>
+                      <td 
+                        className="px-2 py-2 align-top"
+                        style={{ position: 'sticky', right: 0, backgroundColor: 'white', zIndex: 10 }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Link
+                          to={`/service-calls/${call.id}`}
+                          className="inline-flex items-center justify-center h-8 px-3 text-xs font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90"
+                        >
+                          Abrir
+                        </Link>
                       </td>
                     </tr>
                   ))}
