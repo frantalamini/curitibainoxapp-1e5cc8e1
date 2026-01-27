@@ -1,96 +1,144 @@
 
 
-## Plano: Correção Definitiva do Layout da Tabela + Publicação
+## Plano: Correções na Lista de OS com Coluna Ações Sticky
 
-### Problema Identificado
+### Suas 3 Condições Obrigatórias ✅
 
-1. **OS não clicável** → Alterações não foram publicadas ainda
-2. **Coluna cortada** → A largura mínima da tabela (950px) não está sendo respeitada quando há sidebar aberta
-
----
-
-### Análise Técnica
-
-A tabela atual tem:
-- Soma das colunas: 935px
-- Padding total (~16px por célula × 8 colunas): ~32-64px extras
-- **Largura real necessária: ~1000px**
-
-O container `overflow-x-auto` funciona, mas o `minWidth: 950px` inline não está forçando o scroll corretamente em todos os navegadores.
+1. **Coluna Ações com sticky** → Aplicar `sticky right-0 bg-white z-10` diretamente no `th/td`
+2. **Wrapper correto** → Garantir `w-full max-w-full overflow-x-auto min-w-0` no container
+3. **Validar no domínio publicado** → Testar em `curitibainoxapp.com` após publicar
 
 ---
 
-### Mudança 1: Ajustar Estrutura da Tabela (`src/pages/ServiceCalls.tsx`)
+### Alterações em `src/pages/ServiceCalls.tsx`
 
-**Problema:** O `<colgroup>` + `minWidth` inline pode ser ignorado em alguns navegadores.
-
-**Solução:** Envolver a tabela em um `div` com largura mínima explícita:
-
+**1. Adicionar import do Link:**
 ```tsx
-{/* ANTES */}
-<div className="w-full overflow-x-auto border rounded-lg">
-  <table style={{ tableLayout: 'fixed', minWidth: '950px' }}>
-
-{/* DEPOIS */}
-<div className="w-full overflow-x-auto border rounded-lg">
-  <div style={{ minWidth: '1020px' }}>
-    <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 ```
 
-O `minWidth` no wrapper interno força o scroll quando a viewport é menor.
+**2. Ajustar wrapper da tabela (linha 138):**
+```tsx
+// ANTES
+<div className="w-full overflow-x-auto border rounded-lg">
+
+// DEPOIS
+<div className="w-full max-w-full overflow-x-auto min-w-0 border rounded-lg">
+```
+
+**3. Adicionar coluna Ações no colgroup (nova coluna com 80px):**
+```tsx
+<colgroup>
+  <col style={{ width: '70px' }} />
+  <col style={{ width: '90px' }} />
+  <col style={{ width: '180px' }} />   {/* Cliente - reduzido */}
+  <col style={{ width: '150px' }} />   {/* Equipamento - reduzido */}
+  <col style={{ width: '100px' }} />   {/* Tipo - reduzido */}
+  <col style={{ width: '90px' }} />
+  <col style={{ width: '130px' }} />   {/* St. Técnico - reduzido */}
+  <col style={{ width: '130px' }} />   {/* St. Comercial - reduzido */}
+  <col style={{ width: '80px' }} />    {/* NOVA: Ações */}
+</colgroup>
+```
+
+**4. Adicionar header da coluna Ações com sticky:**
+```tsx
+<th 
+  className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs"
+  style={{ 
+    position: 'sticky', 
+    right: 0, 
+    backgroundColor: 'white', 
+    zIndex: 10 
+  }}
+>
+  Ações
+</th>
+```
+
+**5. Trocar button por Link no Nº OS (linha 174-182):**
+```tsx
+// ANTES
+<button onClick={(e) => {...}} className="...">
+  {call.os_number}
+</button>
+
+// DEPOIS
+<Link
+  to={`/service-calls/${call.id}`}
+  onClick={(e) => e.stopPropagation()}
+  className="font-mono text-sm font-semibold text-primary hover:underline cursor-pointer"
+>
+  {call.os_number}
+</Link>
+```
+
+**6. Adicionar célula de Ações com sticky em cada row:**
+```tsx
+<td 
+  className="px-2 py-2 align-top"
+  style={{ 
+    position: 'sticky', 
+    right: 0, 
+    backgroundColor: 'white', 
+    zIndex: 10 
+  }}
+  onClick={(e) => e.stopPropagation()}
+>
+  <Link
+    to={`/service-calls/${call.id}`}
+    className="inline-flex items-center justify-center h-8 px-3 text-xs font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90"
+  >
+    Abrir
+  </Link>
+</td>
+```
 
 ---
 
-### Mudança 2: Aumentar Largura das Colunas de Status
+### Arquivos NÃO Alterados (conforme solicitado)
 
-Os dropdowns de status precisam de mais espaço para exibir o texto completo:
-
-| Coluna | Largura Atual | Largura Nova |
-|--------|--------------|--------------|
-| Nº OS | 70px | 70px |
-| Data/Hora | 85px | 90px |
-| Cliente | 180px | 200px |
-| Equipamento | 150px | 170px |
-| Tipo | 100px | 120px |
-| Técnico | 80px | 90px |
-| St. Técnico | 135px | 140px |
-| St. Comercial | 135px | 140px |
-| **TOTAL** | **935px** | **1020px** |
+| Arquivo | Status |
+|---------|--------|
+| `ServiceCallView.tsx` | ❌ Não mexer |
+| `ServiceCallForm.tsx` | ❌ Não mexer |
+| `FinanceiroTab.tsx` | ❌ Não mexer |
+| `FinanceiroGuard.tsx` | ❌ Não mexer |
+| CSS global (`index.css`) | ❌ Não mexer |
 
 ---
 
-### Mudança 3: Nenhuma Mudança no CSS Global
+### Larguras Finais das Colunas
 
-O `index.css` já está correto com:
-- `.app-shell { overflow-x: auto }`
-- Não há `overflow-x: hidden` bloqueando
-
----
-
-### Sobre a Publicação
-
-Após implementar as correções, você precisará:
-
-1. Clicar em **"Publicar"** (botão no canto superior direito do Lovable)
-2. Aguardar o deploy concluir
-3. Testar no ambiente publicado (curitibainoxapp.lovable.app)
-
-⚠️ **Importante:** As alterações de navegação (OS clicável → Visualização) já estão no código, mas só funcionarão no ambiente publicado após você clicar em "Publicar".
-
----
-
-### Resumo das Alterações
-
-| Arquivo | Mudança |
-|---------|---------|
-| `src/pages/ServiceCalls.tsx` | Adicionar wrapper com `minWidth: 1020px`, ajustar larguras do `<colgroup>` |
+| Coluna | Largura |
+|--------|---------|
+| Nº OS | 70px |
+| Data/Hora | 90px |
+| Cliente | 180px |
+| Equipamento | 150px |
+| Tipo | 100px |
+| Técnico | 90px |
+| St. Técnico | 130px |
+| St. Comercial | 130px |
+| **Ações (sticky)** | **80px** |
+| **TOTAL** | **1020px** |
 
 ---
 
 ### Critérios de Aceite
 
-1. ✅ Tabela mostra todas as 8 colunas sem corte
-2. ✅ Scroll horizontal aparece quando viewport é menor que 1020px
-3. ✅ Colunas de status cabem o texto completo
-4. ✅ Após publicar, clicar no Nº OS abre a visualização
+1. ✅ Coluna "Ações" sempre visível (sticky à direita com fundo branco)
+2. ✅ Scroll horizontal funciona sem cortar colunas
+3. ✅ Clicar no Nº OS navega para `/service-calls/:id`
+4. ✅ Botão "Abrir" na coluna Ações também navega
+5. ✅ Funciona igual no Preview e no Published (curitibainoxapp.com)
+
+---
+
+### Após Publicar
+
+Você precisará:
+1. Clicar em **"Publicar"** no Lovable
+2. Aguardar deploy concluir
+3. Testar em `curitibainoxapp.lovable.app` E `curitibainoxapp.com`
 
