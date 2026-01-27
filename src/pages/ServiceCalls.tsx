@@ -132,8 +132,8 @@ const ServiceCalls = () => {
             ))}
           </div>
         ) : (
-        <div className="w-full max-w-full overflow-x-auto min-w-0 border rounded-lg">
-            <div style={{ minWidth: '640px' }}>
+        <div className="w-full overflow-x-auto border rounded-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div style={{ minWidth: '700px' }}>
               <table 
                 className="w-full text-sm border-collapse"
                 style={{ tableLayout: 'fixed' }}
