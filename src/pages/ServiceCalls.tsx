@@ -17,9 +17,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
 import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { parseLocalDate } from "@/lib/dateUtils";
 
 const ServiceCalls = () => {
   const navigate = useNavigate();
@@ -130,35 +127,29 @@ const ServiceCalls = () => {
               <ServiceCallMobileCard
                 key={call.id}
                 call={call}
-                onClick={() => navigate(`/service-calls/${call.id}`)}
+                onClick={() => navigate(`/service-calls/edit/${call.id}`)}
               />
             ))}
           </div>
         ) : (
-          <div className="w-full max-w-full overflow-x-auto min-w-0 border rounded-lg">
-            <div style={{ minWidth: '1020px' }}>
+        <div className="w-full max-w-full overflow-x-auto min-w-0 border rounded-lg">
+            <div style={{ minWidth: '820px' }}>
               <table 
                 className="w-full text-sm border-collapse"
                 style={{ tableLayout: 'fixed' }}
               >
                 <colgroup>
-                  <col style={{ width: '70px' }} />
-                  <col style={{ width: '90px' }} />
-                  <col style={{ width: '180px' }} />
-                  <col style={{ width: '150px' }} />
-                  <col style={{ width: '100px' }} />
-                  <col style={{ width: '90px' }} />
-                  <col style={{ width: '130px' }} />
-                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '80px' }} />
+                  <col style={{ width: '220px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '160px' }} />
+                  <col style={{ width: '160px' }} />
                   <col style={{ width: '80px' }} />
                 </colgroup>
               <thead className="bg-muted/50">
                 <tr>
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Nº OS</th>
-                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Data/Hora</th>
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Cliente</th>
-                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Equipamento</th>
-                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Tipo</th>
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Técnico</th>
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Técnico</th>
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Comercial</th>
@@ -175,22 +166,16 @@ const ServiceCalls = () => {
                     <tr 
                       key={call.id} 
                       className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/service-calls/${call.id}`)}
+                      onClick={() => navigate(`/service-calls/edit/${call.id}`)}
                     >
                       <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
                         <Link
-                          to={`/service-calls/${call.id}`}
+                          to={`/service-calls/edit/${call.id}`}
                           onClick={(e) => e.stopPropagation()}
                           className="font-mono text-sm font-semibold text-primary hover:underline cursor-pointer"
                         >
                           {call.os_number}
                         </Link>
-                      </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
-                        <div className="text-xs">
-                          <div>{format(parseLocalDate(call.scheduled_date), "dd/MM/yy", { locale: ptBR })}</div>
-                          <div className="text-muted-foreground">{call.scheduled_time}</div>
-                        </div>
                       </td>
                       <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[220px]">
                         <div className="font-medium text-sm break-words" title={call.clients?.full_name}>
@@ -200,32 +185,12 @@ const ServiceCalls = () => {
                           {call.clients?.phone}
                         </div>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[200px]">
-                        <span className="text-sm break-words" title={call.equipment_description}>
-                          {call.equipment_description}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[140px]">
-                        {call.service_types ? (
-                          <div className="flex items-start gap-1">
-                            <div
-                              className="w-3 h-3 rounded-sm flex-shrink-0 mt-0.5"
-                              style={{ backgroundColor: call.service_types.color }}
-                            />
-                            <span className="text-xs break-words" title={call.service_types.name}>
-                              {call.service_types.name}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
-                      </td>
                       <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
                         <span className="break-words text-sm" title={call.technicians?.full_name}>
                           {call.technicians?.full_name?.split(' ')[0]}
                         </span>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[150px]" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[160px]" onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={call.status_id || ""}
                           onValueChange={(value) => {
@@ -264,7 +229,7 @@ const ServiceCalls = () => {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[150px]" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[160px]" onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={call.commercial_status_id || ""}
                           onValueChange={(value) => {
@@ -309,7 +274,7 @@ const ServiceCalls = () => {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Link
-                          to={`/service-calls/${call.id}`}
+                          to={`/service-calls/edit/${call.id}`}
                           className="inline-flex items-center justify-center h-8 px-3 text-xs font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90"
                         >
                           Abrir

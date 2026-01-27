@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle, DollarSign } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle, DollarSign, Pencil, Save, ArrowLeft } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -71,10 +71,13 @@ const ServiceCallForm = () => {
   const { technicians, isLoading: techniciansLoading } = useTechnicians();
   const { serviceTypes, isLoading: serviceTypesLoading } = useServiceTypes();
   const { checklists, isLoading: checklistsLoading } = useChecklists();
-  const { data: existingCall, isLoading: isLoadingCall } = useServiceCall(id);
+  const { data: existingCall, isLoading: isLoadingCall, refetch: refetchCall } = useServiceCall(id);
   const isEditMode = !!id;
   const { createServiceCall, updateServiceCall } = useServiceCalls();
   const { isAdmin, isTechnician, loading: rolesLoading } = useUserRole();
+  
+  // Estado de modo readonly - inicia como true em edição (isEditMode = !!id), false em criação
+  const [isReadonly, setIsReadonly] = useState(!!id);
   
   // Estados para deslocamentos
   const [startTripModalOpen, setStartTripModalOpen] = useState(false);
@@ -864,13 +867,66 @@ const ServiceCallForm = () => {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">
-            {isEditMode ? "Editar Chamado Técnico" : "Novo Chamado Técnico"}
-          </h1>
-          <p className="text-muted-foreground">
-            {isEditMode ? "Editar informações do chamado de serviço" : "Criar novo chamado de serviço"}
-          </p>
+        {/* Header com Breadcrumb e Botões de Ação */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/service-calls")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar
+            </Button>
+            <span className="text-muted-foreground">›</span>
+            <span className="text-muted-foreground text-sm">Chamados</span>
+            {isEditMode && existingCall && (
+              <>
+                <span className="text-muted-foreground">›</span>
+                <span className="font-semibold text-sm">OS #{existingCall.os_number}</span>
+              </>
+            )}
+            {!isEditMode && (
+              <>
+                <span className="text-muted-foreground">›</span>
+                <span className="font-semibold text-sm">Novo Chamado</span>
+              </>
+            )}
+          </div>
+          
+          {/* Botões de Ação */}
+          <div className="flex items-center gap-2 shrink-0">
+            {isEditMode && isReadonly && (
+              <Button type="button" onClick={() => setIsReadonly(false)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+            )}
+            
+            {isEditMode && !isReadonly && (
+              <>
+                <Button type="submit" disabled={isUploading}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isUploading ? "Salvando..." : "Salvar"}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    // Cancelar edição - voltar ao modo readonly e restaurar dados
+                    initializedRef.current = false;
+                    refetchCall();
+                    setIsReadonly(true);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </>
+            )}
+            
+            {!isEditMode && (
+              <Button type="submit" disabled={isUploading}>
+                {isUploading ? "Salvando..." : "Criar Chamado"}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Banner de Deslocamento - sempre visível no topo para OS em edição */}
@@ -975,6 +1031,7 @@ const ServiceCallForm = () => {
                       }}
                       onNewClientClick={() => setIsClientDialogOpen(true)}
                       error={!!errors.client_id}
+                      disabled={isReadonly && isEditMode}
                     />
                     {errors.client_id && (
                       <p className="text-sm text-destructive">
@@ -991,6 +1048,8 @@ const ServiceCallForm = () => {
                         id="equipment_description"
                         type="text"
                         placeholder="Ex: Ar condicionado split 12000 BTU"
+                        disabled={isReadonly && isEditMode}
+                        className={cn(isReadonly && isEditMode && "bg-muted")}
                         {...register("equipment_description", { required: true })}
                       />
                       {errors.equipment_description && (
@@ -1007,6 +1066,8 @@ const ServiceCallForm = () => {
                         placeholder="Ex: SN123456789"
                         value={equipmentSerialNumber}
                         onChange={(e) => setEquipmentSerialNumber(e.target.value)}
+                        disabled={isReadonly && isEditMode}
+                        className={cn(isReadonly && isEditMode && "bg-muted")}
                       />
                     </div>
                   </div>
@@ -1018,14 +1079,16 @@ const ServiceCallForm = () => {
                     <Textarea
                       id="problem_description"
                       placeholder="Descreva o problema relatado pelo cliente"
+                      disabled={isReadonly && isEditMode}
+                      className={cn(isReadonly && isEditMode && "bg-muted")}
                       {...register("problem_description")}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="technician_id">Técnico Responsável</Label>
-              <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId}>
-                <SelectTrigger className="w-full">
+              <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId} disabled={isReadonly && isEditMode}>
+                <SelectTrigger className={cn("w-full", isReadonly && isEditMode && "bg-muted")}>
                   <SelectValue placeholder="Selecione um técnico" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1045,8 +1108,8 @@ const ServiceCallForm = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="service_type_id">Tipo de Serviço</Label>
-              <Select value={selectedServiceTypeId} onValueChange={setSelectedServiceTypeId}>
-                <SelectTrigger className="w-full">
+              <Select value={selectedServiceTypeId} onValueChange={setSelectedServiceTypeId} disabled={isReadonly && isEditMode}>
+                <SelectTrigger className={cn("w-full", isReadonly && isEditMode && "bg-muted")}>
                   <SelectValue placeholder="Selecione o tipo de serviço" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1069,8 +1132,9 @@ const ServiceCallForm = () => {
                     <Select 
                       value={selectedChecklistId} 
                       onValueChange={setSelectedChecklistId}
+                      disabled={isReadonly && isEditMode}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className={cn("w-full", isReadonly && isEditMode && "bg-muted")}>
                         <SelectValue placeholder="Selecione um checklist (opcional)" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1094,13 +1158,15 @@ const ServiceCallForm = () => {
                   <div className="space-y-2">
                     <Label>Data e Hora Agendada</Label>
                     <div className="flex gap-2">
-                      <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                      <Popover open={(isReadonly && isEditMode) ? false : isDatePickerOpen} onOpenChange={(isReadonly && isEditMode) ? undefined : setIsDatePickerOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             variant={"outline"}
+                            disabled={isReadonly && isEditMode}
                             className={cn(
                               "w-[240px] justify-start text-left font-normal",
-                              !selectedDate && "text-muted-foreground"
+                              !selectedDate && "text-muted-foreground",
+                              isReadonly && isEditMode && "bg-muted"
                             )}
                           >
                           <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1139,6 +1205,7 @@ const ServiceCallForm = () => {
                           setValue("scheduled_time", time, { shouldDirty: true });
                         }}
                         placeholder="--:--"
+                        disabled={isReadonly && isEditMode}
                       />
                     </div>
                     {errors.scheduled_date && (
@@ -1153,85 +1220,99 @@ const ServiceCallForm = () => {
                     <Textarea
                       id="notes"
                       placeholder="Anotações sobre o chamado"
+                      disabled={isReadonly && isEditMode}
+                      className={cn(isReadonly && isEditMode && "bg-muted")}
                       {...register("notes")}
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Gravação de Áudio</Label>
-                    {!audioURL && !existingAudioUrl ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={isRecording ? stopRecording : startRecording}
-                        disabled={isUploading}
-                      >
-                        {isRecording ? (
-                          <>
-                            <Square className="mr-2 h-4 w-4 animate-pulse" />
-                            Parar de gravar
-                          </>
-                        ) : (
-                          <>
-                            <Mic className="mr-2 h-4 w-4" />
-                            Gravar áudio
-                          </>
-                        )}
-                      </Button>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        {audioURL && (
-                          <>
-                            <audio src={audioURL} controls />
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              onClick={removeAudio}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                        {existingAudioUrl && (
-                          <>
-                            <audio src={existingAudioUrl} controls />
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              onClick={removeExistingAudio}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {!(isReadonly && isEditMode) && (
+                    <div className="space-y-2">
+                      <Label>Gravação de Áudio</Label>
+                      {!audioURL && !existingAudioUrl ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={isRecording ? stopRecording : startRecording}
+                          disabled={isUploading}
+                        >
+                          {isRecording ? (
+                            <>
+                              <Square className="mr-2 h-4 w-4 animate-pulse" />
+                              Parar de gravar
+                            </>
+                          ) : (
+                            <>
+                              <Mic className="mr-2 h-4 w-4" />
+                              Gravar áudio
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {audioURL && (
+                            <>
+                              <audio src={audioURL} controls />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                onClick={removeAudio}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          {existingAudioUrl && (
+                            <>
+                              <audio src={existingAudioUrl} controls />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                onClick={removeExistingAudio}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Exibir áudio existente em modo readonly */}
+                  {(isReadonly && isEditMode) && existingAudioUrl && (
+                    <div className="space-y-2">
+                      <Label>Gravação de Áudio</Label>
+                      <audio src={existingAudioUrl} controls />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>
                       Mídia (Fotos/Vídeos)
                     </Label>
-                    <Input
-                      type="file"
-                      multiple
-                      accept="image/*, video/*"
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        const newMediaFiles = [...mediaFiles, ...files];
-                        setMediaFiles(newMediaFiles);
+                    {!(isReadonly && isEditMode) && (
+                      <Input
+                        type="file"
+                        multiple
+                        accept="image/*, video/*"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          const newMediaFiles = [...mediaFiles, ...files];
+                          setMediaFiles(newMediaFiles);
 
-                        files.forEach(file => {
-                          const url = URL.createObjectURL(file);
-                          const type = file.type.startsWith('image/') ? 'image' : 'video';
-                          setMediaPreviews(prev => [...prev, { file, url, type }]);
-                        });
-                      }}
-                    />
+                          files.forEach(file => {
+                            const url = URL.createObjectURL(file);
+                            const type = file.type.startsWith('image/') ? 'image' : 'video';
+                            setMediaPreviews(prev => [...prev, { file, url, type }]);
+                          });
+                        }}
+                      />
+                    )}
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {mediaPreviews.map((preview, index) => (
+                      {!(isReadonly && isEditMode) && mediaPreviews.map((preview, index) => (
                         <div key={index} className="relative">
                           {preview.type === 'image' ? (
                             <img
@@ -1268,15 +1349,17 @@ const ServiceCallForm = () => {
                             alt={`Existing Media ${index}`}
                             className="w-32 h-32 object-cover rounded-md"
                           />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-0 right-0"
-                            onClick={() => removeExistingMedia(url)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          {!(isReadonly && isEditMode) && (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-0 right-0"
+                              onClick={() => removeExistingMedia(url)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1309,6 +1392,8 @@ const ServiceCallForm = () => {
                           onChange={(e) => setInternalNotesText(e.target.value)}
                           maxLength={2000}
                           rows={4}
+                          disabled={isReadonly && isEditMode}
+                          className={cn(isReadonly && isEditMode && "bg-muted")}
                         />
                         <div className="text-xs text-muted-foreground text-right">
                           {internalNotesText.length}/2000 caracteres
@@ -1339,7 +1424,8 @@ const ServiceCallForm = () => {
 
                   <div className={cn(
                     "space-y-6",
-                    isEditMode && !hasCompletedTrip && "opacity-50 pointer-events-none"
+                    isEditMode && !hasCompletedTrip && "opacity-50 pointer-events-none",
+                    isReadonly && isEditMode && "pointer-events-none"
                   )}>
                   {/* Análises e Providências Realizadas */}
                   <div className="space-y-2">
@@ -1349,7 +1435,8 @@ const ServiceCallForm = () => {
                       onChange={(e) => setTechnicalDiagnosis(e.target.value)}
                       placeholder="Descreva as análises realizadas e as providências tomadas durante o atendimento..."
                       rows={8}
-                      className="resize-none"
+                      className={cn("resize-none", isReadonly && isEditMode && "bg-muted")}
+                      disabled={isReadonly && isEditMode}
                     />
                   </div>
 
@@ -1414,7 +1501,7 @@ const ServiceCallForm = () => {
                     onVideoFileChange={setVideoBeforeFile}
                     onExistingPhotoUrlsChange={setExistingPhotosBeforeUrls}
                     onExistingVideoUrlChange={setExistingVideoBeforeUrl}
-                    disabled={isUploading}
+                    disabled={isUploading || (isReadonly && isEditMode)}
                   />
 
                   {/* Mídia Depois da Manutenção */}
@@ -1428,7 +1515,7 @@ const ServiceCallForm = () => {
                     onVideoFileChange={setVideoAfterFile}
                     onExistingPhotoUrlsChange={setExistingPhotosAfterUrls}
                     onExistingVideoUrlChange={setExistingVideoAfterUrl}
-                    disabled={isUploading}
+                    disabled={isUploading || (isReadonly && isEditMode)}
                   />
 
                   {/* Checklist */}
@@ -1549,10 +1636,7 @@ const ServiceCallForm = () => {
             )}
           </Tabs>
 
-          <div className="flex gap-4 mt-6">
-            <Button type="submit" disabled={isUploading}>
-              {isUploading ? "Salvando..." : isEditMode ? "Atualizar Chamado" : "Criar Chamado"}
-            </Button>
+          <div className="flex gap-4 mt-6 flex-wrap">
             {isEditMode && existingCall && (
               <>
                 <Button
@@ -1630,13 +1714,6 @@ const ServiceCallForm = () => {
                 )}
               </>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/service-calls")}
-            >
-              Cancelar
-            </Button>
           </div>
         </form>
 

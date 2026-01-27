@@ -25,13 +25,15 @@ interface ClientAsyncSelectProps {
   onChange: (clientId: string) => void;
   onNewClientClick: () => void;
   error?: boolean;
+  disabled?: boolean;
 }
 
 export const ClientAsyncSelect = ({ 
   value, 
   onChange, 
   onNewClientClick,
-  error 
+  error,
+  disabled = false
 }: ClientAsyncSelectProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
@@ -57,15 +59,17 @@ export const ClientAsyncSelect = ({
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={open}
+              disabled={disabled}
               className={cn(
                 "flex-1 justify-between",
-                error && "border-destructive"
+                error && "border-destructive",
+                disabled && "bg-muted cursor-not-allowed opacity-70"
               )}
             >
               {selectedClient ? (
@@ -124,15 +128,17 @@ export const ClientAsyncSelect = ({
           </PopoverContent>
         </Popover>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={onNewClientClick}
-          title="Novo Cliente"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        {!disabled && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={onNewClientClick}
+            title="Novo Cliente"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {selectedClient && (
@@ -149,16 +155,18 @@ export const ClientAsyncSelect = ({
               </p>
             )}
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={() => onChange("")}
-            title="Limpar seleção"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          {!disabled && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => onChange("")}
+              title="Limpar seleção"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       )}
     </div>
