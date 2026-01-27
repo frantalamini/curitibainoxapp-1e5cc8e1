@@ -133,18 +133,18 @@ const ServiceCalls = () => {
           </div>
         ) : (
         <div className="w-full max-w-full overflow-x-auto min-w-0 border rounded-lg">
-            <div style={{ minWidth: '820px' }}>
+            <div style={{ minWidth: '640px' }}>
               <table 
                 className="w-full text-sm border-collapse"
                 style={{ tableLayout: 'fixed' }}
               >
                 <colgroup>
-                  <col style={{ width: '80px' }} />
-                  <col style={{ width: '220px' }} />
-                  <col style={{ width: '120px' }} />
-                  <col style={{ width: '160px' }} />
-                  <col style={{ width: '160px' }} />
-                  <col style={{ width: '80px' }} />
+                  <col style={{ width: '60px' }} />
+                  <col style={{ minWidth: '140px' }} />
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '60px' }} />
                 </colgroup>
               <thead className="bg-muted/50">
                 <tr>

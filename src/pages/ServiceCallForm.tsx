@@ -902,7 +902,7 @@ const ServiceCallForm = () => {
             
             {isEditMode && !isReadonly && (
               <>
-                <Button type="submit" disabled={isUploading}>
+                <Button type="button" disabled={isUploading} onClick={handleSubmit(onSubmit)}>
                   <Save className="mr-2 h-4 w-4" />
                   {isUploading ? "Salvando..." : "Salvar"}
                 </Button>
@@ -922,7 +922,7 @@ const ServiceCallForm = () => {
             )}
             
             {!isEditMode && (
-              <Button type="submit" disabled={isUploading}>
+              <Button type="button" disabled={isUploading} onClick={handleSubmit(onSubmit)}>
                 {isUploading ? "Salvando..." : "Criar Chamado"}
               </Button>
             )}
