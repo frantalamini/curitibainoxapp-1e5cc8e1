@@ -1,270 +1,206 @@
 
-## Plano: Simplificação da Lista de OS + Novo Fluxo de Visualização/Edição
+# Plano: Sincronizacao Definitiva entre Financeiro da OS e Contas a Receber
 
-### Resumo das Alterações Solicitadas
+## Resumo
 
-1. **Lista de OS** (`ServiceCalls.tsx`): Mostrar apenas 5 colunas + Ações
-   - Nº OS
-   - Cliente
-   - Técnico
-   - Situação Técnica
-   - Situação Comercial
-   - Ações (manter sticky)
-   
-   **Colunas a OCULTAR** (não deletar dados):
-   - Data/Hora
-   - Equipamento
-   - Tipo
+Garantir que ao salvar o Financeiro da OS, todas as parcelas sejam automaticamente sincronizadas com a tabela `financial_transactions`, que e a fonte unica de dados para Contas a Receber. A sincronizacao sera feita atraves de uma operacao idempotente de "delete + recreate" que garante consistencia absoluta.
 
-2. **Ao clicar em uma OS**: Abrir no formato de formulário igual à criação, porém com:
-   - Campos pré-preenchidos e TRAVADOS (readonly)
-   - Botões no topo direito: **Editar**, **Salvar**, **Cancelar/Voltar**
-   - Edição só habilitada ao clicar em "Editar"
+## Situacao Atual
 
----
+A tabela `financial_transactions` ja e usada como fonte unica de dados, porem:
 
-### Análise Técnica
+1. O botao "Gerar Parcelas" faz delete + create corretamente
+2. Edicoes individuais (valor, data, forma) sao salvas imediatamente via `updateTransaction`
+3. O botao "Salvar Financeiro" apenas atualiza metadados na OS (descontos, config), mas NAO garante sincronizacao completa
+4. Nao ha invalidacao cruzada do cache de `receivables` apos operacoes
 
-#### Estrutura Atual de Rotas:
-- `/service-calls` → Lista (`ServiceCalls.tsx`)
-- `/service-calls/:id` → Visualização resumida em cards (`ServiceCallView.tsx`)
-- `/service-calls/edit/:id` → Formulário de edição (`ServiceCallForm.tsx`)
-- `/service-calls/new` → Formulário de criação (`ServiceCallForm.tsx`)
+## Arquitetura da Solucao
 
-#### Novo Comportamento Desejado:
-Clicar na OS deve abrir o **formulário completo** (como criar nova OS), mas em **modo readonly** com botões de controle.
-
-**Opção escolhida:** Modificar `ServiceCallView.tsx` para renderizar o formulário em modo readonly, OU modificar `ServiceCallForm.tsx` para ter um estado `isReadonly`.
-
-**Melhor abordagem:** Adicionar um parâmetro de modo ao `ServiceCallForm.tsx` para distinguir entre:
-- Modo criação (sem id)
-- Modo visualização (com id, readonly=true)
-- Modo edição (com id, readonly=false após clicar "Editar")
-
----
-
-### Arquivos a Modificar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/ServiceCalls.tsx` | Ocultar colunas Data/Hora, Equipamento, Tipo. Ajustar larguras |
-| `src/pages/ServiceCallForm.tsx` | Adicionar estado `isReadonly` e controlar campos habilitados/desabilitados |
-| `src/App.tsx` | **Nenhuma alteração** - rotas permanecem as mesmas |
-| `src/pages/ServiceCallView.tsx` | **Nenhuma alteração** - não será mais usado no fluxo principal, mas mantido |
-
----
-
-### Detalhamento das Mudanças
-
-#### 1. `ServiceCalls.tsx` - Ocultar Colunas na Tabela Desktop
-
-**Colunas visíveis:**
-```
-Nº OS | Cliente | Técnico | St. Técnico | St. Comercial | Ações
+```text
++--------------------------------------------------+
+|              FinanceiroTab.tsx                   |
+|                                                  |
+|  [Gerar Parcelas] --> doGenerateInstallments()   |
+|       - Delete existentes                        |
+|       - Create novas parcelas                    |
+|       - Invalidar cache receivables              |
+|                                                  |
+|  [Salvar Financeiro] --> handleSaveFinancial()   |
+|       - Validar parcelas                         |
+|       - Atualizar installments_total             |
+|       - Salvar config na OS                      |
+|       - Invalidar cache receivables              |
+|       - Toast "Contas a receber atualizadas"     |
+|       - NAO navegar / NAO fechar                 |
++--------------------------------------------------+
+                       |
+                       v
++--------------------------------------------------+
+|           financial_transactions                 |
+| (direction='RECEIVE', origin='SERVICE_CALL')     |
+|                                                  |
+| Campos: id, service_call_id, client_id,          |
+|         installment_number, due_date, amount,    |
+|         payment_method, status, paid_at, notes   |
++--------------------------------------------------+
+                       |
+                       v
++--------------------------------------------------+
+|             ContasAReceber.tsx                   |
+| (useReceivables - filtra direction='RECEIVE')    |
+|                                                  |
+| - Listar parcelas com filtros                    |
+| - Marcar como PAGO (nao editar valor/data)       |
+| - Visualizar origem da OS                        |
++--------------------------------------------------+
 ```
 
-**Mudanças no `<colgroup>`:**
-```tsx
-<colgroup>
-  <col style={{ width: '80px' }} />   {/* Nº OS */}
-  <col style={{ width: '220px' }} />  {/* Cliente */}
-  <col style={{ width: '120px' }} />  {/* Técnico */}
-  <col style={{ width: '160px' }} />  {/* St. Técnico */}
-  <col style={{ width: '160px' }} />  {/* St. Comercial */}
-  <col style={{ width: '80px' }} />   {/* Ações - sticky */}
-</colgroup>
+## Implementacao Detalhada
+
+### 1. Atualizar hook useFinancialTransactions
+
+**Arquivo:** `src/hooks/useFinancialTransactions.ts`
+
+Adicionar invalidacao cruzada do cache `receivables` em todas as mutations:
+
+- `createTransaction.onSuccess`: invalidar `["receivables"]`
+- `createManyTransactions.onSuccess`: invalidar `["receivables"]`
+- `updateTransaction.onSuccess`: invalidar `["receivables"]`
+- `markAsPaid.onSuccess`: invalidar `["receivables"]`
+- `cancelTransaction.onSuccess`: invalidar `["receivables"]`
+- `deleteTransaction.onSuccess`: invalidar `["receivables"]`
+
+Isso garante que qualquer alteracao nas transacoes da OS reflita imediatamente no Contas a Receber.
+
+### 2. Atualizar funcao handleSaveFinancial
+
+**Arquivo:** `src/components/os-financeiro/FinanceiroTab.tsx`
+
+Modificar a funcao `handleSaveFinancial` para:
+
+1. **Validar parcelas**: Verificar se todas tem data e valor validos
+2. **Atualizar installments_total**: Para cada parcela, garantir que o total de parcelas esteja correto
+3. **Salvar config na OS**: Atualizar descontos e configuracao de pagamento
+4. **Invalidar cache de receivables**: Forcar refresh no Contas a Receber
+5. **Toast de sucesso**: Exibir "Contas a receber atualizadas"
+6. **NAO navegar**: Manter usuario na mesma tela
+
+### 3. Ajustar Contas a Receber
+
+**Arquivo:** `src/pages/financas/ContasAReceber.tsx`
+
+Adicionar indicador visual para parcelas originadas de OS (origin='SERVICE_CALL'):
+
+- Tooltip ou icone indicando que valor/data so podem ser editados na OS
+- Manter apenas acao de "Marcar como Pago" e "Cancelar"
+- Exibir coluna de "Observacao" (notes)
+- Exibir coluna de "Forma Pgto" (payment_method)
+
+### 4. Fluxo de Sincronizacao Garantido
+
+| Acao do Usuario | Comportamento | Resultado no Contas a Receber |
+|-----------------|---------------|-------------------------------|
+| Gerar Parcelas | Delete + Create | Parcelas aparecem imediatamente |
+| Editar parcela inline | Update imediato | Valores atualizados em tempo real |
+| Adicionar parcela manual | Create | Nova parcela visivel |
+| Excluir parcela | Delete | Parcela removida |
+| Salvar Financeiro | Valida + Atualiza totais | Cache invalidado, dados sincronizados |
+| Limpar Parcelas | Delete all | Zera parcelas daquela OS |
+
+## Detalhes Tecnicos
+
+### Arquivo: src/hooks/useFinancialTransactions.ts
+
+**Mudancas:**
+
+```typescript
+// Em todas as mutations, adicionar no onSuccess:
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+  queryClient.invalidateQueries({ queryKey: ["receivables"] }); // NOVO
+},
 ```
 
-**Total: 820px** (mais confortável para telas menores)
+### Arquivo: src/components/os-financeiro/FinanceiroTab.tsx
 
-**Remover do `<thead>` e `<tbody>`:**
-- Coluna Data/Hora
-- Coluna Equipamento
-- Coluna Tipo
+**Mudancas na funcao handleSaveFinancial:**
 
-**Nota:** Os dados continuam sendo carregados do banco, apenas não são exibidos na tabela.
+```typescript
+const handleSaveFinancial = async () => {
+  // 1. Validar parcelas
+  const invalidParcels = transactions.filter(t => !t.due_date || t.amount <= 0);
+  if (invalidParcels.length > 0) {
+    toast({ title: "Parcelas com dados invalidos", variant: "destructive" });
+    return;
+  }
 
----
+  setIsSaving(true);
+  try {
+    // 2. Atualizar installments_total em todas as parcelas
+    const currentTotal = transactions.length;
+    for (const t of transactions) {
+      if (t.installments_total !== currentTotal) {
+        await updateTransaction.mutateAsync({
+          id: t.id,
+          installments_total: currentTotal,
+        });
+      }
+    }
 
-#### 2. `ServiceCallForm.tsx` - Adicionar Modo Readonly
+    // 3. Salvar configuracao na OS
+    const paymentConfig = buildPaymentConfig(...);
+    await supabase.from("service_calls").update({
+      discount_total_type: osDiscountType,
+      discount_total_value: osDiscountValue,
+      payment_config: paymentConfig,
+    }).eq("id", serviceCallId);
 
-**Novo estado:**
-```tsx
-const [isReadonly, setIsReadonly] = useState(true); // Inicia em readonly quando editando
+    // 4. Invalidar cache de receivables
+    queryClient.invalidateQueries({ queryKey: ["receivables"] });
+
+    // 5. Toast de sucesso (NAO navegar)
+    toast({ title: "Contas a receber atualizadas" });
+  } catch (error) {
+    toast({ title: "Erro ao salvar", variant: "destructive" });
+  } finally {
+    setIsSaving(false);
+  }
+};
 ```
 
-**Lógica:**
-- Se `isEditMode` (tem id na URL) → iniciar como `readonly=true`
-- Se criação nova (`!isEditMode`) → iniciar como `readonly=false`
+### Arquivo: src/pages/financas/ContasAReceber.tsx
 
-**Botões no Header (substituir atual):**
-```tsx
-{/* Header com Breadcrumb e Botões de Ação */}
-<div className="flex items-center justify-between gap-4 flex-wrap">
-  {/* Breadcrumb */}
-  <div className="flex items-center gap-2">
-    <Button variant="outline" size="sm" onClick={() => navigate("/service-calls")}>
-      <ArrowLeft className="h-4 w-4 mr-2" />
-      Voltar
-    </Button>
-    <span className="text-muted-foreground">›</span>
-    <span className="text-muted-foreground text-sm">Chamados</span>
-    {isEditMode && existingCall && (
-      <>
-        <span className="text-muted-foreground">›</span>
-        <span className="font-semibold text-sm">OS #{existingCall.os_number}</span>
-      </>
-    )}
-  </div>
-  
-  {/* Botões de Ação */}
-  <div className="flex items-center gap-2 shrink-0">
-    {isEditMode && isReadonly && (
-      <Button onClick={() => setIsReadonly(false)}>
-        <Pencil className="mr-2 h-4 w-4" />
-        Editar
-      </Button>
-    )}
-    
-    {isEditMode && !isReadonly && (
-      <>
-        <Button onClick={handleSubmit(onSubmit)}>
-          <Save className="mr-2 h-4 w-4" />
-          Salvar
-        </Button>
-        <Button variant="outline" onClick={() => {
-          // Cancelar edição - voltar ao modo readonly e restaurar dados
-          initializedRef.current = false; // Força re-inicialização
-          setIsReadonly(true);
-        }}>
-          Cancelar
-        </Button>
-      </>
-    )}
-    
-    {!isEditMode && (
-      <Button onClick={handleSubmit(onSubmit)} disabled={isUploading}>
-        {isUploading ? "Salvando..." : "Criar Chamado"}
-      </Button>
-    )}
-  </div>
-</div>
-```
+**Mudancas:**
 
-**Desabilitar campos quando `isReadonly=true`:**
+1. Adicionar coluna "Forma Pgto" na tabela
+2. Adicionar coluna "Observacao" na tabela
+3. Adicionar indicador visual para parcelas de OS (icone/tooltip)
+4. Desabilitar edicao de valor/data para origin='SERVICE_CALL'
 
-Para cada input/select/textarea, adicionar:
-```tsx
-disabled={isReadonly}
-```
+## Arquivos a Modificar
 
-Exemplo:
-```tsx
-<Input 
-  {...register("equipment_description")} 
-  disabled={isReadonly}
-  className={isReadonly ? "bg-muted" : ""}
-/>
-```
+| Arquivo | Tipo de Alteracao |
+|---------|-------------------|
+| `src/hooks/useFinancialTransactions.ts` | Adicionar invalidacao de `receivables` em todas as mutations |
+| `src/components/os-financeiro/FinanceiroTab.tsx` | Atualizar `handleSaveFinancial` para sincronizar totais e invalidar cache |
+| `src/pages/financas/ContasAReceber.tsx` | Adicionar colunas Forma Pgto e Observacao; indicador visual para parcelas de OS |
 
-**Componentes que precisam de `disabled`:**
-- Todos os `<Input>`
-- Todos os `<Textarea>`
-- Todos os `<Select>` (usar `disabled` prop)
-- `ClientAsyncSelect` (adicionar prop `isDisabled`)
-- `TimePickerPopover` (adicionar prop `disabled`)
-- Botões de gravação de áudio
-- Uploads de mídia
-- ChecklistSelector
-- SignaturePad
+## Criterios de Aceite
 
----
+| Criterio | Como sera validado |
+|----------|-------------------|
+| Criar OS + salvar financeiro = parcelas em Contas a Receber | Parcelas com direction=RECEIVE aparecem apos save |
+| Editar parcelas na OS = Contas a Receber atualiza | Cache invalidado apos cada operacao |
+| Excluir parcelas na OS = Contas a Receber reflete | Delete remove da tabela, receivables recarrega |
+| Salvar nao fecha tela | Usuario permanece na aba Financeiro |
+| Sem duplicacao apos multiplos saves | Operacoes idempotentes garantem unicidade |
+| Tecnico nao ve valores | FinanceiroGuard ja implementado (nao sera alterado) |
+| Admin ve tudo | RLS existente permite (nao sera alterado) |
 
-#### 3. Navegação: Lista → Formulário
+## Observacoes Importantes
 
-Atualmente a navegação vai para `/service-calls/:id` (ServiceCallView).
-
-**Mudar para ir direto ao formulário:**
-```tsx
-// Em ServiceCalls.tsx
-onClick={() => navigate(`/service-calls/edit/${call.id}`)}
-```
-
-E nos Links:
-```tsx
-<Link to={`/service-calls/edit/${call.id}`}>
-  {call.os_number}
-</Link>
-```
-
----
-
-#### 4. Mobile Card (`ServiceCallMobileCard.tsx`)
-
-Atualizar o card mobile para corresponder às colunas visíveis:
-
-**Remover:**
-- Data/Hora (ou manter já que é útil no mobile?)
-- Equipamento
-- Tipo
-
-**Decisão:** No mobile, manter Data/Hora pois é informação essencial para técnicos. Remover Equipamento e Tipo para consistência.
-
----
-
-### Arquivos NÃO Alterados (Conforme Solicitado)
-
-| Arquivo | Status |
-|---------|--------|
-| `ServiceCallView.tsx` | Preservado - não usado no novo fluxo mas mantido |
-| `FinanceiroTab.tsx` | Preservado |
-| `FinanceiroGuard.tsx` | Preservado |
-| CSS global | Preservado |
-| Rotas em App.tsx | Preservado - usa rotas existentes |
-| Base de dados | Nenhuma alteração |
-
----
-
-### Fluxo Final
-
-1. **Lista** (`/service-calls`): Colunas simplificadas
-2. **Clicar em OS** → Abre `/service-calls/edit/:id`
-3. **Formulário abre em modo READONLY**: Campos preenchidos e travados
-4. **Clicar "Editar"** → Habilita campos para edição
-5. **Clicar "Salvar"** → Salva e volta para readonly
-6. **Clicar "Cancelar"** → Descarta mudanças e volta para readonly
-7. **Clicar "Voltar"** → Retorna para a lista
-
----
-
-### Critérios de Aceite
-
-1. Lista exibe apenas: Nº OS, Cliente, Técnico, St. Técnico, St. Comercial, Ações
-2. Colunas ocultas (Data/Hora, Equipamento, Tipo) ainda existem nos dados
-3. Clicar em OS abre formulário em modo readonly
-4. Botões "Editar", "Salvar", "Cancelar/Voltar" funcionam corretamente
-5. Campos só editáveis após clicar em "Editar"
-6. Aba Financeiro continua visível apenas para Admin
-7. Nenhuma alteração no banco de dados
-8. Funciona igual no Preview e Published
-
----
-
-### Seção Técnica - Principais Mudanças de Código
-
-**ServiceCalls.tsx:**
-- Remover 3 `<col>` do colgroup
-- Remover 3 `<th>` do thead
-- Remover 3 `<td>` do tbody
-- Mudar navegação para `/service-calls/edit/:id`
-
-**ServiceCallForm.tsx:**
-- Adicionar estado `isReadonly` (default: `isEditMode`)
-- Adicionar header com breadcrumb e botões condicionais
-- Adicionar `disabled={isReadonly}` em todos os campos de input
-- Adicionar estilo visual para campos readonly (`bg-muted`)
-- Handler para "Cancelar" que restaura dados originais
-
-**ServiceCallMobileCard.tsx:**
-- Remover linha de Equipamento
-- Atualizar navegação para `/service-calls/edit/:id`
+- O botao "Salvar Financeiro" NAO navegara nem fechara a tela
+- A estrutura de menu lateral ja existe conforme solicitado
+- Nenhuma nova tabela sera criada - usaremos `financial_transactions` existente
+- A RLS existente ja protege os dados (apenas admin acessa transacoes financeiras)
+- Nao serao alterados: layout global, autenticacao, permissoes, abas existentes, FinanceiroGuard, rotas
