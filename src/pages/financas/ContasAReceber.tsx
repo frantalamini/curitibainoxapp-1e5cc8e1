@@ -3,8 +3,8 @@ import { MainLayout } from "@/components/MainLayout";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Navigate } from "react-router-dom";
-import { Loader2, Wallet, Search, Filter, Check, X, Calendar } from "lucide-react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { Loader2, Wallet, Check, X, FileText, Info } from "lucide-react";
 import { useReceivables } from "@/hooks/useReceivables";
 import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
 import { useClients } from "@/hooks/useClients";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -41,6 +42,7 @@ export default function ContasAReceber() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const { accounts } = useFinancialAccounts();
   const { clients } = useClients();
+  const navigate = useNavigate();
 
   // Filters
   const today = new Date();
@@ -198,6 +200,7 @@ export default function ContasAReceber() {
                 <p className="text-sm text-muted-foreground">Ajuste os filtros ou crie OS com parcelas.</p>
               </div>
             ) : (
+            <TooltipProvider>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -207,66 +210,111 @@ export default function ContasAReceber() {
                       <TableHead>Parcela</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Forma Pgto</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Pago em</TableHead>
+                      <TableHead>Obs</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {receivables.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-medium">
-                          {r.service_call?.os_number ? `#${r.service_call.os_number}` : "-"}
-                        </TableCell>
-                        <TableCell>{r.client?.full_name || "-"}</TableCell>
-                        <TableCell>
-                          {r.installment_number && r.installments_total
-                            ? `${r.installment_number}/${r.installments_total}`
-                            : "1/1"}
-                        </TableCell>
-                        <TableCell>
-                          {format(new Date(r.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(Number(r.amount))}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(r.status)}</TableCell>
-                        <TableCell>
-                          {r.paid_at
-                            ? format(new Date(r.paid_at), "dd/MM/yyyy", { locale: ptBR })
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {r.status === "OPEN" && (
-                            <div className="flex gap-1 justify-end">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 px-2"
-                                onClick={() => {
-                                  setPayDialog({ open: true, id: r.id });
-                                  setPayDate(format(new Date(), "yyyy-MM-dd"));
-                                  setPayAccountId("");
-                                }}
-                              >
-                                <Check className="h-4 w-4 mr-1" /> Pagar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 px-2 text-destructive hover:text-destructive"
-                                onClick={() => cancelReceivable.mutate(r.id)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {receivables.map((r) => {
+                      const isFromOS = r.origin === "SERVICE_CALL";
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-medium">
+                            {r.service_call?.os_number ? (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="link"
+                                  className="h-auto p-0 text-primary"
+                                  onClick={() => navigate(`/service-calls/${r.service_call_id}`)}
+                                >
+                                  #{r.service_call.os_number}
+                                </Button>
+                                {isFromOS && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="text-xs">Editar valor/data apenas na OS</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            ) : (
+                              "-"
+                            )}
+                          </TableCell>
+                          <TableCell>{r.client?.full_name || "-"}</TableCell>
+                          <TableCell>
+                            {r.installment_number && r.installments_total
+                              ? `${r.installment_number}/${r.installments_total}`
+                              : "1/1"}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(r.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(Number(r.amount))}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {r.payment_method || "-"}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(r.status)}</TableCell>
+                          <TableCell>
+                            {r.paid_at
+                              ? format(new Date(r.paid_at), "dd/MM/yyyy", { locale: ptBR })
+                              : "-"}
+                          </TableCell>
+                          <TableCell className="max-w-[150px] truncate text-muted-foreground text-sm">
+                            {r.notes ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help">{r.notes}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs whitespace-pre-wrap">{r.notes}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              "-"
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {r.status === "OPEN" && (
+                              <div className="flex gap-1 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2"
+                                  onClick={() => {
+                                    setPayDialog({ open: true, id: r.id });
+                                    setPayDate(format(new Date(), "yyyy-MM-dd"));
+                                    setPayAccountId("");
+                                  }}
+                                >
+                                  <Check className="h-4 w-4 mr-1" /> Pagar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 px-2 text-destructive hover:text-destructive"
+                                  onClick={() => cancelReceivable.mutate(r.id)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
+            </TooltipProvider>
             )}
           </CardContent>
         </Card>

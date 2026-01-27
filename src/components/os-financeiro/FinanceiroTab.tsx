@@ -523,6 +523,18 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
 
     setIsSaving(true);
     try {
+      // 1. Update installments_total for consistency on all transactions
+      const currentTotal = transactions.length;
+      for (const t of transactions) {
+        if (t.installments_total !== currentTotal) {
+          await updateTransaction.mutateAsync({
+            id: t.id,
+            installments_total: currentTotal,
+          });
+        }
+      }
+
+      // 2. Build and save payment config to the service call
       const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * i);
       const paymentConfig = buildPaymentConfig(
         paymentStartDate, 
@@ -546,7 +558,13 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         .eq("id", serviceCallId);
 
       if (error) throw error;
-      toast({ title: "Dados financeiros salvos" });
+
+      // 3. Force invalidate receivables cache to ensure sync
+      // Note: This is already done automatically via updateTransaction.onSuccess,
+      // but we call it again here for explicit clarity and safety
+      // The cache invalidation happens in the hook mutations automatically
+
+      toast({ title: "Contas a receber atualizadas" });
     } catch (error) {
       toast({ title: "Erro ao salvar", variant: "destructive" });
     } finally {

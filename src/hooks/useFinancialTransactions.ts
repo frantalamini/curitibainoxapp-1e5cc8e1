@@ -87,6 +87,7 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
 
@@ -102,6 +103,7 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
 
@@ -119,6 +121,7 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
 
@@ -139,6 +142,7 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
 
@@ -156,6 +160,7 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
 
@@ -170,6 +175,7 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
 
