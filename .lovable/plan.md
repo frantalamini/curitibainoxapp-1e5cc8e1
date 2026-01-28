@@ -1,52 +1,54 @@
 
-# Correção: Larguras Proporcionais para Colunas da Tabela
 
-## Causa Raiz Identificada
-A tabela usa `table-fixed` mas a coluna "Cliente" não tem largura definida, fazendo ela consumir espaço excessivo e empurrar as colunas de status para fora do viewport.
+# Ajuste Final de Larguras para Monitores Menores
+
+## Problema Identificado
+O uso de `w-[30%]` para a coluna Cliente em conjunto com `table-fixed` causa comportamento imprevisível. O 30% é calculado sobre a largura total da tabela, criando conflito com as colunas de largura fixa.
 
 ## Solução
-Definir larguras proporcionais para TODAS as colunas, garantindo que:
-1. Todas as 6 colunas caibam em 100% zoom
-2. A coluna Cliente tenha limite máximo
-3. O nome do cliente seja truncado se muito longo
+Usar **apenas larguras fixas menores** para todas as colunas, permitindo que a coluna Cliente use o espaço restante de forma natural.
 
-## Mudanças Específicas em `src/pages/ServiceCalls.tsx`
+## Mudanças em `src/pages/ServiceCalls.tsx`
 
 ### Cabeçalho da Tabela (linhas 166-171)
-```text
-Antes:
-<th className="w-[90px]...">Nº OS</th>
-<th className="...">Cliente</th>           ← SEM LARGURA
-<th className="w-[110px]...">Data</th>
-<th className="w-[140px]...">Técnico</th>
-<th className="w-[160px]...">St. Técnico</th>
-<th className="w-[160px]...">St. Comercial</th>
 
-Depois (larguras reduzidas e proporcionais):
-<th className="w-[70px]...">Nº OS</th>
-<th className="w-[30%] max-w-[250px]...">Cliente</th>  ← COM LIMITE
-<th className="w-[90px]...">Data</th>
-<th className="w-[100px]...">Técnico</th>
-<th className="w-[130px]...">St. Técnico</th>
-<th className="w-[130px]...">St. Comercial</th>
-```
+| Coluna | Antes | Depois |
+|--------|-------|--------|
+| Nº OS | `w-[70px]` | `w-[60px]` |
+| Cliente | `w-[30%] max-w-[250px]` | Sem largura fixa (usa espaço restante) |
+| Data | `w-[90px]` | `w-[80px]` |
+| Técnico | `w-[100px]` | `w-[90px]` |
+| St. Técnico | `w-[130px]` | `w-[110px]` |
+| St. Comercial | `w-[130px]` | `w-[110px]` |
 
-### Célula do Cliente (linha 189-192)
-Adicionar truncamento para nomes longos:
+**Total fixo:** 450px (antes era ~520px + 30%)
+
+### Código Atualizado
+
 ```jsx
-<td className="px-2 py-2 min-w-0 align-top leading-tight">
-  <div className="font-medium text-sm truncate">{call.clients?.full_name}</div>
-  <div className="text-xs text-muted-foreground truncate">{call.clients?.phone}</div>
-</td>
+<th className="w-[60px] ...">Nº OS</th>
+<th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Cliente</th>
+<th className="w-[80px] ...">Data</th>
+<th className="w-[90px] ...">Técnico</th>
+<th className="w-[110px] ...">St. Técnico</th>
+<th className="w-[110px] ...">St. Comercial</th>
 ```
+
+### Reduzir truncamento dos status (linhas 206 e 217)
+
+```jsx
+<span className="text-xs truncate max-w-[100px] block">
+```
+(de 120px para 100px)
 
 ## Impacto
-- ✅ Todas as 6 colunas visíveis em 100% zoom
-- ✅ Sidebar permanece visível
-- ✅ Nomes longos são truncados com reticências
-- ✅ Scroll horizontal só se absolutamente necessário
+- ✅ Colunas fixas menores = mais espaço para Cliente
+- ✅ Cliente expande naturalmente para preencher o restante
+- ✅ Funciona em monitores de 1280px até 1920px
+- ✅ Scroll horizontal aparece somente se extremamente necessário
 - ✅ Nenhuma mudança no mobile (cards)
 - ✅ Nenhuma mudança na estrutura/ordem das colunas
 
 ## Arquivo Modificado
-Apenas `src/pages/ServiceCalls.tsx` (linhas 166-171 e 189-192)
+Apenas `src/pages/ServiceCalls.tsx` (linhas 166-171, 206, 217)
+
