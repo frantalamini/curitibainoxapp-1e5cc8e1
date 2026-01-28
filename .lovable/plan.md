@@ -1,62 +1,52 @@
 
-# Ajuste de Responsividade da Tabela Desktop
+# Correção: Larguras Proporcionais para Colunas da Tabela
 
-## Diagnóstico Atual
-O arquivo `src/pages/ServiceCalls.tsx` já possui:
-- ✅ Container pai com `min-w-0` (linha 90)
-- ✅ Wrapper da tabela com `w-full max-w-full overflow-x-auto` (linha 162)
-- ✅ Tabela com `table-fixed` (linha 163)
-- ⚠️ Falta `min-w-0` no wrapper da tabela
-- ⚠️ Falta `overflow-y-visible` no wrapper
-- ⚠️ Células de status podem ter texto longo sem truncamento
+## Causa Raiz Identificada
+A tabela usa `table-fixed` mas a coluna "Cliente" não tem largura definida, fazendo ela consumir espaço excessivo e empurrar as colunas de status para fora do viewport.
 
-## Mudanças Específicas (somente tabela desktop)
+## Solução
+Definir larguras proporcionais para TODAS as colunas, garantindo que:
+1. Todas as 6 colunas caibam em 100% zoom
+2. A coluna Cliente tenha limite máximo
+3. O nome do cliente seja truncado se muito longo
 
-### 1. Wrapper da Tabela (linha 162)
-**Antes:**
-```jsx
-<div className="w-full max-w-full overflow-x-auto border rounded-lg">
+## Mudanças Específicas em `src/pages/ServiceCalls.tsx`
+
+### Cabeçalho da Tabela (linhas 166-171)
+```text
+Antes:
+<th className="w-[90px]...">Nº OS</th>
+<th className="...">Cliente</th>           ← SEM LARGURA
+<th className="w-[110px]...">Data</th>
+<th className="w-[140px]...">Técnico</th>
+<th className="w-[160px]...">St. Técnico</th>
+<th className="w-[160px]...">St. Comercial</th>
+
+Depois (larguras reduzidas e proporcionais):
+<th className="w-[70px]...">Nº OS</th>
+<th className="w-[30%] max-w-[250px]...">Cliente</th>  ← COM LIMITE
+<th className="w-[90px]...">Data</th>
+<th className="w-[100px]...">Técnico</th>
+<th className="w-[130px]...">St. Técnico</th>
+<th className="w-[130px]...">St. Comercial</th>
 ```
 
-**Depois:**
+### Célula do Cliente (linha 189-192)
+Adicionar truncamento para nomes longos:
 ```jsx
-<div className="w-full max-w-full min-w-0 overflow-x-auto overflow-y-visible border rounded-lg">
+<td className="px-2 py-2 min-w-0 align-top leading-tight">
+  <div className="font-medium text-sm truncate">{call.clients?.full_name}</div>
+  <div className="text-xs text-muted-foreground truncate">{call.clients?.phone}</div>
+</td>
 ```
-
-### 2. Células de Status com Truncamento (linhas 206 e 217)
-**Antes:**
-```jsx
-<span className="text-xs whitespace-normal">{call.service_call_statuses.name}</span>
-```
-
-**Depois:**
-```jsx
-<span className="text-xs truncate max-w-[120px] block">{call.service_call_statuses.name}</span>
-```
-
-### 3. Célula do Cliente com overflow-wrap (linha 189)
-**Antes:**
-```jsx
-<td className="px-2 py-2 min-w-0 whitespace-normal break-words align-top leading-tight">
-```
-
-**Depois:**
-```jsx
-<td className="px-2 py-2 min-w-0 align-top leading-tight" style={{ overflowWrap: 'anywhere' }}>
-```
-
-## Checklist de Validação
-- [x] Container pai já tem `min-w-0`
-- [ ] Wrapper da tabela terá `min-w-0`
-- [ ] Wrapper terá `overflow-y-visible` para dropdowns
-- [ ] Células de status terão truncamento
-- [ ] Coluna cliente terá `overflow-wrap: anywhere`
 
 ## Impacto
-- Nenhuma alteração no layout geral
-- Nenhuma alteração no mobile (cards)
-- Nenhuma alteração na ordem/estrutura das colunas
-- Apenas comportamento de overflow e truncamento
+- ✅ Todas as 6 colunas visíveis em 100% zoom
+- ✅ Sidebar permanece visível
+- ✅ Nomes longos são truncados com reticências
+- ✅ Scroll horizontal só se absolutamente necessário
+- ✅ Nenhuma mudança no mobile (cards)
+- ✅ Nenhuma mudança na estrutura/ordem das colunas
 
 ## Arquivo Modificado
-Apenas `src/pages/ServiceCalls.tsx`
+Apenas `src/pages/ServiceCalls.tsx` (linhas 166-171 e 189-192)
