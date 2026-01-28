@@ -204,17 +204,17 @@ export default function ContasAReceber() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>OS</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Parcela</TableHead>
-                      <TableHead>Vencimento</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Forma Pgto</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Pago em</TableHead>
+                    <TableRow className="text-xs">
+                      <TableHead className="w-[7%] min-w-[50px]">OS</TableHead>
+                      <TableHead className="w-[18%]">Cliente</TableHead>
+                      <TableHead className="w-[8%]">Parcela</TableHead>
+                      <TableHead className="w-[10%]">Venc.</TableHead>
+                      <TableHead className="w-[10%] text-right">Valor</TableHead>
+                      <TableHead className="w-[10%]">Forma</TableHead>
+                      <TableHead className="w-[10%]">Status</TableHead>
+                      <TableHead className="w-[10%]">Pago em</TableHead>
                       <TableHead>Obs</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="w-[10%] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -247,28 +247,30 @@ export default function ContasAReceber() {
                               "-"
                             )}
                           </TableCell>
-                          <TableCell>{r.client?.full_name || "-"}</TableCell>
                           <TableCell>
+                            <span className="truncate block max-w-[150px] text-sm" title={r.client?.full_name || undefined}>{r.client?.full_name || "-"}</span>
+                          </TableCell>
+                          <TableCell className="text-xs">
                             {r.installment_number && r.installments_total
                               ? `${r.installment_number}/${r.installments_total}`
                               : "1/1"}
                           </TableCell>
-                          <TableCell>
-                            {format(new Date(r.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                          <TableCell className="text-xs">
+                            {format(new Date(r.due_date), "dd/MM/yy", { locale: ptBR })}
                           </TableCell>
-                          <TableCell className="text-right font-medium">
+                          <TableCell className="text-right font-medium text-sm">
                             {formatCurrency(Number(r.amount))}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
+                          <TableCell className="text-muted-foreground text-xs truncate max-w-[80px]" title={r.payment_method || undefined}>
                             {r.payment_method || "-"}
                           </TableCell>
                           <TableCell>{getStatusBadge(r.status)}</TableCell>
-                          <TableCell>
+                          <TableCell className="text-xs">
                             {r.paid_at
-                              ? format(new Date(r.paid_at), "dd/MM/yyyy", { locale: ptBR })
+                              ? format(new Date(r.paid_at), "dd/MM/yy", { locale: ptBR })
                               : "-"}
                           </TableCell>
-                          <TableCell className="max-w-[150px] truncate text-muted-foreground text-sm">
+                          <TableCell className="max-w-[100px] truncate text-muted-foreground text-xs">
                             {r.notes ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>

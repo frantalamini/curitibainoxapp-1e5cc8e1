@@ -596,14 +596,14 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               <Table>
                 <TableHeader>
                   <TableRow className="text-xs">
-                    <TableHead className="py-1 px-2">Item</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-14">Qtd</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-20">Unit.</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-20">Subtot.</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-14">%Desc</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-16">R$Desc</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-20">Total</TableHead>
-                    <TableHead className="py-1 px-2 w-8"></TableHead>
+                    <TableHead className="py-1 px-1">Item</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-10">Qtd</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-16">Unit.</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-16 hidden lg:table-cell">Subtot.</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-12">%Desc</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-14">R$Desc</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-16">Total</TableHead>
+                    <TableHead className="py-1 px-1 w-6"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -614,28 +614,28 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                       : 0;
                     return (
                       <TableRow key={item.id} className="text-xs">
-                        <TableCell className="py-1 px-2">
-                          <span className="font-medium">{item.description}</span>
+                        <TableCell className="py-1 px-1">
+                          <span className="font-medium truncate block max-w-[150px]" title={item.description}>{item.description}</span>
                           {item.products?.sku && (
-                            <span className="text-muted-foreground ml-1">({item.products.sku})</span>
+                            <span className="text-muted-foreground text-[10px]">({item.products.sku})</span>
                           )}
                         </TableCell>
-                        <TableCell className="py-1 px-2 text-right">{item.qty}</TableCell>
-                        <TableCell className="py-1 px-2 text-right">{formatCurrency(item.unit_price)}</TableCell>
-                        <TableCell className="py-1 px-2 text-right text-muted-foreground">{formatCurrency(subtotal)}</TableCell>
-                        <TableCell className="py-1 px-2 text-right text-destructive">
+                        <TableCell className="py-1 px-1 text-right">{item.qty}</TableCell>
+                        <TableCell className="py-1 px-1 text-right">{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="py-1 px-1 text-right text-muted-foreground hidden lg:table-cell">{formatCurrency(subtotal)}</TableCell>
+                        <TableCell className="py-1 px-1 text-right text-destructive">
                           {item.discount_type === "percent" && item.discount_value > 0 
                             ? `-${discountPercent}%` 
                             : "-"}
                         </TableCell>
-                        <TableCell className="py-1 px-2 text-right text-destructive">
+                        <TableCell className="py-1 px-1 text-right text-destructive">
                           {item.discount_type === "value" && item.discount_value > 0 
                             ? `-${formatCurrency(item.discount_value)}` 
                             : "-"}
                         </TableCell>
-                        <TableCell className="py-1 px-2 text-right font-medium">{formatCurrency(item.total)}</TableCell>
-                        <TableCell className="py-1 px-2">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteItem(item.id)}>
+                        <TableCell className="py-1 px-1 text-right font-medium">{formatCurrency(item.total)}</TableCell>
+                        <TableCell className="py-1 px-1">
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDeleteItem(item.id)}>
                             <Trash2 className="h-3 w-3 text-destructive" />
                           </Button>
                         </TableCell>
@@ -655,12 +655,12 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
           )}
 
           {/* Add product form - compact */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2 pt-2 border-t text-xs">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-1 pt-2 border-t text-xs">
             <div className="col-span-2">
               <Label className="text-[10px]">Produto</Label>
               <div className="flex gap-1">
                 <Select value={newProduct.product_id} onValueChange={handleProductSelect}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-7 text-xs">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -676,17 +676,17 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
             </div>
             <div>
               <Label className="text-[10px]">Qtd</Label>
-              <Input type="number" min="1" className="h-8 text-xs" value={newProduct.qty}
+              <Input type="number" min="1" className="h-7 text-xs" value={newProduct.qty}
                 onChange={e => setNewProduct(prev => ({ ...prev, qty: Number(e.target.value) }))} />
             </div>
             <div>
               <Label className="text-[10px]">Unit.</Label>
-              <Input type="number" step="0.01" min="0" className="h-8 text-xs" value={newProduct.unit_price}
+              <Input type="number" step="0.01" min="0" className="h-7 text-xs" value={newProduct.unit_price}
                 onChange={e => setNewProduct(prev => ({ ...prev, unit_price: Number(e.target.value) }))} />
             </div>
             <div>
               <Label className="text-[10px]">%Desc</Label>
-              <Input type="number" min="0" max="100" className="h-8 text-xs" 
+              <Input type="number" min="0" max="100" className="h-7 text-xs" 
                 value={newProduct.discount_type === "percent" ? newProduct.discount_percent : ""}
                 placeholder="-"
                 onChange={e => setNewProduct(prev => ({ 
@@ -698,7 +698,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
             </div>
             <div>
               <Label className="text-[10px]">R$Desc</Label>
-              <Input type="number" step="0.01" min="0" className="h-8 text-xs" 
+              <Input type="number" step="0.01" min="0" className="h-7 text-xs" 
                 value={newProduct.discount_type === "value" ? newProduct.discount_value : ""}
                 placeholder="-"
                 onChange={e => setNewProduct(prev => ({ 
@@ -709,7 +709,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                 }))} />
             </div>
             <div className="flex items-end">
-              <Button type="button" size="sm" className="h-8 w-full text-xs" onClick={handleAddProduct} disabled={createItem.isPending}>
+              <Button type="button" size="sm" className="h-7 w-8 text-xs" onClick={handleAddProduct} disabled={createItem.isPending}>
                 <Plus className="h-3 w-3" />
               </Button>
             </div>
@@ -731,14 +731,14 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               <Table>
                 <TableHeader>
                   <TableRow className="text-xs">
-                    <TableHead className="py-1 px-2">Descrição</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-14">Qtd</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-20">Unit.</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-20">Subtot.</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-14">%Desc</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-16">R$Desc</TableHead>
-                    <TableHead className="py-1 px-2 text-right w-20">Total</TableHead>
-                    <TableHead className="py-1 px-2 w-8"></TableHead>
+                    <TableHead className="py-1 px-1">Descrição</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-10">Qtd</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-16">Unit.</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-16 hidden lg:table-cell">Subtot.</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-12">%Desc</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-14">R$Desc</TableHead>
+                    <TableHead className="py-1 px-1 text-right w-16">Total</TableHead>
+                    <TableHead className="py-1 px-1 w-6"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -749,23 +749,23 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                       : 0;
                     return (
                       <TableRow key={item.id} className="text-xs">
-                        <TableCell className="py-1 px-2 font-medium">{item.description}</TableCell>
-                        <TableCell className="py-1 px-2 text-right">{item.qty}</TableCell>
-                        <TableCell className="py-1 px-2 text-right">{formatCurrency(item.unit_price)}</TableCell>
-                        <TableCell className="py-1 px-2 text-right text-muted-foreground">{formatCurrency(subtotal)}</TableCell>
-                        <TableCell className="py-1 px-2 text-right text-destructive">
+                        <TableCell className="py-1 px-1 font-medium truncate max-w-[150px]" title={item.description}>{item.description}</TableCell>
+                        <TableCell className="py-1 px-1 text-right">{item.qty}</TableCell>
+                        <TableCell className="py-1 px-1 text-right">{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="py-1 px-1 text-right text-muted-foreground hidden lg:table-cell">{formatCurrency(subtotal)}</TableCell>
+                        <TableCell className="py-1 px-1 text-right text-destructive">
                           {item.discount_type === "percent" && item.discount_value > 0 
                             ? `-${discountPercent}%` 
                             : "-"}
                         </TableCell>
-                        <TableCell className="py-1 px-2 text-right text-destructive">
+                        <TableCell className="py-1 px-1 text-right text-destructive">
                           {item.discount_type === "value" && item.discount_value > 0 
                             ? `-${formatCurrency(item.discount_value)}` 
                             : "-"}
                         </TableCell>
-                        <TableCell className="py-1 px-2 text-right font-medium">{formatCurrency(item.total)}</TableCell>
-                        <TableCell className="py-1 px-2">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteItem(item.id)}>
+                        <TableCell className="py-1 px-1 text-right font-medium">{formatCurrency(item.total)}</TableCell>
+                        <TableCell className="py-1 px-1">
+                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDeleteItem(item.id)}>
                             <Trash2 className="h-3 w-3 text-destructive" />
                           </Button>
                         </TableCell>
@@ -997,13 +997,13 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                 <Table>
                   <TableHeader>
                     <TableRow className="text-xs">
-                      <TableHead className="py-1 px-2 w-12">Nº</TableHead>
-                      <TableHead className="py-1 px-2 w-14 text-right">Dias</TableHead>
-                      <TableHead className="py-1 px-2 w-28">Data</TableHead>
-                      <TableHead className="py-1 px-2 w-24 text-right">Valor</TableHead>
-                      <TableHead className="py-1 px-2 w-32">Forma</TableHead>
-                      <TableHead className="py-1 px-2 min-w-[120px]">Observação</TableHead>
-                      <TableHead className="py-1 px-2 w-24">Ações</TableHead>
+                      <TableHead className="py-1 px-1 w-10">Nº</TableHead>
+                      <TableHead className="py-1 px-1 w-10 text-right">Dias</TableHead>
+                      <TableHead className="py-1 px-1 w-20">Data</TableHead>
+                      <TableHead className="py-1 px-1 w-16 text-right">Valor</TableHead>
+                      <TableHead className="py-1 px-1 w-20">Forma</TableHead>
+                      <TableHead className="py-1 px-1">Obs</TableHead>
+                      <TableHead className="py-1 px-1 w-16">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
