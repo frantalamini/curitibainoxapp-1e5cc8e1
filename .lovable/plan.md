@@ -1,206 +1,202 @@
 
-# Plano: Sincronizacao Definitiva entre Financeiro da OS e Contas a Receber
+# Plano: Correção de Layout Responsivo das Tabelas
 
-## Resumo
+## Problema Identificado
 
-Garantir que ao salvar o Financeiro da OS, todas as parcelas sejam automaticamente sincronizadas com a tabela `financial_transactions`, que e a fonte unica de dados para Contas a Receber. A sincronizacao sera feita atraves de uma operacao idempotente de "delete + recreate" que garante consistencia absoluta.
+As tabelas do aplicativo estão usando larguras fixas em pixels (`width: '60px'`, `w-20`, `min-w-[120px]`) que impedem a adaptação ao tamanho da tela. Isso causa:
+- Overflow horizontal em monitores de 13" e 15"
+- Necessidade de usar zoom para visualizar todo o conteúdo
+- Layout cortado sem scroll visível
 
-## Situacao Atual
+## Referência Visual (Olist/Tiny ERP)
 
-A tabela `financial_transactions` ja e usada como fonte unica de dados, porem:
+O sistema de referência usa:
+- Fonte legível mas compacta
+- Colunas proporcionais que se adaptam à tela
+- Textos truncados com elipses quando necessário
+- Menos colunas visíveis, priorizando informação essencial
+- Margens e espaçamentos adequados
 
-1. O botao "Gerar Parcelas" faz delete + create corretamente
-2. Edicoes individuais (valor, data, forma) sao salvas imediatamente via `updateTransaction`
-3. O botao "Salvar Financeiro" apenas atualiza metadados na OS (descontos, config), mas NAO garante sincronizacao completa
-4. Nao ha invalidacao cruzada do cache de `receivables` apos operacoes
+## Estratégia de Correção
 
-## Arquitetura da Solucao
-
-```text
-+--------------------------------------------------+
-|              FinanceiroTab.tsx                   |
-|                                                  |
-|  [Gerar Parcelas] --> doGenerateInstallments()   |
-|       - Delete existentes                        |
-|       - Create novas parcelas                    |
-|       - Invalidar cache receivables              |
-|                                                  |
-|  [Salvar Financeiro] --> handleSaveFinancial()   |
-|       - Validar parcelas                         |
-|       - Atualizar installments_total             |
-|       - Salvar config na OS                      |
-|       - Invalidar cache receivables              |
-|       - Toast "Contas a receber atualizadas"     |
-|       - NAO navegar / NAO fechar                 |
-+--------------------------------------------------+
-                       |
-                       v
-+--------------------------------------------------+
-|           financial_transactions                 |
-| (direction='RECEIVE', origin='SERVICE_CALL')     |
-|                                                  |
-| Campos: id, service_call_id, client_id,          |
-|         installment_number, due_date, amount,    |
-|         payment_method, status, paid_at, notes   |
-+--------------------------------------------------+
-                       |
-                       v
-+--------------------------------------------------+
-|             ContasAReceber.tsx                   |
-| (useReceivables - filtra direction='RECEIVE')    |
-|                                                  |
-| - Listar parcelas com filtros                    |
-| - Marcar como PAGO (nao editar valor/data)       |
-| - Visualizar origem da OS                        |
-+--------------------------------------------------+
-```
-
-## Implementacao Detalhada
-
-### 1. Atualizar hook useFinancialTransactions
-
-**Arquivo:** `src/hooks/useFinancialTransactions.ts`
-
-Adicionar invalidacao cruzada do cache `receivables` em todas as mutations:
-
-- `createTransaction.onSuccess`: invalidar `["receivables"]`
-- `createManyTransactions.onSuccess`: invalidar `["receivables"]`
-- `updateTransaction.onSuccess`: invalidar `["receivables"]`
-- `markAsPaid.onSuccess`: invalidar `["receivables"]`
-- `cancelTransaction.onSuccess`: invalidar `["receivables"]`
-- `deleteTransaction.onSuccess`: invalidar `["receivables"]`
-
-Isso garante que qualquer alteracao nas transacoes da OS reflita imediatamente no Contas a Receber.
-
-### 2. Atualizar funcao handleSaveFinancial
-
-**Arquivo:** `src/components/os-financeiro/FinanceiroTab.tsx`
-
-Modificar a funcao `handleSaveFinancial` para:
-
-1. **Validar parcelas**: Verificar se todas tem data e valor validos
-2. **Atualizar installments_total**: Para cada parcela, garantir que o total de parcelas esteja correto
-3. **Salvar config na OS**: Atualizar descontos e configuracao de pagamento
-4. **Invalidar cache de receivables**: Forcar refresh no Contas a Receber
-5. **Toast de sucesso**: Exibir "Contas a receber atualizadas"
-6. **NAO navegar**: Manter usuario na mesma tela
-
-### 3. Ajustar Contas a Receber
-
-**Arquivo:** `src/pages/financas/ContasAReceber.tsx`
-
-Adicionar indicador visual para parcelas originadas de OS (origin='SERVICE_CALL'):
-
-- Tooltip ou icone indicando que valor/data so podem ser editados na OS
-- Manter apenas acao de "Marcar como Pago" e "Cancelar"
-- Exibir coluna de "Observacao" (notes)
-- Exibir coluna de "Forma Pgto" (payment_method)
-
-### 4. Fluxo de Sincronizacao Garantido
-
-| Acao do Usuario | Comportamento | Resultado no Contas a Receber |
-|-----------------|---------------|-------------------------------|
-| Gerar Parcelas | Delete + Create | Parcelas aparecem imediatamente |
-| Editar parcela inline | Update imediato | Valores atualizados em tempo real |
-| Adicionar parcela manual | Create | Nova parcela visivel |
-| Excluir parcela | Delete | Parcela removida |
-| Salvar Financeiro | Valida + Atualiza totais | Cache invalidado, dados sincronizados |
-| Limpar Parcelas | Delete all | Zera parcelas daquela OS |
-
-## Detalhes Tecnicos
-
-### Arquivo: src/hooks/useFinancialTransactions.ts
-
-**Mudancas:**
-
-```typescript
-// Em todas as mutations, adicionar no onSuccess:
-onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
-  queryClient.invalidateQueries({ queryKey: ["receivables"] }); // NOVO
-},
-```
-
-### Arquivo: src/components/os-financeiro/FinanceiroTab.tsx
-
-**Mudancas na funcao handleSaveFinancial:**
-
-```typescript
-const handleSaveFinancial = async () => {
-  // 1. Validar parcelas
-  const invalidParcels = transactions.filter(t => !t.due_date || t.amount <= 0);
-  if (invalidParcels.length > 0) {
-    toast({ title: "Parcelas com dados invalidos", variant: "destructive" });
-    return;
-  }
-
-  setIsSaving(true);
-  try {
-    // 2. Atualizar installments_total em todas as parcelas
-    const currentTotal = transactions.length;
-    for (const t of transactions) {
-      if (t.installments_total !== currentTotal) {
-        await updateTransaction.mutateAsync({
-          id: t.id,
-          installments_total: currentTotal,
-        });
-      }
-    }
-
-    // 3. Salvar configuracao na OS
-    const paymentConfig = buildPaymentConfig(...);
-    await supabase.from("service_calls").update({
-      discount_total_type: osDiscountType,
-      discount_total_value: osDiscountValue,
-      payment_config: paymentConfig,
-    }).eq("id", serviceCallId);
-
-    // 4. Invalidar cache de receivables
-    queryClient.invalidateQueries({ queryKey: ["receivables"] });
-
-    // 5. Toast de sucesso (NAO navegar)
-    toast({ title: "Contas a receber atualizadas" });
-  } catch (error) {
-    toast({ title: "Erro ao salvar", variant: "destructive" });
-  } finally {
-    setIsSaving(false);
-  }
-};
-```
-
-### Arquivo: src/pages/financas/ContasAReceber.tsx
-
-**Mudancas:**
-
-1. Adicionar coluna "Forma Pgto" na tabela
-2. Adicionar coluna "Observacao" na tabela
-3. Adicionar indicador visual para parcelas de OS (icone/tooltip)
-4. Desabilitar edicao de valor/data para origin='SERVICE_CALL'
+Substituir larguras fixas por:
+1. **Larguras proporcionais** usando porcentagens ou `fr` units
+2. **Larguras mínimas** reduzidas para colunas numéricas
+3. **Truncamento inteligente** para textos longos
+4. **Remoção de `table-layout: fixed`** para permitir flexibilidade
 
 ## Arquivos a Modificar
 
-| Arquivo | Tipo de Alteracao |
-|---------|-------------------|
-| `src/hooks/useFinancialTransactions.ts` | Adicionar invalidacao de `receivables` em todas as mutations |
-| `src/components/os-financeiro/FinanceiroTab.tsx` | Atualizar `handleSaveFinancial` para sincronizar totais e invalidar cache |
-| `src/pages/financas/ContasAReceber.tsx` | Adicionar colunas Forma Pgto e Observacao; indicador visual para parcelas de OS |
+### 1. Componente Base de Tabela (`src/components/ui/table.tsx`)
 
-## Criterios de Aceite
+**Mudanças:**
+- Remover `table-fixed` do className padrão
+- Usar `table-auto` para permitir ajuste automático de colunas
 
-| Criterio | Como sera validado |
-|----------|-------------------|
-| Criar OS + salvar financeiro = parcelas em Contas a Receber | Parcelas com direction=RECEIVE aparecem apos save |
-| Editar parcelas na OS = Contas a Receber atualiza | Cache invalidado apos cada operacao |
-| Excluir parcelas na OS = Contas a Receber reflete | Delete remove da tabela, receivables recarrega |
-| Salvar nao fecha tela | Usuario permanece na aba Financeiro |
-| Sem duplicacao apos multiplos saves | Operacoes idempotentes garantem unicidade |
-| Tecnico nao ve valores | FinanceiroGuard ja implementado (nao sera alterado) |
-| Admin ve tudo | RLS existente permite (nao sera alterado) |
+```
+Antes:
+<table className="w-full caption-bottom text-sm table-fixed" />
 
-## Observacoes Importantes
+Depois:
+<table className="w-full caption-bottom text-sm" />
+```
 
-- O botao "Salvar Financeiro" NAO navegara nem fechara a tela
-- A estrutura de menu lateral ja existe conforme solicitado
-- Nenhuma nova tabela sera criada - usaremos `financial_transactions` existente
-- A RLS existente ja protege os dados (apenas admin acessa transacoes financeiras)
-- Nao serao alterados: layout global, autenticacao, permissoes, abas existentes, FinanceiroGuard, rotas
+### 2. Listagem de OS (`src/pages/ServiceCalls.tsx`)
+
+**Mudanças:**
+- Remover `minWidth: '700px'` e `tableLayout: 'fixed'`
+- Substituir `<colgroup>` com larguras fixas por classes Tailwind proporcionais
+- Reduzir `max-w` das células de texto
+
+```
+Colunas Atuais (fixas):
+- Nº OS: 60px
+- Cliente: minWidth 140px
+- Técnico: 90px
+- St. Técnico: 130px
+- St. Comercial: 130px
+- Ações: 60px
+
+Proposta (proporcionais):
+- Nº OS: w-[7%] (min 50px)
+- Cliente: flex-1 ou w-[30%]
+- Técnico: w-[12%]
+- St. Técnico: w-[18%]
+- St. Comercial: w-[18%]
+- Ações: w-[8%]
+```
+
+### 3. Aba Financeiro (`src/components/os-financeiro/FinanceiroTab.tsx`)
+
+**Tabela de Peças/Produtos e Serviços (linhas 598-647, 733-776):**
+
+```
+Colunas Atuais:
+- Item: auto
+- Qtd: w-14 (56px)
+- Unit.: w-20 (80px)
+- Subtot.: w-20 (80px)
+- %Desc: w-14 (56px)
+- R$Desc: w-16 (64px)
+- Total: w-20 (80px)
+- Ações: w-8 (32px)
+
+Proposta:
+- Item: flex-1
+- Qtd: w-10 (40px)
+- Unit.: w-16 (64px)
+- Subtot.: hidden em telas pequenas
+- %Desc: w-12 (48px)
+- R$Desc: w-14 (56px)
+- Total: w-16 (64px)
+- Ações: w-6 (24px)
+```
+
+**Tabela de Parcelas (linhas 999-1008):**
+
+```
+Colunas Atuais:
+- Nº: w-12 (48px)
+- Dias: w-14 (56px)
+- Data: w-28 (112px)
+- Valor: w-24 (96px)
+- Forma: w-32 (128px)
+- Obs: min-w-[120px]
+- Ações: w-24 (96px)
+
+Proposta:
+- Nº: w-10 (40px)
+- Dias: w-10 (40px)
+- Data: w-20 (80px) ou auto
+- Valor: w-16 (64px)
+- Forma: w-20 (80px)
+- Obs: flex-1 (sem min-width)
+- Ações: w-16 (64px)
+```
+
+### 4. Tabela de Cadastros (`src/components/CadastrosTable.tsx`)
+
+**Mudanças:**
+- Reduzir largura do checkbox de w-12 para w-10
+- Reduzir largura do código de w-20 para w-16
+- Reduzir max-w do nome de 250px para 180px
+- Aplicar truncate em textos longos
+
+### 5. Contas a Receber (`src/pages/financas/ContasAReceber.tsx`)
+
+**Mudanças:**
+- Aplicar classes responsivas nas colunas
+- Reduzir larguras fixas
+- Usar truncate em observações
+
+## Padrões a Aplicar Globalmente
+
+### Tamanhos Reduzidos para Colunas Numéricas
+```
+Antes → Depois
+w-24 → w-16
+w-20 → w-14
+w-14 → w-10
+w-12 → w-8
+```
+
+### Inputs Compactos em Formulários
+```
+Botão "+" de adicionar: w-8 (32px) em vez de w-full
+Select de forma de pagamento: w-24 em vez de w-32
+```
+
+### Classes de Truncamento
+```css
+/* Texto com no máximo 2 linhas */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Texto em 1 linha com elipse */
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+```
+
+## Detalhes Técnicos
+
+### Remoção de Larguras Mínimas Fixas
+
+```
+// ServiceCalls.tsx - REMOVER
+<div style={{ minWidth: '700px' }}>
+
+// table.tsx - ALTERAR
+table-fixed → table-auto
+```
+
+### Grid de Formulário Compacto (FinanceiroTab)
+
+```
+// Atual (7 colunas): não cabe em telas pequenas
+grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7
+
+// Proposto (5 colunas + flow dinâmico)
+grid-cols-2 md:grid-cols-4 lg:grid-cols-6
+```
+
+## Critérios de Aceite
+
+| Critério | Validação |
+|----------|-----------|
+| Monitor 13" (1366px) | Tabelas cabem sem scroll horizontal |
+| Monitor 15" (1920px) | Layout confortável com espaçamento adequado |
+| Zoom 100% | Todo conteúdo visível |
+| Textos longos | Truncados com elipse, tooltip no hover |
+| Botões de ação | Visíveis e clicáveis |
+| Fonte legível | Mínimo 12px para conteúdo principal |
+
+## Observações Importantes
+
+- **NÃO** serão alterados: autenticação, permissões, rotas, funcionalidades existentes
+- **NÃO** serão alterados: FinanceiroGuard, estrutura de abas, cadastros
+- **APENAS** dimensionamento visual de colunas e espaçamentos
+- O layout usará proporções em vez de pixels fixos
+- Scroll horizontal só aparecerá se absolutamente necessário (conteúdo genuinamente largo)
