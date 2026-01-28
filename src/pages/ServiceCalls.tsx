@@ -163,12 +163,12 @@ const ServiceCalls = () => {
             <table className="w-full max-w-full text-sm border-collapse table-fixed">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="w-[70px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Nº OS</th>
-                  <th className="w-[30%] max-w-[250px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Cliente</th>
-                  <th className="w-[90px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Data</th>
-                  <th className="w-[100px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Técnico</th>
-                  <th className="w-[130px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Técnico</th>
-                  <th className="w-[130px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Comercial</th>
+                  <th className="w-[60px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Nº OS</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Cliente</th>
+                  <th className="w-[80px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Data</th>
+                  <th className="w-[90px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Técnico</th>
+                  <th className="w-[110px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Técnico</th>
+                  <th className="w-[110px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Comercial</th>
                 </tr>
               </thead>
               <tbody>
@@ -203,7 +203,7 @@ const ServiceCalls = () => {
                             className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                             style={{ backgroundColor: call.service_call_statuses.color }}
                           />
-                          <span className="text-xs truncate max-w-[120px] block">{call.service_call_statuses.name}</span>
+                          <span className="text-xs truncate max-w-[100px] block">{call.service_call_statuses.name}</span>
                         </div>
                       )}
                     </td>
@@ -214,7 +214,7 @@ const ServiceCalls = () => {
                             className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                             style={{ backgroundColor: call.commercial_status.color }}
                           />
-                          <span className="text-xs truncate max-w-[120px] block">{call.commercial_status.name}</span>
+                          <span className="text-xs truncate max-w-[100px] block">{call.commercial_status.name}</span>
                         </div>
                       )}
                     </td>
