@@ -137,8 +137,14 @@ const Auth = () => {
           },
         });
 
-        if (error || data?.error) {
-          throw new Error(data?.error || error?.message || 'Credenciais inválidas');
+        // Network/transport errors
+        if (error) {
+          throw new Error(error.message || 'Falha ao realizar login');
+        }
+
+        // Function-level errors (we return 200 with success=false to avoid hard-fail overlays)
+        if (data?.success === false || data?.error) {
+          throw new Error(data?.error || 'Credenciais inválidas');
         }
 
         // Set the session manually
