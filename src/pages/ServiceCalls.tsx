@@ -87,10 +87,6 @@ const ServiceCalls = () => {
 
   return (
     <MainLayout>
-      {/* DEBUG BANNER - REMOVER APÓS VERIFICAÇÃO */}
-      <div className="mb-4 p-2 border-2 border-yellow-500 bg-yellow-100 text-yellow-800 rounded text-center font-mono text-sm">
-        DEBUG: SERVICECALLS_V2_2026-01-28
-      </div>
       <div className="space-y-4 md:space-y-6 min-w-0">
         <PageHeader 
           title="Chamados Técnicos" 
@@ -163,69 +159,68 @@ const ServiceCalls = () => {
             ))}
           </div>
         ) : (
-          <div className="w-full max-w-full min-w-0 overflow-x-auto overflow-y-visible border rounded-lg">
-            <table className="w-full max-w-full text-sm border-collapse table-fixed">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="w-[60px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Nº OS</th>
-                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Cliente (V2)</th>
-                  <th className="w-[80px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Data</th>
-                  <th className="w-[90px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Técnico</th>
-                  <th className="w-[110px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Técnico</th>
-                  <th className="w-[110px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Comercial</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedCalls.map((call) => (
-                  <tr
-                    key={call.id}
-                    role="button"
-                    tabIndex={0}
-                    className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
-                    onClick={() => navigate(`/service-calls/${call.id}`)}
-                    onKeyDown={(e) => handleRowKeyDown(e, call.id)}
-                  >
-                    <td className="px-2 py-2 align-top">
-                      <span className="font-mono text-sm font-semibold text-primary">
-                        {call.os_number}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2 min-w-0 align-top leading-tight">
-                      <div className="font-medium text-sm truncate">{call.clients?.full_name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{call.clients?.phone}</div>
-                    </td>
-                    <td className="px-2 py-2 align-top text-sm">
-                      {formatDate(call.scheduled_date)}
-                    </td>
-                    <td className="px-2 py-2 align-top">
-                      <span className="text-sm">{call.technicians?.full_name?.split(' ')[0]}</span>
-                    </td>
-                    <td className="px-2 py-2 align-top">
-                      {call.service_call_statuses && (
-                        <div className="flex items-center gap-1.5">
-                          <div
-                            className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                            style={{ backgroundColor: call.service_call_statuses.color }}
-                          />
-                          <span className="text-xs truncate max-w-[100px] block">{call.service_call_statuses.name}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-2 py-2 align-top">
-                      {call.commercial_status && (
-                        <div className="flex items-center gap-1.5">
-                          <div
-                            className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                            style={{ backgroundColor: call.commercial_status.color }}
-                          />
-                          <span className="text-xs truncate max-w-[100px] block">{call.commercial_status.name}</span>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          /* LISTA COMPACTA DESKTOP - substitui tabela */
+          <div className="border rounded-lg bg-card divide-y divide-border">
+            {sortedCalls.map((call) => (
+              <div
+                key={call.id}
+                role="button"
+                tabIndex={0}
+                className="p-3 hover:bg-muted/50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
+                onClick={() => navigate(`/service-calls/${call.id}`)}
+                onKeyDown={(e) => handleRowKeyDown(e as unknown as React.KeyboardEvent<HTMLTableRowElement>, call.id)}
+              >
+                {/* Grid responsivo: 1 linha em desktop, quebra em telas menores */}
+                <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 md:grid-cols-[60px_1fr_80px_100px_auto_auto] md:items-center">
+                  {/* OS Number */}
+                  <div className="font-mono text-sm font-semibold text-primary">
+                    #{call.os_number}
+                  </div>
+                  
+                  {/* Cliente - ocupa espaço restante na primeira linha mobile */}
+                  <div className="min-w-0 md:col-span-1">
+                    <div className="font-medium text-sm truncate">{call.clients?.full_name || "-"}</div>
+                    <div className="text-xs text-muted-foreground truncate">{call.clients?.phone || "-"}</div>
+                  </div>
+                  
+                  {/* Data */}
+                  <div className="text-sm text-muted-foreground col-start-2 md:col-start-auto">
+                    {formatDate(call.scheduled_date)}
+                  </div>
+                  
+                  {/* Técnico */}
+                  <div className="text-sm truncate">
+                    {call.technicians?.full_name?.split(' ')[0] || "-"}
+                  </div>
+                  
+                  {/* Status Técnico */}
+                  {call.service_call_statuses ? (
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/50 w-fit">
+                      <div
+                        className="w-2 h-2 rounded-sm shrink-0"
+                        style={{ backgroundColor: call.service_call_statuses.color }}
+                      />
+                      <span className="text-xs truncate max-w-[100px]">{call.service_call_statuses.name}</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">-</div>
+                  )}
+                  
+                  {/* Status Comercial */}
+                  {call.commercial_status ? (
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/50 w-fit">
+                      <div
+                        className="w-2 h-2 rounded-sm shrink-0"
+                        style={{ backgroundColor: call.commercial_status.color }}
+                      />
+                      <span className="text-xs truncate max-w-[100px]">{call.commercial_status.name}</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">-</div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
