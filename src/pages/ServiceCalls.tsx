@@ -159,7 +159,7 @@ const ServiceCalls = () => {
             ))}
           </div>
         ) : (
-          <div className="w-full max-w-full overflow-x-auto border rounded-lg">
+          <div className="w-full max-w-full min-w-0 overflow-x-auto overflow-y-visible border rounded-lg">
             <table className="w-full max-w-full text-sm border-collapse table-fixed">
               <thead className="bg-muted/50">
                 <tr>
@@ -186,7 +186,7 @@ const ServiceCalls = () => {
                         {call.os_number}
                       </span>
                     </td>
-                    <td className="px-2 py-2 min-w-0 whitespace-normal break-words align-top leading-tight">
+                    <td className="px-2 py-2 min-w-0 align-top leading-tight" style={{ overflowWrap: 'anywhere' }}>
                       <div className="font-medium text-sm">{call.clients?.full_name}</div>
                       <div className="text-xs text-muted-foreground">{call.clients?.phone}</div>
                     </td>
@@ -203,7 +203,7 @@ const ServiceCalls = () => {
                             className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                             style={{ backgroundColor: call.service_call_statuses.color }}
                           />
-                          <span className="text-xs whitespace-normal">{call.service_call_statuses.name}</span>
+                          <span className="text-xs truncate max-w-[120px] block">{call.service_call_statuses.name}</span>
                         </div>
                       )}
                     </td>
@@ -214,7 +214,7 @@ const ServiceCalls = () => {
                             className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                             style={{ backgroundColor: call.commercial_status.color }}
                           />
-                          <span className="text-xs whitespace-normal">{call.commercial_status.name}</span>
+                          <span className="text-xs truncate max-w-[120px] block">{call.commercial_status.name}</span>
                         </div>
                       )}
                     </td>
