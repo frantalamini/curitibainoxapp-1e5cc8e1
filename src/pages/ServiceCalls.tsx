@@ -87,6 +87,10 @@ const ServiceCalls = () => {
 
   return (
     <MainLayout>
+      {/* DEBUG BANNER - REMOVER APÓS VERIFICAÇÃO */}
+      <div className="mb-4 p-2 border-2 border-yellow-500 bg-yellow-100 text-yellow-800 rounded text-center font-mono text-sm">
+        DEBUG: SERVICECALLS_V2_2026-01-28
+      </div>
       <div className="space-y-4 md:space-y-6 min-w-0">
         <PageHeader 
           title="Chamados Técnicos" 
@@ -164,7 +168,7 @@ const ServiceCalls = () => {
               <thead className="bg-muted/50">
                 <tr>
                   <th className="w-[60px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Nº OS</th>
-                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Cliente</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Cliente (V2)</th>
                   <th className="w-[80px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Data</th>
                   <th className="w-[90px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Técnico</th>
                   <th className="w-[110px] h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Técnico</th>
