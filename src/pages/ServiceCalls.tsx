@@ -133,32 +133,15 @@ const ServiceCalls = () => {
           </div>
         ) : (
         <div className="w-full overflow-x-auto border rounded-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div style={{ minWidth: '700px' }}>
-              <table 
-                className="w-full text-sm border-collapse"
-                style={{ tableLayout: 'fixed' }}
-              >
-                <colgroup>
-                  <col style={{ width: '60px' }} />
-                  <col style={{ minWidth: '140px' }} />
-                  <col style={{ width: '90px' }} />
-                  <col style={{ width: '130px' }} />
-                  <col style={{ width: '130px' }} />
-                  <col style={{ width: '60px' }} />
-                </colgroup>
+              <table className="w-full text-sm border-collapse">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Nº OS</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs w-[8%] min-w-[50px]">Nº OS</th>
                   <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Cliente</th>
-                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">Técnico</th>
-                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Técnico</th>
-                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs">St. Comercial</th>
-                  <th 
-                    className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs"
-                    style={{ position: 'sticky', right: 0, backgroundColor: 'white', zIndex: 10 }}
-                  >
-                    Ações
-                  </th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs w-[12%]">Técnico</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs w-[18%]">St. Técnico</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs w-[18%]">St. Comercial</th>
+                  <th className="h-10 px-2 text-left align-middle font-medium text-muted-foreground text-xs w-[8%] min-w-[60px]">Ações</th>
                 </tr>
               </thead>
                 <tbody>
@@ -168,7 +151,7 @@ const ServiceCalls = () => {
                       className="border-t border-border hover:bg-muted/50 transition-colors cursor-pointer"
                       onClick={() => navigate(`/service-calls/edit/${call.id}`)}
                     >
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
+                      <td className="px-2 py-2 align-top">
                         <Link
                           to={`/service-calls/edit/${call.id}`}
                           onClick={(e) => e.stopPropagation()}
@@ -177,16 +160,16 @@ const ServiceCalls = () => {
                           {call.os_number}
                         </Link>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug max-w-[220px]">
-                        <div className="font-medium text-sm break-words" title={call.clients?.full_name}>
+                      <td className="px-2 py-2 align-top">
+                        <div className="font-medium text-sm truncate max-w-[180px]" title={call.clients?.full_name}>
                           {call.clients?.full_name}
                         </div>
-                        <div className="text-xs text-muted-foreground break-words">
+                        <div className="text-xs text-muted-foreground truncate max-w-[180px]">
                           {call.clients?.phone}
                         </div>
                       </td>
-                      <td className="px-2 py-2 align-top whitespace-normal break-words leading-snug">
-                        <span className="break-words text-sm" title={call.technicians?.full_name}>
+                      <td className="px-2 py-2 align-top">
+                        <span className="text-sm truncate block max-w-[80px]" title={call.technicians?.full_name}>
                           {call.technicians?.full_name?.split(' ')[0]}
                         </span>
                       </td>
@@ -268,14 +251,10 @@ const ServiceCalls = () => {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td 
-                        className="px-2 py-2 align-top"
-                        style={{ position: 'sticky', right: 0, backgroundColor: 'white', zIndex: 10 }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <td className="px-2 py-2 align-top" onClick={(e) => e.stopPropagation()}>
                         <Link
                           to={`/service-calls/edit/${call.id}`}
-                          className="inline-flex items-center justify-center h-8 px-3 text-xs font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90"
+                          className="inline-flex items-center justify-center h-7 px-2 text-xs font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90"
                         >
                           Abrir
                         </Link>
@@ -284,7 +263,6 @@ const ServiceCalls = () => {
                   ))}
                 </tbody>
                 </table>
-            </div>
           </div>
         )}
       </div>

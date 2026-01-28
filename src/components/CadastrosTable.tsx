@@ -37,44 +37,44 @@ export const CadastrosTable = ({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/30">
-            <TableHead className="w-12">
+            <TableHead className="w-10">
               <Checkbox
                 checked={allSelected}
                 onCheckedChange={onSelectAll}
                 aria-label="Selecionar todos"
               />
             </TableHead>
-            <TableHead className="w-20">Código</TableHead>
+            <TableHead className="w-16">Código</TableHead>
             <TableHead>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onSort('full_name')}
-                className="h-8 px-2 font-semibold"
+                className="h-8 px-1 font-semibold text-xs"
               >
                 Nome
                 {orderBy === 'full_name' && (
-                  <ArrowUpDown className={`ml-2 h-4 w-4 ${orderDirection === 'desc' ? 'rotate-180' : ''}`} />
+                  <ArrowUpDown className={`ml-1 h-3 w-3 ${orderDirection === 'desc' ? 'rotate-180' : ''}`} />
                 )}
               </Button>
             </TableHead>
-            <TableHead>CPF/CNPJ</TableHead>
-            <TableHead>Cidade</TableHead>
-            <TableHead>Contato</TableHead>
-            <TableHead>
+            <TableHead className="w-[14%]">CPF/CNPJ</TableHead>
+            <TableHead className="w-[12%]">Cidade</TableHead>
+            <TableHead className="w-[14%]">Contato</TableHead>
+            <TableHead className="w-[12%]">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onSort('created_at')}
-                className="h-8 px-2 font-semibold"
+                className="h-8 px-1 font-semibold text-xs"
               >
-                Data de Cadastro
+                Cadastro
                 {orderBy === 'created_at' && (
-                  <ArrowUpDown className={`ml-2 h-4 w-4 ${orderDirection === 'desc' ? 'rotate-180' : ''}`} />
+                  <ArrowUpDown className={`ml-1 h-3 w-3 ${orderDirection === 'desc' ? 'rotate-180' : ''}`} />
                 )}
               </Button>
             </TableHead>
-            <TableHead className="w-12"></TableHead>
+            <TableHead className="w-10"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -97,28 +97,28 @@ export const CadastrosTable = ({
               </TableCell>
               <TableCell
                 onClick={() => onView(cadastro.id)}
-                className="max-w-[250px] cursor-pointer hover:underline hover:text-blue-600 transition-colors"
+                className="cursor-pointer hover:underline hover:text-blue-600 transition-colors"
               >
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm truncate">{cadastro.full_name}</span>
+                <div className="flex flex-col max-w-[180px]">
+                  <span className="font-medium text-sm truncate" title={cadastro.full_name}>{cadastro.full_name}</span>
                   {cadastro.nome_fantasia && (
-                    <span className="text-xs text-muted-foreground truncate">{cadastro.nome_fantasia}</span>
+                    <span className="text-xs text-muted-foreground truncate" title={cadastro.nome_fantasia}>{cadastro.nome_fantasia}</span>
                   )}
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-sm">{cadastro.cpf_cnpj || '-'}</span>
+                <span className="text-sm truncate block max-w-[120px]" title={cadastro.cpf_cnpj || undefined}>{cadastro.cpf_cnpj || '-'}</span>
               </TableCell>
               <TableCell>
-                <span className="text-sm">
+                <span className="text-sm truncate block max-w-[100px]" title={cadastro.city ? `${cadastro.city}${cadastro.state ? `/${cadastro.state}` : ''}` : undefined}>
                   {cadastro.city ? `${cadastro.city}${cadastro.state ? `/${cadastro.state}` : ''}` : '-'}
                 </span>
               </TableCell>
               <TableCell>
-                <div className="flex flex-col text-sm">
-                  <span>{cadastro.phone}</span>
+                <div className="flex flex-col text-sm max-w-[120px]">
+                  <span className="truncate">{cadastro.phone}</span>
                   {cadastro.email && (
-                    <span className="text-xs text-muted-foreground">{cadastro.email}</span>
+                    <span className="text-xs text-muted-foreground truncate" title={cadastro.email}>{cadastro.email}</span>
                   )}
                 </div>
               </TableCell>
