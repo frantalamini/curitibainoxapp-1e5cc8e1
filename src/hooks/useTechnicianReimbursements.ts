@@ -29,6 +29,9 @@ export interface TechnicianReimbursement {
   service_call?: {
     os_number: number;
     equipment_description: string;
+    clients?: {
+      full_name: string;
+    } | null;
   } | null;
 }
 
@@ -58,7 +61,7 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
         .select(`
           *,
           technician:technicians(full_name, phone),
-          service_call:service_calls(os_number, equipment_description)
+          service_call:service_calls(os_number, equipment_description, clients(full_name))
         `)
         .order("requested_at", { ascending: false });
 

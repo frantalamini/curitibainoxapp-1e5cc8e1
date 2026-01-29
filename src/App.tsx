@@ -51,6 +51,7 @@ const Products = lazy(() => import("./pages/Products"));
 const ProductForm = lazy(() => import("./pages/ProductForm"));
 const PaymentMethods = lazy(() => import("./pages/PaymentMethods"));
 const PaymentMethodForm = lazy(() => import("./pages/PaymentMethodForm"));
+const TechnicianReimbursements = lazy(() => import("./pages/TechnicianReimbursements"));
 
 // Módulo Finanças
 const ContasAPagar = lazy(() => import("./pages/financas/ContasAPagar"));
@@ -441,6 +442,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Schedule />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/technician-reimbursements"
+              element={
+                <ProtectedRoute>
+                  <TechnicianReimbursements />
                 </ProtectedRoute>
               }
             />
