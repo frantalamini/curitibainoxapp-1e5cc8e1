@@ -162,18 +162,23 @@ const ServiceCallForm = () => {
   const activeServiceTypes = serviceTypes?.filter((st) => st.active);
   const selectedChecklist = checklists?.find((c) => c.id === selectedChecklistId);
 
-  // Função helper para obter assinatura mais recente por role
-  const getCurrentSignature = (signatures: any[] | undefined, role: 'tech' | 'client') => {
-    if (!signatures || !Array.isArray(signatures)) return null;
-    const filtered = signatures.filter((s: any) => s.role === role);
-    if (filtered.length === 0) return null;
-    return filtered.sort((a: any, b: any) => 
+  // Função helper para obter assinatura mais recente por role (banco + novas pendentes)
+  const getCurrentSignature = (existingSignatures: any[] | undefined, newSigs: Signature[], role: 'tech' | 'client') => {
+    // Combinar assinaturas existentes com novas ainda não salvas
+    const allSignatures = [
+      ...(existingSignatures || []),
+      ...newSigs
+    ].filter((s: any) => s.role === role);
+    
+    if (allSignatures.length === 0) return null;
+    return allSignatures.sort((a: any, b: any) => 
       new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime()
     )[0];
   };
 
-  const currentTechSignature = existingCall ? getCurrentSignature((existingCall as any).signatures, 'tech') : null;
-  const currentClientSignature = existingCall ? getCurrentSignature((existingCall as any).signatures, 'client') : null;
+  // Mostra assinatura mais recente (incluindo novas ainda não salvas)
+  const currentTechSignature = getCurrentSignature((existingCall as any)?.signatures, newSignatures, 'tech');
+  const currentClientSignature = getCurrentSignature((existingCall as any)?.signatures, newSignatures, 'client');
 
   // Função helper para construir endereço completo
   const buildFullAddress = (client: any) => {
@@ -813,8 +818,26 @@ const ServiceCallForm = () => {
       };
 
       if (isEditMode && id) {
-        updateServiceCall({ id, ...formattedData });
+        await updateServiceCall({ id, ...formattedData });
         setNewSignatures([]); // Limpar após salvar
+        
+        // Recarregar dados da OS após salvar para atualizar assinaturas e PDF
+        await refetchCall();
+        
+        // Voltar ao modo readonly e permanecer na OS
+        setIsReadonly(true);
+        
+        // Habilitar botões de PDF/WhatsApp se relatório já existe
+        const { data: updatedCall } = await supabase
+          .from("service_calls")
+          .select("report_pdf_path, report_access_token, os_number")
+          .eq("id", id)
+          .single();
+        
+        if (updatedCall?.report_pdf_path && updatedCall?.report_access_token) {
+          setGeneratedPdfUrl(`https://curitibainoxapp.com/relatorio-os/${updatedCall.os_number}/${updatedCall.report_access_token}`);
+        }
+        
         toast({
           title: "✅ Chamado Atualizado",
           description: "As alterações foram salvas com sucesso!",
@@ -845,9 +868,10 @@ const ServiceCallForm = () => {
           title: "✅ Chamado Criado",
           description: "Novo chamado criado com sucesso!",
         });
+        
+        // Apenas novo chamado redireciona para lista
+        navigate("/service-calls");
       }
-
-      navigate("/service-calls");
     } catch (error) {
       console.error('Erro ao salvar chamado:', error);
       toast({
@@ -1554,14 +1578,21 @@ const ServiceCallForm = () => {
                     <CardContent className="space-y-4">
                       {currentTechSignature ? (
                         <div className="space-y-2">
-                          <div className="border-2 border-muted rounded-lg p-4 bg-muted/10">
+                          <div className={`border-2 rounded-lg p-4 ${
+                            newSignatures.some(s => s.role === 'tech' && s.image_url === currentTechSignature.image_url)
+                              ? 'border-primary bg-primary/5'
+                              : 'border-muted bg-muted/10'
+                          }`}>
                             <img
                               src={currentTechSignature.image_url}
                               alt="Assinatura do técnico"
-                              className="h-24 w-full object-contain pointer-events-none select-none opacity-80"
+                              className="h-24 w-full object-contain pointer-events-none select-none"
                             />
                           </div>
                           <p className="text-xs text-muted-foreground">
+                            {newSignatures.some(s => s.role === 'tech' && s.image_url === currentTechSignature.image_url) ? (
+                              <span className="text-primary font-medium">⏳ Pendente de salvar • </span>
+                            ) : null}
                             Assinado em {format(new Date(currentTechSignature.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                             {currentTechSignature.signed_by && ` • ${currentTechSignature.signed_by}`}
                           </p>
@@ -1571,13 +1602,15 @@ const ServiceCallForm = () => {
                           Nenhuma assinatura registrada.
                         </p>
                       )}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setOpenTechSignatureModal(true)}
-                      >
-                        {currentTechSignature ? "Adicionar nova assinatura" : "Adicionar assinatura"}
-                      </Button>
+                      {!isReadonly && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setOpenTechSignatureModal(true)}
+                        >
+                          {currentTechSignature ? "Adicionar nova assinatura" : "Adicionar assinatura"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -1589,14 +1622,21 @@ const ServiceCallForm = () => {
                     <CardContent className="space-y-4">
                       {currentClientSignature ? (
                         <div className="space-y-2">
-                          <div className="border-2 border-muted rounded-lg p-4 bg-muted/10">
+                          <div className={`border-2 rounded-lg p-4 ${
+                            newSignatures.some(s => s.role === 'client' && s.image_url === currentClientSignature.image_url)
+                              ? 'border-primary bg-primary/5'
+                              : 'border-muted bg-muted/10'
+                          }`}>
                             <img
                               src={currentClientSignature.image_url}
                               alt="Assinatura do cliente"
-                              className="h-24 w-full object-contain pointer-events-none select-none opacity-80"
+                              className="h-24 w-full object-contain pointer-events-none select-none"
                             />
                           </div>
                           <div className="space-y-1">
+                            {newSignatures.some(s => s.role === 'client' && s.image_url === currentClientSignature.image_url) && (
+                              <p className="text-xs text-primary font-medium">⏳ Pendente de salvar</p>
+                            )}
                             <p className="text-sm font-medium">{currentClientSignature.signed_by}</p>
                             {currentClientSignature.position && (
                               <p className="text-xs text-muted-foreground">Cargo: {currentClientSignature.position}</p>
@@ -1611,13 +1651,15 @@ const ServiceCallForm = () => {
                           Nenhuma assinatura registrada.
                         </p>
                       )}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setOpenClientSignatureModal(true)}
-                      >
-                        {currentClientSignature ? "Adicionar nova assinatura" : "Adicionar assinatura"}
-                      </Button>
+                      {!isReadonly && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setOpenClientSignatureModal(true)}
+                        >
+                          {currentClientSignature ? "Adicionar nova assinatura" : "Adicionar assinatura"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                   </div>
