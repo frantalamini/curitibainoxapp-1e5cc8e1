@@ -69,7 +69,7 @@ const Vehicles = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
         <PageHeader 
           title="Veículos" 
           actionLabel={isAdmin ? "Novo Veículo" : undefined}
