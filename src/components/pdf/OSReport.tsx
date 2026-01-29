@@ -130,11 +130,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   logoContainer: {
-    width: 180,
+    width: 200,
+    minHeight: 60,
   },
   logo: {
-    width: 170,
-    height: 50,
+    width: 190,
+    height: 55,
     objectFit: 'contain',
   },
   companyInfo: {
