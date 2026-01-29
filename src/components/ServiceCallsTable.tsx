@@ -37,8 +37,14 @@ export const ServiceCallsTable = ({
             <TableHead>Cliente</TableHead>
             <TableHead className="w-[12%]">Data</TableHead>
             <TableHead className="w-[12%]">Técnico</TableHead>
-            <TableHead className="w-[14%]">St. Técnico</TableHead>
-            <TableHead className="w-[14%]">St. Comercial</TableHead>
+            <TableHead className="w-[14%]">
+              <span className="block">Status</span>
+              <span className="block">Técnico</span>
+            </TableHead>
+            <TableHead className="w-[14%]">
+              <span className="block">Status</span>
+              <span className="block">Comercial</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -86,12 +92,12 @@ export const ServiceCallsTable = ({
               </TableCell>
               <TableCell>
                 {call.service_call_statuses ? (
-                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/50 max-w-[120px]">
+                  <div className="inline-flex items-start gap-1.5 px-2 py-1 rounded bg-muted/50">
                     <div
-                      className="w-2.5 h-2.5 rounded-sm shrink-0"
+                      className="w-2.5 h-2.5 rounded-sm shrink-0 mt-0.5"
                       style={{ backgroundColor: call.service_call_statuses.color }}
                     />
-                    <span className="text-xs truncate">{call.service_call_statuses.name}</span>
+                    <span className="text-xs leading-tight">{call.service_call_statuses.name}</span>
                   </div>
                 ) : (
                   <span className="text-xs text-muted-foreground">-</span>
@@ -99,12 +105,12 @@ export const ServiceCallsTable = ({
               </TableCell>
               <TableCell>
                 {call.commercial_status ? (
-                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/50 max-w-[120px]">
+                  <div className="inline-flex items-start gap-1.5 px-2 py-1 rounded bg-muted/50">
                     <div
-                      className="w-2.5 h-2.5 rounded-sm shrink-0"
+                      className="w-2.5 h-2.5 rounded-sm shrink-0 mt-0.5"
                       style={{ backgroundColor: call.commercial_status.color }}
                     />
-                    <span className="text-xs truncate">{call.commercial_status.name}</span>
+                    <span className="text-xs leading-tight">{call.commercial_status.name}</span>
                   </div>
                 ) : (
                   <span className="text-xs text-muted-foreground">-</span>
