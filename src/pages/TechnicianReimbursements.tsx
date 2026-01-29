@@ -40,7 +40,7 @@ export default function TechnicianReimbursements() {
   if (!isLoadingTechnician && !isLoadingRole && !technicianId && !isAdmin) {
     return (
       <MainLayout>
-        <PageContainer>
+        <PageContainer className="container mx-auto px-4 py-6">
           <PageHeader title="Reembolsos" />
           <Card>
             <CardContent className="py-12 text-center">
@@ -61,7 +61,7 @@ export default function TechnicianReimbursements() {
 
   return (
     <MainLayout>
-      <PageContainer>
+      <PageContainer className="container mx-auto px-4 py-6">
         <PageHeader title={isAdmin ? "Gestão de Reembolsos" : "Meus Reembolsos"}>
           {canCreateReimbursement && (
             <Button onClick={() => setIsModalOpen(true)}>
@@ -157,12 +157,17 @@ export default function TechnicianReimbursements() {
               <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Nenhum reembolso</h3>
               <p className="text-muted-foreground mb-4">
-                Você ainda não solicitou nenhum reembolso.
+                {canCreateReimbursement
+                  ? "Você ainda não solicitou nenhum reembolso."
+                  : "Para cadastrar, acesse com um usuário vinculado a um técnico."
+                }
               </p>
-              <Button onClick={() => setIsModalOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Solicitar Reembolso
-              </Button>
+              {canCreateReimbursement && (
+                <Button onClick={() => setIsModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Solicitar Reembolso
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
