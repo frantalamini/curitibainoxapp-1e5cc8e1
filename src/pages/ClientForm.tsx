@@ -107,6 +107,11 @@ const clientSchema = z.object({
     .max(100, "Nome fantasia muito longo")
     .optional()
     .or(z.literal("")),
+  secondary_name: z.string()
+    .trim()
+    .max(100, "Nome secundário muito longo")
+    .optional()
+    .or(z.literal("")),
   
   // Responsáveis no estabelecimento
   responsible_financial: z.object({
@@ -377,16 +382,29 @@ const ClientForm = () => {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
-            <Input
-              id="nome_fantasia"
-              {...register("nome_fantasia")}
-              placeholder="Nome fantasia (opcional)"
-            />
-            {errors.nome_fantasia && (
-              <p className="text-sm text-destructive">{getErrorMessage(errors.nome_fantasia)}</p>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
+              <Input
+                id="nome_fantasia"
+                {...register("nome_fantasia")}
+                placeholder="Nome fantasia (opcional)"
+              />
+              {errors.nome_fantasia && (
+                <p className="text-sm text-destructive">{getErrorMessage(errors.nome_fantasia)}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="secondary_name">Nome Secundário</Label>
+              <Input
+                id="secondary_name"
+                {...register("secondary_name")}
+                placeholder="Nome do grupo/matriz (opcional)"
+              />
+              {errors.secondary_name && (
+                <p className="text-sm text-destructive">{getErrorMessage(errors.secondary_name)}</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

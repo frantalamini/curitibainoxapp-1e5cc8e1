@@ -126,6 +126,12 @@ const clientSchema = z.object({
     .optional()
     .nullable()
     .transform(val => val ?? ""),
+  secondary_name: z.string()
+    .trim()
+    .max(100, "Nome secundário muito longo")
+    .optional()
+    .nullable()
+    .transform(val => val ?? ""),
   responsible_financial: z.object({
     name: z.string().optional().nullable().transform(val => val ?? ""),
     phone: z.string().optional().nullable().transform(val => val ?? ""),
@@ -480,12 +486,21 @@ export default function CadastroDetail() {
                         <p className="text-sm text-destructive">{getErrorMessage(errors.full_name)}</p>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
-                      <Input id="nome_fantasia" {...register("nome_fantasia")} />
-                      {errors.nome_fantasia && (
-                        <p className="text-sm text-destructive">{getErrorMessage(errors.nome_fantasia)}</p>
-                      )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
+                        <Input id="nome_fantasia" {...register("nome_fantasia")} />
+                        {errors.nome_fantasia && (
+                          <p className="text-sm text-destructive">{getErrorMessage(errors.nome_fantasia)}</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="secondary_name">Nome Secundário</Label>
+                        <Input id="secondary_name" {...register("secondary_name")} placeholder="Nome do grupo/matriz (opcional)" />
+                        {errors.secondary_name && (
+                          <p className="text-sm text-destructive">{getErrorMessage(errors.secondary_name)}</p>
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Tipo de Cadastro *</Label>
@@ -548,6 +563,12 @@ export default function CadastroDetail() {
                       <div>
                         <span className="text-sm font-medium text-muted-foreground">Nome Fantasia:</span>
                         <p className="text-sm mt-1">{cadastro.nome_fantasia}</p>
+                      </div>
+                    )}
+                    {cadastro.secondary_name && (
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">Nome Secundário:</span>
+                        <p className="text-sm mt-1 text-blue-600">{cadastro.secondary_name}</p>
                       </div>
                     )}
                     {cadastro.tipos && cadastro.tipos.length > 0 && (

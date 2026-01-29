@@ -66,6 +66,7 @@ export type Database = {
           responsible_financial: Json | null
           responsible_legal: Json | null
           responsible_technical: Json | null
+          secondary_name: string | null
           state: string | null
           state_registration: string | null
           street: string | null
@@ -94,6 +95,7 @@ export type Database = {
           responsible_financial?: Json | null
           responsible_legal?: Json | null
           responsible_technical?: Json | null
+          secondary_name?: string | null
           state?: string | null
           state_registration?: string | null
           street?: string | null
@@ -122,6 +124,7 @@ export type Database = {
           responsible_financial?: Json | null
           responsible_legal?: Json | null
           responsible_technical?: Json | null
+          secondary_name?: string | null
           state?: string | null
           state_registration?: string | null
           street?: string | null
@@ -793,6 +796,7 @@ export type Database = {
           photos_after_urls: string[] | null
           photos_before_urls: string[] | null
           problem_description: string | null
+          purchase_order_number: string | null
           report_access_token: string | null
           report_pdf_path: string | null
           report_token_expires_at: string | null
@@ -846,6 +850,7 @@ export type Database = {
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null
+          purchase_order_number?: string | null
           report_access_token?: string | null
           report_pdf_path?: string | null
           report_token_expires_at?: string | null
@@ -899,6 +904,7 @@ export type Database = {
           photos_after_urls?: string[] | null
           photos_before_urls?: string[] | null
           problem_description?: string | null
+          purchase_order_number?: string | null
           report_access_token?: string | null
           report_pdf_path?: string | null
           report_token_expires_at?: string | null

@@ -99,10 +99,13 @@ export const CadastrosTable = ({
                 onClick={() => onView(cadastro.id)}
                 className="cursor-pointer hover:underline hover:text-blue-600 transition-colors"
               >
-                <div className="flex flex-col max-w-[180px]">
+                <div className="flex flex-col max-w-[200px]">
                   <span className="font-medium text-sm truncate" title={cadastro.full_name}>{cadastro.full_name}</span>
                   {cadastro.nome_fantasia && (
                     <span className="text-xs text-muted-foreground truncate" title={cadastro.nome_fantasia}>{cadastro.nome_fantasia}</span>
+                  )}
+                  {cadastro.secondary_name && (
+                    <span className="text-xs text-blue-600 truncate" title={cadastro.secondary_name}>{cadastro.secondary_name}</span>
                   )}
                 </div>
               </TableCell>

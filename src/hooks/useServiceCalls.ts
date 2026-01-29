@@ -54,6 +54,8 @@ export interface ServiceCall {
     city?: string;
     state?: string;
     cep?: string;
+    nome_fantasia?: string;
+    secondary_name?: string;
   };
   technicians?: {
     full_name: string;
@@ -87,6 +89,7 @@ export interface ServiceCallInsert {
   equipment_serial_number?: string;
   internal_notes_text?: string;
   internal_notes_audio_url?: string;
+  purchase_order_number?: string;
 }
 
 // Helper para sanitizar campos UUID (converte "" para null)
@@ -115,7 +118,9 @@ const SERVICE_CALL_SELECT = `
   clients (
     full_name,
     phone,
-    address
+    address,
+    nome_fantasia,
+    secondary_name
   ),
   technicians (
     full_name,
@@ -147,7 +152,9 @@ const SERVICE_CALL_SELECT_FULL = `
     neighborhood,
     city,
     state,
-    cep
+    cep,
+    nome_fantasia,
+    secondary_name
   ),
   technicians (
     full_name,
