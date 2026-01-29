@@ -103,6 +103,39 @@ export function UserPermissionsMatrix({ userId, onSaved }: UserPermissionsMatrix
     });
   };
 
+  const toggleAllColumn = (field: keyof PermissionState) => {
+    if (profileType === "gerencial") return;
+    
+    // Verifica se todos já estão marcados
+    const allChecked = ALL_MODULES.every((m) => permissions[m.key]?.[field]);
+    
+    setPermissions((prev) => {
+      const newPerms = { ...prev };
+      ALL_MODULES.forEach((m) => {
+        if (field === "can_view") {
+          // Se desmarcar consultar, desmarca tudo
+          if (allChecked) {
+            newPerms[m.key] = { can_view: false, can_edit: false, can_delete: false };
+          } else {
+            newPerms[m.key] = { ...newPerms[m.key], can_view: true };
+          }
+        } else {
+          // Se marcar editar/excluir, marca consultar também
+          if (allChecked) {
+            newPerms[m.key] = { ...newPerms[m.key], [field]: false };
+          } else {
+            newPerms[m.key] = { ...newPerms[m.key], [field]: true, can_view: true };
+          }
+        }
+      });
+      return newPerms;
+    });
+  };
+
+  const isColumnAllChecked = (field: keyof PermissionState) => {
+    return ALL_MODULES.every((m) => permissions[m.key]?.[field]);
+  };
+
   const handleSave = () => {
     const permsArray = ALL_MODULES.map((m) => ({
       module: m.key,
@@ -185,9 +218,51 @@ export function UserPermissionsMatrix({ userId, onSaved }: UserPermissionsMatrix
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Módulo</th>
-                <th className="px-4 py-3 text-center font-medium w-24">Consultar</th>
-                <th className="px-4 py-3 text-center font-medium w-24">Editar</th>
-                <th className="px-4 py-3 text-center font-medium w-24">Excluir</th>
+                <th className="px-4 py-3 text-center font-medium w-28">
+                  <div className="flex flex-col items-center gap-1">
+                    <span>Consultar</span>
+                    <Button
+                      type="button"
+                      variant={isColumnAllChecked("can_view") ? "secondary" : "outline"}
+                      size="sm"
+                      className="text-xs h-6 px-2"
+                      onClick={() => toggleAllColumn("can_view")}
+                      disabled={profileType === "gerencial"}
+                    >
+                      {isColumnAllChecked("can_view") ? "Desmarcar" : "Permitir todos"}
+                    </Button>
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-center font-medium w-28">
+                  <div className="flex flex-col items-center gap-1">
+                    <span>Editar</span>
+                    <Button
+                      type="button"
+                      variant={isColumnAllChecked("can_edit") ? "secondary" : "outline"}
+                      size="sm"
+                      className="text-xs h-6 px-2"
+                      onClick={() => toggleAllColumn("can_edit")}
+                      disabled={profileType === "gerencial"}
+                    >
+                      {isColumnAllChecked("can_edit") ? "Desmarcar" : "Permitir todos"}
+                    </Button>
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-center font-medium w-28">
+                  <div className="flex flex-col items-center gap-1">
+                    <span>Excluir</span>
+                    <Button
+                      type="button"
+                      variant={isColumnAllChecked("can_delete") ? "secondary" : "outline"}
+                      size="sm"
+                      className="text-xs h-6 px-2"
+                      onClick={() => toggleAllColumn("can_delete")}
+                      disabled={profileType === "gerencial"}
+                    >
+                      {isColumnAllChecked("can_delete") ? "Desmarcar" : "Permitir todos"}
+                    </Button>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y">
