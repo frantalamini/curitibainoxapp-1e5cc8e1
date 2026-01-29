@@ -172,8 +172,8 @@ export default function UserManagement() {
 
   return (
     <MainLayout>
-      <div className="w-full pl-2 pr-4 sm:pl-3 sm:pr-6 py-6 space-y-6">
-        <Card>
+      <div className="w-full pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
+        <Card className="w-full max-w-full min-w-0 overflow-hidden">
           <CardHeader>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 min-w-0">
@@ -231,8 +231,8 @@ export default function UserManagement() {
               </div>
             ) : (
               // Desktop: Table
-              <div className="border rounded-lg overflow-x-auto">
-                <Table className="w-full table-fixed">
+              <div className="border rounded-lg w-full max-w-full min-w-0 overflow-x-auto">
+                <Table className="min-w-[780px] w-full table-fixed">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[280px] max-w-[280px]">Nome</TableHead>
