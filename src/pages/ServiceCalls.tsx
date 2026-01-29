@@ -1,6 +1,5 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
 import {
   Select,
   SelectContent,
@@ -14,15 +13,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SearchBar } from "@/components/ui/search-bar";
 import { useServiceCalls } from "@/hooks/useServiceCalls";
 import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
 import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { ServiceCallsTable } from "@/components/ServiceCallsTable";
 
 const ServiceCalls = () => {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const { serviceCalls, isLoading } = useServiceCalls();
   const { statuses } = useServiceCallStatuses();
@@ -68,22 +65,6 @@ const ServiceCalls = () => {
     const cB = b.created_at ? new Date(b.created_at).getTime() : 0;
     return cB - cA;
   });
-
-  const formatDate = (dateStr: string | undefined) => {
-    if (!dateStr) return "-";
-    try {
-      return format(parseLocalDate(dateStr), "dd/MM/yyyy");
-    } catch {
-      return "-";
-    }
-  };
-
-  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, id: string) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      navigate(`/service-calls/${id}`);
-    }
-  };
 
   return (
     <MainLayout>
@@ -149,15 +130,26 @@ const ServiceCalls = () => {
             </p>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {sortedCalls.map((call) => (
-              <ServiceCallMobileCard
-                key={call.id}
-                call={call}
-                onClick={() => navigate(`/service-calls/${call.id}`)}
+          <>
+            {/* Desktop: Tabela */}
+            <div className="hidden md:block">
+              <ServiceCallsTable
+                calls={sortedCalls}
+                onRowClick={(id) => navigate(`/service-calls/${id}`)}
               />
-            ))}
-          </div>
+            </div>
+
+            {/* Mobile: Cards */}
+            <div className="md:hidden space-y-3">
+              {sortedCalls.map((call) => (
+                <ServiceCallMobileCard
+                  key={call.id}
+                  call={call}
+                  onClick={() => navigate(`/service-calls/${call.id}`)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </MainLayout>
