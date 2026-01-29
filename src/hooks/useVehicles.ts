@@ -12,9 +12,17 @@ export interface Vehicle {
   renavam: string | null;
   current_odometer_km: number;
   status: VehicleStatus;
-  active: boolean; // Mantido para retrocompatibilidade
+  active: boolean;
   created_at: string;
   updated_at: string;
+  // Novos campos
+  owner_name: string | null;
+  owner_document: string | null;
+  insurance_company: string | null;
+  insurance_phone: string | null;
+  insurance_broker: string | null;
+  insurance_broker_phone: string | null;
+  insurance_policy_url: string | null;
 }
 
 export interface VehicleInsert {
@@ -25,6 +33,13 @@ export interface VehicleInsert {
   current_odometer_km?: number;
   status?: VehicleStatus;
   active?: boolean;
+  owner_name?: string;
+  owner_document?: string;
+  insurance_company?: string;
+  insurance_phone?: string;
+  insurance_broker?: string;
+  insurance_broker_phone?: string;
+  insurance_policy_url?: string;
 }
 
 export const useVehicles = () => {
