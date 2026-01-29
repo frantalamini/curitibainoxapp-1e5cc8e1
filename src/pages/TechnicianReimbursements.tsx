@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
-import { PageContainer } from "@/components/ui/page-container";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import { Plus, Receipt, Clock, CheckCircle, XCircle, DollarSign, Eye } from "luc
 import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
 import { useTechnicianReimbursements } from "@/hooks/useTechnicianReimbursements";
 import { TechnicianReimbursementModal } from "@/components/reimbursements/TechnicianReimbursementModal";
+import { AdminReimbursementModal } from "@/components/reimbursements/AdminReimbursementModal";
 import { ReimbursementDetailsDialog } from "@/components/reimbursements/ReimbursementDetailsDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -32,6 +32,7 @@ export default function TechnicianReimbursements() {
   );
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [selectedReimbursement, setSelectedReimbursement] = useState<string | null>(null);
 
   const isLoading = isLoadingTechnician || isLoadingReimbursements || isLoadingRole;
@@ -40,7 +41,7 @@ export default function TechnicianReimbursements() {
   if (!isLoadingTechnician && !isLoadingRole && !technicianId && !isAdmin) {
     return (
       <MainLayout>
-        <PageContainer className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-6 space-y-6">
           <PageHeader title="Reembolsos" />
           <Card>
             <CardContent className="py-12 text-center">
@@ -51,27 +52,32 @@ export default function TechnicianReimbursements() {
               </p>
             </CardContent>
           </Card>
-        </PageContainer>
+        </div>
       </MainLayout>
     );
   }
 
-  // Apenas técnicos podem criar novos reembolsos (não admins)
-  const canCreateReimbursement = !!technicianId;
+  // Técnico pode criar via modal de técnico
+  const isTechnician = !!technicianId;
 
   return (
     <MainLayout>
-      <PageContainer className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 space-y-6">
         <PageHeader title={isAdmin ? "Gestão de Reembolsos" : "Meus Reembolsos"}>
-          {canCreateReimbursement && (
+          {isAdmin ? (
+            <Button onClick={() => setIsAdminModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Reembolso
+            </Button>
+          ) : isTechnician ? (
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Solicitação
             </Button>
-          )}
+          ) : null}
         </PageHeader>
         
-        <p className="text-muted-foreground mb-6 -mt-2">
+        <p className="text-muted-foreground -mt-4">
           {isAdmin 
             ? "Visualize e gerencie todos os pedidos de reembolso dos técnicos"
             : "Solicite reembolso de despesas vinculadas às suas OS"
@@ -103,7 +109,7 @@ export default function TechnicianReimbursements() {
                   <CardContent className="py-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-medium text-primary">
                             OS #{reimbursement.service_call?.os_number}
                           </span>
@@ -111,6 +117,11 @@ export default function TechnicianReimbursements() {
                             <StatusIcon className="h-3 w-3" />
                             {status.label}
                           </Badge>
+                          {isAdmin && reimbursement.technician && (
+                            <span className="text-xs text-muted-foreground">
+                              • {reimbursement.technician.full_name}
+                            </span>
+                          )}
                         </div>
                         
                         <p className="text-sm text-muted-foreground truncate mb-1">
@@ -157,29 +168,42 @@ export default function TechnicianReimbursements() {
               <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Nenhum reembolso</h3>
               <p className="text-muted-foreground mb-4">
-                {isAdmin && !canCreateReimbursement
+                {isAdmin
                   ? "Nenhuma solicitação de reembolso foi registrada ainda."
-                  : canCreateReimbursement
+                  : isTechnician
                     ? "Você ainda não solicitou nenhum reembolso."
                     : "Para cadastrar, acesse com um usuário vinculado a um técnico."
                 }
               </p>
-              {canCreateReimbursement && (
+              {isAdmin ? (
+                <Button onClick={() => setIsAdminModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Registrar Reembolso
+                </Button>
+              ) : isTechnician ? (
                 <Button onClick={() => setIsModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Solicitar Reembolso
                 </Button>
-              )}
+              ) : null}
             </CardContent>
           </Card>
         )}
 
-        {/* Modal para nova solicitação - apenas técnicos */}
-        {canCreateReimbursement && technicianId && (
+        {/* Modal para nova solicitação - técnicos */}
+        {isTechnician && technicianId && (
           <TechnicianReimbursementModal
             open={isModalOpen}
             onOpenChange={setIsModalOpen}
             technicianId={technicianId}
+          />
+        )}
+
+        {/* Modal para admin cadastrar reembolso */}
+        {isAdmin && (
+          <AdminReimbursementModal
+            open={isAdminModalOpen}
+            onOpenChange={setIsAdminModalOpen}
           />
         )}
 
@@ -189,7 +213,7 @@ export default function TechnicianReimbursements() {
           onOpenChange={(open) => !open && setSelectedReimbursement(null)}
           reimbursementId={selectedReimbursement}
         />
-      </PageContainer>
+      </div>
     </MainLayout>
   );
 }
