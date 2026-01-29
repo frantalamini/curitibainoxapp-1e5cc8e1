@@ -231,26 +231,26 @@ export default function UserManagement() {
               </div>
             ) : (
               // Desktop: Table
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
+              <div className="border rounded-lg overflow-x-auto">
+                <Table className="w-full table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-[200px]">Nome</TableHead>
-                      <TableHead className="w-32">Username</TableHead>
-                      <TableHead className="w-28">Perfil</TableHead>
-                      <TableHead className="w-32">Telefone</TableHead>
-                      <TableHead className="text-right w-36">Ações</TableHead>
+                      <TableHead className="w-[280px] max-w-[280px]">Nome</TableHead>
+                      <TableHead className="w-[140px]">Username</TableHead>
+                      <TableHead className="w-[100px]">Perfil</TableHead>
+                      <TableHead className="w-[120px]">Telefone</TableHead>
+                      <TableHead className="w-[140px] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers?.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium text-sm">
-                          <span className="cell-multiline" title={user.full_name}>{user.full_name}</span>
+                          <span className="block truncate" title={user.full_name}>{user.full_name}</span>
                         </TableCell>
                         <TableCell>
                           {user.username ? (
-                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded cell-truncate block">@{user.username}</code>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded truncate block max-w-full">@{user.username}</code>
                           ) : (
                             "-"
                           )}
@@ -258,13 +258,13 @@ export default function UserManagement() {
                         <TableCell>
                           {getProfileBadge(user.profile_type)}
                         </TableCell>
-                        <TableCell className="text-sm cell-truncate">{user.phone || "-"}</TableCell>
+                        <TableCell className="text-sm truncate">{user.phone || "-"}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex gap-1 justify-end">
+                          <div className="flex gap-1 justify-end flex-nowrap">
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-7 text-xs px-2"
+                              className="h-7 text-xs px-2 whitespace-nowrap"
                               onClick={() => {
                                 setSelectedUserForEdit(user);
                                 setEditUserDialogOpen(true);
@@ -276,7 +276,7 @@ export default function UserManagement() {
                             <Button
                               size="sm"
                               variant="destructive"
-                              className="h-7 text-xs px-2"
+                              className="h-7 text-xs px-2 whitespace-nowrap"
                               onClick={() => {
                                 setDeleteUserDialog({ 
                                   open: true, 
