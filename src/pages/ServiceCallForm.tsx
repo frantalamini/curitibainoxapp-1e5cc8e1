@@ -200,13 +200,27 @@ const ServiceCallForm = () => {
     if (!id || !existingCall) return;
 
     // IMPORTANTE: Abrir Google Maps PRIMEIRO (sincronamente) para evitar bloqueio de popup
-    // Navegadores bloqueiam window.open se não for resultado direto de clique do usuário
+    // iOS (Safari/PWA) costuma bloquear window.open/_blank — então abrimos na mesma aba.
     if (existingCall.clients) {
       const address = buildFullAddress(existingCall.clients);
       if (address) {
         const encodedAddress = encodeURIComponent(address);
         const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}&travelmode=driving`;
-        window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          // iOS: abrir em _self para não ser bloqueado
+          window.location.assign(mapsUrl);
+        } else {
+          const newWindow = window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+          if (!newWindow) {
+            toast({
+              variant: "destructive",
+              title: "Pop-up bloqueado",
+              description: "O navegador bloqueou a abertura do GPS. Permita pop-ups para este site e tente novamente.",
+            });
+          }
+        }
       }
     }
 
