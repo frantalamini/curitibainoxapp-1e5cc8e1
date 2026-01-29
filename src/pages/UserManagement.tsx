@@ -172,7 +172,7 @@ export default function UserManagement() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="w-full pl-2 pr-4 sm:pl-3 sm:pr-6 py-6 space-y-6">
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
