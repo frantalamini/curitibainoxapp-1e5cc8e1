@@ -13,6 +13,7 @@ import { ReimbursementDetailsDialog } from "@/components/reimbursements/Reimburs
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ElementType }> = {
   PENDING: { label: "Pendente", variant: "secondary", icon: Clock },
@@ -23,16 +24,20 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 
 export default function TechnicianReimbursements() {
   const { technicianId, isLoading: isLoadingTechnician } = useCurrentTechnician();
+  const { isAdmin, loading: isLoadingRole } = useUserRole();
+  
+  // Admin vê todos os reembolsos, técnico vê apenas os seus
   const { reimbursements, isLoading: isLoadingReimbursements } = useTechnicianReimbursements(
-    technicianId ? { technicianId } : undefined
+    isAdmin ? undefined : (technicianId ? { technicianId } : undefined)
   );
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReimbursement, setSelectedReimbursement] = useState<string | null>(null);
 
-  const isLoading = isLoadingTechnician || isLoadingReimbursements;
+  const isLoading = isLoadingTechnician || isLoadingReimbursements || isLoadingRole;
 
-  if (!isLoadingTechnician && !technicianId) {
+  // Só bloqueia se não for admin E não for técnico
+  if (!isLoadingTechnician && !isLoadingRole && !technicianId && !isAdmin) {
     return (
       <MainLayout>
         <PageContainer>
@@ -42,7 +47,7 @@ export default function TechnicianReimbursements() {
               <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Acesso Restrito</h3>
               <p className="text-muted-foreground">
-                Esta funcionalidade está disponível apenas para técnicos.
+                Esta funcionalidade está disponível apenas para técnicos e administradores.
               </p>
             </CardContent>
           </Card>
@@ -51,18 +56,26 @@ export default function TechnicianReimbursements() {
     );
   }
 
+  // Apenas técnicos podem criar novos reembolsos (não admins)
+  const canCreateReimbursement = !!technicianId;
+
   return (
     <MainLayout>
       <PageContainer>
-        <PageHeader title="Meus Reembolsos">
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Solicitação
-          </Button>
+        <PageHeader title={isAdmin ? "Gestão de Reembolsos" : "Meus Reembolsos"}>
+          {canCreateReimbursement && (
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Solicitação
+            </Button>
+          )}
         </PageHeader>
         
         <p className="text-muted-foreground mb-6 -mt-2">
-          Solicite reembolso de despesas vinculadas às suas OS
+          {isAdmin 
+            ? "Visualize e gerencie todos os pedidos de reembolso dos técnicos"
+            : "Solicite reembolso de despesas vinculadas às suas OS"
+          }
         </p>
 
         {isLoading ? (
@@ -154,8 +167,8 @@ export default function TechnicianReimbursements() {
           </Card>
         )}
 
-        {/* Modal para nova solicitação */}
-        {technicianId && (
+        {/* Modal para nova solicitação - apenas técnicos */}
+        {canCreateReimbursement && technicianId && (
           <TechnicianReimbursementModal
             open={isModalOpen}
             onOpenChange={setIsModalOpen}
