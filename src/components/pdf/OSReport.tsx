@@ -40,6 +40,7 @@ type Report = {
   general: {
     equipment?: string;
     serialNumber?: string;
+    purchaseOrderNumber?: string;
     problemDescription?: string;
     serviceType?: string;
     checklistTitle?: string | null;
@@ -108,6 +109,7 @@ type Report = {
       dueDate: string;
       amount: number;
       paymentMethod: string | null;
+      notes: string | null;
       status: string;
     }[];
   } | null;
@@ -206,10 +208,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   colEquip: {
-    flex: 1.9,
+    flex: 1.4,
   },
   colSerial: {
-    flex: 1,
+    flex: 0.8,
+  },
+  colOC: {
+    flex: 0.8,
   },
 
   // Cliente + OS Data
@@ -447,12 +452,18 @@ const styles = StyleSheet.create({
   },
   installmentMethod: {
     fontSize: 8,
-    width: 70,
+    width: 65,
     textAlign: 'center',
+  },
+  installmentNotes: {
+    fontSize: 7,
+    flex: 1,
+    textAlign: 'left',
+    color: '#666666',
   },
   installmentAmount: {
     fontSize: 8,
-    width: 70,
+    width: 60,
     textAlign: 'right',
     fontWeight: 'bold',
   },
@@ -698,6 +709,7 @@ const FinancialSection = ({ financial }: { financial: NonNullable<Report['financ
               <Text style={[styles.installmentLabel, styles.tableHeaderText]}>Parcela</Text>
               <Text style={[styles.installmentDate, styles.tableHeaderText]}>Vencimento</Text>
               <Text style={[styles.installmentMethod, styles.tableHeaderText]}>Forma</Text>
+              <Text style={[styles.installmentNotes, styles.tableHeaderText]}>Obs</Text>
               <Text style={[styles.installmentAmount, styles.tableHeaderText]}>Valor</Text>
             </View>
             {financial.installments.map((inst, idx) => (
@@ -707,6 +719,7 @@ const FinancialSection = ({ financial }: { financial: NonNullable<Report['financ
                 </Text>
                 <Text style={styles.installmentDate}>{inst.dueDate}</Text>
                 <Text style={styles.installmentMethod}>{inst.paymentMethod || '-'}</Text>
+                <Text style={styles.installmentNotes}>{inst.notes || '-'}</Text>
                 <Text style={styles.installmentAmount}>{formatCurrency(inst.amount)}</Text>
               </View>
             ))}
@@ -786,7 +799,7 @@ export const OSReport = ({ data }: { data: Report }) => {
           </Section>
         )}
 
-        {/* Equipamento + Nº de Série */}
+        {/* Equipamento + Nº de Série + Nº OC */}
         {data.general.equipment && (
           <View style={styles.grid2Cols} wrap={false}>
             <View style={styles.colEquip}>
@@ -798,6 +811,13 @@ export const OSReport = ({ data }: { data: Report }) => {
               <Section title="Nº DE SÉRIE">
                 <Text style={styles.sectionText}>
                   {data.general.serialNumber || '—'}
+                </Text>
+              </Section>
+            </View>
+            <View style={styles.colOC}>
+              <Section title="Nº DA OC">
+                <Text style={styles.sectionText}>
+                  {data.general.purchaseOrderNumber || '—'}
                 </Text>
               </Section>
             </View>
