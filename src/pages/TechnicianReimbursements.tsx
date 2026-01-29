@@ -157,9 +157,11 @@ export default function TechnicianReimbursements() {
               <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">Nenhum reembolso</h3>
               <p className="text-muted-foreground mb-4">
-                {canCreateReimbursement
-                  ? "Você ainda não solicitou nenhum reembolso."
-                  : "Para cadastrar, acesse com um usuário vinculado a um técnico."
+                {isAdmin && !canCreateReimbursement
+                  ? "Nenhuma solicitação de reembolso foi registrada ainda."
+                  : canCreateReimbursement
+                    ? "Você ainda não solicitou nenhum reembolso."
+                    : "Para cadastrar, acesse com um usuário vinculado a um técnico."
                 }
               </p>
               {canCreateReimbursement && (
