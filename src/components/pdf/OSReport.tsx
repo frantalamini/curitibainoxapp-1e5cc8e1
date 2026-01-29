@@ -23,10 +23,11 @@ type Report = {
   };
   os: {
     number: number | string;
-    issueDate?: string;
-    status?: string;
-    dueDate?: string;
-    finishDate?: string;
+    scheduledDate?: string;
+    scheduledTime?: string;
+    technicianName?: string;
+    technicalStatus?: string;
+    conclusionDate?: string;
   };
   client: {
     name: string;
@@ -718,13 +719,6 @@ const FinancialSection = ({ financial }: { financial: NonNullable<Report['financ
 
 // Componente Principal
 export const OSReport = ({ data }: { data: Report }) => {
-  const statusMap: Record<string, string> = {
-    pending: 'Aguardando Início',
-    in_progress: 'Em Andamento',
-    on_hold: 'Com Pendências',
-    completed: 'Finalizado',
-    cancelled: 'Cancelado',
-  };
 
   return (
     <Document>
@@ -760,58 +754,35 @@ export const OSReport = ({ data }: { data: Report }) => {
 
           <View style={[styles.col2, styles.osBox]}>
             <View style={styles.osRow}>
-              <Text style={styles.osLabel}>Nº OS</Text>
-              <Text style={styles.osValue}>{data.os.number}</Text>
+              <Text style={styles.osLabel}>Agendamento</Text>
+              <Text style={styles.osValue}>
+                {data.os.scheduledDate || '—'}
+                {data.os.scheduledTime && ` - ${data.os.scheduledTime}`}
+              </Text>
             </View>
-            {data.os.issueDate && (
+            {data.os.technicianName && (
               <View style={styles.osRow}>
-                <Text style={styles.osLabel}>Data Emissão</Text>
-                <Text style={styles.osValue}>{data.os.issueDate}</Text>
+                <Text style={styles.osLabel}>Técnico</Text>
+                <Text style={styles.osValue}>{data.os.technicianName}</Text>
               </View>
             )}
-            {data.os.status && (
+            {data.os.technicalStatus && (
               <View style={styles.osRow}>
                 <Text style={styles.osLabel}>Status</Text>
-                <Text style={styles.osValue}>{statusMap[data.os.status] || data.os.status}</Text>
+                <Text style={styles.osValue}>{data.os.technicalStatus}</Text>
               </View>
             )}
-            {data.os.dueDate && (
-              <View style={styles.osRow}>
-                <Text style={styles.osLabel}>Data Prevista</Text>
-                <Text style={styles.osValue}>{data.os.dueDate}</Text>
-              </View>
-            )}
-            {data.os.finishDate && (
-              <View style={[styles.osRow, styles.osRowLast]}>
-                <Text style={styles.osLabel}>Data Finalização</Text>
-                <Text style={styles.osValue}>{data.os.finishDate}</Text>
-              </View>
-            )}
+            <View style={[styles.osRow, styles.osRowLast]}>
+              <Text style={styles.osLabel}>{data.os.technicalStatus || 'Conclusão'}</Text>
+              <Text style={styles.osValue}>{data.os.conclusionDate || '—'}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Técnico Responsável */}
-        {data.general.technician && (
-          <Section title="TÉCNICO RESPONSÁVEL">
-            <Text style={styles.sectionText}>{data.general.technician.name}</Text>
-          </Section>
-        )}
-
-        {/* Agendamento */}
-        {data.general.schedule && (
-          <Section title="AGENDAMENTO">
-            {(data.general.schedule.date || data.general.schedule.time) && (
-              <Text style={styles.sectionText}>
-                {data.general.schedule.date && `Data: ${data.general.schedule.date}`}
-                {data.general.schedule.date && data.general.schedule.time && ' • '}
-                {data.general.schedule.time && `Hora: ${data.general.schedule.time}`}
-              </Text>
-            )}
-            {data.general.schedule.startedAt && (
-              <Text style={[styles.sectionText, styles.muted]}>
-                Iniciado em: {data.general.schedule.startedAt}
-              </Text>
-            )}
+        {/* Iniciado em (se houver) */}
+        {data.general.schedule?.startedAt && (
+          <Section title="INÍCIO DO ATENDIMENTO">
+            <Text style={styles.sectionText}>Iniciado em: {data.general.schedule.startedAt}</Text>
           </Section>
         )}
 
