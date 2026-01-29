@@ -135,8 +135,8 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 190,
-    height: 55,
-    objectFit: 'contain',
+    maxHeight: 70,
+    objectFit: 'cover',
   },
   companyInfo: {
     textAlign: 'right',
