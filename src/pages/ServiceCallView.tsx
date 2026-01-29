@@ -30,7 +30,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateOSPdf } from "@/lib/generateOSPdf";
+import { generateOSPdf, markOSWithFinancialReport } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { useServiceCall, useMarkServiceCallSeen } from "@/hooks/useServiceCalls";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -86,12 +86,27 @@ const ServiceCallView = () => {
     return statusMap[status as keyof typeof statusMap] || statusMap.pending;
   };
 
-  const handleGeneratePDF = async () => {
+  // Verificar se técnico está bloqueado de gerar PDF (usa casting para nova coluna)
+  const callWithFinancialFlag = call as any;
+  const isTechnicianBlockedFromPdf = isTechnician && !isAdmin && callWithFinancialFlag?.has_financial_report;
+
+  const handleGeneratePDF = async (includeFinancial = false) => {
     if (!call) return;
+    
+    // Bloquear técnico se já tem relatório financeiro gerado
+    if (isTechnician && !isAdmin && callWithFinancialFlag?.has_financial_report) {
+      toast({
+        title: "Acesso Bloqueado",
+        description: "O relatório financeiro já foi gerado pelo administrador. Técnicos não podem mais acessar relatórios desta OS.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       setIsGeneratingPDF(true);
       
-      const { blob, fileName, blobUrl } = await generateOSPdf(call.id);
+      const { blob, fileName, blobUrl } = await generateOSPdf(call.id, { includeFinancial });
       setPdfBlob(blob);
       
       // Download automático local
@@ -117,12 +132,22 @@ const ServiceCallView = () => {
       if (updateError) {
         console.error("Erro ao salvar caminho do PDF:", updateError);
       }
-      
-      toast({
-        title: "✅ PDF gerado com sucesso!",
-        description: "Use os botões abaixo para salvar ou compartilhar.",
-        duration: 5000,
-      });
+
+      // Se gerou com financeiro, marcar a OS para bloquear técnicos
+      if (includeFinancial) {
+        await markOSWithFinancialReport(call.id);
+        toast({
+          title: "✅ PDF Completo gerado!",
+          description: "Relatório com dados financeiros. Técnicos não poderão mais acessar relatórios desta OS.",
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "✅ PDF gerado com sucesso!",
+          description: "Use os botões abaixo para salvar ou compartilhar.",
+          duration: 5000,
+        });
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({
@@ -134,6 +159,9 @@ const ServiceCallView = () => {
       setIsGeneratingPDF(false);
     }
   };
+
+  const handleGenerateTechnicalPDF = () => handleGeneratePDF(false);
+  const handleGenerateCompletePDF = () => handleGeneratePDF(true);
 
   const handleSavePdf = async () => {
     try {
@@ -253,7 +281,7 @@ const ServiceCallView = () => {
             <span className="font-semibold text-sm">OS #{call.os_number}</span>
           </div>
           
-          {/* Lado direito: Botões de Ação - SEMPRE VISÍVEIS */}
+          {/* Lado direito: Botões de Ação - condicionais por perfil */}
           <div className="flex items-center gap-2 shrink-0">
             <Button
               onClick={() => navigate(`/service-calls/edit/${call.id}`)}
@@ -262,15 +290,59 @@ const ServiceCallView = () => {
               <Pencil className="mr-2 h-4 w-4" />
               Editar
             </Button>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={handleGeneratePDF}
-              disabled={isGeneratingPDF}
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              {isGeneratingPDF ? "Gerando..." : "PDF"}
-            </Button>
+            
+            {/* Técnico bloqueado: não pode gerar PDF */}
+            {isTechnicianBlockedFromPdf ? (
+              <Button
+                variant="outline"
+                size="default"
+                disabled
+                title="Relatório financeiro já gerado. Técnicos não podem mais acessar."
+              >
+                <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
+                PDF Bloqueado
+              </Button>
+            ) : (
+              <>
+                {/* Técnico: apenas PDF técnico */}
+                {isTechnician && !isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={handleGenerateTechnicalPDF}
+                    disabled={isGeneratingPDF}
+                  >
+                    <FileDown className="mr-2 h-4 w-4" />
+                    {isGeneratingPDF ? "Gerando..." : "PDF Técnico"}
+                  </Button>
+                )}
+                
+                {/* Admin: ambas opções */}
+                {isAdmin && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="default"
+                      onClick={handleGenerateTechnicalPDF}
+                      disabled={isGeneratingPDF}
+                    >
+                      <FileDown className="mr-2 h-4 w-4" />
+                      {isGeneratingPDF ? "Gerando..." : "PDF Técnico"}
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="default"
+                      onClick={handleGenerateCompletePDF}
+                      disabled={isGeneratingPDF}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <FileDown className="mr-2 h-4 w-4" />
+                      {isGeneratingPDF ? "Gerando..." : "PDF Completo"}
+                    </Button>
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
 

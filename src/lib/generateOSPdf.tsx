@@ -13,6 +13,10 @@ interface GenerateOSPdfResult {
   osNumber: number;
 }
 
+interface GenerateOSPdfOptions {
+  includeFinancial?: boolean;
+}
+
 type Report = {
   company: {
     name: string;
@@ -79,6 +83,39 @@ type Report = {
     tech?: { name: string; when?: string; imageDataUrl?: string } | null;
     client?: { name: string; role?: string; when?: string; imageDataUrl?: string } | null;
   };
+  financial?: {
+    items: {
+      type: 'PRODUCT' | 'SERVICE' | 'FEE' | 'DISCOUNT';
+      description: string;
+      qty: number;
+      unitPrice: number;
+      discountType: string | null;
+      discountValue: number;
+      total: number;
+    }[];
+    subtotals: {
+      products: number;
+      services: number;
+      fees: number;
+      discounts: number;
+    };
+    osDiscounts: {
+      partsType: string | null;
+      partsValue: number;
+      servicesType: string | null;
+      servicesValue: number;
+      totalType: string | null;
+      totalValue: number;
+    };
+    grandTotal: number;
+    installments: {
+      number: number;
+      dueDate: string;
+      amount: number;
+      paymentMethod: string | null;
+      status: string;
+    }[];
+  } | null;
   _imageDiagnostics?: {
     mediaFailed?: string[];
     beforeFailed?: string[];
@@ -216,11 +253,135 @@ async function waitForStoragePropagation(delayMs = 300): Promise<void> {
 }
 
 /**
+ * Busca dados financeiros da OS (itens + transações/parcelas)
+ */
+async function fetchFinancialData(osId: string, osData: any): Promise<Report['financial'] | null> {
+  try {
+    // Buscar itens da OS
+    const { data: items, error: itemsError } = await supabase
+      .from('service_call_items')
+      .select('*')
+      .eq('service_call_id', osId)
+      .order('created_at');
+
+    if (itemsError) {
+      console.error('❌ [PDF] Erro ao buscar itens financeiros:', itemsError);
+      return null;
+    }
+
+    // Buscar transações/parcelas
+    const { data: transactions, error: transError } = await supabase
+      .from('financial_transactions')
+      .select('*')
+      .eq('service_call_id', osId)
+      .eq('direction', 'RECEIVE')
+      .order('due_date')
+      .order('installment_number');
+
+    if (transError) {
+      console.error('❌ [PDF] Erro ao buscar transações:', transError);
+    }
+
+    // Calcular subtotais
+    const productItems = items?.filter(i => i.type === 'PRODUCT') || [];
+    const serviceItems = items?.filter(i => i.type === 'SERVICE') || [];
+    const feeItems = items?.filter(i => i.type === 'FEE') || [];
+    const discountItems = items?.filter(i => i.type === 'DISCOUNT') || [];
+
+    const totalProducts = productItems.reduce((sum, i) => sum + (i.total || 0), 0);
+    const totalServices = serviceItems.reduce((sum, i) => sum + (i.total || 0), 0);
+    const totalFees = feeItems.reduce((sum, i) => sum + (i.total || 0), 0);
+    const totalDiscounts = discountItems.reduce((sum, i) => sum + (i.total || 0), 0);
+
+    // Calcular descontos da OS
+    const partsDiscountValue = osData.discount_parts_value || 0;
+    const servicesDiscountValue = osData.discount_services_value || 0;
+    const totalDiscountValue = osData.discount_total_value || 0;
+
+    let partsDiscount = 0;
+    if (osData.discount_parts_type === 'percentage') {
+      partsDiscount = totalProducts * (partsDiscountValue / 100);
+    } else {
+      partsDiscount = partsDiscountValue;
+    }
+
+    let servicesDiscount = 0;
+    if (osData.discount_services_type === 'percentage') {
+      servicesDiscount = totalServices * (servicesDiscountValue / 100);
+    } else {
+      servicesDiscount = servicesDiscountValue;
+    }
+
+    const subtotalAfterGroupDiscounts = totalProducts + totalServices - partsDiscount - servicesDiscount;
+
+    let generalDiscount = 0;
+    if (osData.discount_total_type === 'percentage') {
+      generalDiscount = subtotalAfterGroupDiscounts * (totalDiscountValue / 100);
+    } else {
+      generalDiscount = totalDiscountValue;
+    }
+
+    const grandTotal = subtotalAfterGroupDiscounts + totalFees - totalDiscounts - generalDiscount;
+
+    // Mapear itens
+    const mappedItems = (items || []).map(item => ({
+      type: item.type as 'PRODUCT' | 'SERVICE' | 'FEE' | 'DISCOUNT',
+      description: item.description,
+      qty: item.qty || 1,
+      unitPrice: item.unit_price || 0,
+      discountType: item.discount_type,
+      discountValue: item.discount_value || 0,
+      total: item.total || 0,
+    }));
+
+    // Mapear parcelas
+    const installments = (transactions || [])
+      .filter(t => t.status !== 'CANCELED')
+      .map(t => ({
+        number: t.installment_number || 1,
+        dueDate: format(new Date(t.due_date), 'dd/MM/yyyy', { locale: ptBR }),
+        amount: t.amount || 0,
+        paymentMethod: t.payment_method,
+        status: t.status || 'OPEN',
+      }));
+
+    return {
+      items: mappedItems,
+      subtotals: {
+        products: totalProducts,
+        services: totalServices,
+        fees: totalFees,
+        discounts: totalDiscounts,
+      },
+      osDiscounts: {
+        partsType: osData.discount_parts_type,
+        partsValue: partsDiscountValue,
+        servicesType: osData.discount_services_type,
+        servicesValue: servicesDiscountValue,
+        totalType: osData.discount_total_type,
+        totalValue: totalDiscountValue,
+      },
+      grandTotal: grandTotal > 0 ? grandTotal : 0,
+      installments,
+    };
+  } catch (error) {
+    console.error('❌ [PDF] Erro geral ao buscar dados financeiros:', error);
+    return null;
+  }
+}
+
+/**
  * Gera PDF da OS usando @react-pdf/renderer
  * @param osId - ID da OS no Supabase
+ * @param options - Opções de geração (includeFinancial para relatório completo)
  * @returns Blob, fileName, blobUrl e osNumber
  */
-export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> => {
+export const generateOSPdf = async (
+  osId: string, 
+  options: GenerateOSPdfOptions = {}
+): Promise<GenerateOSPdfResult> => {
+  const { includeFinancial = false } = options;
+
   // 0. AGUARDAR PROPAGAÇÃO DE UPLOADS RECENTES
   await waitForStoragePropagation(300);
   
@@ -395,13 +556,21 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
 
   console.log('🔍 [PDF] Fotos de "Fotos e Vídeos" convertidas:', mediaPhotos.length);
 
+  // 7. BUSCAR DADOS FINANCEIROS (se solicitado)
+  let financialData: Report['financial'] = null;
+  if (includeFinancial) {
+    console.log('💰 [PDF] Buscando dados financeiros...');
+    financialData = await fetchFinancialData(osId, osData);
+    console.log('💰 [PDF] Dados financeiros:', financialData ? 'OK' : 'Nenhum');
+  }
+
   // 8. MONTAR ENDEREÇO COMPLETO DA EMPRESA
   const companyAddressParts = [
     companyDataAny?.company_address,
   ].filter(Boolean);
   const companyAddress = companyAddressParts.length > 0 ? companyAddressParts.join(', ') : undefined;
 
-  // 7. MONTAR ENDEREÇO COMPLETO DO CLIENTE
+  // 9. MONTAR ENDEREÇO COMPLETO DO CLIENTE
   const clientAddressParts = [
     clientData?.address,
     clientData?.city && clientData?.state ? `${clientData.city}/${clientData.state}` : clientData?.city || clientData?.state,
@@ -409,7 +578,7 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
   ].filter(Boolean);
   const clientAddress = clientAddressParts.length > 0 ? clientAddressParts.join(', ') : undefined;
 
-  // 8. PREPARAR DADOS PARA O PDF
+  // 10. PREPARAR DADOS PARA O PDF
   const report: Report = {
     company: {
       name: companyData?.company_name || 'Curitiba Inox',
@@ -517,17 +686,19 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
           }
         : null,
     },
+    financial: financialData,
   };
 
-  // 9. RENDERIZAR PDF
+  // 11. RENDERIZAR PDF
   const doc = <OSReport data={report} />;
   const asPdf = pdf(doc);
   const blob = await asPdf.toBlob();
 
-  // 10. GERAR NOME DO ARQUIVO
-  const fileName = `relatorio-os-${call.os_number}.pdf`;
+  // 12. GERAR NOME DO ARQUIVO
+  const suffix = includeFinancial ? '-completo' : '';
+  const fileName = `relatorio-os-${call.os_number}${suffix}.pdf`;
 
-  // 11. CRIAR BLOB URL
+  // 13. CRIAR BLOB URL
   const blobUrl = URL.createObjectURL(blob);
 
   // LOG DE DIAGNÓSTICO
@@ -555,4 +726,22 @@ export const generateOSPdf = async (osId: string): Promise<GenerateOSPdfResult> 
     blobUrl,
     osNumber: call.os_number,
   };
+};
+
+/**
+ * Marca a OS como tendo relatório financeiro gerado
+ * Isso bloqueia técnicos de acessar/baixar relatórios dessa OS
+ */
+export const markOSWithFinancialReport = async (osId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('service_calls')
+    .update({ has_financial_report: true })
+    .eq('id', osId);
+
+  if (error) {
+    console.error('❌ [PDF] Erro ao marcar OS com relatório financeiro:', error);
+    throw error;
+  }
+
+  console.log('✅ [PDF] OS marcada com relatório financeiro');
 };

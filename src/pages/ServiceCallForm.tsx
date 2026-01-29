@@ -46,7 +46,7 @@ import { TimePickerPopover } from "@/components/TimePickerPopover";
 import { Separator } from "@/components/ui/separator";
 import { MediaSlots } from "@/components/MediaSlots";
 
-import { generateOSPdf } from "@/lib/generateOSPdf";
+import { generateOSPdf, markOSWithFinancialReport } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 import { StartTripModal } from "@/components/StartTripModal";
@@ -1639,58 +1639,188 @@ const ServiceCallForm = () => {
           <div className="flex gap-4 mt-6 flex-wrap">
             {isEditMode && existingCall && (
               <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      setIsGeneratingPDF(true);
-                      const { blob, fileName, blobUrl } = await generateOSPdf(existingCall.id);
-                      
-                      // Download automático local
-                      const autoLink = document.createElement('a');
-                      autoLink.href = blobUrl;
-                      autoLink.download = fileName;
-                      autoLink.style.display = 'none';
-                      document.body.appendChild(autoLink);
-                      autoLink.click();
-                      document.body.removeChild(autoLink);
-                      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-                      
-                      // Upload para storage
-                      const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
-                      setGeneratedPdfUrl(uploadResult.signedUrl);
-                      
-                      // Salvar o caminho do PDF no banco de dados
-                      const { error: updateError } = await supabase
-                        .from('service_calls')
-                        .update({ report_pdf_path: uploadResult.filePath })
-                        .eq('id', existingCall.id);
-                      
-                      if (updateError) {
-                        console.error("Erro ao salvar caminho do PDF:", updateError);
-                      }
-                      
-                      toast({
-                        title: "PDF Gerado!",
-                        description: "O relatório foi baixado e está pronto para envio.",
-                      });
-                    } catch (error) {
-                      console.error("Error generating PDF:", error);
-                      toast({
-                        title: "Erro ao gerar PDF",
-                        description: "Ocorreu um erro ao gerar o relatório.",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setIsGeneratingPDF(false);
-                    }
-                  }}
-                  disabled={isGeneratingPDF}
-                >
-                  <FileDown className="w-4 h-4 mr-2" />
-                  {isGeneratingPDF ? "Gerando..." : "Gerar PDF"}
-                </Button>
+                {/* Verificar se técnico está bloqueado */}
+                {isTechnician && !isAdmin && (existingCall as any).has_financial_report ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled
+                    title="Relatório financeiro já gerado. Técnicos não podem mais acessar."
+                  >
+                    <AlertCircle className="w-4 h-4 mr-2 text-destructive" />
+                    PDF Bloqueado
+                  </Button>
+                ) : (
+                  <>
+                    {/* Técnico: apenas PDF técnico */}
+                    {isTechnician && !isAdmin && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            setIsGeneratingPDF(true);
+                            const { blob, fileName, blobUrl } = await generateOSPdf(existingCall.id, { includeFinancial: false });
+                            
+                            // Download automático local
+                            const autoLink = document.createElement('a');
+                            autoLink.href = blobUrl;
+                            autoLink.download = fileName;
+                            autoLink.style.display = 'none';
+                            document.body.appendChild(autoLink);
+                            autoLink.click();
+                            document.body.removeChild(autoLink);
+                            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                            
+                            // Upload para storage
+                            const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
+                            setGeneratedPdfUrl(uploadResult.signedUrl);
+                            
+                            // Salvar o caminho do PDF no banco de dados
+                            const { error: updateError } = await supabase
+                              .from('service_calls')
+                              .update({ report_pdf_path: uploadResult.filePath })
+                              .eq('id', existingCall.id);
+                            
+                            if (updateError) {
+                              console.error("Erro ao salvar caminho do PDF:", updateError);
+                            }
+                            
+                            toast({
+                              title: "PDF Técnico Gerado!",
+                              description: "O relatório técnico foi baixado e está pronto para envio.",
+                            });
+                          } catch (error) {
+                            console.error("Error generating PDF:", error);
+                            toast({
+                              title: "Erro ao gerar PDF",
+                              description: "Ocorreu um erro ao gerar o relatório.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsGeneratingPDF(false);
+                          }
+                        }}
+                        disabled={isGeneratingPDF}
+                      >
+                        <FileDown className="w-4 h-4 mr-2" />
+                        {isGeneratingPDF ? "Gerando..." : "PDF Técnico"}
+                      </Button>
+                    )}
+                    
+                    {/* Admin: ambas opções */}
+                    {isAdmin && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              setIsGeneratingPDF(true);
+                              const { blob, fileName, blobUrl } = await generateOSPdf(existingCall.id, { includeFinancial: false });
+                              
+                              const autoLink = document.createElement('a');
+                              autoLink.href = blobUrl;
+                              autoLink.download = fileName;
+                              autoLink.style.display = 'none';
+                              document.body.appendChild(autoLink);
+                              autoLink.click();
+                              document.body.removeChild(autoLink);
+                              setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                              
+                              const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
+                              setGeneratedPdfUrl(uploadResult.signedUrl);
+                              
+                              const { error: updateError } = await supabase
+                                .from('service_calls')
+                                .update({ report_pdf_path: uploadResult.filePath })
+                                .eq('id', existingCall.id);
+                              
+                              if (updateError) {
+                                console.error("Erro ao salvar caminho do PDF:", updateError);
+                              }
+                              
+                              toast({
+                                title: "PDF Técnico Gerado!",
+                                description: "O relatório técnico foi baixado.",
+                              });
+                            } catch (error) {
+                              console.error("Error generating PDF:", error);
+                              toast({
+                                title: "Erro ao gerar PDF",
+                                description: "Ocorreu um erro ao gerar o relatório.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsGeneratingPDF(false);
+                            }
+                          }}
+                          disabled={isGeneratingPDF}
+                        >
+                          <FileDown className="w-4 h-4 mr-2" />
+                          {isGeneratingPDF ? "Gerando..." : "PDF Técnico"}
+                        </Button>
+                        
+                        <Button
+                          type="button"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={async () => {
+                            try {
+                              setIsGeneratingPDF(true);
+                              const { blob, fileName, blobUrl } = await generateOSPdf(existingCall.id, { includeFinancial: true });
+                              
+                              const autoLink = document.createElement('a');
+                              autoLink.href = blobUrl;
+                              autoLink.download = fileName;
+                              autoLink.style.display = 'none';
+                              document.body.appendChild(autoLink);
+                              autoLink.click();
+                              document.body.removeChild(autoLink);
+                              setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                              
+                              const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
+                              setGeneratedPdfUrl(uploadResult.signedUrl);
+                              
+                              const { error: updateError } = await supabase
+                                .from('service_calls')
+                                .update({ report_pdf_path: uploadResult.filePath })
+                                .eq('id', existingCall.id);
+                              
+                              if (updateError) {
+                                console.error("Erro ao salvar caminho do PDF:", updateError);
+                              }
+                              
+                              // Marcar a OS como tendo relatório financeiro
+                              await markOSWithFinancialReport(existingCall.id);
+                              
+                              // Refetch para atualizar o estado
+                              refetchCall();
+                              
+                              toast({
+                                title: "PDF Completo Gerado!",
+                                description: "Relatório com dados financeiros. Técnicos não poderão mais acessar relatórios desta OS.",
+                              });
+                            } catch (error) {
+                              console.error("Error generating PDF:", error);
+                              toast({
+                                title: "Erro ao gerar PDF",
+                                description: "Ocorreu um erro ao gerar o relatório.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsGeneratingPDF(false);
+                            }
+                          }}
+                          disabled={isGeneratingPDF}
+                        >
+                          <DollarSign className="w-4 h-4 mr-2" />
+                          {isGeneratingPDF ? "Gerando..." : "PDF Completo"}
+                        </Button>
+                      </>
+                    )}
+                  </>
+                )}
+                
                 {generatedPdfUrl && existingCall && (
                   <>
                     <Button
