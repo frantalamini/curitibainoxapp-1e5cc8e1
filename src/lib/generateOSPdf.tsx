@@ -30,10 +30,11 @@ type Report = {
   };
   os: {
     number: number | string;
-    issueDate?: string;
-    status?: string;
-    dueDate?: string;
-    finishDate?: string;
+    scheduledDate?: string;
+    scheduledTime?: string;
+    technicianName?: string;
+    technicalStatus?: string;
+    conclusionDate?: string;
   };
   client: {
     name: string;
@@ -408,6 +409,9 @@ export const generateOSPdf = async (
       service_types (
         name,
         color
+      ),
+      status:service_call_statuses!service_calls_status_id_fkey (
+        name
       )
     `)
     .eq('id', osId)
@@ -592,10 +596,11 @@ export const generateOSPdf = async (
     },
     os: {
       number: call.os_number,
-      issueDate: format(new Date(call.created_at), 'dd/MM/yyyy', { locale: ptBR }),
-      status: call.status,
-      dueDate: format(new Date(call.scheduled_date), 'dd/MM/yyyy', { locale: ptBR }),
-      finishDate: call.status === 'completed' && call.updated_at
+      scheduledDate: format(new Date(call.scheduled_date), 'dd/MM/yyyy', { locale: ptBR }),
+      scheduledTime: call.scheduled_time || undefined,
+      technicianName: call.technicians?.full_name || undefined,
+      technicalStatus: (call as any).status?.name || undefined,
+      conclusionDate: call.updated_at
         ? format(new Date(call.updated_at), 'dd/MM/yyyy', { locale: ptBR })
         : undefined,
     },
