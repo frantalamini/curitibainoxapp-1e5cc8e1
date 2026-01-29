@@ -47,6 +47,7 @@ type Report = {
   general: {
     equipment?: string;
     serialNumber?: string;
+    purchaseOrderNumber?: string;
     problemDescription?: string;
     serviceType?: string;
     checklistTitle?: string | null;
@@ -114,6 +115,7 @@ type Report = {
       dueDate: string;
       amount: number;
       paymentMethod: string | null;
+      notes: string | null;
       status: string;
     }[];
   } | null;
@@ -343,6 +345,7 @@ async function fetchFinancialData(osId: string, osData: any): Promise<Report['fi
         dueDate: format(new Date(t.due_date), 'dd/MM/yyyy', { locale: ptBR }),
         amount: t.amount || 0,
         paymentMethod: t.payment_method,
+        notes: t.notes || null,
         status: t.status || 'OPEN',
       }));
 
@@ -615,6 +618,7 @@ export const generateOSPdf = async (
     general: {
       equipment: call.equipment_description?.trim() || undefined,
       serialNumber: call.equipment_serial_number?.trim() || undefined,
+      purchaseOrderNumber: (call as any).purchase_order_number?.trim() || undefined,
       problemDescription: call.problem_description?.trim() || undefined,
       serviceType: call.service_types?.name?.trim() || undefined,
       checklistTitle: checklist?.title || null,
