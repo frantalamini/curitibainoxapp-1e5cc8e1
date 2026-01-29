@@ -1201,6 +1201,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          id: string
+          module: Database["public"]["Enums"]["system_module"]
+          profile_type: Database["public"]["Enums"]["profile_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          module: Database["public"]["Enums"]["system_module"]
+          profile_type?: Database["public"]["Enums"]["profile_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          module?: Database["public"]["Enums"]["system_module"]
+          profile_type?: Database["public"]["Enums"]["profile_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1315,6 +1351,18 @@ export type Database = {
       }
     }
     Functions: {
+      get_user_profile_type: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["profile_type"]
+      }
+      has_permission: {
+        Args: {
+          _module: Database["public"]["Enums"]["system_module"]
+          _permission: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1341,6 +1389,7 @@ export type Database = {
         | "waiting_parts"
         | "completed"
         | "cancelled"
+      profile_type: "gerencial" | "adm" | "tecnico"
       service_status:
         | "pending"
         | "in_progress"
@@ -1350,6 +1399,22 @@ export type Database = {
       service_urgency: "corrective" | "preventive"
       status_type: "tecnico" | "comercial"
       stock_movement_type: "IN" | "OUT" | "ADJUST"
+      system_module:
+        | "service_calls"
+        | "clients"
+        | "technicians"
+        | "vehicles"
+        | "products"
+        | "equipment"
+        | "schedule"
+        | "finances"
+        | "settings"
+        | "users"
+        | "checklists"
+        | "service_types"
+        | "service_statuses"
+        | "payment_methods"
+        | "reimbursements"
       transaction_direction: "RECEIVE" | "PAY"
       transaction_origin: "SERVICE_CALL" | "MANUAL"
       transaction_status: "OPEN" | "PAID" | "CANCELED" | "PARTIAL"
@@ -1501,6 +1566,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      profile_type: ["gerencial", "adm", "tecnico"],
       service_status: [
         "pending",
         "in_progress",
@@ -1511,6 +1577,23 @@ export const Constants = {
       service_urgency: ["corrective", "preventive"],
       status_type: ["tecnico", "comercial"],
       stock_movement_type: ["IN", "OUT", "ADJUST"],
+      system_module: [
+        "service_calls",
+        "clients",
+        "technicians",
+        "vehicles",
+        "products",
+        "equipment",
+        "schedule",
+        "finances",
+        "settings",
+        "users",
+        "checklists",
+        "service_types",
+        "service_statuses",
+        "payment_methods",
+        "reimbursements",
+      ],
       transaction_direction: ["RECEIVE", "PAY"],
       transaction_origin: ["SERVICE_CALL", "MANUAL"],
       transaction_status: ["OPEN", "PAID", "CANCELED", "PARTIAL"],
