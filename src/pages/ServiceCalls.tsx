@@ -68,7 +68,7 @@ const ServiceCalls = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-4 md:space-y-6 min-w-0">
+      <div className="container mx-auto px-4 py-6 space-y-6">
         <PageHeader 
           title="Chamados Técnicos" 
           actionLabel="Novo Chamado"
