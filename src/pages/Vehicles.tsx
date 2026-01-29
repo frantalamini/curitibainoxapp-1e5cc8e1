@@ -96,7 +96,7 @@ const Vehicles = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[80px]">Nome</TableHead>
+                  <TableHead className="w-[120px] max-w-[120px]">Nome</TableHead>
                   <TableHead className="w-20">Marca</TableHead>
                   <TableHead className="w-20">Placa</TableHead>
                   <TableHead className="w-28">RENAVAM</TableHead>
