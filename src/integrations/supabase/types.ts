@@ -1300,7 +1300,14 @@ export type Database = {
           created_at: string
           current_odometer_km: number | null
           id: string
+          insurance_broker: string | null
+          insurance_broker_phone: string | null
+          insurance_company: string | null
+          insurance_phone: string | null
+          insurance_policy_url: string | null
           name: string
+          owner_document: string | null
+          owner_name: string | null
           plate: string
           renavam: string | null
           status: Database["public"]["Enums"]["vehicle_status"]
@@ -1312,7 +1319,14 @@ export type Database = {
           created_at?: string
           current_odometer_km?: number | null
           id?: string
+          insurance_broker?: string | null
+          insurance_broker_phone?: string | null
+          insurance_company?: string | null
+          insurance_phone?: string | null
+          insurance_policy_url?: string | null
           name: string
+          owner_document?: string | null
+          owner_name?: string | null
           plate: string
           renavam?: string | null
           status?: Database["public"]["Enums"]["vehicle_status"]
@@ -1324,7 +1338,14 @@ export type Database = {
           created_at?: string
           current_odometer_km?: number | null
           id?: string
+          insurance_broker?: string | null
+          insurance_broker_phone?: string | null
+          insurance_company?: string | null
+          insurance_phone?: string | null
+          insurance_policy_url?: string | null
           name?: string
+          owner_document?: string | null
+          owner_name?: string | null
           plate?: string
           renavam?: string | null
           status?: Database["public"]["Enums"]["vehicle_status"]
