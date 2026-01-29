@@ -73,7 +73,7 @@ const ServiceCallForm = () => {
   const { checklists, isLoading: checklistsLoading } = useChecklists();
   const { data: existingCall, isLoading: isLoadingCall, refetch: refetchCall } = useServiceCall(id);
   const isEditMode = !!id;
-  const { createServiceCall, updateServiceCall } = useServiceCalls();
+  const { createServiceCall, updateServiceCallAsync } = useServiceCalls();
   const { isAdmin, isTechnician, loading: rolesLoading } = useUserRole();
   
   // Estado de modo readonly - inicia como true em edição (isEditMode = !!id), false em criação
@@ -199,32 +199,7 @@ const ServiceCallForm = () => {
   const handleStartTrip = async (vehicleId: string) => {
     if (!id || !existingCall) return;
 
-    // IMPORTANTE: Abrir Google Maps PRIMEIRO (sincronamente) para evitar bloqueio de popup
-    // iOS (Safari/PWA) costuma bloquear window.open/_blank — então abrimos na mesma aba.
-    if (existingCall.clients) {
-      const address = buildFullAddress(existingCall.clients);
-      if (address) {
-        const encodedAddress = encodeURIComponent(address);
-        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}&travelmode=driving`;
-
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isIOS) {
-          // iOS: abrir em _self para não ser bloqueado
-          window.location.assign(mapsUrl);
-        } else {
-          const newWindow = window.open(mapsUrl, '_blank', 'noopener,noreferrer');
-          if (!newWindow) {
-            toast({
-              variant: "destructive",
-              title: "Pop-up bloqueado",
-              description: "O navegador bloqueou a abertura do GPS. Permita pop-ups para este site e tente novamente.",
-            });
-          }
-        }
-      }
-    }
-
-    // Buscar quilometragem atual do veículo (após abrir GPS)
+    // Buscar quilometragem atual do veículo ANTES de qualquer navegação
     const { data: vehicleData } = await supabase
       .from("vehicles")
       .select("current_odometer_km")
@@ -233,6 +208,8 @@ const ServiceCallForm = () => {
 
     const startOdometer = vehicleData?.current_odometer_km || 0;
 
+    // Criar o trip no banco de dados ANTES de abrir o GPS
+    // Isso garante que o deslocamento é registrado mesmo se o usuário sair do app
     createTrip({
       service_call_id: id,
       technician_id: existingCall.technician_id,
@@ -241,6 +218,35 @@ const ServiceCallForm = () => {
     });
 
     setStartTripModalOpen(false);
+
+    // Abrir Google Maps DEPOIS de registrar o trip
+    // No iOS/PWA, usamos location.href para garantir que abra (window.open é bloqueado)
+    if (existingCall.clients) {
+      const address = buildFullAddress(existingCall.clients);
+      if (address) {
+        const encodedAddress = encodeURIComponent(address);
+        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}&travelmode=driving`;
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
+        // Pequeno delay para garantir que o trip foi registrado
+        setTimeout(() => {
+          if (isIOS) {
+            // iOS: abrir na mesma aba (única forma garantida de funcionar em PWA)
+            window.location.href = mapsUrl;
+          } else {
+            const newWindow = window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+            if (!newWindow) {
+              toast({
+                variant: "destructive",
+                title: "Pop-up bloqueado",
+                description: "O navegador bloqueou a abertura do GPS. Permita pop-ups para este site e tente novamente.",
+              });
+            }
+          }
+        }, 300);
+      }
+    }
   };
 
   const handleEndTrip = async (endOdometer: number | null) => {
@@ -382,14 +388,17 @@ const ServiceCallForm = () => {
       setInternalNotesText(existingCall.internal_notes_text || "");
       setExistingTechnicalAudioUrl(existingCall.technical_diagnosis_audio_url || null);
       
-      // Se já existe um relatório gerado, habilitar botão de WhatsApp
-      if ((existingCall as any).report_pdf_path && (existingCall as any).report_access_token) {
-        // Usar a URL pública do relatório para compartilhamento
-        setGeneratedPdfUrl(`https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${(existingCall as any).report_access_token}`);
-      }
-      
-      // Marca como inicializado para evitar re-inicializações
+      // Marca como inicializado para evitar re-inicializações dos campos do form
       initializedRef.current = true;
+    }
+    
+    // SEMPRE verificar se existe relatório gerado (mesmo após refetch)
+    // Isso garante que os botões PDF/WhatsApp apareçam após gerar relatório
+    if (existingCall && isEditMode) {
+      if ((existingCall as any).report_pdf_path && (existingCall as any).report_access_token) {
+        const pdfUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${(existingCall as any).report_access_token}`;
+        setGeneratedPdfUrl(pdfUrl);
+      }
     }
   }, [existingCall, isEditMode, setValue]);
 
@@ -833,30 +842,35 @@ const ServiceCallForm = () => {
       };
 
       if (isEditMode && id) {
-        await updateServiceCall({ id, ...formattedData });
-        setNewSignatures([]); // Limpar após salvar
-        
-        // Recarregar dados da OS após salvar para atualizar assinaturas e PDF
-        await refetchCall();
-        
-        // Voltar ao modo readonly e permanecer na OS
-        setIsReadonly(true);
-        
-        // Habilitar botões de PDF/WhatsApp se relatório já existe
-        const { data: updatedCall } = await supabase
-          .from("service_calls")
-          .select("report_pdf_path, report_access_token, os_number")
-          .eq("id", id)
-          .single();
-        
-        if (updatedCall?.report_pdf_path && updatedCall?.report_access_token) {
-          setGeneratedPdfUrl(`https://curitibainoxapp.com/relatorio-os/${updatedCall.os_number}/${updatedCall.report_access_token}`);
+        try {
+          await updateServiceCallAsync({ id, ...formattedData });
+          setNewSignatures([]); // Limpar após salvar
+          
+          // Recarregar dados da OS após salvar para atualizar assinaturas e PDF
+          await refetchCall();
+          
+          // Voltar ao modo readonly e permanecer na OS
+          setIsReadonly(true);
+          
+          // Habilitar botões de PDF/WhatsApp se relatório já existe
+          const { data: updatedCall } = await supabase
+            .from("service_calls")
+            .select("report_pdf_path, report_access_token, os_number")
+            .eq("id", id)
+            .single();
+          
+          if (updatedCall?.report_pdf_path && updatedCall?.report_access_token) {
+            setGeneratedPdfUrl(`https://curitibainoxapp.com/relatorio-os/${updatedCall.os_number}/${updatedCall.report_access_token}`);
+          }
+          
+          toast({
+            title: "✅ Chamado Atualizado",
+            description: "As alterações foram salvas com sucesso!",
+          });
+        } catch (updateError) {
+          console.error('Erro ao atualizar chamado:', updateError);
+          // Toast já é exibido pelo hook useServiceCalls
         }
-        
-        toast({
-          title: "✅ Chamado Atualizado",
-          description: "As alterações foram salvas com sucesso!",
-        });
       } else {
         // Buscar IDs dos status padrão para novo chamado
         const { data: defaultTechnicalStatus } = await supabase
@@ -1988,6 +2002,7 @@ const ServiceCallForm = () => {
               pdfUrl={generatedPdfUrl}
               clientData={existingCall.clients!}
               companyName={systemSettings?.company_name || 'Curitiba Inox'}
+              reportAccessToken={(existingCall as any).report_access_token}
             />
 
             <SendReportModal
@@ -1998,6 +2013,7 @@ const ServiceCallForm = () => {
               pdfUrl={generatedPdfUrl}
               clientData={existingCall.clients!}
               companyName={systemSettings?.company_name || 'Curitiba Inox'}
+              reportAccessToken={(existingCall as any).report_access_token}
             />
           </>
         )}

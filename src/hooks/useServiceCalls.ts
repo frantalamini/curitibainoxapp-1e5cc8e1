@@ -307,6 +307,7 @@ export const useServiceCalls = (limit: number = 30) => {
     isLoading,
     createServiceCall: createMutation.mutate,
     updateServiceCall: updateMutation.mutate,
+    updateServiceCallAsync: updateMutation.mutateAsync,
     deleteServiceCall: deleteMutation.mutate,
   };
 };
