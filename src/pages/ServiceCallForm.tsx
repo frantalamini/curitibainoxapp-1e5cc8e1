@@ -1040,8 +1040,8 @@ const ServiceCallForm = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-10 gap-4">
-                    {/* Equipamento - 60% da largura (6/10) */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    {/* Equipamento - 50% da largura (6/12) */}
                     <div className="md:col-span-6 space-y-2">
                       <Label htmlFor="equipment_description">Equipamento *</Label>
                       <Input
@@ -1057,8 +1057,8 @@ const ServiceCallForm = () => {
                       )}
                     </div>
 
-                    {/* Número de Série - 40% da largura (4/10) */}
-                    <div className="md:col-span-4 space-y-2">
+                    {/* Número de Série - 25% da largura (3/12) */}
+                    <div className="md:col-span-3 space-y-2">
                       <Label htmlFor="equipment_serial_number">Número de Série</Label>
                       <Input
                         id="equipment_serial_number"
@@ -1068,6 +1068,19 @@ const ServiceCallForm = () => {
                         onChange={(e) => setEquipmentSerialNumber(e.target.value)}
                         disabled={isReadonly && isEditMode}
                         className={cn(isReadonly && isEditMode && "bg-muted")}
+                      />
+                    </div>
+
+                    {/* Número da OC - 25% da largura (3/12) */}
+                    <div className="md:col-span-3 space-y-2">
+                      <Label htmlFor="purchase_order_number">Nº da OC</Label>
+                      <Input
+                        id="purchase_order_number"
+                        type="text"
+                        placeholder="Ex: OC-12345"
+                        disabled={isReadonly && isEditMode}
+                        className={cn(isReadonly && isEditMode && "bg-muted")}
+                        {...register("purchase_order_number")}
                       />
                     </div>
                   </div>

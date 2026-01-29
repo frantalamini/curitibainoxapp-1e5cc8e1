@@ -62,9 +62,14 @@ export const ServiceCallsTable = ({
                   <span className="font-medium text-sm truncate" title={call.clients?.full_name}>
                     {call.clients?.full_name || "-"}
                   </span>
-                  {call.clients?.phone && (
-                    <span className="text-xs text-muted-foreground truncate">
-                      {call.clients.phone}
+                  {call.clients?.nome_fantasia && (
+                    <span className="text-xs text-muted-foreground truncate" title={call.clients.nome_fantasia}>
+                      {call.clients.nome_fantasia}
+                    </span>
+                  )}
+                  {call.clients?.secondary_name && (
+                    <span className="text-xs text-blue-600 truncate" title={call.clients.secondary_name}>
+                      {call.clients.secondary_name}
                     </span>
                   )}
                 </div>
