@@ -76,6 +76,40 @@ type Report = {
     tech?: { name: string; when?: string; imageDataUrl?: string } | null;
     client?: { name: string; role?: string; when?: string; imageDataUrl?: string } | null;
   };
+  // Dados financeiros (opcional - apenas para relatório completo)
+  financial?: {
+    items: {
+      type: 'PRODUCT' | 'SERVICE' | 'FEE' | 'DISCOUNT';
+      description: string;
+      qty: number;
+      unitPrice: number;
+      discountType: string | null;
+      discountValue: number;
+      total: number;
+    }[];
+    subtotals: {
+      products: number;
+      services: number;
+      fees: number;
+      discounts: number;
+    };
+    osDiscounts: {
+      partsType: string | null;
+      partsValue: number;
+      servicesType: string | null;
+      servicesValue: number;
+      totalType: string | null;
+      totalValue: number;
+    };
+    grandTotal: number;
+    installments: {
+      number: number;
+      dueDate: string;
+      amount: number;
+      paymentMethod: string | null;
+      status: string;
+    }[];
+  } | null;
 };
 
 // Estilos do PDF
@@ -308,6 +342,119 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
   },
 
+  // Tabela Financeira
+  table: {
+    marginTop: 8,
+    borderWidth: 0.5,
+    borderColor: '#C9CED6',
+    borderRadius: 3,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderBottomWidth: 0.5,
+    borderColor: '#C9CED6',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderColor: '#E3E7EB',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+  },
+  tableRowLast: {
+    borderBottomWidth: 0,
+  },
+  tableColDesc: {
+    flex: 3,
+    fontSize: 8,
+  },
+  tableColQty: {
+    width: 40,
+    fontSize: 8,
+    textAlign: 'center',
+  },
+  tableColPrice: {
+    width: 60,
+    fontSize: 8,
+    textAlign: 'right',
+  },
+  tableColTotal: {
+    width: 70,
+    fontSize: 8,
+    textAlign: 'right',
+    fontWeight: 'bold',
+  },
+  tableHeaderText: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  subtotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#F9F9F9',
+    borderBottomWidth: 0.5,
+    borderColor: '#E3E7EB',
+  },
+  subtotalLabel: {
+    fontSize: 9,
+    color: '#666666',
+  },
+  subtotalValue: {
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  grandTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: '#18487A',
+  },
+  grandTotalLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  grandTotalValue: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  installmentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderBottomWidth: 0.5,
+    borderColor: '#E3E7EB',
+  },
+  installmentLabel: {
+    fontSize: 8,
+    flex: 1,
+  },
+  installmentDate: {
+    fontSize: 8,
+    width: 70,
+    textAlign: 'center',
+  },
+  installmentMethod: {
+    fontSize: 8,
+    width: 70,
+    textAlign: 'center',
+  },
+  installmentAmount: {
+    fontSize: 8,
+    width: 70,
+    textAlign: 'right',
+    fontWeight: 'bold',
+  },
+
   // Utilidades
   muted: {
     color: '#666666',
@@ -316,6 +463,11 @@ const styles = StyleSheet.create({
     wordWrap: 'break-word',
   },
 });
+
+// Formatar moeda
+const formatCurrency = (value: number): string => {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
 
 // Componente Header
 const Header = ({ company, osNumber }: { company: Report['company']; osNumber: number | string }) => (
@@ -411,6 +563,157 @@ const Signatures = ({ signatures }: { signatures: Report['signatures'] }) => (
     </View>
   </View>
 );
+
+// Componente Seção Financeira
+const FinancialSection = ({ financial }: { financial: NonNullable<Report['financial']> }) => {
+  const typeLabels: Record<string, string> = {
+    PRODUCT: 'Produtos',
+    SERVICE: 'Serviços',
+    FEE: 'Taxas',
+    DISCOUNT: 'Descontos',
+  };
+
+  const productItems = financial.items.filter(i => i.type === 'PRODUCT');
+  const serviceItems = financial.items.filter(i => i.type === 'SERVICE');
+
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionTitle}>
+        <Text>RESUMO FINANCEIRO</Text>
+      </View>
+      
+      {/* Tabela de Itens */}
+      <View style={styles.table}>
+        {/* Header */}
+        <View style={styles.tableHeader}>
+          <Text style={[styles.tableColDesc, styles.tableHeaderText]}>Descrição</Text>
+          <Text style={[styles.tableColQty, styles.tableHeaderText]}>Qtd</Text>
+          <Text style={[styles.tableColPrice, styles.tableHeaderText]}>Vlr Unit</Text>
+          <Text style={[styles.tableColTotal, styles.tableHeaderText]}>Total</Text>
+        </View>
+
+        {/* Produtos */}
+        {productItems.length > 0 && (
+          <>
+            <View style={[styles.subtotalRow, { backgroundColor: '#E8F4FD' }]}>
+              <Text style={[styles.subtotalLabel, { fontWeight: 'bold' }]}>PRODUTOS</Text>
+              <Text style={styles.subtotalValue}></Text>
+            </View>
+            {productItems.map((item, idx) => (
+              <View key={`prod-${idx}`} style={[styles.tableRow, idx === productItems.length - 1 && styles.tableRowLast]}>
+                <Text style={styles.tableColDesc}>{item.description}</Text>
+                <Text style={styles.tableColQty}>{item.qty}</Text>
+                <Text style={styles.tableColPrice}>{formatCurrency(item.unitPrice)}</Text>
+                <Text style={styles.tableColTotal}>{formatCurrency(item.total)}</Text>
+              </View>
+            ))}
+            <View style={styles.subtotalRow}>
+              <Text style={styles.subtotalLabel}>Subtotal Produtos</Text>
+              <Text style={styles.subtotalValue}>{formatCurrency(financial.subtotals.products)}</Text>
+            </View>
+          </>
+        )}
+
+        {/* Serviços */}
+        {serviceItems.length > 0 && (
+          <>
+            <View style={[styles.subtotalRow, { backgroundColor: '#E8FDF4' }]}>
+              <Text style={[styles.subtotalLabel, { fontWeight: 'bold' }]}>SERVIÇOS</Text>
+              <Text style={styles.subtotalValue}></Text>
+            </View>
+            {serviceItems.map((item, idx) => (
+              <View key={`serv-${idx}`} style={[styles.tableRow, idx === serviceItems.length - 1 && styles.tableRowLast]}>
+                <Text style={styles.tableColDesc}>{item.description}</Text>
+                <Text style={styles.tableColQty}>{item.qty}</Text>
+                <Text style={styles.tableColPrice}>{formatCurrency(item.unitPrice)}</Text>
+                <Text style={styles.tableColTotal}>{formatCurrency(item.total)}</Text>
+              </View>
+            ))}
+            <View style={styles.subtotalRow}>
+              <Text style={styles.subtotalLabel}>Subtotal Serviços</Text>
+              <Text style={styles.subtotalValue}>{formatCurrency(financial.subtotals.services)}</Text>
+            </View>
+          </>
+        )}
+
+        {/* Descontos da OS */}
+        {(financial.osDiscounts.partsValue > 0 || financial.osDiscounts.servicesValue > 0 || financial.osDiscounts.totalValue > 0) && (
+          <>
+            {financial.osDiscounts.partsValue > 0 && (
+              <View style={styles.subtotalRow}>
+                <Text style={[styles.subtotalLabel, { color: '#DC2626' }]}>
+                  Desconto Peças {financial.osDiscounts.partsType === 'percentage' ? `(${financial.osDiscounts.partsValue}%)` : ''}
+                </Text>
+                <Text style={[styles.subtotalValue, { color: '#DC2626' }]}>
+                  -{formatCurrency(financial.osDiscounts.partsType === 'percentage' 
+                    ? (financial.subtotals.products * financial.osDiscounts.partsValue / 100)
+                    : financial.osDiscounts.partsValue)}
+                </Text>
+              </View>
+            )}
+            {financial.osDiscounts.servicesValue > 0 && (
+              <View style={styles.subtotalRow}>
+                <Text style={[styles.subtotalLabel, { color: '#DC2626' }]}>
+                  Desconto Serviços {financial.osDiscounts.servicesType === 'percentage' ? `(${financial.osDiscounts.servicesValue}%)` : ''}
+                </Text>
+                <Text style={[styles.subtotalValue, { color: '#DC2626' }]}>
+                  -{formatCurrency(financial.osDiscounts.servicesType === 'percentage'
+                    ? (financial.subtotals.services * financial.osDiscounts.servicesValue / 100)
+                    : financial.osDiscounts.servicesValue)}
+                </Text>
+              </View>
+            )}
+            {financial.osDiscounts.totalValue > 0 && (
+              <View style={styles.subtotalRow}>
+                <Text style={[styles.subtotalLabel, { color: '#DC2626' }]}>
+                  Desconto Geral {financial.osDiscounts.totalType === 'percentage' ? `(${financial.osDiscounts.totalValue}%)` : ''}
+                </Text>
+                <Text style={[styles.subtotalValue, { color: '#DC2626' }]}>
+                  -{formatCurrency(financial.osDiscounts.totalType === 'percentage'
+                    ? ((financial.subtotals.products + financial.subtotals.services) * financial.osDiscounts.totalValue / 100)
+                    : financial.osDiscounts.totalValue)}
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Total Geral */}
+        <View style={styles.grandTotalRow}>
+          <Text style={styles.grandTotalLabel}>TOTAL GERAL</Text>
+          <Text style={styles.grandTotalValue}>{formatCurrency(financial.grandTotal)}</Text>
+        </View>
+      </View>
+
+      {/* Parcelas */}
+      {financial.installments.length > 0 && (
+        <View style={{ marginTop: 12 }}>
+          <View style={styles.sectionTitle}>
+            <Text>CONDIÇÕES DE PAGAMENTO</Text>
+          </View>
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.installmentLabel, styles.tableHeaderText]}>Parcela</Text>
+              <Text style={[styles.installmentDate, styles.tableHeaderText]}>Vencimento</Text>
+              <Text style={[styles.installmentMethod, styles.tableHeaderText]}>Forma</Text>
+              <Text style={[styles.installmentAmount, styles.tableHeaderText]}>Valor</Text>
+            </View>
+            {financial.installments.map((inst, idx) => (
+              <View key={idx} style={[styles.installmentRow, idx === financial.installments.length - 1 && styles.tableRowLast]}>
+                <Text style={styles.installmentLabel}>
+                  {inst.number}/{financial.installments.length}
+                </Text>
+                <Text style={styles.installmentDate}>{inst.dueDate}</Text>
+                <Text style={styles.installmentMethod}>{inst.paymentMethod || '-'}</Text>
+                <Text style={styles.installmentAmount}>{formatCurrency(inst.amount)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
 
 // Componente Principal
 export const OSReport = ({ data }: { data: Report }) => {
@@ -636,6 +939,11 @@ export const OSReport = ({ data }: { data: Report }) => {
               </Text>
             )}
           </View>
+        )}
+
+        {/* SEÇÃO FINANCEIRA (apenas para relatório completo) */}
+        {data.financial && (
+          <FinancialSection financial={data.financial} />
         )}
 
         {/* Assinaturas (sempre por último) */}
