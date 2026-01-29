@@ -1087,6 +1087,78 @@ export type Database = {
         }
         Relationships: []
       }
+      technician_reimbursements: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          id: string
+          notes: string | null
+          ocr_extracted_amount: number | null
+          paid_at: string | null
+          payment_proof_url: string | null
+          receipt_photo_url: string
+          requested_at: string
+          service_call_id: string
+          status: string
+          technician_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          ocr_extracted_amount?: number | null
+          paid_at?: string | null
+          payment_proof_url?: string | null
+          receipt_photo_url: string
+          requested_at?: string
+          service_call_id: string
+          status?: string
+          technician_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          ocr_extracted_amount?: number | null
+          paid_at?: string | null
+          payment_proof_url?: string | null
+          receipt_photo_url?: string
+          requested_at?: string
+          service_call_id?: string
+          status?: string
+          technician_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_reimbursements_service_call_id_fkey"
+            columns: ["service_call_id"]
+            isOneToOne: false
+            referencedRelation: "service_calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_reimbursements_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       technicians: {
         Row: {
           active: boolean
