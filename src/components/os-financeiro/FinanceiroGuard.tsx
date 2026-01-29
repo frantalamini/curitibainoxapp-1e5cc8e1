@@ -22,10 +22,13 @@ interface FinanceiroGuardProps {
  * sem revisão cuidadosa. A aba Financeiro DEVE sempre existir no DOM.
  */
 export const FinanceiroGuard = ({ serviceCallId, clientId }: FinanceiroGuardProps) => {
-  const { isAdmin, loading, error, refetch, roles } = useUserRole();
+  const { isAdmin, isTechnician, loading, error, refetch, roles } = useUserRole();
+  
+  // Regra: técnicos NUNCA veem financeiro, mesmo sendo admin
+  const canAccessFinanceiro = isAdmin && !isTechnician;
   
   // DEBUG: Log para diagnóstico
-  console.log("🔐 FinanceiroGuard - loading:", loading, "error:", error, "isAdmin:", isAdmin, "roles:", roles);
+  console.log("🔐 FinanceiroGuard - loading:", loading, "error:", error, "isAdmin:", isAdmin, "isTechnician:", isTechnician, "canAccess:", canAccessFinanceiro, "roles:", roles);
 
   // Estado: Carregando permissões
   if (loading) {
@@ -53,8 +56,8 @@ export const FinanceiroGuard = ({ serviceCallId, clientId }: FinanceiroGuardProp
     );
   }
 
-  // Estado: Usuário não é admin
-  if (!isAdmin) {
+  // Estado: Usuário não tem acesso (técnicos não veem, mesmo sendo admin)
+  if (!canAccessFinanceiro) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
         <Lock className="w-8 h-8" />
