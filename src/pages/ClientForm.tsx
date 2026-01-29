@@ -344,7 +344,7 @@ const ClientForm = () => {
 
   return (
     <MainLayout>
-      <div className="max-w-2xl space-y-6">
+      <div className="container mx-auto px-4 py-6 max-w-2xl space-y-6">
         <form onSubmit={handleSubmit(onValid)} className="space-y-6">
           {/* Header sticky com botões no topo - DENTRO do form */}
           <div className="sticky top-0 z-20 bg-background pb-4 border-b">

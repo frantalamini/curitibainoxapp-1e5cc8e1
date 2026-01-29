@@ -130,8 +130,8 @@ const ChecklistForm = () => {
 
   return (
     <MainLayout>
-      <div className="p-8">
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
+      <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold">
               {isEditMode ? "Editar Checklist" : "Novo Checklist"}
