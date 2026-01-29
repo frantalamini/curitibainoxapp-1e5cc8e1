@@ -39,7 +39,7 @@ const ServiceCallTrips = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-full min-w-0 space-y-6">
+      <div className="container mx-auto px-4 py-6 space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Route className="h-8 w-8 flex-shrink-0" />

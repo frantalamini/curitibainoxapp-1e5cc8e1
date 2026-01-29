@@ -84,7 +84,7 @@ const ServiceTypeForm = () => {
 
   return (
     <MainLayout>
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="container mx-auto px-4 py-6 max-w-2xl space-y-6">
         <div>
           <h1 className="text-3xl font-bold">
             {id ? "Editar" : "Novo"} Tipo de Serviço

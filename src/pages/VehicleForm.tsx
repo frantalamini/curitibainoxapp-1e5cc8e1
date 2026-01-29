@@ -210,7 +210,7 @@ const VehicleForm = () => {
 
   return (
     <MainLayout>
-      <div className="p-8 max-w-2xl">
+      <div className="container mx-auto px-4 py-6 max-w-2xl space-y-6">
         <h1 className="text-3xl font-bold mb-6">
           {id ? "Editar Veículo" : "Novo Veículo"}
         </h1>
