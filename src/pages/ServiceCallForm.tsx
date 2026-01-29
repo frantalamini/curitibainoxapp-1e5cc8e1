@@ -362,6 +362,12 @@ const ServiceCallForm = () => {
       setInternalNotesText(existingCall.internal_notes_text || "");
       setExistingTechnicalAudioUrl(existingCall.technical_diagnosis_audio_url || null);
       
+      // Se já existe um relatório gerado, habilitar botão de WhatsApp
+      if ((existingCall as any).report_pdf_path && (existingCall as any).report_access_token) {
+        // Usar a URL pública do relatório para compartilhamento
+        setGeneratedPdfUrl(`https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${(existingCall as any).report_access_token}`);
+      }
+      
       // Marca como inicializado para evitar re-inicializações
       initializedRef.current = true;
     }
