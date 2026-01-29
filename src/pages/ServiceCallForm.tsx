@@ -199,7 +199,18 @@ const ServiceCallForm = () => {
   const handleStartTrip = async (vehicleId: string) => {
     if (!id || !existingCall) return;
 
-    // Buscar quilometragem atual do veículo
+    // IMPORTANTE: Abrir Google Maps PRIMEIRO (sincronamente) para evitar bloqueio de popup
+    // Navegadores bloqueiam window.open se não for resultado direto de clique do usuário
+    if (existingCall.clients) {
+      const address = buildFullAddress(existingCall.clients);
+      if (address) {
+        const encodedAddress = encodeURIComponent(address);
+        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}&travelmode=driving`;
+        window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+      }
+    }
+
+    // Buscar quilometragem atual do veículo (após abrir GPS)
     const { data: vehicleData } = await supabase
       .from("vehicles")
       .select("current_odometer_km")
@@ -214,16 +225,6 @@ const ServiceCallForm = () => {
       vehicle_id: vehicleId,
       start_odometer_km: startOdometer,
     });
-
-    // Abrir Google Maps com endereço do cliente
-    if (existingCall.clients) {
-      const address = buildFullAddress(existingCall.clients);
-      if (address) {
-        const encodedAddress = encodeURIComponent(address);
-        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}&travelmode=driving`;
-        window.open(mapsUrl, '_blank', 'noopener,noreferrer');
-      }
-    }
 
     setStartTripModalOpen(false);
   };
