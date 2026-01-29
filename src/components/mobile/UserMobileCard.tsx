@@ -1,37 +1,46 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { AppRole, UserWithRole } from "@/hooks/useUsers";
-import { Pencil, Trash2, UserPlus, Shield } from "lucide-react";
+import { UserWithRole } from "@/hooks/useUsers";
+import { PROFILE_LABELS, ProfileType } from "@/hooks/useUserPermissions";
+import { Pencil, Trash2, Shield, ShieldCheck, ShieldAlert } from "lucide-react";
 
 interface UserMobileCardProps {
   user: UserWithRole;
   currentUserId: string | null;
   onEdit: (user: UserWithRole) => void;
-  onAddRole: (userId: string) => void;
-  onRemoveRole: (userId: string, role: AppRole) => void;
   onDelete: (userId: string, userName: string) => void;
 }
 
-const getRoleBadgeVariant = (role: AppRole) => {
-  switch (role) {
-    case "admin":
-      return "destructive";
-    case "technician":
-      return "default";
-    default:
-      return "secondary";
+const getProfileBadge = (profileType: ProfileType | null | undefined) => {
+  if (!profileType) {
+    return <Badge variant="outline" className="text-muted-foreground text-xs">Não configurado</Badge>;
   }
-};
-
-const getRoleLabel = (role: AppRole) => {
-  switch (role) {
-    case "admin":
-      return "Admin";
-    case "technician":
-      return "Técnico";
+  
+  switch (profileType) {
+    case "gerencial":
+      return (
+        <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs">
+          <ShieldCheck className="h-3 w-3 mr-1" />
+          {PROFILE_LABELS.gerencial}
+        </Badge>
+      );
+    case "adm":
+      return (
+        <Badge variant="secondary" className="bg-blue-600 text-white hover:bg-blue-700 text-xs">
+          <Shield className="h-3 w-3 mr-1" />
+          {PROFILE_LABELS.adm}
+        </Badge>
+      );
+    case "tecnico":
+      return (
+        <Badge variant="outline" className="border-amber-500 text-amber-600 text-xs">
+          <ShieldAlert className="h-3 w-3 mr-1" />
+          {PROFILE_LABELS.tecnico}
+        </Badge>
+      );
     default:
-      return "Usuário";
+      return <Badge variant="outline" className="text-xs">-</Badge>;
   }
 };
 
@@ -39,8 +48,6 @@ export function UserMobileCard({
   user,
   currentUserId,
   onEdit,
-  onAddRole,
-  onRemoveRole,
   onDelete,
 }: UserMobileCardProps) {
   return (
@@ -59,35 +66,13 @@ export function UserMobileCard({
               )}
             </div>
           </div>
+          {getProfileBadge(user.profile_type)}
         </div>
 
         {/* Info */}
         <div className="space-y-1 text-sm text-muted-foreground">
           {user.phone && <p>📞 {user.phone}</p>}
           {user.email && <p className="truncate">📧 {user.email}</p>}
-        </div>
-
-        {/* Roles */}
-        <div className="flex flex-wrap gap-1.5">
-          {user.roles.length === 0 ? (
-            <Badge variant="secondary">Sem role</Badge>
-          ) : (
-            user.roles.map((role) => (
-              <Badge
-                key={role}
-                variant={getRoleBadgeVariant(role)}
-                className="gap-1"
-              >
-                {getRoleLabel(role)}
-                <button
-                  onClick={() => onRemoveRole(user.user_id, role)}
-                  className="ml-1 hover:bg-background/20 rounded-full p-0.5"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))
-          )}
         </div>
 
         {/* Actions */}
@@ -100,15 +85,6 @@ export function UserMobileCard({
           >
             <Pencil className="h-4 w-4 mr-1" />
             Editar
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 min-w-0"
-            onClick={() => onAddRole(user.user_id)}
-          >
-            <UserPlus className="h-4 w-4 mr-1" />
-            Role
           </Button>
           <Button
             size="sm"

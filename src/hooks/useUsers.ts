@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
+import { ProfileType } from "./useUserPermissions";
+
 export type AppRole = "admin" | "technician";
 
 export interface UserWithRole {
@@ -12,6 +14,7 @@ export interface UserWithRole {
   email?: string;
   phone?: string;
   roles: AppRole[];
+  profile_type?: ProfileType | null;
 }
 
 export const useAllUsers = () => {
@@ -19,10 +22,10 @@ export const useAllUsers = () => {
     queryKey: ["all-users"],
     queryFn: async () => {
       // Buscar todos os perfis
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id, user_id, full_name, username, phone, email")
-      .order("full_name");
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, user_id, full_name, username, phone, email")
+        .order("full_name");
 
       if (profilesError) throw profilesError;
 
@@ -33,11 +36,22 @@ export const useAllUsers = () => {
 
       if (rolesError) throw rolesError;
 
+      // Buscar permissões para obter profile_type
+      const { data: userPermissions, error: permsError } = await supabase
+        .from("user_permissions")
+        .select("user_id, profile_type");
+
+      if (permsError) throw permsError;
+
       // Combinar dados
       const usersWithRoles: UserWithRole[] = profiles.map((profile) => {
         const roles = userRoles
           .filter((ur) => ur.user_id === profile.user_id)
           .map((ur) => ur.role as AppRole);
+
+        // Pegar o primeiro profile_type encontrado para o usuário
+        const userPerm = userPermissions.find((up) => up.user_id === profile.user_id);
+        const profile_type = userPerm?.profile_type as ProfileType | undefined;
 
         return {
           id: profile.id,
@@ -47,6 +61,7 @@ export const useAllUsers = () => {
           email: profile.email || undefined,
           phone: profile.phone,
           roles,
+          profile_type: profile_type || null,
         };
       });
 
@@ -198,7 +213,8 @@ export const useCreateUser = () => {
       password, 
       full_name, 
       phone, 
-      role 
+      role,
+      profile_type,
     }: { 
       username: string;
       email: string; 
@@ -206,8 +222,9 @@ export const useCreateUser = () => {
       full_name: string; 
       phone?: string; 
       role: AppRole;
+      profile_type: ProfileType;
     }) => {
-      console.log('[useCreateUser] Chamando edge function com:', { username, email, role });
+      console.log('[useCreateUser] Chamando edge function com:', { username, email, role, profile_type });
       
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: { username, email, password, full_name, phone, role }
@@ -226,6 +243,36 @@ export const useCreateUser = () => {
         const errorMsg = data?.error || 'Erro ao criar usuário';
         console.error('[useCreateUser] Operação falhou:', errorMsg);
         throw new Error(errorMsg);
+      }
+      
+      // Criar permissões para o novo usuário
+      const userId = data.user_id;
+      if (userId && profile_type) {
+        console.log('[useCreateUser] Criando permissões para:', userId, profile_type);
+        
+        const modules: Array<"service_calls" | "clients" | "technicians" | "vehicles" | "products" | "equipment" | "schedule" | "finances" | "settings" | "users" | "checklists" | "service_types" | "service_statuses" | "payment_methods" | "reimbursements"> = [
+          'service_calls', 'clients', 'technicians', 'vehicles', 'products',
+          'equipment', 'schedule', 'finances', 'settings', 'users',
+          'checklists', 'service_types', 'service_statuses', 'payment_methods', 'reimbursements'
+        ];
+        
+        const permissionsToInsert = modules.map((module) => ({
+          user_id: userId as string,
+          profile_type: profile_type as "gerencial" | "adm" | "tecnico",
+          module: module,
+          can_view: profile_type === 'gerencial',
+          can_edit: profile_type === 'gerencial',
+          can_delete: profile_type === 'gerencial',
+        }));
+        
+        const { error: permsError } = await supabase
+          .from('user_permissions')
+          .insert(permissionsToInsert);
+        
+        if (permsError) {
+          console.error('[useCreateUser] Erro ao criar permissões:', permsError);
+          // Não falha a criação do usuário por causa das permissões
+        }
       }
       
       console.log('[useCreateUser] Usuário criado com sucesso');

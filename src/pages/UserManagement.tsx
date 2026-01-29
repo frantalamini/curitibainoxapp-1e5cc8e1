@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useAllUsers, useAddUserRole, useRemoveUserRole, useCreateUser, useDeleteUser, AppRole, UserWithRole } from "@/hooks/useUsers";
+import { useAllUsers, useCreateUser, useDeleteUser, UserWithRole, AppRole } from "@/hooks/useUsers";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { PROFILE_LABELS, ProfileType } from "@/hooks/useUserPermissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Trash2, Shield, Search, Plus, Pencil } from "lucide-react";
+import { UserPlus, Trash2, Shield, Search, Plus, Pencil, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/MainLayout";
 import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
@@ -52,24 +53,14 @@ export default function UserManagement() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const { data: users, isLoading } = useAllUsers();
   const isMobile = useIsMobile();
-  const addRole = useAddUserRole();
-  const removeRole = useRemoveUserRole();
   const createUser = useCreateUser();
   const deleteUser = useDeleteUser();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [addRoleDialogOpen, setAddRoleDialogOpen] = useState(false);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserWithRole | null>(null);
-  const [selectedRole, setSelectedRole] = useState<AppRole>("technician");
-  const [removeRoleDialog, setRemoveRoleDialog] = useState<{
-    open: boolean;
-    userId: string | null;
-    role: AppRole | null;
-  }>({ open: false, userId: null, role: null });
 
   const [deleteUserDialog, setDeleteUserDialog] = useState<{
     open: boolean;
@@ -85,6 +76,7 @@ export default function UserManagement() {
     full_name: "",
     phone: "",
     role: "technician" as AppRole,
+    profile_type: "tecnico" as ProfileType,
   });
 
   // Pegar o user_id do usuário atual
@@ -115,53 +107,35 @@ export default function UserManagement() {
       user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddRole = () => {
-    if (selectedUser && selectedRole) {
-      addRole.mutate(
-        { userId: selectedUser, role: selectedRole },
-        {
-          onSuccess: () => {
-            setAddRoleDialogOpen(false);
-            setSelectedUser(null);
-            setSelectedRole("technician");
-          },
-        }
-      );
+  const getProfileBadge = (profileType: ProfileType | null | undefined) => {
+    if (!profileType) {
+      return <Badge variant="outline" className="text-muted-foreground">Não configurado</Badge>;
     }
-  };
-
-  const handleRemoveRole = () => {
-    if (removeRoleDialog.userId && removeRoleDialog.role) {
-      removeRole.mutate(
-        { userId: removeRoleDialog.userId, role: removeRoleDialog.role },
-        {
-          onSuccess: () => {
-            setRemoveRoleDialog({ open: false, userId: null, role: null });
-          },
-        }
-      );
-    }
-  };
-
-  const getRoleBadgeVariant = (role: AppRole) => {
-    switch (role) {
-      case "admin":
-        return "destructive";
-      case "technician":
-        return "default";
+    
+    switch (profileType) {
+      case "gerencial":
+        return (
+          <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+            <ShieldCheck className="h-3 w-3 mr-1" />
+            {PROFILE_LABELS.gerencial}
+          </Badge>
+        );
+      case "adm":
+        return (
+          <Badge variant="secondary" className="bg-blue-600 text-white hover:bg-blue-700">
+            <Shield className="h-3 w-3 mr-1" />
+            {PROFILE_LABELS.adm}
+          </Badge>
+        );
+      case "tecnico":
+        return (
+          <Badge variant="outline" className="border-amber-500 text-amber-600">
+            <ShieldAlert className="h-3 w-3 mr-1" />
+            {PROFILE_LABELS.tecnico}
+          </Badge>
+        );
       default:
-        return "secondary";
-    }
-  };
-
-  const getRoleLabel = (role: AppRole) => {
-    switch (role) {
-      case "admin":
-        return "Admin";
-      case "technician":
-        return "Técnico";
-      default:
-        return "Usuário";
+        return <Badge variant="outline">-</Badge>;
     }
   };
 
@@ -180,6 +154,7 @@ export default function UserManagement() {
           full_name: "",
           phone: "",
           role: "technician",
+          profile_type: "tecnico",
         });
       },
     });
@@ -243,13 +218,6 @@ export default function UserManagement() {
                       setSelectedUserForEdit(u);
                       setEditUserDialogOpen(true);
                     }}
-                    onAddRole={(userId) => {
-                      setSelectedUser(userId);
-                      setAddRoleDialogOpen(true);
-                    }}
-                    onRemoveRole={(userId, role) => {
-                      setRemoveRoleDialog({ open: true, userId, role });
-                    }}
                     onDelete={(userId, userName) => {
                       setDeleteUserDialog({ open: true, userId, userName });
                     }}
@@ -267,10 +235,10 @@ export default function UserManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[28%]">Nome</TableHead>
+                      <TableHead className="w-[30%]">Nome</TableHead>
                       <TableHead className="w-[15%]">Username</TableHead>
-                      <TableHead className="w-[12%]">Telefone</TableHead>
-                      <TableHead className="w-[20%]">Roles</TableHead>
+                      <TableHead className="w-[15%]">Perfil</TableHead>
+                      <TableHead className="w-[15%]">Telefone</TableHead>
                       <TableHead className="w-[25%] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -287,36 +255,10 @@ export default function UserManagement() {
                             "-"
                           )}
                         </TableCell>
-                        <TableCell className="text-sm cell-truncate">{user.phone || "-"}</TableCell>
                         <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {user.roles.length === 0 ? (
-                              <Badge variant="secondary">Sem role</Badge>
-                            ) : (
-                              user.roles.map((role) => (
-                                <Badge
-                                  key={role}
-                                  variant={getRoleBadgeVariant(role)}
-                                  className="gap-1"
-                                >
-                                  {getRoleLabel(role)}
-                                  <button
-                                    onClick={() =>
-                                      setRemoveRoleDialog({
-                                        open: true,
-                                        userId: user.user_id,
-                                        role,
-                                      })
-                                    }
-                                    className="ml-1 hover:bg-background/20 rounded-full p-0.5"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </Badge>
-                              ))
-                            )}
-                          </div>
+                          {getProfileBadge(user.profile_type)}
                         </TableCell>
+                        <TableCell className="text-sm cell-truncate">{user.phone || "-"}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
                             <Button
@@ -330,18 +272,6 @@ export default function UserManagement() {
                             >
                               <Pencil className="h-3 w-3 mr-1" />
                               Editar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs px-2"
-                              onClick={() => {
-                                setSelectedUser(user.user_id);
-                                setAddRoleDialogOpen(true);
-                              }}
-                            >
-                              <UserPlus className="h-3 w-3 mr-1" />
-                              Role
                             </Button>
                             <Button
                               size="sm"
@@ -369,61 +299,6 @@ export default function UserManagement() {
             )}
           </CardContent>
         </Card>
-
-        <Dialog open={addRoleDialogOpen} onOpenChange={setAddRoleDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Adicionar Role ao Usuário</DialogTitle>
-              <DialogDescription>
-                Selecione a role que deseja atribuir ao usuário selecionado.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as AppRole)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="technician">Técnico</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setAddRoleDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleAddRole} disabled={addRole.isPending}>
-                {addRole.isPending ? "Adicionando..." : "Adicionar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <AlertDialog
-          open={removeRoleDialog.open}
-          onOpenChange={(open) =>
-            !open && setRemoveRoleDialog({ open: false, userId: null, role: null })
-          }
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Remover Role</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja remover a role "{removeRoleDialog.role && getRoleLabel(removeRoleDialog.role)}" deste usuário? Esta ação pode afetar as permissões de acesso.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleRemoveRole}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Remover
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
@@ -488,17 +363,18 @@ export default function UserManagement() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Perfil Inicial *</Label>
+                <Label htmlFor="profile_type">Tipo de Perfil *</Label>
                 <Select 
-                  value={newUserForm.role} 
-                  onValueChange={(value) => setNewUserForm({ ...newUserForm, role: value as AppRole })}
+                  value={newUserForm.profile_type} 
+                  onValueChange={(value) => setNewUserForm({ ...newUserForm, profile_type: value as ProfileType })}
                 >
-                  <SelectTrigger id="role">
+                  <SelectTrigger id="profile_type">
                     <SelectValue placeholder="Selecione o perfil" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="technician">Técnico</SelectItem>
+                    <SelectItem value="gerencial">Gerencial (Acesso Total)</SelectItem>
+                    <SelectItem value="adm">Administrativo (Acesso Restrito)</SelectItem>
+                    <SelectItem value="tecnico">Técnico (Acesso Limitado)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -515,6 +391,7 @@ export default function UserManagement() {
                     full_name: "",
                     phone: "",
                     role: "technician",
+                    profile_type: "tecnico",
                   });
                 }}
                 className="w-full sm:w-auto"
