@@ -148,78 +148,14 @@ const ServiceCalls = () => {
                 : "Clique em 'Novo Chamado' para criar o primeiro"}
             </p>
           </div>
-        ) : isMobile ? (
-          <div className="space-y-3">
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {sortedCalls.map((call) => (
               <ServiceCallMobileCard
                 key={call.id}
                 call={call}
                 onClick={() => navigate(`/service-calls/${call.id}`)}
               />
-            ))}
-          </div>
-        ) : (
-          /* LISTA COMPACTA DESKTOP - substitui tabela */
-          <div className="border rounded-lg bg-card divide-y divide-border">
-            {sortedCalls.map((call) => (
-              <div
-                key={call.id}
-                role="button"
-                tabIndex={0}
-                className="p-3 hover:bg-muted/50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset"
-                onClick={() => navigate(`/service-calls/${call.id}`)}
-                onKeyDown={(e) => handleRowKeyDown(e as unknown as React.KeyboardEvent<HTMLTableRowElement>, call.id)}
-              >
-                {/* Grid responsivo: 1 linha em desktop, quebra em telas menores */}
-                <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 md:grid-cols-[60px_1fr_80px_100px_auto_auto] md:items-center">
-                  {/* OS Number */}
-                  <div className="font-mono text-sm font-semibold text-primary">
-                    #{call.os_number}
-                  </div>
-                  
-                  {/* Cliente - ocupa espaço restante na primeira linha mobile */}
-                  <div className="min-w-0 md:col-span-1">
-                    <div className="font-medium text-sm truncate">{call.clients?.full_name || "-"}</div>
-                    <div className="text-xs text-muted-foreground truncate">{call.clients?.phone || "-"}</div>
-                  </div>
-                  
-                  {/* Data */}
-                  <div className="text-sm text-muted-foreground col-start-2 md:col-start-auto">
-                    {formatDate(call.scheduled_date)}
-                  </div>
-                  
-                  {/* Técnico */}
-                  <div className="text-sm truncate">
-                    {call.technicians?.full_name?.split(' ')[0] || "-"}
-                  </div>
-                  
-                  {/* Status Técnico */}
-                  {call.service_call_statuses ? (
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/50 w-fit">
-                      <div
-                        className="w-2 h-2 rounded-sm shrink-0"
-                        style={{ backgroundColor: call.service_call_statuses.color }}
-                      />
-                      <span className="text-xs truncate max-w-[100px]">{call.service_call_statuses.name}</span>
-                    </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground">-</div>
-                  )}
-                  
-                  {/* Status Comercial */}
-                  {call.commercial_status ? (
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/50 w-fit">
-                      <div
-                        className="w-2 h-2 rounded-sm shrink-0"
-                        style={{ backgroundColor: call.commercial_status.color }}
-                      />
-                      <span className="text-xs truncate max-w-[100px]">{call.commercial_status.name}</span>
-                    </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground">-</div>
-                  )}
-                </div>
-              </div>
             ))}
           </div>
         )}
