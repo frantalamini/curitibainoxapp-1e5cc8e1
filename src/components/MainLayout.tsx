@@ -91,6 +91,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: "chamadosTecnicos", label: "Ordens de Serviço", to: "/service-calls" },
         { icon: "checklist", label: "Notas de Serviço", to: "/service-notes" },
         { icon: "relatorios", label: "Relatórios", to: "/service-reports" },
+        { icon: "financeiro", label: "Reembolso Técnico", to: "/technician-reimbursements" },
       ],
     },
     {

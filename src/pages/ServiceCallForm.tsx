@@ -54,7 +54,6 @@ import { EndTripModal } from "@/components/EndTripModal";
 import { useOpenTrip, useHasCompletedTrip, useServiceCallTripsMutations } from "@/hooks/useServiceCallTrips";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FinanceiroGuard } from "@/components/os-financeiro/FinanceiroGuard";
-import { TechnicianReimbursementButton } from "@/components/os-financeiro/TechnicianReimbursementButton";
 
 type Signature = {
   image_url: string;
@@ -1799,10 +1798,6 @@ const ServiceCallForm = () => {
                       </Button>
                     )}
                     
-                    {/* Technician: Reimbursement request button */}
-                    {isTechnician && id && (
-                      <TechnicianReimbursementButton serviceCallId={id} />
-                    )}
                     {/* Admin: ambas opções */}
                     {isAdmin && (
                       <>
