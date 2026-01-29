@@ -504,6 +504,18 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
+  // === Update notes for a single transaction (inline) ===
+  const handleUpdateTransactionNotes = async (transactionId: string, notes: string) => {
+    try {
+      await updateTransaction.mutateAsync({
+        id: transactionId,
+        notes: notes || null,
+      });
+    } catch (error) {
+      toast({ title: "Erro ao atualizar observação", variant: "destructive" });
+    }
+  };
+
   // === Calculate days from first installment ===
   const calculateDays = (t: any, index: number): number => {
     if (transactions.length === 0) return 0;
@@ -1000,10 +1012,10 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                       <TableHead className="py-1 px-1 w-10">Nº</TableHead>
                       <TableHead className="py-1 px-1 w-10 text-right">Dias</TableHead>
                       <TableHead className="py-1 px-1 w-20">Data</TableHead>
-                      <TableHead className="py-1 px-1 w-16 text-right">Valor</TableHead>
-                      <TableHead className="py-1 px-1 w-20">Forma</TableHead>
-                      <TableHead className="py-1 px-1">Obs</TableHead>
-                      <TableHead className="py-1 px-1 w-16">Ações</TableHead>
+                      <TableHead className="py-1 px-1 w-20 text-right">Valor</TableHead>
+                      <TableHead className="py-1 px-1 w-28">Forma</TableHead>
+                      <TableHead className="py-1 px-1 w-32">Obs</TableHead>
+                      <TableHead className="py-1 px-1 w-20">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1095,7 +1107,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                           <TableCell className="py-1 px-2">
                             {isEditing ? (
                               <Select value={editPaymentMethod} onValueChange={setEditPaymentMethod}>
-                                <SelectTrigger className="h-7 text-xs w-full">
+                                <SelectTrigger className="h-7 text-xs w-28">
                                   <SelectValue placeholder="Selecionar" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1111,7 +1123,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                                 value={t.payment_method || ''} 
                                 onValueChange={(v) => handleUpdateTransactionPaymentMethod(t.id, v)}
                               >
-                                <SelectTrigger className="h-7 text-xs w-full">
+                                <SelectTrigger className="h-7 text-xs w-28">
                                   <SelectValue placeholder="Selecionar" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1127,21 +1139,32 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                             )}
                           </TableCell>
                           
-                          {/* Observação */}
+                          {/* Observação - Editável inline */}
                           <TableCell className="py-1 px-2">
                             {isEditing ? (
                               <Input 
                                 type="text" 
                                 placeholder="Observação..."
                                 className="h-7 text-xs w-full"
+                                maxLength={100}
                                 value={editNotes} 
                                 onChange={e => setEditNotes(e.target.value)} 
                               />
+                            ) : t.status === "OPEN" ? (
+                              <Input 
+                                type="text" 
+                                placeholder="Observação..."
+                                className="h-7 text-xs w-full"
+                                maxLength={100}
+                                defaultValue={t.notes || ''}
+                                onBlur={(e) => {
+                                  if (e.target.value !== (t.notes || '')) {
+                                    handleUpdateTransactionNotes(t.id, e.target.value);
+                                  }
+                                }}
+                              />
                             ) : (
-                              <span 
-                                className={cn("text-muted-foreground", t.status === "OPEN" && "cursor-pointer hover:underline")}
-                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t, index)}
-                              >
+                              <span className="text-xs text-muted-foreground truncate">
                                 {t.notes || "-"}
                               </span>
                             )}
