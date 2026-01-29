@@ -29,12 +29,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/hooks/useProducts";
 import { useServiceCallItems, ItemType, ServiceCallItem } from "@/hooks/useServiceCallItems";
 import { useFinancialTransactions } from "@/hooks/useFinancialTransactions";
 import { useServiceCall } from "@/hooks/useServiceCalls";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { useTechnicianReimbursements } from "@/hooks/useTechnicianReimbursements";
 import { 
   useFinancialCalculations, 
   generateInstallments, 
@@ -62,6 +64,7 @@ import {
   ListOrdered,
   Trash,
   AlertTriangle,
+  Wallet,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QuickProductForm } from "./QuickProductForm";
@@ -69,6 +72,7 @@ import { DiscountType, PaymentMode } from "./types";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { OperationalCostsTab } from "./OperationalCostsTab";
 
 interface FinanceiroTabProps {
   serviceCallId: string;
@@ -125,7 +129,8 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     isLoading: isLoadingTransactions,
   } = useFinancialTransactions(serviceCallId);
 
-  // Form states for adding items
+  // Reimbursements for costs tab badge
+  const { summary: reimbursementsSummary } = useTechnicianReimbursements({ serviceCallId });
   const [newProduct, setNewProduct] = useState({
     product_id: "",
     qty: 1,
@@ -592,10 +597,31 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     );
   }
 
+  // Get OS number for display
+  const osNumber = (serviceCall as any)?.os_number || 0;
+
   return (
-    <div className="space-y-4 w-full min-w-0 max-w-full">
-      {/* Peças/Produtos - Compact */}
-      <Card>
+    <Tabs defaultValue="orcamento" className="w-full">
+      <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsTrigger value="orcamento" className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4" />
+          <span>Orçamento</span>
+        </TabsTrigger>
+        <TabsTrigger value="custos" className="flex items-center gap-2">
+          <Wallet className="h-4 w-4" />
+          <span>Custos Operacionais</span>
+          {reimbursementsSummary.countPending > 0 && (
+            <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
+              {reimbursementsSummary.countPending}
+            </Badge>
+          )}
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="orcamento">
+        <div className="space-y-4 w-full min-w-0 max-w-full">
+          {/* Peças/Produtos - Compact */}
+          <Card>
         <CardHeader className="py-2 px-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <Package className="w-4 h-4" />
@@ -1273,6 +1299,12 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="custos">
+        <OperationalCostsTab serviceCallId={serviceCallId} osNumber={osNumber} />
+      </TabsContent>
+    </Tabs>
   );
 };
