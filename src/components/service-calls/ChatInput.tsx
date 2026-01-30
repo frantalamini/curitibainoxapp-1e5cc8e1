@@ -146,8 +146,13 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
         if (file.type.startsWith('image/')) fileType = 'image';
         else if (file.type.startsWith('audio/')) fileType = 'audio';
 
-        // Upload to storage
-        const fileName = `${Date.now()}-${file.name}`;
+        // Upload to storage - sanitize filename to avoid invalid characters
+        const sanitizedName = file.name
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+          .replace(/[^a-zA-Z0-9._-]/g, '_') // Substitui caracteres especiais por underscore
+          .replace(/_+/g, '_'); // Remove underscores duplicados
+        const fileName = `${Date.now()}-${sanitizedName}`;
         const filePath = `${serviceCallId}/${fileName}`;
         
         const { error: uploadError } = await supabase.storage
