@@ -229,12 +229,12 @@ export default function ContasAPagar() {
               </div>
               <div>
                 <Label className="text-xs">Fornecedor</Label>
-                <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                <Select value={supplierFilter || "__all__"} onValueChange={(v) => setSupplierFilter(v === "__all__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="__all__">Todos</SelectItem>
                     {suppliers?.map((s) => (
                       <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>
                     ))}
@@ -243,12 +243,12 @@ export default function ContasAPagar() {
               </div>
               <div>
                 <Label className="text-xs">Categoria</Label>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select value={categoryFilter || "__all__"} onValueChange={(v) => setCategoryFilter(v === "__all__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="__all__">Todas</SelectItem>
                     {expenseCategories?.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
@@ -378,14 +378,14 @@ export default function ContasAPagar() {
               <div>
                 <Label>Fornecedor</Label>
                 <Select
-                  value={form.client_id || ""}
-                  onValueChange={(v) => setForm({ ...form, client_id: v || null })}
+                  value={form.client_id || "__none__"}
+                  onValueChange={(v) => setForm({ ...form, client_id: v === "__none__" ? null : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
                     {suppliers?.map((s) => (
                       <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>
                     ))}
@@ -415,14 +415,14 @@ export default function ContasAPagar() {
               <div>
                 <Label>Categoria</Label>
                 <Select
-                  value={form.category_id || ""}
-                  onValueChange={(v) => setForm({ ...form, category_id: v || null })}
+                  value={form.category_id || "__none__"}
+                  onValueChange={(v) => setForm({ ...form, category_id: v === "__none__" ? null : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
                     {expenseCategories?.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
@@ -432,14 +432,14 @@ export default function ContasAPagar() {
               <div>
                 <Label>Centro de Custo</Label>
                 <Select
-                  value={form.cost_center_id || ""}
-                  onValueChange={(v) => setForm({ ...form, cost_center_id: v || null })}
+                  value={form.cost_center_id || "__none__"}
+                  onValueChange={(v) => setForm({ ...form, cost_center_id: v === "__none__" ? null : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
                     {costCenters?.filter(cc => cc.is_active).map((cc) => (
                       <SelectItem key={cc.id} value={cc.id}>{cc.name}</SelectItem>
                     ))}
@@ -449,14 +449,14 @@ export default function ContasAPagar() {
               <div>
                 <Label>Conta Bancária</Label>
                 <Select
-                  value={form.financial_account_id || ""}
-                  onValueChange={(v) => setForm({ ...form, financial_account_id: v || null })}
+                  value={form.financial_account_id || "__none__"}
+                  onValueChange={(v) => setForm({ ...form, financial_account_id: v === "__none__" ? null : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
                     {accounts?.filter(a => a.is_active).map((a) => (
                       <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                     ))}
@@ -507,12 +507,12 @@ export default function ContasAPagar() {
               </div>
               <div>
                 <Label>Conta Bancária (opcional)</Label>
-                <Select value={payAccountId} onValueChange={setPayAccountId}>
+                <Select value={payAccountId || "__none__"} onValueChange={(v) => setPayAccountId(v === "__none__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
                     {accounts?.filter(a => a.is_active).map((a) => (
                       <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                     ))}
