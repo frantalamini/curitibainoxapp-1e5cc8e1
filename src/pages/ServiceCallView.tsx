@@ -261,7 +261,7 @@ const ServiceCallView = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-0 pr-4 sm:pr-6 py-6 space-y-6">
         {/* Header estilo Tiny - Breadcrumb + Ações */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Lado esquerdo: Voltar + Breadcrumb */}
