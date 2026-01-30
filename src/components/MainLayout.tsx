@@ -8,10 +8,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
+import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Icon, Icons, type IconName } from "@/components/ui/icons";
 import { NotificationBell } from "@/components/mobile/NotificationBell";
+import { UserAvatar } from "@/components/UserAvatar";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -37,6 +39,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const { isAdmin } = useUserRole();
   const { settings } = useSystemSettings();
   const { data: newCallsCount = 0 } = useNewServiceCallsCount();
+  const { data: userProfile } = useCurrentUserProfile();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -285,7 +288,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 </span>
               </button>
             </div>
-            {/* Home button + Notification Bell */}
+            {/* Home button + User Avatar + Notification Bell */}
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
@@ -296,6 +299,14 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               >
                 <Icon name="home" size="md" />
               </Button>
+              {userProfile && (
+                <UserAvatar
+                  initial={userProfile.initial}
+                  name={userProfile.firstName}
+                  size="sm"
+                  showTooltip={false}
+                />
+              )}
               <NotificationBell />
             </div>
           </div>
@@ -330,8 +341,25 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               ))}
             </nav>
 
-            {/* Footer: Settings and Logout */}
-            <div className="mt-auto space-y-2">
+            {/* Footer: User Avatar, Settings and Logout */}
+            <div className="mt-auto space-y-2 flex flex-col items-center">
+              {/* User Avatar */}
+              {userProfile && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <UserAvatar
+                        initial={userProfile.initial}
+                        name={userProfile.firstName}
+                        size="md"
+                        showTooltip={false}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{userProfile.firstName}</TooltipContent>
+                </Tooltip>
+              )}
+
               {isAdmin && (
                 <Tooltip>
                   <TooltipTrigger asChild>
