@@ -66,6 +66,7 @@ const RelatorioCentroCusto = lazy(() => import("./pages/financas/RelatorioCentro
 const CustosPorTecnico = lazy(() => import("./pages/financas/CustosPorTecnico"));
 const CustosPorVeiculo = lazy(() => import("./pages/financas/CustosPorVeiculo"));
 const ConciliacaoBancaria = lazy(() => import("./pages/financas/ConciliacaoBancaria"));
+const OrcamentoMensal = lazy(() => import("./pages/financas/OrcamentoMensal"));
 
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
@@ -619,6 +620,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ConciliacaoBancaria />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financas/orcamento-mensal"
+              element={
+                <ProtectedRoute>
+                  <OrcamentoMensal />
                 </ProtectedRoute>
               }
             />
