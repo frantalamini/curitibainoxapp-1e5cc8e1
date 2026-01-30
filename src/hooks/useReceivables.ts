@@ -42,6 +42,17 @@ interface ReceivablesFilters {
   osNumber?: string;
 }
 
+export interface ReceivableInsert {
+  client_id?: string | null;
+  description: string;
+  due_date: string;
+  amount: number;
+  category_id?: string | null;
+  financial_account_id?: string | null;
+  payment_method?: string | null;
+  notes?: string | null;
+}
+
 export function useReceivables(filters?: ReceivablesFilters) {
   const queryClient = useQueryClient();
 
@@ -88,6 +99,84 @@ export function useReceivables(filters?: ReceivablesFilters) {
       }
 
       return result;
+    },
+  });
+
+  const createReceivable = useMutation({
+    mutationFn: async (data: ReceivableInsert) => {
+      const { error } = await supabase.from("financial_transactions").insert({
+        direction: "RECEIVE" as const,
+        origin: "MANUAL" as const,
+        status: "OPEN" as const,
+        client_id: data.client_id || null,
+        description: data.description,
+        due_date: data.due_date,
+        amount: data.amount,
+        category_id: data.category_id || null,
+        financial_account_id: data.financial_account_id || null,
+        payment_method: data.payment_method || null,
+        notes: data.notes || null,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["receivables"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
+      toast.success("Conta a receber criada!");
+    },
+    onError: (error) => {
+      console.error("Erro ao criar conta a receber:", error);
+      toast.error("Erro ao criar conta a receber");
+    },
+  });
+
+  const updateReceivable = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ReceivableInsert> }) => {
+      const { error } = await supabase
+        .from("financial_transactions")
+        .update({
+          client_id: data.client_id,
+          description: data.description,
+          due_date: data.due_date,
+          amount: data.amount,
+          category_id: data.category_id,
+          financial_account_id: data.financial_account_id,
+          payment_method: data.payment_method,
+          notes: data.notes,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["receivables"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
+      toast.success("Conta a receber atualizada!");
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar conta a receber:", error);
+      toast.error("Erro ao atualizar conta a receber");
+    },
+  });
+
+  const deleteReceivable = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("financial_transactions")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["receivables"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
+      toast.success("Conta a receber excluída!");
+    },
+    onError: (error) => {
+      console.error("Erro ao excluir:", error);
+      toast.error("Erro ao excluir conta a receber");
     },
   });
 
@@ -156,6 +245,9 @@ export function useReceivables(filters?: ReceivablesFilters) {
     receivables,
     isLoading,
     error,
+    createReceivable,
+    updateReceivable,
+    deleteReceivable,
     markAsPaid,
     cancelReceivable,
     summary: {
