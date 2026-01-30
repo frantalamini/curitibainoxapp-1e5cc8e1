@@ -10,6 +10,9 @@ export interface FinancialAccount {
   opening_balance: number;
   opening_balance_date: string;
   is_active: boolean;
+  agency: string | null;
+  account_number: string | null;
+  manager_name: string | null;
   created_at: string;
   updated_at: string;
 }

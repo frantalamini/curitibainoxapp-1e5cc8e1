@@ -27,6 +27,9 @@ type AccountFormData = {
   account_type: "bank" | "cash" | "other";
   opening_balance: string;
   opening_balance_date: string;
+  agency: string;
+  account_number: string;
+  manager_name: string;
 };
 
 type CategoryFormData = {
@@ -63,6 +66,9 @@ export default function ConfiguracoesFinanceiras() {
     account_type: "bank",
     opening_balance: "0",
     opening_balance_date: format(new Date(), "yyyy-MM-dd"),
+    agency: "",
+    account_number: "",
+    manager_name: "",
   });
 
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -99,6 +105,9 @@ export default function ConfiguracoesFinanceiras() {
         account_type: account.account_type,
         opening_balance: String(account.opening_balance),
         opening_balance_date: account.opening_balance_date,
+        agency: account.agency || "",
+        account_number: account.account_number || "",
+        manager_name: account.manager_name || "",
       });
     } else {
       setEditingAccount(null);
@@ -108,6 +117,9 @@ export default function ConfiguracoesFinanceiras() {
         account_type: "bank",
         opening_balance: "0",
         opening_balance_date: format(new Date(), "yyyy-MM-dd"),
+        agency: "",
+        account_number: "",
+        manager_name: "",
       });
     }
     setAccountDialogOpen(true);
@@ -120,6 +132,9 @@ export default function ConfiguracoesFinanceiras() {
       account_type: accountForm.account_type,
       opening_balance: parseFloat(accountForm.opening_balance) || 0,
       opening_balance_date: accountForm.opening_balance_date,
+      agency: accountForm.agency || null,
+      account_number: accountForm.account_number || null,
+      manager_name: accountForm.manager_name || null,
       is_active: true,
     };
 
@@ -574,6 +589,35 @@ export default function ConfiguracoesFinanceiras() {
                   value={accountForm.bank_name}
                   onChange={(e) => setAccountForm({ ...accountForm, bank_name: e.target.value })}
                   placeholder="Ex: Bradesco"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="agency">Agência</Label>
+                  <Input
+                    id="agency"
+                    value={accountForm.agency}
+                    onChange={(e) => setAccountForm({ ...accountForm, agency: e.target.value })}
+                    placeholder="Ex: 1234"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="account-number">Conta</Label>
+                  <Input
+                    id="account-number"
+                    value={accountForm.account_number}
+                    onChange={(e) => setAccountForm({ ...accountForm, account_number: e.target.value })}
+                    placeholder="Ex: 12345-6"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="manager-name">Gerente</Label>
+                <Input
+                  id="manager-name"
+                  value={accountForm.manager_name}
+                  onChange={(e) => setAccountForm({ ...accountForm, manager_name: e.target.value })}
+                  placeholder="Nome do gerente"
                 />
               </div>
               <div>
