@@ -1,75 +1,124 @@
 
-# Plano: Corrigir Bug de Navegação ao Digitar Espaço no Marcador
+# Plano: Padronização Global de Layout das Páginas
 
 ## Problema Identificado
-Quando você digita um marcador e pressiona **espaço** para continuar escrevendo, o sistema navega para a OS porque:
 
-1. A TableRow tem um handler `onKeyDown` que escuta a tecla espaço
-2. O evento de teclado do Input está "vazando" para a TableRow pai
-3. Isso dispara `onRowClick(id)` ao invés de simplesmente adicionar espaço ao texto
+Existem **dois padrões de layout** diferentes nas páginas do sistema:
 
-## Solução
-Adicionar `e.stopPropagation()` no handler `onKeyDown` do Input para impedir que o evento de teclado suba para a TableRow.
+| Padrão | Classes CSS | Onde é usado | Resultado |
+|--------|-------------|--------------|-----------|
+| **A (Otimizado)** | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` | ServiceCalls, Technicians, Vehicles | Conteúdo próximo à sidebar, margem direita variável |
+| **B (Centralizado)** | `container mx-auto px-4` | Clients, Equipment, Dashboard, etc. | Conteúdo centralizado com margens iguais |
+
+A tela de **ServiceCallView** está ainda pior com:
+```css
+w-full max-w-full min-w-0 -ml-4 lg:-ml-4 pl-1 pr-4 sm:pr-8
+```
+Isso cria margens inconsistentes e causa espaçamento excessivo.
 
 ---
 
-## Arquivo a Modificar
+## Solução: Classe Padrão Única
 
-**`src/components/service-calls/ServiceCallActionsMenu.tsx`**
+Adotar o padrão da tela de **Chamados Técnicos (ServiceCalls)** como referência global:
 
-### Mudança no handleKeyDown (linha 83-87)
-
-```text
-DE:
-const handleKeyDown = (e: React.KeyboardEvent) => {
-  if (e.key === "Enter" && !isSaving) {
-    handleAddMarker();
-  }
-};
-
-PARA:
-const handleKeyDown = (e: React.KeyboardEvent) => {
-  // Impede que eventos de teclado "vazem" para a TableRow
-  e.stopPropagation();
-  
-  if (e.key === "Enter" && !isSaving) {
-    handleAddMarker();
-  }
-};
+```css
+w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6
 ```
 
-## Por que isso resolve?
-
-| Evento | Antes | Depois |
-|--------|-------|--------|
-| Espaço no Input | Borbulha → TableRow detecta → Navega | Bloqueado no Input → Apenas adiciona espaço |
-| Enter no Input | Borbulha + adiciona marcador | Bloqueado + adiciona marcador |
-| Outras teclas | Borbulham | Bloqueadas (comportamento correto) |
+**Características:**
+- `w-full max-w-[1400px]`: Largura máxima controlada
+- `mr-auto`: Margem direita automática (empurra para esquerda)
+- `pl-1 sm:pl-2`: Padding esquerdo mínimo
+- `pr-4 sm:pr-6`: Padding direito moderado
+- `py-6 space-y-6`: Espaçamento vertical padrão
 
 ---
 
-## Mudança Adicional de Segurança
+## Arquivos a Modificar
 
-Também vou adicionar `onKeyDown={(e) => e.stopPropagation()}` no `DialogContent` para garantir que nenhum evento de teclado escape do modal.
+### Grupo 1: Listagens (container mx-auto → padrão otimizado)
+| Arquivo | Linha | De | Para |
+|---------|-------|-----|------|
+| Clients.tsx | 55 | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| Equipment.tsx | 60 | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| Checklists.tsx | 54 | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| Products.tsx | 65 | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| Dashboard.tsx | 192 | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| ServiceCallTrips.tsx | 42 | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| TechnicianMap.tsx | 129 | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| VehicleMaintenances.tsx | 75 | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| CadastrosClientesFornecedores.tsx | 118 | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| PaymentMethods.tsx | - | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| ServiceTypes.tsx | - | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
+| ServiceCallStatuses.tsx | - | `container mx-auto px-4` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
 
-```text
-DE:
-<DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+### Grupo 2: ServiceCallView (corrigir margens negativas)
+| Arquivo | Linha | De | Para |
+|---------|-------|-----|------|
+| ServiceCallView.tsx | 264 | `w-full max-w-full min-w-0 -ml-4 lg:-ml-4 pl-1 pr-4 sm:pr-8` | `w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6` |
 
-PARA:
-<DialogContent 
-  className="sm:max-w-md" 
-  onClick={(e) => e.stopPropagation()}
-  onKeyDown={(e) => e.stopPropagation()}
->
+### Grupo 3: Formulários (manter max-w-2xl ou max-w-4xl para compactar)
+Formulários como ClientForm, TechnicianForm, etc. mantêm `container mx-auto px-4 max-w-2xl` porque são páginas de edição que se beneficiam de largura reduzida para facilitar leitura.
+
+### Grupo 4: Páginas Financeiras (já usam padrão correto)
+ContasAPagar, ContasAReceber, FluxoDeCaixa já usam o padrão otimizado. Apenas pequenos ajustes de consistência no padding.
+
+---
+
+## Seção Técnica
+
+### Mudança Principal
+```tsx
+// ANTES (centralizado com margens iguais)
+<div className="container mx-auto px-4 py-6 space-y-6">
+
+// DEPOIS (alinhado à esquerda com max-width)
+<div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
 ```
+
+### ServiceCallView - Correção Específica
+```tsx
+// ANTES (margem negativa problemática)
+<div className="w-full max-w-full min-w-0 -ml-4 lg:-ml-4 pl-1 pr-4 sm:pr-8 py-6 space-y-6">
+
+// DEPOIS (consistente com listagem)
+<div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+```
+
+---
+
+## Resumo de Arquivos
+
+**Total: ~18 arquivos**
+
+Listagens para alterar:
+1. `src/pages/Clients.tsx`
+2. `src/pages/Equipment.tsx`
+3. `src/pages/Checklists.tsx`
+4. `src/pages/Products.tsx`
+5. `src/pages/Dashboard.tsx`
+6. `src/pages/ServiceCallTrips.tsx`
+7. `src/pages/TechnicianMap.tsx`
+8. `src/pages/VehicleMaintenances.tsx`
+9. `src/pages/CadastrosClientesFornecedores.tsx`
+10. `src/pages/PaymentMethods.tsx`
+11. `src/pages/ServiceTypes.tsx`
+12. `src/pages/ServiceCallStatuses.tsx`
+13. `src/pages/ServiceCallView.tsx`
+14. `src/pages/Schedule.tsx`
+15. `src/pages/Inicio.tsx`
+
+Páginas de formulários (manter compactos):
+- ClientForm, TechnicianForm, EquipmentForm, etc. → sem alteração
 
 ---
 
 ## Resultado Esperado
 
-Após a correção:
-- Digitar espaço no campo de marcador → funciona normalmente
-- Pressionar Enter → adiciona o marcador
-- Clicar no + → adiciona o marcador
-- Você permanece na tela de listagem das OS
+Após implementação:
+- Todas as telas de listagem terão o mesmo alinhamento à esquerda
+- Conteúdo fica próximo à sidebar sem margem excessiva
+- Margem direita variável absorve espaços em monitores grandes
+- Visualização de OS funciona corretamente em 100% de zoom
+- Consistência visual em todo o sistema
