@@ -860,6 +860,38 @@ export type Database = {
           },
         ]
       }
+      service_call_markers: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          service_call_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          service_call_id: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          service_call_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_call_markers_service_call_id_fkey"
+            columns: ["service_call_id"]
+            isOneToOne: false
+            referencedRelation: "service_calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_call_statuses: {
         Row: {
           active: boolean

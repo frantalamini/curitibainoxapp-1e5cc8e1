@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -15,6 +15,7 @@ import { useServiceCalls } from "@/hooks/useServiceCalls";
 import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
 import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
 import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
+import { useServiceCallMarkers } from "@/hooks/useServiceCallMarkers";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
 import { ServiceCallsTable } from "@/components/ServiceCallsTable";
 
@@ -65,6 +66,23 @@ const ServiceCalls = () => {
     const cB = b.created_at ? new Date(b.created_at).getTime() : 0;
     return cB - cA;
   });
+
+  // Hook de marcadores para mobile
+  const mobileServiceCallIds = useMemo(() => sortedCalls.map(c => c.id), [sortedCalls]);
+  const { 
+    markersByServiceCall, 
+    isLoading: markersLoading, 
+    addMarker, 
+    removeMarker 
+  } = useServiceCallMarkers(mobileServiceCallIds);
+
+  const handleAddMarker = async (serviceCallId: string, text: string) => {
+    await addMarker.mutateAsync({ serviceCallId, text });
+  };
+
+  const handleRemoveMarker = async (markerId: string) => {
+    await removeMarker.mutateAsync(markerId);
+  };
 
   return (
     <MainLayout>
@@ -146,6 +164,10 @@ const ServiceCalls = () => {
                   key={call.id}
                   call={call}
                   onClick={() => navigate(`/service-calls/${call.id}`)}
+                  markers={markersByServiceCall[call.id] || []}
+                  onAddMarker={handleAddMarker}
+                  onRemoveMarker={handleRemoveMarker}
+                  isLoadingMarkers={markersLoading}
                 />
               ))}
             </div>
