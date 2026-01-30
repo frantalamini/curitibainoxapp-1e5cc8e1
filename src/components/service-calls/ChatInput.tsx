@@ -53,6 +53,7 @@ interface ChatInputProps {
       file_name: string;
       file_type: 'image' | 'document' | 'audio';
       file_size?: number;
+      file_path?: string;
     }[];
   }) => void;
   isLoading?: boolean;
@@ -73,6 +74,7 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
     file_name: string;
     file_type: 'image' | 'document' | 'audio';
     file_size?: number;
+    file_path?: string;
   }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -161,16 +163,14 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
 
         if (uploadError) throw uploadError;
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('chat-attachments')
-          .getPublicUrl(filePath);
-
+        // Store the file_path for signed URL generation later
+        // file_url is kept as empty string for backwards compatibility
         setAttachments(prev => [...prev, {
-          file_url: urlData.publicUrl,
+          file_url: '', // Not used anymore - signed URLs generated on-demand
           file_name: file.name,
           file_type: fileType,
           file_size: file.size,
+          file_path: filePath,
         }]);
       }
     } catch (error: any) {

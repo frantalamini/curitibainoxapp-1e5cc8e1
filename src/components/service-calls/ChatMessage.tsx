@@ -11,17 +11,21 @@ import {
   FileText, 
   Mic, 
   Trash2,
-  ExternalLink 
+  ExternalLink,
+  Loader2
 } from "lucide-react";
 import {
   ServiceCallMessage,
+  MessageAttachment,
   CATEGORY_LABELS,
   CATEGORY_ICONS,
   PRIORITY_LABELS,
   PRIORITY_COLORS,
 } from "@/hooks/useServiceCallMessages";
 import { getSLAStatus, getSLAColorClass, getSLALabel } from "@/hooks/usePendingActions";
-
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
 interface ChatMessageProps {
   message: ServiceCallMessage;
   currentUserId: string;
@@ -41,6 +45,49 @@ export const ChatMessage = ({
 }: ChatMessageProps) => {
   const isOwn = message.author_id === currentUserId;
   const slaStatus = getSLAStatus(message.due_date);
+  const [openingAttachmentId, setOpeningAttachmentId] = useState<string | null>(null);
+
+  // Extract file path from old file_url format for backwards compatibility
+  const extractPathFromUrl = (fileUrl: string): string | null => {
+    const match = fileUrl.match(/\/object\/public\/chat-attachments\/(.+)$/);
+    return match ? match[1] : null;
+  };
+
+  // Open attachment using signed URL
+  const openAttachment = async (att: MessageAttachment) => {
+    // Determine the path: prefer file_path, fallback to extracting from file_url
+    const path = att.file_path || extractPathFromUrl(att.file_url);
+    
+    if (!path) {
+      toast({
+        title: "Erro ao abrir anexo",
+        description: "Não foi possível determinar o caminho do arquivo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setOpeningAttachmentId(att.id);
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('chat-attachments')
+        .createSignedUrl(path, 3600); // 1 hour expiry
+
+      if (error) throw error;
+
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (error: any) {
+      console.error("Erro ao gerar URL assinada:", error);
+      toast({
+        title: "Não foi possível abrir o anexo",
+        description: "Tente novamente. Se o problema persistir, entre em contato com o suporte.",
+        variant: "destructive",
+      });
+    } finally {
+      setOpeningAttachmentId(null);
+    }
+  };
   
   // Parse mentions from content (format: @[userId:userName])
   const renderContentWithMentions = (content: string) => {
@@ -134,17 +181,20 @@ export const ChatMessage = ({
         {message.attachments && message.attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
             {message.attachments.map((att) => (
-              <a
+              <button
                 key={att.id}
-                href={att.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-background border text-sm hover:bg-muted transition-colors"
+                onClick={() => openAttachment(att)}
+                disabled={openingAttachmentId === att.id}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-background border text-sm hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
               >
-                {getAttachmentIcon(att.file_type)}
+                {openingAttachmentId === att.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  getAttachmentIcon(att.file_type)
+                )}
                 <span className="truncate max-w-[150px]">{att.file_name}</span>
                 <ExternalLink className="h-3 w-3 text-muted-foreground" />
-              </a>
+              </button>
             ))}
           </div>
         )}

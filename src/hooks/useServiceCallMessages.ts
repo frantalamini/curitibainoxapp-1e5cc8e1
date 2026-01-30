@@ -57,6 +57,7 @@ export interface MessageAttachment {
   file_name: string;
   file_type: 'image' | 'document' | 'audio';
   file_size: number | null;
+  file_path?: string | null;
   created_at: string;
 }
 
@@ -73,6 +74,7 @@ export interface CreateMessageInput {
     file_name: string;
     file_type: 'image' | 'document' | 'audio';
     file_size?: number;
+    file_path?: string;
   }[];
 }
 
@@ -218,10 +220,11 @@ export const useCreateMessage = () => {
       if (input.attachments && input.attachments.length > 0) {
         const attachmentsToInsert = input.attachments.map(att => ({
           message_id: message.id,
-          file_url: att.file_url,
+          file_url: att.file_url || '',
           file_name: att.file_name,
           file_type: att.file_type,
           file_size: att.file_size || null,
+          file_path: att.file_path || null,
         }));
 
         const { error: attError } = await supabase
