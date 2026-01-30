@@ -48,7 +48,7 @@ const Technicians = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
         <PageHeader 
           title="Técnicos" 
           actionLabel="Novo Técnico"
@@ -85,12 +85,12 @@ const Technicians = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">ID</TableHead>
-                  <TableHead className="min-w-[100px]">Nome</TableHead>
-                  <TableHead className="w-28">Telefone</TableHead>
-                  <TableHead className="min-w-[100px]">Especialidades</TableHead>
-                  <TableHead className="w-20">Status</TableHead>
-                  <TableHead className="text-right w-16">Ações</TableHead>
+                  <TableHead className="w-10">ID</TableHead>
+                  <TableHead className="w-28">Nome</TableHead>
+                  <TableHead className="w-24">Telefone</TableHead>
+                  <TableHead className="w-28">Especialidades</TableHead>
+                  <TableHead className="w-16">Status</TableHead>
+                  <TableHead className="text-right w-12">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -103,9 +103,9 @@ const Technicians = () => {
 
                   return (
                     <TableRow key={tech.id}>
-                      <TableCell className="font-mono text-xs">#{tech.technician_number}</TableCell>
-                      <TableCell className="font-medium text-sm max-w-[140px] truncate" title={tech.full_name}>{tech.full_name}</TableCell>
-                      <TableCell className="text-sm">{formattedPhone}</TableCell>
+                      <TableCell className="font-mono text-xs w-10">#{tech.technician_number}</TableCell>
+                      <TableCell className="font-medium text-sm truncate max-w-[112px]" title={tech.full_name}>{tech.full_name}</TableCell>
+                      <TableCell className="text-sm text-nowrap">{formattedPhone}</TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           {specialties.length > 0 ? (
