@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentTechnician } from "./useCurrentTechnician";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 const STORAGE_KEY = "notifications_read_ids";
 const MAX_AGE_DAYS = 7;
@@ -63,11 +64,53 @@ export const useNotifications = () => {
   const { technicianId, isLoading: isTechnicianLoading } = useCurrentTechnician();
   const queryClient = useQueryClient();
   const [readIds, setReadIds] = useState<string[]>([]);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Load read IDs on mount
   useEffect(() => {
     setReadIds(getReadIds());
   }, []);
+
+  // Realtime subscription para notificações instantâneas
+  useEffect(() => {
+    if (!technicianId) return;
+
+    // Limpar canal anterior se existir
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    const channel = supabase
+      .channel(`notifications-${technicianId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'service_calls',
+          filter: `technician_id=eq.${technicianId}`
+        },
+        () => {
+          // Invalidar cache para forçar refetch imediato
+          queryClient.invalidateQueries({
+            queryKey: ['technician-notifications', technicianId]
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['new-service-calls-count', technicianId]
+          });
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [technicianId, queryClient]);
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["technician-notifications", technicianId],
@@ -113,8 +156,8 @@ export const useNotifications = () => {
       }));
     },
     enabled: !isTechnicianLoading && !!technicianId,
-    staleTime: 30 * 1000, // 30 segundos
-    refetchInterval: 60 * 1000, // Refetch a cada minuto
+    staleTime: 15 * 1000, // 15 segundos
+    refetchInterval: 30 * 1000, // Polling a cada 30s como fallback
   });
 
   // Filtrar apenas não lidas (não vistas pelo técnico E não marcadas como lidas localmente)
