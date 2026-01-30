@@ -189,7 +189,7 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Dashboard Analítico</h1>

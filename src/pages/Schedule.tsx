@@ -151,7 +151,7 @@ const Schedule = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
