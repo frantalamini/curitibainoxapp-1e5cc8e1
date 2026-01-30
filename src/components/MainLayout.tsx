@@ -102,9 +102,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       ? [
           {
             title: "Vendas",
-            icon: "financeiro" as IconName,
+            icon: "carrinho" as IconName,
             items: [
-              { icon: "documentos" as IconName, label: "Orçamentos e Vendas", to: "/vendas" },
+              { icon: "carrinho" as IconName, label: "Orçamentos e Vendas", to: "/vendas" },
             ],
           },
         ]

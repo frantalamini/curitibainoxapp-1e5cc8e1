@@ -44,6 +44,7 @@ import {
   Info,
   Home,
   Palette,
+  ShoppingCart,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -111,6 +112,7 @@ export const IconMap = {
   veiculo: Car,
   checklist: FileCheck,
   paleta: Palette,
+  carrinho: ShoppingCart,
 } as const;
 
 export type IconName = keyof typeof IconMap;
