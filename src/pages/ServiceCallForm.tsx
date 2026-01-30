@@ -54,6 +54,7 @@ import { EndTripModal } from "@/components/EndTripModal";
 import { useOpenTrip, useHasCompletedTrip, useServiceCallTripsMutations } from "@/hooks/useServiceCallTrips";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FinanceiroGuard } from "@/components/os-financeiro/FinanceiroGuard";
+import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
 
 type Signature = {
   image_url: string;
@@ -1071,7 +1072,7 @@ const ServiceCallForm = () => {
             */}
             <TabsList className={cn(
               "grid w-full mb-6",
-              isEditMode ? "grid-cols-3" : "grid-cols-2"
+              isEditMode ? "grid-cols-4" : "grid-cols-2"
             )}>
               <TabsTrigger value="geral">Geral</TabsTrigger>
               <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
@@ -1084,6 +1085,15 @@ const ServiceCallForm = () => {
                   <DollarSign className="w-4 h-4" />
                   <span className="hidden sm:inline">Financeiro</span>
                   <span className="sm:hidden">$</span>
+                </TabsTrigger>
+              )}
+              {isEditMode && (
+                <TabsTrigger 
+                  value="chat" 
+                  className="flex items-center justify-center gap-1.5"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">Chat</span>
                 </TabsTrigger>
               )}
             </TabsList>
@@ -1736,6 +1746,16 @@ const ServiceCallForm = () => {
                     />
                   </CardContent>
                 </Card>
+              </TabsContent>
+            )}
+
+            {/* Aba 4: Chat Interno */}
+            {isEditMode && existingCall && (
+              <TabsContent value="chat">
+                <ServiceCallChat 
+                  serviceCallId={id!} 
+                  osNumber={existingCall.os_number} 
+                />
               </TabsContent>
             )}
           </Tabs>
