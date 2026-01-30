@@ -34,6 +34,7 @@ import { Upload, FileText, X } from "lucide-react";
 const formSchema = z.object({
   // Aba Geral
   name: z.string().min(1, "Nome é obrigatório"),
+  color: z.string().optional(),
   brand: z.string().optional(),
   plate: z.string().min(1, "Placa é obrigatória"),
   status: z.enum(['ativo', 'inativo', 'em_manutencao']).default('ativo'),
@@ -86,6 +87,7 @@ const VehicleForm = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      color: "",
       brand: "",
       plate: "",
       status: 'ativo',
@@ -129,6 +131,7 @@ const VehicleForm = () => {
           setPreviousStatus(data.status);
           form.reset({
             name: data.name,
+            color: data.color || "",
             brand: data.brand || "",
             plate: data.plate,
             status: data.status,
@@ -206,6 +209,7 @@ const VehicleForm = () => {
     try {
       const vehicleData = {
         name: toTitleCase(formData.name),
+        color: formData.color ? toTitleCase(formData.color) : undefined,
         brand: formData.brand ? toTitleCase(formData.brand) : undefined,
         plate: formData.plate.toUpperCase(),
         renavam: formData.renavam,
@@ -303,19 +307,35 @@ const VehicleForm = () => {
               
               {/* Aba Geral */}
               <TabsContent value="geral" className="space-y-4 mt-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Veículo</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Ex: Van Branca" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome do Veículo</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Ex: Van Branca" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cor</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Ex: Branco, Prata" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}

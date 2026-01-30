@@ -1297,6 +1297,7 @@ export type Database = {
         Row: {
           active: boolean
           brand: string | null
+          color: string | null
           created_at: string
           current_odometer_km: number | null
           id: string
@@ -1316,6 +1317,7 @@ export type Database = {
         Insert: {
           active?: boolean
           brand?: string | null
+          color?: string | null
           created_at?: string
           current_odometer_km?: number | null
           id?: string
@@ -1335,6 +1337,7 @@ export type Database = {
         Update: {
           active?: boolean
           brand?: string | null
+          color?: string | null
           created_at?: string
           current_odometer_km?: number | null
           id?: string
