@@ -81,6 +81,9 @@ export function ServiceCallActionsMenu({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Impede que eventos de teclado "vazem" para a TableRow
+    e.stopPropagation();
+    
     if (e.key === "Enter" && !isSaving) {
       handleAddMarker();
     }
@@ -121,7 +124,11 @@ export function ServiceCallActionsMenu({
       </DropdownMenu>
 
       <Dialog open={isMarkersOpen} onOpenChange={setIsMarkersOpen}>
-        <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+        <DialogContent 
+          className="sm:max-w-md" 
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Tag className="h-5 w-5" />
