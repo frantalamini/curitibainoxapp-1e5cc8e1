@@ -70,6 +70,10 @@ const ConciliacaoBancaria = lazy(() => import("./pages/financas/ConciliacaoBanca
 const OrcamentoMensal = lazy(() => import("./pages/financas/OrcamentoMensal"));
 const DespesasRecorrentes = lazy(() => import("./pages/financas/DespesasRecorrentes"));
 
+// Módulo Vendas
+const Sales = lazy(() => import("./pages/vendas/Sales"));
+const SaleForm = lazy(() => import("./pages/vendas/SaleForm"));
+
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -646,6 +650,31 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DespesasRecorrentes />
+                </ProtectedRoute>
+              }
+            />
+            {/* MÓDULO VENDAS */}
+            <Route
+              path="/vendas"
+              element={
+                <ProtectedRoute>
+                  <Sales />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendas/novo"
+              element={
+                <ProtectedRoute>
+                  <SaleForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendas/:id/editar"
+              element={
+                <ProtectedRoute>
+                  <SaleForm />
                 </ProtectedRoute>
               }
             />

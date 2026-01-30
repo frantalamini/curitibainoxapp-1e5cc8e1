@@ -803,6 +803,147 @@ export type Database = {
           },
         ]
       }
+      sale_items: {
+        Row: {
+          created_at: string | null
+          description: string
+          discount_type: string | null
+          discount_value: number | null
+          id: string
+          product_id: string | null
+          qty: number
+          sale_id: string
+          stock_deducted: boolean | null
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          product_id?: string | null
+          qty?: number
+          sale_id: string
+          stock_deducted?: boolean | null
+          total: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          product_id?: string | null
+          qty?: number
+          sale_id?: string
+          stock_deducted?: boolean | null
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          approved_at: string | null
+          client_id: string
+          commission_percent: number | null
+          commission_value: number | null
+          created_at: string
+          created_by: string
+          discount_type: string | null
+          discount_value: number | null
+          id: string
+          invoice_number: string | null
+          invoiced_at: string | null
+          notes: string | null
+          payment_config: Json | null
+          quote_valid_until: string | null
+          sale_number: number
+          seller_id: string | null
+          status: Database["public"]["Enums"]["sale_status"]
+          subtotal: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          client_id: string
+          commission_percent?: number | null
+          commission_value?: number | null
+          created_at?: string
+          created_by: string
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          invoice_number?: string | null
+          invoiced_at?: string | null
+          notes?: string | null
+          payment_config?: Json | null
+          quote_valid_until?: string | null
+          sale_number?: number
+          seller_id?: string | null
+          status?: Database["public"]["Enums"]["sale_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          client_id?: string
+          commission_percent?: number | null
+          commission_value?: number | null
+          created_at?: string
+          created_by?: string
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          invoice_number?: string | null
+          invoiced_at?: string | null
+          notes?: string | null
+          payment_config?: Json | null
+          quote_valid_until?: string | null
+          sale_number?: number
+          seller_id?: string | null
+          status?: Database["public"]["Enums"]["sale_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       service_call_items: {
         Row: {
           created_at: string | null
@@ -1667,6 +1808,7 @@ export type Database = {
         | "completed"
         | "cancelled"
       profile_type: "gerencial" | "adm" | "tecnico"
+      sale_status: "QUOTE" | "APPROVED" | "SALE" | "INVOICED" | "CANCELLED"
       service_status:
         | "pending"
         | "in_progress"
@@ -1693,7 +1835,7 @@ export type Database = {
         | "payment_methods"
         | "reimbursements"
       transaction_direction: "RECEIVE" | "PAY"
-      transaction_origin: "SERVICE_CALL" | "MANUAL"
+      transaction_origin: "SERVICE_CALL" | "MANUAL" | "SALE"
       transaction_status: "OPEN" | "PAID" | "CANCELED" | "PARTIAL"
       trip_status: "em_deslocamento" | "concluido"
       vehicle_status: "ativo" | "inativo" | "em_manutencao"
@@ -1844,6 +1986,7 @@ export const Constants = {
         "cancelled",
       ],
       profile_type: ["gerencial", "adm", "tecnico"],
+      sale_status: ["QUOTE", "APPROVED", "SALE", "INVOICED", "CANCELLED"],
       service_status: [
         "pending",
         "in_progress",
@@ -1872,7 +2015,7 @@ export const Constants = {
         "reimbursements",
       ],
       transaction_direction: ["RECEIVE", "PAY"],
-      transaction_origin: ["SERVICE_CALL", "MANUAL"],
+      transaction_origin: ["SERVICE_CALL", "MANUAL", "SALE"],
       transaction_status: ["OPEN", "PAID", "CANCELED", "PARTIAL"],
       trip_status: ["em_deslocamento", "concluido"],
       vehicle_status: ["ativo", "inativo", "em_manutencao"],
