@@ -41,7 +41,7 @@ export default function TechnicianReimbursements() {
   if (!isLoadingTechnician && !isLoadingRole && !technicianId && !isAdmin) {
     return (
       <MainLayout>
-        <div className="container mx-auto px-4 py-6 space-y-6">
+        <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
           <PageHeader title="Reembolsos" />
           <Card>
             <CardContent className="py-12 text-center">
@@ -62,7 +62,7 @@ export default function TechnicianReimbursements() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
         <PageHeader title={isAdmin ? "Gestão de Reembolsos" : "Meus Reembolsos"}>
           {isAdmin ? (
             <Button onClick={() => setIsAdminModalOpen(true)}>
