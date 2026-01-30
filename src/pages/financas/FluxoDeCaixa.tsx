@@ -2,10 +2,11 @@ import { MainLayout } from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
-import { Loader2, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Wallet, AlertTriangle, Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { useCashFlow } from "@/hooks/useCashFlow";
-import { format, startOfMonth, endOfMonth, parseISO, startOfWeek, endOfWeek, addWeeks, startOfYear, endOfYear, getWeek, getMonth, getYear } from "date-fns";
+import { useCashFlowProjection } from "@/hooks/useCashFlowProjection";
+import { format, startOfMonth, endOfMonth, parseISO, startOfWeek, endOfWeek, startOfYear, endOfYear, getWeek, getMonth, getYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Select,
@@ -21,7 +22,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -31,8 +31,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CashFlowChart } from "@/components/financas/CashFlowChart";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -63,10 +65,12 @@ const MONTH_NAMES = [
 export default function FluxoDeCaixa() {
   const { isAdmin, loading } = useUserRole();
   
+  const [mainTab, setMainTab] = useState<"historico" | "projecao">("projecao");
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
   const [viewType, setViewType] = useState<ViewType>("daily");
+  const [projectionMonths, setProjectionMonths] = useState<number>(3);
 
   // Adjust date range based on view type
   const getAdjustedDates = () => {
@@ -99,6 +103,12 @@ export default function FluxoDeCaixa() {
     adjustedDates.end
   );
 
+  const { 
+    projectedBalances, 
+    summary: projectionSummary, 
+    isLoading: projectionLoading 
+  } = useCashFlowProjection(selectedAccount, projectionMonths);
+
   // Group daily balances based on view type
   const getGroupedBalances = (): GroupedBalance[] => {
     if (viewType === "daily") {
@@ -111,7 +121,7 @@ export default function FluxoDeCaixa() {
 
     const groups = new Map<string, GroupedBalance>();
 
-    dailyBalances.forEach((day, index) => {
+    dailyBalances.forEach((day) => {
       const date = parseISO(day.date);
       let key: string;
       let label: string;
@@ -191,262 +201,431 @@ export default function FluxoDeCaixa() {
       <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
         <PageHeader title="Fluxo de Caixa" />
 
-        {/* View Selector */}
-        <Tabs value={viewType} onValueChange={(v) => setViewType(v as ViewType)} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-4">
-            <TabsTrigger value="daily">Diário</TabsTrigger>
-            <TabsTrigger value="weekly">Semanal</TabsTrigger>
-            <TabsTrigger value="monthly">Mensal</TabsTrigger>
-            <TabsTrigger value="yearly">Anual</TabsTrigger>
+        {/* Main Tabs */}
+        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "historico" | "projecao")} className="w-full">
+          <TabsList className="grid w-full max-w-sm grid-cols-2">
+            <TabsTrigger value="projecao" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Projeção
+            </TabsTrigger>
+            <TabsTrigger value="historico" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              Histórico
+            </TabsTrigger>
           </TabsList>
+
+          {/* Projeção Tab */}
+          <TabsContent value="projecao" className="space-y-6 mt-6">
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                  Conta Bancária
+                </label>
+                <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione uma conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as contas</SelectItem>
+                    {accounts.filter(a => a.is_active).map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name} {account.bank_name ? `(${account.bank_name})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                  Período de Projeção
+                </label>
+                <Select value={projectionMonths.toString()} onValueChange={(v) => setProjectionMonths(parseInt(v))}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 mês</SelectItem>
+                    <SelectItem value="2">2 meses</SelectItem>
+                    <SelectItem value="3">3 meses</SelectItem>
+                    <SelectItem value="6">6 meses</SelectItem>
+                    <SelectItem value="12">12 meses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Alert for negative balance */}
+            {projectionSummary.hasNegativeProjection && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Alerta de Saldo Negativo</AlertTitle>
+                <AlertDescription>
+                  A projeção indica saldo negativo a partir de{" "}
+                  <strong>
+                    {projectionSummary.firstNegativeDate
+                      ? format(parseISO(projectionSummary.firstNegativeDate), "dd/MM/yyyy")
+                      : "data indeterminada"}
+                  </strong>
+                  . Saldo mínimo projetado: <strong>{formatCurrency(projectionSummary.lowestBalance)}</strong>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className={cn(
+                    "text-2xl font-bold",
+                    projectionSummary.currentBalance >= 0 ? "text-green-600" : "text-destructive"
+                  )}>
+                    {formatCurrency(projectionSummary.currentBalance)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Hoje</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Entradas Projetadas</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {formatCurrency(projectionSummary.totalProjectedIncome)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Próximos {projectionMonths} meses</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Saídas Projetadas</CardTitle>
+                  <TrendingDown className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-destructive">
+                    {formatCurrency(projectionSummary.totalProjectedExpense)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Próximos {projectionMonths} meses</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Saldo Final Projetado</CardTitle>
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className={cn(
+                    "text-2xl font-bold",
+                    projectionSummary.projectedEndBalance >= 0 ? "text-blue-600" : "text-destructive"
+                  )}>
+                    {formatCurrency(projectionSummary.projectedEndBalance)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Em {projectionMonths} meses
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Chart */}
+            {projectionLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : projectedBalances.length > 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tendência de Saldo</CardTitle>
+                  <CardDescription>
+                    Evolução do saldo considerando transações pendentes e despesas recorrentes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CashFlowChart data={projectedBalances} />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Wallet className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  Nenhum dado para projeção
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Configure uma conta bancária em Configurações Financeiras para visualizar projeções.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Histórico Tab */}
+          <TabsContent value="historico" className="space-y-6 mt-6">
+            {/* View Selector */}
+            <Tabs value={viewType} onValueChange={(v) => setViewType(v as ViewType)} className="w-full">
+              <TabsList className="grid w-full max-w-md grid-cols-4">
+                <TabsTrigger value="daily">Diário</TabsTrigger>
+                <TabsTrigger value="weekly">Semanal</TabsTrigger>
+                <TabsTrigger value="monthly">Mensal</TabsTrigger>
+                <TabsTrigger value="yearly">Anual</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                  Conta Bancária
+                </label>
+                <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione uma conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as contas</SelectItem>
+                    {accounts.filter(a => a.is_active).map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name} {account.bank_name ? `(${account.bank_name})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {viewType === "daily" && (
+                <div className="flex gap-2">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                      Data Início
+                    </label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[140px] justify-start text-left font-normal",
+                            !startDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate ? format(startDate, "dd/MM/yyyy") : "Selecione"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={startDate}
+                          onSelect={(date) => date && setStartDate(date)}
+                          initialFocus
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                      Data Fim
+                    </label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[140px] justify-start text-left font-normal",
+                            !endDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {endDate ? format(endDate, "dd/MM/yyyy") : "Selecione"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={endDate}
+                          onSelect={(date) => date && setEndDate(date)}
+                          initialFocus
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              )}
+
+              {viewType === "monthly" && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+                    Ano
+                  </label>
+                  <Select 
+                    value={getYear(startDate).toString()} 
+                    onValueChange={(v) => setStartDate(new Date(parseInt(v), 0, 1))}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[...Array(5)].map((_, i) => {
+                        const year = new Date().getFullYear() - 2 + i;
+                        return <SelectItem key={year} value={year.toString()}>{year}</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Saldo Inicial</CardTitle>
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(summary.initialBalance)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {format(adjustedDates.start, "dd/MM/yyyy")}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Saldo Previsto</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className={cn(
+                    "text-2xl font-bold",
+                    summary.finalExpectedBalance >= 0 ? "text-blue-600" : "text-destructive"
+                  )}>
+                    {formatCurrency(summary.finalExpectedBalance)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Entradas: {formatCurrency(summary.totalExpectedIncome)} | 
+                    Saídas: {formatCurrency(summary.totalExpectedExpense)}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Saldo Realizado</CardTitle>
+                  <TrendingDown className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className={cn(
+                    "text-2xl font-bold",
+                    summary.finalRealizedBalance >= 0 ? "text-green-600" : "text-destructive"
+                  )}>
+                    {formatCurrency(summary.finalRealizedBalance)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Entradas: {formatCurrency(summary.totalRealizedIncome)} | 
+                    Saídas: {formatCurrency(summary.totalRealizedExpense)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Table */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : groupedBalances.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Wallet className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  Nenhum dado encontrado
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Configure uma conta bancária em Configurações Financeiras para visualizar o fluxo de caixa.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky left-0 bg-background min-w-[120px]">
+                        {viewType === "daily" ? "Data" : viewType === "weekly" ? "Semana" : viewType === "monthly" ? "Mês" : "Ano"}
+                      </TableHead>
+                      <TableHead className="text-right min-w-[120px]">Saldo Inicial</TableHead>
+                      <TableHead className="text-right min-w-[120px]">
+                        <span className="text-blue-600">Entr. Previstas</span>
+                      </TableHead>
+                      <TableHead className="text-right min-w-[120px]">
+                        <span className="text-destructive">Saídas Previstas</span>
+                      </TableHead>
+                      <TableHead className="text-right min-w-[120px]">
+                        <span className="text-green-600">Entr. Realizadas</span>
+                      </TableHead>
+                      <TableHead className="text-right min-w-[120px]">
+                        <span className="text-orange-600">Saídas Realizadas</span>
+                      </TableHead>
+                      <TableHead className="text-right min-w-[120px]">Saldo Previsto</TableHead>
+                      <TableHead className="text-right min-w-[120px]">Saldo Realizado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groupedBalances.map((row, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="sticky left-0 bg-background font-medium">
+                          {row.label}
+                          {row.period && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              {row.period}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(row.openingBalance)}
+                        </TableCell>
+                        <TableCell className="text-right text-blue-600">
+                          {row.expectedIncome > 0 ? formatCurrency(row.expectedIncome) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right text-destructive">
+                          {row.expectedExpense > 0 ? formatCurrency(row.expectedExpense) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right text-green-600">
+                          {row.realizedIncome > 0 ? formatCurrency(row.realizedIncome) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right text-orange-600">
+                          {row.realizedExpense > 0 ? formatCurrency(row.realizedExpense) : "-"}
+                        </TableCell>
+                        <TableCell className={cn(
+                          "text-right font-medium",
+                          row.expectedClosing >= 0 ? "text-blue-600" : "text-destructive"
+                        )}>
+                          {formatCurrency(row.expectedClosing)}
+                        </TableCell>
+                        <TableCell className={cn(
+                          "text-right font-medium",
+                          row.realizedClosing >= 0 ? "text-green-600" : "text-destructive"
+                        )}>
+                          {formatCurrency(row.realizedClosing)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
-
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-              Conta Bancária
-            </label>
-            <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecione uma conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as contas</SelectItem>
-                {accounts.filter(a => a.is_active).map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.name} {account.bank_name ? `(${account.bank_name})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {viewType === "daily" && (
-            <div className="flex gap-2">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                  Data Início
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-[140px] justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "dd/MM/yyyy") : "Selecione"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => date && setStartDate(date)}
-                      initialFocus
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                  Data Fim
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-[140px] justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "dd/MM/yyyy") : "Selecione"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => date && setEndDate(date)}
-                      initialFocus
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          )}
-
-          {viewType === "monthly" && (
-            <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-                Ano
-              </label>
-              <Select 
-                value={getYear(startDate).toString()} 
-                onValueChange={(v) => setStartDate(new Date(parseInt(v), 0, 1))}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[...Array(5)].map((_, i) => {
-                    const year = new Date().getFullYear() - 2 + i;
-                    return <SelectItem key={year} value={year.toString()}>{year}</SelectItem>;
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Saldo Inicial</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(summary.initialBalance)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {format(adjustedDates.start, "dd/MM/yyyy")}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Saldo Previsto</CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className={cn(
-                "text-2xl font-bold",
-                summary.finalExpectedBalance >= 0 ? "text-blue-600" : "text-destructive"
-              )}>
-                {formatCurrency(summary.finalExpectedBalance)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Entradas: {formatCurrency(summary.totalExpectedIncome)} | 
-                Saídas: {formatCurrency(summary.totalExpectedExpense)}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Saldo Realizado</CardTitle>
-              <TrendingDown className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className={cn(
-                "text-2xl font-bold",
-                summary.finalRealizedBalance >= 0 ? "text-green-600" : "text-destructive"
-              )}>
-                {formatCurrency(summary.finalRealizedBalance)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Entradas: {formatCurrency(summary.totalRealizedIncome)} | 
-                Saídas: {formatCurrency(summary.totalRealizedExpense)}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Table */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : groupedBalances.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Wallet className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              Nenhum dado encontrado
-            </h3>
-            <p className="text-sm text-muted-foreground max-w-md">
-              Configure uma conta bancária em Configurações Financeiras para visualizar o fluxo de caixa.
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="sticky left-0 bg-background min-w-[120px]">
-                    {viewType === "daily" ? "Data" : viewType === "weekly" ? "Semana" : viewType === "monthly" ? "Mês" : "Ano"}
-                  </TableHead>
-                  <TableHead className="text-right min-w-[120px]">Saldo Inicial</TableHead>
-                  <TableHead className="text-right min-w-[120px]">
-                    <span className="text-blue-600">Entr. Previstas</span>
-                  </TableHead>
-                  <TableHead className="text-right min-w-[120px]">
-                    <span className="text-destructive">Saídas Previstas</span>
-                  </TableHead>
-                  <TableHead className="text-right min-w-[120px]">
-                    <span className="text-green-600">Entr. Realizadas</span>
-                  </TableHead>
-                  <TableHead className="text-right min-w-[120px]">
-                    <span className="text-orange-600">Saídas Realizadas</span>
-                  </TableHead>
-                  <TableHead className="text-right min-w-[120px]">Saldo Previsto</TableHead>
-                  <TableHead className="text-right min-w-[120px]">Saldo Realizado</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {groupedBalances.map((row, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell className="sticky left-0 bg-background font-medium">
-                      {row.label}
-                      {row.period && (
-                        <span className="text-xs text-muted-foreground ml-1">
-                          {row.period}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(row.openingBalance)}
-                    </TableCell>
-                    <TableCell className="text-right text-blue-600">
-                      {row.expectedIncome > 0 ? formatCurrency(row.expectedIncome) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right text-destructive">
-                      {row.expectedExpense > 0 ? formatCurrency(row.expectedExpense) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right text-green-600">
-                      {row.realizedIncome > 0 ? formatCurrency(row.realizedIncome) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right text-orange-600">
-                      {row.realizedExpense > 0 ? formatCurrency(row.realizedExpense) : "-"}
-                    </TableCell>
-                    <TableCell className={cn(
-                      "text-right font-medium",
-                      row.expectedClosing >= 0 ? "text-blue-600" : "text-destructive"
-                    )}>
-                      {formatCurrency(row.expectedClosing)}
-                    </TableCell>
-                    <TableCell className={cn(
-                      "text-right font-medium",
-                      row.realizedClosing >= 0 ? "text-green-600" : "text-destructive"
-                    )}>
-                      {formatCurrency(row.realizedClosing)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
       </div>
     </MainLayout>
   );
