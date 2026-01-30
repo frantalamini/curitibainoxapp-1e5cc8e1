@@ -7,6 +7,7 @@ export type VehicleStatus = 'ativo' | 'inativo' | 'em_manutencao';
 export interface Vehicle {
   id: string;
   name: string;
+  color: string | null;
   brand: string | null;
   plate: string;
   renavam: string | null;
@@ -27,6 +28,7 @@ export interface Vehicle {
 
 export interface VehicleInsert {
   name: string;
+  color?: string;
   brand?: string;
   plate: string;
   renavam?: string;
