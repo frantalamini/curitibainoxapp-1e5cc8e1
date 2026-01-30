@@ -58,6 +58,7 @@ const ContasAPagar = lazy(() => import("./pages/financas/ContasAPagar"));
 const ContasAReceber = lazy(() => import("./pages/financas/ContasAReceber"));
 const FluxoDeCaixa = lazy(() => import("./pages/financas/FluxoDeCaixa"));
 const ConfiguracoesFinanceiras = lazy(() => import("./pages/financas/ConfiguracoesFinanceiras"));
+const CartoesCredito = lazy(() => import("./pages/financas/CartoesCredito"));
 
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
@@ -547,6 +548,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ConfiguracoesFinanceiras />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financas/cartoes"
+              element={
+                <ProtectedRoute>
+                  <CartoesCredito />
                 </ProtectedRoute>
               }
             />
