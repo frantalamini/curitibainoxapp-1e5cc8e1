@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Volume2,
   Calendar,
@@ -406,559 +407,596 @@ const ServiceCallView = () => {
           </Card>
         )}
 
-        {/* Conteúdo principal */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Cliente */}
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Cliente
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
-              <div>
-                <Label className="text-sm text-muted-foreground">Nome Completo</Label>
-                <p className="text-base font-medium leading-relaxed break-words">{call.clients?.full_name}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  Telefone
-                </Label>
-                <p className="font-medium whitespace-nowrap">{call.clients?.phone}</p>
-              </div>
-              {call.clients?.address && (
-                <div>
-                  <Label className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    Endereço
-                  </Label>
-                  <p className="text-sm font-medium leading-relaxed break-words">{call.clients.address}</p>
-                </div>
+        {/* Sistema de Abas */}
+        <Tabs defaultValue="geral" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="geral">Geral</TabsTrigger>
+            <TabsTrigger value="midia">Mídia</TabsTrigger>
+            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+            <TabsTrigger value="chat" className="flex items-center justify-center gap-1.5">
+              <MessageCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Chat</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Aba 1: Geral */}
+          <TabsContent value="geral" className="space-y-6">
+            {/* Conteúdo principal */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cliente */}
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    Cliente
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Nome Completo</Label>
+                    <p className="text-base font-medium leading-relaxed break-words">{call.clients?.full_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      Telefone
+                    </Label>
+                    <p className="font-medium whitespace-nowrap">{call.clients?.phone}</p>
+                  </div>
+                  {call.clients?.address && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        Endereço
+                      </Label>
+                      <p className="text-sm font-medium leading-relaxed break-words">{call.clients.address}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Técnico */}
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Wrench className="w-5 h-5" />
+                    Técnico Responsável
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Nome</Label>
+                    <p className="text-base font-medium leading-relaxed break-words">{call.technicians?.full_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      Telefone
+                    </Label>
+                    <p className="font-medium whitespace-nowrap">{call.technicians?.phone}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Agendamento */}
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    Agendamento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Data</Label>
+                    <p className="text-base font-medium leading-relaxed">
+                      {format(parseLocalDate(call.scheduled_date), "dd 'de' MMMM 'de' yyyy", {
+                        locale: ptBR,
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Horário
+                    </Label>
+                    <p className="font-medium whitespace-nowrap">{call.scheduled_time}</p>
+                  </div>
+                  {call.started_at && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Iniciado em</Label>
+                      <p className="text-sm font-medium whitespace-nowrap">
+                        {format(new Date(call.started_at), "dd/MM/yyyy 'às' HH:mm", {
+                          locale: ptBR,
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Tipo de Chamado */}
+              {call.service_types && (
+                <Card>
+                  <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Tipo de Chamado
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5 pt-2">
+                    <span
+                      className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold"
+                      style={{
+                        backgroundColor: call.service_types.color + "20",
+                        color: call.service_types.color,
+                        border: `1px solid ${call.service_types.color}`,
+                      }}
+                    >
+                      {call.service_types.name}
+                    </span>
+                  </CardContent>
+                </Card>
               )}
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Técnico */}
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Wrench className="w-5 h-5" />
-                Técnico Responsável
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
-              <div>
-                <Label className="text-sm text-muted-foreground">Nome</Label>
-                <p className="text-base font-medium leading-relaxed break-words">{call.technicians?.full_name}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  Telefone
-                </Label>
-                <p className="font-medium whitespace-nowrap">{call.technicians?.phone}</p>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Equipamento e Problema */}
+            <div className="grid grid-cols-1 gap-4">
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg">Equipamento</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Descrição</Label>
+                    <p className="text-sm leading-relaxed break-words mt-1">{call.equipment_description}</p>
+                  </div>
+                  {call.equipment_serial_number && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Número de Série</Label>
+                      <p className="text-sm font-mono bg-muted px-2 py-1 rounded inline-block mt-1 whitespace-nowrap">
+                        {call.equipment_serial_number}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-          {/* Agendamento */}
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Agendamento
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
-              <div>
-                <Label className="text-sm text-muted-foreground">Data</Label>
-                <p className="text-base font-medium leading-relaxed">
-                  {format(parseLocalDate(call.scheduled_date), "dd 'de' MMMM 'de' yyyy", {
-                    locale: ptBR,
-                  })}
-                </p>
+              {call.problem_description && (
+                <Card>
+                  <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5" />
+                      Descrição do Problema
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5 pt-2">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                      {call.problem_description}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {call.notes && (
+                <Card>
+                  <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Observações
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5 pt-2">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{call.notes}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Diagnóstico Técnico */}
+            {call.technical_diagnosis && (
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Stethoscope className="w-5 h-5" />
+                    Diagnóstico Técnico
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Diagnóstico</Label>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">{call.technical_diagnosis}</p>
+                  </div>
+                  {call.technical_diagnosis_audio_url && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
+                        <Volume2 className="w-3 h-3" />
+                        Áudio do Diagnóstico
+                      </Label>
+                      <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
+                        <audio controls className="w-full" src={call.technical_diagnosis_audio_url}>
+                          Seu navegador não suporta o elemento de áudio.
+                        </audio>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Aba 2: Mídia */}
+          <TabsContent value="midia" className="space-y-6">
+            {/* Áudio Anexado */}
+            {call.audio_url && (
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Volume2 className="w-5 h-5" />
+                    Áudio Anexado
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2">
+                  <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
+                    <audio controls className="w-full" src={call.audio_url}>
+                      Seu navegador não suporta o elemento de áudio.
+                    </audio>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Fotos e Vídeos */}
+            {call.media_urls && call.media_urls.length > 0 && (
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5" />
+                    Fotos e Vídeos ({call.media_urls.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                    {call.media_urls.map((url, index) => {
+                      const isVideo =
+                        url.includes(".mp4") ||
+                        url.includes(".webm") ||
+                        url.includes(".mov");
+
+                      return (
+                        <div
+                          key={index}
+                          className="relative aspect-square rounded-lg overflow-hidden border bg-muted group"
+                        >
+                          {isVideo ? (
+                            <div className="relative w-full h-full">
+                              <video
+                                src={url}
+                                controls
+                                className="w-full h-full object-cover"
+                              >
+                                Seu navegador não suporta vídeos.
+                              </video>
+                              <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                                <Video className="w-3 h-3" />
+                                Vídeo
+                              </div>
+                            </div>
+                          ) : (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block w-full h-full"
+                            >
+                              <img
+                                src={url}
+                                alt={`Anexo ${index + 1}`}
+                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Fotos Antes */}
+            {((call.photos_before_urls && call.photos_before_urls.length > 0) || call.video_before_url) && (
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5" />
+                    Antes da Manutenção
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
+                  {call.photos_before_urls && call.photos_before_urls.length > 0 && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground mb-2 block">Fotos ({call.photos_before_urls.length})</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                        {call.photos_before_urls.map((url, index) => (
+                          <a
+                            key={index}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="relative aspect-square rounded-lg overflow-hidden border bg-muted group block"
+                          >
+                            <img
+                              src={url}
+                              alt={`Foto antes ${index + 1}`}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {call.video_before_url && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-1">
+                        <Video className="w-3 h-3" />
+                        Vídeo
+                      </Label>
+                      <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+                        <video src={call.video_before_url} controls className="w-full h-full">
+                          Seu navegador não suporta vídeos.
+                        </video>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Fotos Depois */}
+            {((call.photos_after_urls && call.photos_after_urls.length > 0) || call.video_after_url) && (
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5" />
+                    Depois da Manutenção
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
+                  {call.photos_after_urls && call.photos_after_urls.length > 0 && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground mb-2 block">Fotos ({call.photos_after_urls.length})</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                        {call.photos_after_urls.map((url, index) => (
+                          <a
+                            key={index}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="relative aspect-square rounded-lg overflow-hidden border bg-muted group block"
+                          >
+                            <img
+                              src={url}
+                              alt={`Foto depois ${index + 1}`}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {call.video_after_url && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-1">
+                        <Video className="w-3 h-3" />
+                        Vídeo
+                      </Label>
+                      <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+                        <video src={call.video_after_url} controls className="w-full h-full">
+                          Seu navegador não suporta vídeos.
+                        </video>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Empty state para mídia */}
+            {!call.audio_url && 
+             (!call.media_urls || call.media_urls.length === 0) && 
+             (!call.photos_before_urls || call.photos_before_urls.length === 0) && 
+             !call.video_before_url &&
+             (!call.photos_after_urls || call.photos_after_urls.length === 0) && 
+             !call.video_after_url && (
+              <div className="text-center py-12 text-muted-foreground">
+                <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhuma mídia anexada a esta OS</p>
               </div>
-              <div>
-                <Label className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Horário
-                </Label>
-                <p className="font-medium whitespace-nowrap">{call.scheduled_time}</p>
-              </div>
-              {call.started_at && (
+            )}
+          </TabsContent>
+
+          {/* Aba 3: Detalhes */}
+          <TabsContent value="detalhes" className="space-y-6">
+            {/* Checklist */}
+            {call.checklist_responses && Object.keys(call.checklist_responses).length > 0 && (
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Checklist de Verificação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2">
+                  <div className="space-y-2">
+                    {Object.entries(call.checklist_responses as Record<string, boolean>).map(([item, checked]) => (
+                      <div key={item} className="flex items-start gap-2">
+                        {checked ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        )}
+                        <span className={cn("text-sm leading-relaxed break-words", !checked && "text-muted-foreground")}>
+                          {item}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Assinaturas */}
+            {(() => {
+              const latestTech = getLatestSignature((call as any).signatures, 'tech');
+              const latestClient = getLatestSignature((call as any).signatures, 'client');
+              const hasTech = latestTech || call.technician_signature_url || call.technician_signature_data;
+              const hasClient = latestClient || call.customer_signature_url || call.customer_signature_data;
+              
+              return (hasTech || hasClient) && (
+              <Card>
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <PenTool className="w-5 h-5" />
+                    Assinaturas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                  {/* Técnico */}
+                  {(() => {
+                    const imgUrl = latestTech?.image_url || call.technician_signature_data || call.technician_signature_url;
+                    const signedAt = latestTech?.signed_at || call.technician_signature_date;
+                    const signedBy = latestTech?.signed_by || call.technicians?.full_name;
+                    
+                    return imgUrl && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Assinatura do Técnico</Label>
+                        <img
+                          src={imgUrl}
+                          alt="Assinatura do Técnico"
+                          className="h-20 border rounded p-2 bg-white w-full object-contain"
+                        />
+                        <p className="text-sm font-medium break-words">{signedBy}</p>
+                        {signedAt && (
+                          <p className="text-xs text-muted-foreground whitespace-nowrap">
+                            {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Cliente */}
+                  {(() => {
+                    const imgUrl = latestClient?.image_url || call.customer_signature_data || call.customer_signature_url;
+                    const signedAt = latestClient?.signed_at || call.customer_signature_date;
+                    const signedBy = latestClient?.signed_by || call.customer_name;
+                    const position = latestClient?.position || call.customer_position;
+                    
+                    return imgUrl && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Assinatura do Responsável (Cliente)</Label>
+                        <img
+                          src={imgUrl}
+                          alt="Assinatura do Cliente"
+                          className="h-20 border rounded p-2 bg-white w-full object-contain"
+                        />
+                        {signedBy && <p className="text-sm font-medium break-words">{signedBy}</p>}
+                        {position && (
+                          <p className="text-xs text-muted-foreground">Cargo: {position}</p>
+                        )}
+                        {signedAt && (
+                          <p className="text-xs text-muted-foreground whitespace-nowrap">
+                            {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            );
+            })()}
+
+            {/* Observações Internas */}
+            {(isAdmin || isTechnician) && (call.internal_notes_text || call.internal_notes_audio_url) && (
+              <Card className="border-2 border-dashed border-orange-300 dark:border-orange-800">
+                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-orange-500" />
+                      Observações Internas
+                    </CardTitle>
+                    <Badge variant="secondary" className="text-xs w-fit">
+                      Privado • Não enviado ao cliente
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Estas informações são visíveis apenas para administradores e técnicos.
+                  </p>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
+                  {call.internal_notes_text && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Anotações</Label>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1 bg-muted/50 p-3 rounded">
+                        {call.internal_notes_text}
+                      </p>
+                    </div>
+                  )}
+                  {call.internal_notes_audio_url && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
+                        <Volume2 className="w-3 h-3" />
+                        Áudio das Observações
+                      </Label>
+                      <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
+                        <audio controls className="w-full" src={call.internal_notes_audio_url}>
+                          Seu navegador não suporta o elemento de áudio.
+                        </audio>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Informações Adicionais */}
+            <Card>
+              <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                <CardTitle className="text-sm text-muted-foreground">
+                  Informações Adicionais
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <Label className="text-sm text-muted-foreground">Iniciado em</Label>
-                  <p className="text-sm font-medium whitespace-nowrap">
-                    {format(new Date(call.started_at), "dd/MM/yyyy 'às' HH:mm", {
+                  <Label className="text-sm text-muted-foreground">Criado em</Label>
+                  <p className="whitespace-nowrap">
+                    {format(new Date(call.created_at), "dd/MM/yyyy 'às' HH:mm", {
                       locale: ptBR,
                     })}
                   </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Tipo de Chamado */}
-          {call.service_types && (
-            <Card>
-              <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Tipo de Chamado
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-5 pt-2">
-                <span
-                  className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold"
-                  style={{
-                    backgroundColor: call.service_types.color + "20",
-                    color: call.service_types.color,
-                    border: `1px solid ${call.service_types.color}`,
-                  }}
-                >
-                  {call.service_types.name}
-                </span>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Equipamento e Problema */}
-        <div className="grid grid-cols-1 gap-4">
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg">Equipamento</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
-              <div>
-                <Label className="text-sm text-muted-foreground">Descrição</Label>
-                <p className="text-sm leading-relaxed break-words mt-1">{call.equipment_description}</p>
-              </div>
-              {call.equipment_serial_number && (
                 <div>
-                  <Label className="text-sm text-muted-foreground">Número de Série</Label>
-                  <p className="text-sm font-mono bg-muted px-2 py-1 rounded inline-block mt-1 whitespace-nowrap">
-                    {call.equipment_serial_number}
+                  <Label className="text-sm text-muted-foreground">Última atualização</Label>
+                  <p className="whitespace-nowrap">
+                    {format(new Date(call.updated_at), "dd/MM/yyyy 'às' HH:mm", {
+                      locale: ptBR,
+                    })}
                   </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {call.problem_description && (
-            <Card>
-              <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5" />
-                  Descrição do Problema
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-5 pt-2">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                  {call.problem_description}
-                </p>
               </CardContent>
             </Card>
-          )}
+          </TabsContent>
 
-          {call.notes && (
-            <Card>
-              <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Observações
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-5 pt-2">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{call.notes}</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Áudio Anexado */}
-        {call.audio_url && (
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Volume2 className="w-5 h-5" />
-                Áudio Anexado
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2">
-              <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
-                <audio controls className="w-full" src={call.audio_url}>
-                  Seu navegador não suporta o elemento de áudio.
-                </audio>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Fotos e Vídeos */}
-        {call.media_urls && call.media_urls.length > 0 && (
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
-                Fotos e Vídeos ({call.media_urls.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                {call.media_urls.map((url, index) => {
-                  const isVideo =
-                    url.includes(".mp4") ||
-                    url.includes(".webm") ||
-                    url.includes(".mov");
-
-                  return (
-                    <div
-                      key={index}
-                      className="relative aspect-square rounded-lg overflow-hidden border bg-muted group"
-                    >
-                      {isVideo ? (
-                        <div className="relative w-full h-full">
-                          <video
-                            src={url}
-                            controls
-                            className="w-full h-full object-cover"
-                          >
-                            Seu navegador não suporta vídeos.
-                          </video>
-                          <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                            <Video className="w-3 h-3" />
-                            Vídeo
-                          </div>
-                        </div>
-                      ) : (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full h-full"
-                        >
-                          <img
-                            src={url}
-                            alt={`Anexo ${index + 1}`}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                        </a>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Diagnóstico Técnico */}
-        {call.technical_diagnosis && (
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Stethoscope className="w-5 h-5" />
-                Diagnóstico Técnico
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
-              <div>
-                <Label className="text-sm text-muted-foreground">Diagnóstico</Label>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">{call.technical_diagnosis}</p>
-              </div>
-              {call.technical_diagnosis_audio_url && (
-                <div>
-                  <Label className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
-                    <Volume2 className="w-3 h-3" />
-                    Áudio do Diagnóstico
-                  </Label>
-                  <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
-                    <audio controls className="w-full" src={call.technical_diagnosis_audio_url}>
-                      Seu navegador não suporta o elemento de áudio.
-                    </audio>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Fotos Antes */}
-        {((call.photos_before_urls && call.photos_before_urls.length > 0) || call.video_before_url) && (
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
-                Antes da Manutenção
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
-              {call.photos_before_urls && call.photos_before_urls.length > 0 && (
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-2 block">Fotos ({call.photos_before_urls.length})</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    {call.photos_before_urls.map((url, index) => (
-                      <a
-                        key={index}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative aspect-square rounded-lg overflow-hidden border bg-muted group block"
-                      >
-                        <img
-                          src={url}
-                          alt={`Foto antes ${index + 1}`}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {call.video_before_url && (
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-1">
-                    <Video className="w-3 h-3" />
-                    Vídeo
-                  </Label>
-                  <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
-                    <video src={call.video_before_url} controls className="w-full h-full">
-                      Seu navegador não suporta vídeos.
-                    </video>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Fotos Depois */}
-        {((call.photos_after_urls && call.photos_after_urls.length > 0) || call.video_after_url) && (
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
-                Depois da Manutenção
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
-              {call.photos_after_urls && call.photos_after_urls.length > 0 && (
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-2 block">Fotos ({call.photos_after_urls.length})</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    {call.photos_after_urls.map((url, index) => (
-                      <a
-                        key={index}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative aspect-square rounded-lg overflow-hidden border bg-muted group block"
-                      >
-                        <img
-                          src={url}
-                          alt={`Foto depois ${index + 1}`}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {call.video_after_url && (
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-1">
-                    <Video className="w-3 h-3" />
-                    Vídeo
-                  </Label>
-                  <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
-                    <video src={call.video_after_url} controls className="w-full h-full">
-                      Seu navegador não suporta vídeos.
-                    </video>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Checklist */}
-        {call.checklist_responses && Object.keys(call.checklist_responses).length > 0 && (
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Checklist de Verificação
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2">
-              <div className="space-y-2">
-                {Object.entries(call.checklist_responses as Record<string, boolean>).map(([item, checked]) => (
-                  <div key={item} className="flex items-start gap-2">
-                    {checked ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    )}
-                    <span className={cn("text-sm leading-relaxed break-words", !checked && "text-muted-foreground")}>
-                      {item}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Assinaturas */}
-        {(() => {
-          const latestTech = getLatestSignature((call as any).signatures, 'tech');
-          const latestClient = getLatestSignature((call as any).signatures, 'client');
-          const hasTech = latestTech || call.technician_signature_url || call.technician_signature_data;
-          const hasClient = latestClient || call.customer_signature_url || call.customer_signature_data;
-          
-          return (hasTech || hasClient) && (
-          <Card>
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <PenTool className="w-5 h-5" />
-                Assinaturas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              {/* Técnico */}
-              {(() => {
-                const imgUrl = latestTech?.image_url || call.technician_signature_data || call.technician_signature_url;
-                const signedAt = latestTech?.signed_at || call.technician_signature_date;
-                const signedBy = latestTech?.signed_by || call.technicians?.full_name;
-                
-                return imgUrl && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Assinatura do Técnico</Label>
-                    <img
-                      src={imgUrl}
-                      alt="Assinatura do Técnico"
-                      className="h-20 border rounded p-2 bg-white w-full object-contain"
-                    />
-                    <p className="text-sm font-medium break-words">{signedBy}</p>
-                    {signedAt && (
-                      <p className="text-xs text-muted-foreground whitespace-nowrap">
-                        {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Cliente */}
-              {(() => {
-                const imgUrl = latestClient?.image_url || call.customer_signature_data || call.customer_signature_url;
-                const signedAt = latestClient?.signed_at || call.customer_signature_date;
-                const signedBy = latestClient?.signed_by || call.customer_name;
-                const position = latestClient?.position || call.customer_position;
-                
-                return imgUrl && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">Assinatura do Responsável (Cliente)</Label>
-                    <img
-                      src={imgUrl}
-                      alt="Assinatura do Cliente"
-                      className="h-20 border rounded p-2 bg-white w-full object-contain"
-                    />
-                    {signedBy && <p className="text-sm font-medium break-words">{signedBy}</p>}
-                    {position && (
-                      <p className="text-xs text-muted-foreground">Cargo: {position}</p>
-                    )}
-                    {signedAt && (
-                      <p className="text-xs text-muted-foreground whitespace-nowrap">
-                        {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                    )}
-                  </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
-        );
-        })()}
-
-        {/* Observações Internas */}
-        {(isAdmin || isTechnician) && (call.internal_notes_text || call.internal_notes_audio_url) && (
-          <Card className="border-2 border-dashed border-orange-300 dark:border-orange-800">
-            <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-orange-500" />
-                  Observações Internas
-                </CardTitle>
-                <Badge variant="secondary" className="text-xs w-fit">
-                  Privado • Não enviado ao cliente
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Estas informações são visíveis apenas para administradores e técnicos.
-              </p>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
-              {call.internal_notes_text && (
-                <div>
-                  <Label className="text-sm text-muted-foreground">Anotações</Label>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1 bg-muted/50 p-3 rounded">
-                    {call.internal_notes_text}
-                  </p>
-                </div>
-              )}
-              {call.internal_notes_audio_url && (
-                <div>
-                  <Label className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
-                    <Volume2 className="w-3 h-3" />
-                    Áudio das Observações
-                  </Label>
-                  <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
-                    <audio controls className="w-full" src={call.internal_notes_audio_url}>
-                      Seu navegador não suporta o elemento de áudio.
-                    </audio>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Informações Adicionais */}
-        <Card>
-          <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-            <CardTitle className="text-sm text-muted-foreground">
-              Informações Adicionais
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <Label className="text-sm text-muted-foreground">Criado em</Label>
-              <p className="whitespace-nowrap">
-                {format(new Date(call.created_at), "dd/MM/yyyy 'às' HH:mm", {
-                  locale: ptBR,
-                })}
-              </p>
-            </div>
-            <div>
-              <Label className="text-sm text-muted-foreground">Última atualização</Label>
-              <p className="whitespace-nowrap">
-                {format(new Date(call.updated_at), "dd/MM/yyyy 'às' HH:mm", {
-                  locale: ptBR,
-                })}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Chat Interno */}
-        <ServiceCallChat serviceCallId={call.id} osNumber={call.os_number} />
+          {/* Aba 4: Chat Interno */}
+          <TabsContent value="chat">
+            <ServiceCallChat serviceCallId={call.id} osNumber={call.os_number} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Modais de Envio */}
