@@ -45,6 +45,7 @@ const Vehicles = lazy(() => import("./pages/Vehicles"));
 const VehicleForm = lazy(() => import("./pages/VehicleForm"));
 const VehicleMaintenances = lazy(() => import("./pages/VehicleMaintenances"));
 const ServiceCallTrips = lazy(() => import("./pages/ServiceCallTrips"));
+const TechnicianMap = lazy(() => import("./pages/TechnicianMap"));
 const Install = lazy(() => import("./pages/Install"));
 const Inicio = lazy(() => import("./pages/Inicio"));
 const Products = lazy(() => import("./pages/Products"));
@@ -444,6 +445,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ServiceCallTrips />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/technician-map"
+              element={
+                <ProtectedRoute>
+                  <TechnicianMap />
                 </ProtectedRoute>
               }
             />

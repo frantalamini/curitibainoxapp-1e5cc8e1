@@ -144,9 +144,7 @@ const ServiceCallTrips = () => {
                       <TableHead>Veículo</TableHead>
                       <TableHead>OS</TableHead>
                       <TableHead>Cliente</TableHead>
-                      <TableHead className="text-right">Km Início</TableHead>
-                      <TableHead className="text-right">Km Fim</TableHead>
-                      <TableHead className="text-right">Distância</TableHead>
+                      <TableHead className="text-right">Distância GPS</TableHead>
                       <TableHead>Situação</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -176,19 +174,12 @@ const ServiceCallTrips = () => {
                           </Button>
                         </TableCell>
                         <TableCell>{trip.service_calls?.clients?.full_name}</TableCell>
-                        <TableCell className="text-right">
-                          {trip.start_odometer_km.toLocaleString('pt-BR', { minimumFractionDigits: 1 })} km
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {trip.end_odometer_km 
-                            ? `${trip.end_odometer_km.toLocaleString('pt-BR', { minimumFractionDigits: 1 })} km`
-                            : "-"
-                          }
-                        </TableCell>
                         <TableCell className="text-right font-medium">
-                          {trip.distance_km 
-                            ? `${trip.distance_km.toLocaleString('pt-BR', { minimumFractionDigits: 1 })} km`
-                            : "-"
+                          {trip.estimated_distance_km 
+                            ? `${trip.estimated_distance_km.toLocaleString('pt-BR', { minimumFractionDigits: 1 })} km`
+                            : trip.distance_km 
+                              ? `${trip.distance_km.toLocaleString('pt-BR', { minimumFractionDigits: 1 })} km`
+                              : "-"
                           }
                         </TableCell>
                         <TableCell>{getStatusBadge(trip.status)}</TableCell>

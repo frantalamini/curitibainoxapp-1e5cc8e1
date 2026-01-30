@@ -100,6 +100,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       items: [
         { icon: "agenda", label: "Compromissos", to: "/schedule" },
         { icon: "servicos", label: "Técnicos em Campo", to: "/technicians" },
+        { icon: "veiculo", label: "Mapa de Técnicos", to: "/technician-map" },
       ],
     },
     // Módulo Finanças - Admin Only (após Agenda)
