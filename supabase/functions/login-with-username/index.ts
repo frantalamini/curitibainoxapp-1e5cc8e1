@@ -3,9 +3,64 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  // Keep in sync with what the browser sends when calling functions
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+// Rate limiting baseado em memória
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
+
+function getClientIP(req: Request): string {
+  // Supabase Edge Functions usam x-forwarded-for para o IP real
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) {
+    // Pode conter múltiplos IPs separados por vírgula, pegar o primeiro
+    return forwarded.split(',')[0].trim();
+  }
+  // Fallback para outros headers comuns
+  return req.headers.get('x-real-ip') || 
+         req.headers.get('cf-connecting-ip') || 
+         'unknown';
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; retryAfterSeconds?: number } {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+  
+  // Limpar registro expirado
+  if (record && now > record.resetAt) {
+    rateLimitMap.delete(ip);
+  }
+  
+  const currentRecord = rateLimitMap.get(ip);
+  
+  // Novo IP - criar registro
+  if (!currentRecord) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return { allowed: true };
+  }
+  
+  // Verificar se excedeu o limite
+  if (currentRecord.count >= MAX_ATTEMPTS) {
+    const retryAfterSeconds = Math.ceil((currentRecord.resetAt - now) / 1000);
+    return { allowed: false, retryAfterSeconds };
+  }
+  
+  // Incrementar contador
+  currentRecord.count++;
+  return { allowed: true };
+}
+
+// Limpeza periódica de registros expirados (a cada 5 minutos)
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of rateLimitMap.entries()) {
+    if (now > record.resetAt) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -14,6 +69,29 @@ serve(async (req) => {
   }
 
   try {
+    // Verificar rate limit antes de processar
+    const clientIP = getClientIP(req);
+    const rateLimitResult = checkRateLimit(clientIP);
+    
+    if (!rateLimitResult.allowed) {
+      console.log(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Muitas tentativas de login. Aguarde 15 minutos e tente novamente.',
+          retryAfterSeconds: rateLimitResult.retryAfterSeconds
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateLimitResult.retryAfterSeconds)
+          },
+          status: 429
+        }
+      );
+    }
+
     const { username_or_email, password } = await req.json();
 
     if (!username_or_email || !password) {
@@ -89,8 +167,6 @@ serve(async (req) => {
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        // Returning 200 prevents the frontend from treating it as a hard failure
-        // (avoids blank-screen/error-overlay flows on some clients)
         status: 200
       }
     );
