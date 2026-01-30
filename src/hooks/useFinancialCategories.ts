@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DREGroup } from "@/lib/dreConstants";
 
 export interface FinancialCategory {
   id: string;
@@ -8,6 +9,7 @@ export interface FinancialCategory {
   type: "income" | "expense";
   parent_id: string | null;
   is_active: boolean;
+  dre_group: DREGroup | null;
   created_at: string;
   updated_at: string;
 }

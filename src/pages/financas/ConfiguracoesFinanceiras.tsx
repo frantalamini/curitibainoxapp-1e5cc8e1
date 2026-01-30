@@ -20,6 +20,7 @@ import { useFinancialCategories, FinancialCategory } from "@/hooks/useFinancialC
 import { useCostCenters, CostCenter } from "@/hooks/useCostCenters";
 import { useCreditCards, CreditCard as CreditCardType } from "@/hooks/useCreditCards";
 import { format } from "date-fns";
+import { DRE_GROUP_LABELS, DRE_GROUP_OPTIONS } from "@/lib/dreConstants";
 
 type AccountFormData = {
   name: string;
@@ -35,6 +36,7 @@ type AccountFormData = {
 type CategoryFormData = {
   name: string;
   type: "income" | "expense";
+  dre_group: string;
 };
 
 type CostCenterFormData = {
@@ -76,6 +78,7 @@ export default function ConfiguracoesFinanceiras() {
   const [categoryForm, setCategoryForm] = useState<CategoryFormData>({
     name: "",
     type: "expense",
+    dre_group: "",
   });
 
   const [costCenterDialogOpen, setCostCenterDialogOpen] = useState(false);
@@ -150,10 +153,10 @@ export default function ConfiguracoesFinanceiras() {
   const handleOpenCategoryDialog = (category?: FinancialCategory) => {
     if (category) {
       setEditingCategory(category);
-      setCategoryForm({ name: category.name, type: category.type });
+      setCategoryForm({ name: category.name, type: category.type, dre_group: category.dre_group || "" });
     } else {
       setEditingCategory(null);
-      setCategoryForm({ name: "", type: "expense" });
+      setCategoryForm({ name: "", type: "expense", dre_group: "" });
     }
     setCategoryDialogOpen(true);
   };
@@ -164,12 +167,13 @@ export default function ConfiguracoesFinanceiras() {
       type: categoryForm.type,
       parent_id: null,
       is_active: true,
+      dre_group: (categoryForm.dre_group || null) as any,
     };
 
     if (editingCategory) {
       await updateCategory.mutateAsync({ id: editingCategory.id, ...data });
     } else {
-      await createCategory.mutateAsync(data);
+      await createCategory.mutateAsync(data as any);
     }
     setCategoryDialogOpen(false);
   };
@@ -392,6 +396,7 @@ export default function ConfiguracoesFinanceiras() {
                       <TableRow>
                         <TableHead>Nome</TableHead>
                         <TableHead>Tipo</TableHead>
+                        <TableHead>Grupo DRE</TableHead>
                         <TableHead className="text-center">Ativo</TableHead>
                         <TableHead className="w-[100px]">Ações</TableHead>
                       </TableRow>
@@ -404,6 +409,15 @@ export default function ConfiguracoesFinanceiras() {
                             <Badge variant={category.type === "income" ? "default" : "destructive"}>
                               {category.type === "income" ? "Receita" : "Despesa"}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {category.dre_group ? (
+                              <Badge variant="outline" className="text-xs">
+                                {DRE_GROUP_LABELS[category.dre_group] || category.dre_group}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-center">
                             <Switch
@@ -701,6 +715,28 @@ export default function ConfiguracoesFinanceiras() {
                     <SelectItem value="expense">Despesa</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label htmlFor="category-dre-group">Grupo DRE</Label>
+                <Select
+                  value={categoryForm.dre_group || "__none__"}
+                  onValueChange={(value) => setCategoryForm({ ...categoryForm, dre_group: value === "__none__" ? "" : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
+                    {DRE_GROUP_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Define onde essa categoria aparece no DRE
+                </p>
               </div>
             </div>
             <DialogFooter>
