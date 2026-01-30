@@ -256,9 +256,10 @@ export default function ConfiguracoesFinanceiras() {
   return (
     <MainLayout>
       <PageContainer>
-        <PageHeader title="Configurações Financeiras" />
+        <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8">
+          <PageHeader title="Configurações Financeiras" />
 
-        <Tabs defaultValue="accounts" className="space-y-4">
+          <Tabs defaultValue="accounts" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4 max-w-lg">
             <TabsTrigger value="accounts" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
@@ -797,6 +798,7 @@ export default function ConfiguracoesFinanceiras() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </PageContainer>
     </MainLayout>
   );
