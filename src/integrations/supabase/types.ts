@@ -717,6 +717,92 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_transactions: {
+        Row: {
+          amount: number
+          category_id: string | null
+          client_id: string | null
+          cost_center_id: string | null
+          created_at: string
+          day_of_month: number
+          description: string
+          direction: Database["public"]["Enums"]["transaction_direction"]
+          end_date: string | null
+          financial_account_id: string | null
+          id: string
+          is_active: boolean
+          last_generated_month: string | null
+          notes: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          client_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          day_of_month?: number
+          description: string
+          direction: Database["public"]["Enums"]["transaction_direction"]
+          end_date?: string | null
+          financial_account_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_generated_month?: string | null
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          client_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          day_of_month?: number
+          description?: string
+          direction?: Database["public"]["Enums"]["transaction_direction"]
+          end_date?: string | null
+          financial_account_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_generated_month?: string | null
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_financial_account_id_fkey"
+            columns: ["financial_account_id"]
+            isOneToOne: false
+            referencedRelation: "financial_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_call_items: {
         Row: {
           created_at: string | null

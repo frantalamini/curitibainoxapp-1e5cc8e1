@@ -121,6 +121,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               { icon: "veiculo" as IconName, label: "Custos por Veículo", to: "/financas/custos-por-veiculo" },
               { icon: "financeiro" as IconName, label: "Conciliação Bancária", to: "/financas/conciliacao-bancaria" },
               { icon: "agenda" as IconName, label: "Orçamento Mensal", to: "/financas/orcamento-mensal" },
+              { icon: "relatorios" as IconName, label: "Despesas Recorrentes", to: "/financas/despesas-recorrentes" },
               { icon: "configuracoes" as IconName, label: "Configurações", to: "/financas/configuracoes" },
             ],
           },
