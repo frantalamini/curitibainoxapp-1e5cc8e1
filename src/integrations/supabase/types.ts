@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      category_budgets: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          id: string
+          month: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          amount?: number
+          category_id: string
+          created_at?: string
+          id?: string
+          month: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          id?: string
+          month?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "financial_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklists: {
         Row: {
           active: boolean | null
@@ -352,6 +390,7 @@ export type Database = {
       financial_categories: {
         Row: {
           created_at: string
+          dre_group: string | null
           id: string
           is_active: boolean
           name: string
@@ -361,6 +400,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dre_group?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -370,6 +410,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dre_group?: string | null
           id?: string
           is_active?: boolean
           name?: string
