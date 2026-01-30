@@ -956,10 +956,10 @@ const ServiceCallView = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Chat Interno */}
-      <ServiceCallChat serviceCallId={call.id} osNumber={call.os_number} />
+        {/* Chat Interno */}
+        <ServiceCallChat serviceCallId={call.id} osNumber={call.os_number} />
+      </div>
 
       {/* Modais de Envio */}
       {call.clients && (
