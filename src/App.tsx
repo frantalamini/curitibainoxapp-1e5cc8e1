@@ -63,6 +63,7 @@ const CartoesCredito = lazy(() => import("./pages/financas/CartoesCredito"));
 const DRE = lazy(() => import("./pages/financas/DRE"));
 const RentabilidadeOS = lazy(() => import("./pages/financas/RentabilidadeOS"));
 const RelatorioCentroCusto = lazy(() => import("./pages/financas/RelatorioCentroCusto"));
+const CustosPorTecnico = lazy(() => import("./pages/financas/CustosPorTecnico"));
 
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
@@ -592,6 +593,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <RelatorioCentroCusto />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financas/custos-por-tecnico"
+              element={
+                <ProtectedRoute>
+                  <CustosPorTecnico />
                 </ProtectedRoute>
               }
             />
