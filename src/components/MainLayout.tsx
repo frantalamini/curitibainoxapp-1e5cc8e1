@@ -113,6 +113,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               { icon: "financeiro" as IconName, label: "Contas a Receber", to: "/financas/contas-a-receber" },
               { icon: "agenda" as IconName, label: "Cartões de Crédito", to: "/financas/cartoes" },
               { icon: "relatorios" as IconName, label: "Fluxo de Caixa", to: "/financas/fluxo-de-caixa" },
+              { icon: "dashboard" as IconName, label: "DRE", to: "/financas/dre" },
               { icon: "configuracoes" as IconName, label: "Configurações", to: "/financas/configuracoes" },
             ],
           },
