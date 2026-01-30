@@ -119,6 +119,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               { icon: "usuarios" as IconName, label: "Centro de Custo", to: "/financas/centro-de-custo" },
               { icon: "usuarios" as IconName, label: "Custos por Técnico", to: "/financas/custos-por-tecnico" },
               { icon: "veiculo" as IconName, label: "Custos por Veículo", to: "/financas/custos-por-veiculo" },
+              { icon: "financeiro" as IconName, label: "Conciliação Bancária", to: "/financas/conciliacao-bancaria" },
               { icon: "configuracoes" as IconName, label: "Configurações", to: "/financas/configuracoes" },
             ],
           },
