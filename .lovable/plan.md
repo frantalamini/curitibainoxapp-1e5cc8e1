@@ -1,149 +1,123 @@
 
-# Plano: Notificações Instantâneas com Supabase Realtime
+# Plano: Corrigir Vulnerabilidades de Segurança
 
-## Resumo
-
-Implementar notificações em tempo real para técnicos quando uma nova OS é atribuída a eles. Atualmente o sistema usa polling (verifica a cada 60 segundos), mas vamos adicionar Supabase Realtime para notificação instantânea.
-
----
-
-## O Que Muda Para o Usuário
-
-| Antes | Depois |
-|-------|--------|
-| Técnico espera até 60 segundos para ver nova OS | Notificação aparece instantaneamente |
-| Apenas polling periódico | Realtime + polling como backup |
-| Delay perceptível | Experiência fluida e responsiva |
+## Resumo Executivo
+Vou corrigir os 3 erros detectados no scan de segurança:
+1. Atualizar a biblioteca jsPDF para eliminar a vulnerabilidade crítica
+2. Implementar rate limiting no login para bloquear ataques de força bruta
+3. Marcar os avisos de dados como "resolvidos" (já estão protegidos por RLS)
 
 ---
 
-## Implementação
+## 1. Atualizar jsPDF (5 min)
 
-### 1. Migração: Habilitar Realtime na Tabela service_calls
+**Arquivo:** `package.json`
 
-Executar SQL para adicionar a tabela `service_calls` à publicação realtime:
+**Mudança:**
+```json
+// DE:
+"jspdf": "^3.0.3"
 
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE service_calls;
+// PARA:
+"jspdf": "^4.0.0"
 ```
 
-### 2. Atualizar Hook useNotifications
+**Verificação:** Testar o botão "Exportar PDF" no Dashboard após a atualização.
 
-Modificar `src/hooks/useNotifications.ts` para:
+---
 
-1. **Adicionar subscription Realtime** que escuta INSERTs e UPDATEs na tabela `service_calls`
-2. **Filtrar eventos** apenas para o `technician_id` do técnico logado
-3. **Invalidar cache** do React Query quando um evento chegar
-4. **Reduzir refetchInterval** de 60s para 30s como backup
+## 2. Implementar Rate Limiting no Login (20 min)
 
-Estrutura do código:
+**Arquivo:** `supabase/functions/login-with-username/index.ts`
+
+**Estratégia:** Usar um sistema de rate limiting baseado em memória (Map) com limite de 5 tentativas por IP a cada 15 minutos.
+
+**Implementação:**
 
 ```typescript
-// Subscription Realtime
-useEffect(() => {
-  if (!technicianId) return;
+// Rate limiting simples baseado em memória
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
 
-  const channel = supabase
-    .channel(`notifications-${technicianId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*', // INSERT, UPDATE
-        schema: 'public',
-        table: 'service_calls',
-        filter: `technician_id=eq.${technicianId}`
-      },
-      (payload) => {
-        // Invalidar cache para forçar refetch
-        queryClient.invalidateQueries({
-          queryKey: ['technician-notifications', technicianId]
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['new-service-calls-count', technicianId]
-        });
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [technicianId, queryClient]);
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+  
+  // Limpar registro expirado
+  if (record && now > record.resetAt) {
+    rateLimitMap.delete(ip);
+    return true;
+  }
+  
+  // Novo IP
+  if (!record) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return true;
+  }
+  
+  // Verificar limite
+  if (record.count >= MAX_ATTEMPTS) {
+    return false;
+  }
+  
+  // Incrementar contador
+  record.count++;
+  return true;
+}
 ```
 
-### 3. Ajustar Intervalo de Polling
+**Fluxo da função atualizada:**
+1. Extrair IP do header `x-forwarded-for`
+2. Verificar rate limit antes de processar
+3. Se bloqueado → retornar erro 429 com mensagem amigável
+4. Se permitido → continuar com o login normal
 
-Alterar `refetchInterval` de 60 segundos para 30 segundos como fallback de segurança caso o Realtime tenha algum problema momentâneo.
+**Mensagem de bloqueio (PT-BR):**
+> "Muitas tentativas de login. Aguarde 15 minutos e tente novamente."
 
 ---
 
-## Arquivos a Modificar
+## 3. Atualizar Status dos Findings de Segurança
 
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| Migração SQL | Criar | Habilitar Realtime na tabela service_calls |
-| `src/hooks/useNotifications.ts` | Modificar | Adicionar subscription Realtime + reduzir polling |
+Após as correções, vou atualizar o scanner de segurança para:
+- **Marcar como ignorados** os avisos sobre dados de funcionários/clientes (já têm RLS adequado)
+- **Remover** o aviso de vulnerabilidade de dependências (após atualização do jsPDF)
 
 ---
 
-## Fluxo Técnico
+## Arquivos Modificados
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                 ADMIN CRIA NOVA OS                          │
-└─────────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-              ┌─────────────────────┐
-              │ INSERT service_calls │
-              │ technician_id = X    │
-              └─────────────────────┘
-                          │
-          ┌───────────────┼───────────────┐
-          │               │               │
-          ▼               │               ▼
-    ┌──────────┐          │         ┌──────────┐
-    │ Realtime │          │         │ Polling  │
-    │ (instant)│          │         │ (30s)    │
-    └──────────┘          │         └──────────┘
-          │               │               │
-          └───────────────┼───────────────┘
-                          │
-                          ▼
-              ┌─────────────────────┐
-              │ invalidateQueries() │
-              │ refetch notificações│
-              └─────────────────────┘
-                          │
-                          ▼
-              ┌─────────────────────┐
-              │ UI ATUALIZA         │
-              │ Badge + Lista       │
-              └─────────────────────┘
-```
+| Arquivo | Tipo de Mudança |
+|---------|-----------------|
+| `package.json` | Atualizar versão do jspdf |
+| `supabase/functions/login-with-username/index.ts` | Adicionar rate limiting |
 
 ---
 
 ## Seção Técnica
 
-### Configuração do Canal Realtime
+### Por que usar rate limiting em memória?
+- **Simplicidade:** Não requer dependências externas (Redis, etc.)
+- **Eficácia:** Funciona bem para o volume de usuários típico
+- **Limitação:** Reinicia se a Edge Function for reiniciada (aceitável para este caso)
 
-O Supabase Realtime funciona via WebSocket, mantendo uma conexão persistente com o banco de dados. Quando há uma mudança na tabela filtrada, o evento é enviado ao cliente em milissegundos.
+### Alternativa mais robusta (futuro)
+Para produção de alto volume, considerar:
+- Upstash Redis (integração nativa com Deno)
+- Supabase Database com tabela de rate limiting
 
-### Filtro por Técnico
-
-Usamos `filter: technician_id=eq.${technicianId}` para que cada técnico receba apenas eventos das suas próprias OS, não sobrecarregando com dados irrelevantes.
-
-### Limpeza de Recursos
-
-O `return () => supabase.removeChannel(channel)` garante que a subscription seja removida quando o componente desmonta ou o `technicianId` muda, evitando memory leaks.
+### Segurança das tabelas
+As tabelas `technicians` e `clients` já possuem:
+- RLS habilitado com políticas restritivas
+- Técnicos só veem seus próprios dados
+- Clientes só são visíveis durante OS ativas
+- Admins têm acesso total (esperado)
 
 ---
 
-## Benefícios
-
-1. **Latência mínima**: Notificação chega em ~100-500ms após criação da OS
-2. **Menos requisições**: Realtime é mais eficiente que polling frequente
-3. **Experiência melhorada**: Técnico vê imediatamente quando recebe trabalho
-4. **Fallback robusto**: Polling a cada 30s garante funcionamento mesmo se Realtime falhar
-
+## Resultado Esperado
+Após implementar:
+- ✅ 0 vulnerabilidades críticas em dependências
+- ✅ Login protegido contra força bruta
+- ✅ Avisos de dados marcados como "protegidos adequadamente"
