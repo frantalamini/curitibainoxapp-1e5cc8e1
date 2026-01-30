@@ -1,20 +1,22 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/MainLayout";
-import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Loader2, Wallet, Check, X, FileText, Info } from "lucide-react";
-import { useReceivables } from "@/hooks/useReceivables";
+import { Loader2, Wallet, Check, X, Plus, Pencil, Trash2, Info } from "lucide-react";
+import { useReceivables, ReceivableInsert } from "@/hooks/useReceivables";
 import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
+import { useFinancialCategories } from "@/hooks/useFinancialCategories";
 import { useClients } from "@/hooks/useClients";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -38,9 +40,21 @@ const getStatusBadge = (status: string) => {
   }
 };
 
+const emptyForm: ReceivableInsert = {
+  client_id: null,
+  description: "",
+  due_date: format(new Date(), "yyyy-MM-dd"),
+  amount: 0,
+  category_id: null,
+  financial_account_id: null,
+  payment_method: null,
+  notes: null,
+};
+
 export default function ContasAReceber() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const { accounts } = useFinancialAccounts();
+  const { incomeCategories } = useFinancialCategories();
   const { clients } = useClients();
   const navigate = useNavigate();
 
@@ -52,7 +66,16 @@ export default function ContasAReceber() {
   const [clientFilter, setClientFilter] = useState("");
   const [osFilter, setOsFilter] = useState("");
 
-  const { receivables, isLoading, markAsPaid, cancelReceivable, summary } = useReceivables({
+  const { 
+    receivables, 
+    isLoading, 
+    markAsPaid, 
+    cancelReceivable, 
+    createReceivable, 
+    updateReceivable, 
+    deleteReceivable, 
+    summary 
+  } = useReceivables({
     startDate,
     endDate,
     status: statusFilter,
@@ -60,10 +83,50 @@ export default function ContasAReceber() {
     osNumber: osFilter || undefined,
   });
 
+  // Form state
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<ReceivableInsert>(emptyForm);
+
   // Mark as paid dialog
   const [payDialog, setPayDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const [payDate, setPayDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [payAccountId, setPayAccountId] = useState("");
+
+  const handleOpenNew = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (r: any) => {
+    if (r.origin === "SERVICE_CALL") return; // Can't edit OS-originated entries
+    setEditingId(r.id);
+    setForm({
+      client_id: r.client_id,
+      description: r.description || "",
+      due_date: r.due_date,
+      amount: Number(r.amount),
+      category_id: r.category_id,
+      financial_account_id: r.financial_account_id,
+      payment_method: r.payment_method,
+      notes: r.notes,
+    });
+    setFormOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!form.description || !form.due_date || form.amount <= 0) return;
+
+    if (editingId) {
+      updateReceivable.mutate(
+        { id: editingId, data: form },
+        { onSuccess: () => setFormOpen(false) }
+      );
+    } else {
+      createReceivable.mutate(form, { onSuccess: () => setFormOpen(false) });
+    }
+  };
 
   const handleMarkAsPaid = () => {
     if (!payDialog.id) return;
@@ -76,11 +139,11 @@ export default function ContasAReceber() {
   if (roleLoading) {
     return (
       <MainLayout>
-        <PageContainer>
+        <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        </PageContainer>
+        </div>
       </MainLayout>
     );
   }
@@ -91,11 +154,15 @@ export default function ContasAReceber() {
 
   return (
     <MainLayout>
-      <PageContainer>
-        <PageHeader title="Contas a Receber" />
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
+        <PageHeader title="Contas a Receber">
+          <Button onClick={handleOpenNew}>
+            <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
+          </Button>
+        </PageHeader>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Em Aberto</CardTitle>
@@ -126,7 +193,7 @@ export default function ContasAReceber() {
         </div>
 
         {/* Filters */}
-        <Card className="mb-6">
+        <Card>
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
@@ -197,7 +264,10 @@ export default function ContasAReceber() {
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <Wallet className="h-12 w-12 text-muted-foreground/50 mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">Nenhum título encontrado</h3>
-                <p className="text-sm text-muted-foreground">Ajuste os filtros ou crie OS com parcelas.</p>
+                <p className="text-sm text-muted-foreground mb-4">Ajuste os filtros ou adicione um novo lançamento.</p>
+                <Button onClick={handleOpenNew}>
+                  <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
+                </Button>
               </div>
             ) : (
             <TooltipProvider>
@@ -206,15 +276,14 @@ export default function ContasAReceber() {
                   <TableHeader>
                     <TableRow className="text-xs">
                       <TableHead className="w-[7%] min-w-[50px]">OS</TableHead>
-                      <TableHead className="w-[18%]">Cliente</TableHead>
+                      <TableHead className="w-[18%]">Cliente/Descrição</TableHead>
                       <TableHead className="w-[8%]">Parcela</TableHead>
                       <TableHead className="w-[10%]">Venc.</TableHead>
                       <TableHead className="w-[10%] text-right">Valor</TableHead>
                       <TableHead className="w-[10%]">Forma</TableHead>
                       <TableHead className="w-[10%]">Status</TableHead>
                       <TableHead className="w-[10%]">Pago em</TableHead>
-                      <TableHead>Obs</TableHead>
-                      <TableHead className="w-[10%] text-right">Ações</TableHead>
+                      <TableHead className="w-[12%] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -244,11 +313,13 @@ export default function ContasAReceber() {
                                 )}
                               </div>
                             ) : (
-                              "-"
+                              <span className="text-muted-foreground text-xs">Manual</span>
                             )}
                           </TableCell>
                           <TableCell>
-                            <span className="truncate block max-w-[150px] text-sm" title={r.client?.full_name || undefined}>{r.client?.full_name || "-"}</span>
+                            <span className="truncate block max-w-[150px] text-sm" title={r.client?.full_name || r.description || undefined}>
+                              {r.client?.full_name || r.description || "-"}
+                            </span>
                           </TableCell>
                           <TableCell className="text-xs">
                             {r.installment_number && r.installments_total
@@ -270,45 +341,53 @@ export default function ContasAReceber() {
                               ? format(new Date(r.paid_at), "dd/MM/yy", { locale: ptBR })
                               : "-"}
                           </TableCell>
-                          <TableCell className="max-w-[100px] truncate text-muted-foreground text-xs">
-                            {r.notes ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="cursor-help">{r.notes}</span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs whitespace-pre-wrap">{r.notes}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              "-"
-                            )}
-                          </TableCell>
                           <TableCell className="text-right">
-                            {r.status === "OPEN" && (
-                              <div className="flex gap-1 justify-end">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 px-2"
-                                  onClick={() => {
-                                    setPayDialog({ open: true, id: r.id });
-                                    setPayDate(format(new Date(), "yyyy-MM-dd"));
-                                    setPayAccountId("");
-                                  }}
-                                >
-                                  <Check className="h-4 w-4 mr-1" /> Pagar
-                                </Button>
+                            <div className="flex gap-1 justify-end">
+                              {r.status === "OPEN" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-2"
+                                    onClick={() => {
+                                      setPayDialog({ open: true, id: r.id });
+                                      setPayDate(format(new Date(), "yyyy-MM-dd"));
+                                      setPayAccountId("");
+                                    }}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  {!isFromOS && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 px-2"
+                                      onClick={() => handleEdit(r)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 px-2 text-destructive hover:text-destructive"
+                                    onClick={() => cancelReceivable.mutate(r.id)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              {!isFromOS && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   className="h-8 px-2 text-destructive hover:text-destructive"
-                                  onClick={() => cancelReceivable.mutate(r.id)}
+                                  onClick={() => deleteReceivable.mutate(r.id)}
                                 >
-                                  <X className="h-4 w-4" />
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -320,6 +399,110 @@ export default function ContasAReceber() {
             )}
           </CardContent>
         </Card>
+
+        {/* New/Edit Form Sheet */}
+        <Sheet open={formOpen} onOpenChange={setFormOpen}>
+          <SheetContent className="sm:max-w-lg overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>{editingId ? "Editar Conta a Receber" : "Nova Conta a Receber"}</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Descrição *</Label>
+                <Input
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Ex: Venda de equipamento"
+                />
+              </div>
+              <div>
+                <Label>Cliente</Label>
+                <Select
+                  value={form.client_id || "__none__"}
+                  onValueChange={(v) => setForm({ ...form, client_id: v === "__none__" ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
+                    {clients?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Vencimento *</Label>
+                  <Input
+                    type="date"
+                    value={form.due_date}
+                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Valor *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.amount || ""}
+                    onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Categoria</Label>
+                <Select
+                  value={form.category_id || "__none__"}
+                  onValueChange={(v) => setForm({ ...form, category_id: v === "__none__" ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
+                    {incomeCategories?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Forma de Pagamento</Label>
+                <Input
+                  value={form.payment_method || ""}
+                  onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
+                  placeholder="Ex: PIX, Boleto"
+                />
+              </div>
+              <div>
+                <Label>Observações</Label>
+                <Textarea
+                  value={form.notes || ""}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  placeholder="Notas adicionais..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <SheetFooter>
+              <Button variant="outline" onClick={() => setFormOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSave} 
+                disabled={createReceivable.isPending || updateReceivable.isPending}
+              >
+                {(createReceivable.isPending || updateReceivable.isPending) && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                {editingId ? "Atualizar" : "Criar"}
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
 
         {/* Mark as Paid Dialog */}
         <Dialog open={payDialog.open} onOpenChange={(open) => setPayDialog({ open, id: open ? payDialog.id : null })}>
@@ -362,7 +545,7 @@ export default function ContasAReceber() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </PageContainer>
+      </div>
     </MainLayout>
   );
 }

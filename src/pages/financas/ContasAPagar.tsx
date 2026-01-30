@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/MainLayout";
-import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
@@ -141,11 +140,11 @@ export default function ContasAPagar() {
   if (roleLoading) {
     return (
       <MainLayout>
-        <PageContainer>
+        <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        </PageContainer>
+        </div>
       </MainLayout>
     );
   }
@@ -156,7 +155,7 @@ export default function ContasAPagar() {
 
   return (
     <MainLayout>
-      <PageContainer>
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
         <PageHeader title="Contas a Pagar">
           <Button onClick={handleOpenNew}>
             <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
@@ -532,7 +531,7 @@ export default function ContasAPagar() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </PageContainer>
+      </div>
     </MainLayout>
   );
 }
