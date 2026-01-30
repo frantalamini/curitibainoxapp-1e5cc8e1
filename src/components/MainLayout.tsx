@@ -97,6 +97,18 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: "financeiro", label: "Reembolso Técnico", to: "/technician-reimbursements" },
       ],
     },
+    // Módulo Vendas - Admin Only (após Serviços)
+    ...(isAdmin
+      ? [
+          {
+            title: "Vendas",
+            icon: "financeiro" as IconName,
+            items: [
+              { icon: "documentos" as IconName, label: "Orçamentos e Vendas", to: "/vendas" },
+            ],
+          },
+        ]
+      : []),
     {
       title: "Agenda",
       icon: "agenda",

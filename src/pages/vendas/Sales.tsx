@@ -35,7 +35,7 @@ export default function Sales() {
   } | null>(null);
 
   const filters = activeTab !== "ALL" ? { status: activeTab } : undefined;
-  const { sales, quotes, approved, completed, cancelled, isLoading, approveSale, cancelSale, updateSale } = useSales(filters);
+  const { sales, quotes, approved, completed, cancelled, isLoading, approveSale, cancelSale, finalizeSale } = useSales(filters);
 
   // Filter by search term
   const filteredSales = sales.filter((sale) => {
@@ -76,11 +76,7 @@ export default function Sales() {
       } else if (type === "cancel") {
         await cancelSale.mutateAsync(saleId);
       } else if (type === "finalize") {
-        await updateSale.mutateAsync({
-          id: saleId,
-          status: "SALE" as SaleStatus,
-        });
-        toast.success("Venda finalizada! Estoque e financeiro atualizados.");
+        await finalizeSale.mutateAsync(saleId);
       }
     } catch (error) {
       console.error("Error:", error);
