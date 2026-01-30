@@ -48,20 +48,20 @@ export const ServiceCallsTable = ({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/30">
-            <TableHead className="w-[70px]"></TableHead>
-            <TableHead className="w-16">Nº OS</TableHead>
+            <TableHead className="w-[60px]">Nº OS</TableHead>
+            <TableHead className="w-8 px-1"></TableHead>
             <TableHead>Cliente</TableHead>
-            <TableHead className="w-[12%]">Data</TableHead>
-            <TableHead className="w-[12%]">Técnico</TableHead>
-            <TableHead className="w-[14%]">
+            <TableHead className="w-[10%]">Data</TableHead>
+            <TableHead className="w-[10%]">Técnico</TableHead>
+            <TableHead className="w-[12%]">
               <span className="block">Status</span>
               <span className="block">Técnico</span>
             </TableHead>
-            <TableHead className="w-[14%]">
+            <TableHead className="w-[12%]">
               <span className="block">Status</span>
               <span className="block">Comercial</span>
             </TableHead>
-            <TableHead className="w-[160px]">Marcadores</TableHead>
+            <TableHead className="w-[140px]">Marcadores</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -75,7 +75,12 @@ export const ServiceCallsTable = ({
                 onClick={() => onRowClick(call.id)}
                 onKeyDown={(e) => handleKeyDown(e, call.id)}
               >
-                <TableCell onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-2">
+                  <span className="text-sm font-mono font-semibold text-primary">
+                    #{call.os_number}
+                  </span>
+                </TableCell>
+                <TableCell className="px-1 py-2" onClick={(e) => e.stopPropagation()}>
                   <ServiceCallActionsMenu
                     serviceCallId={call.id}
                     osNumber={call.os_number}
@@ -86,15 +91,8 @@ export const ServiceCallsTable = ({
                     isLoading={markersLoading}
                   />
                 </TableCell>
-                <TableCell>
-                  <span className="text-sm font-mono font-semibold text-primary">
-                    #{call.os_number}
-                  </span>
-                </TableCell>
-                <TableCell
-                  className="cursor-pointer hover:underline hover:text-blue-600 transition-colors"
-                >
-                  <div className="flex flex-col max-w-[220px]">
+                <TableCell className="py-2">
+                  <div className="flex flex-col max-w-[240px]">
                     <span className="font-medium text-sm truncate" title={call.clients?.full_name}>
                       {call.clients?.full_name || "-"}
                     </span>
@@ -110,21 +108,21 @@ export const ServiceCallsTable = ({
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2">
                   <span className="text-sm text-muted-foreground">
                     {formatDate(call.scheduled_date)}
                   </span>
                 </TableCell>
-                <TableCell>
-                  <span className="text-sm truncate block max-w-[100px]" title={call.technicians?.full_name}>
+                <TableCell className="py-2">
+                  <span className="text-sm truncate block max-w-[90px]" title={call.technicians?.full_name}>
                     {call.technicians?.full_name?.split(' ')[0] || "-"}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2">
                   {call.service_call_statuses ? (
-                    <div className="inline-flex items-start gap-1.5 px-2 py-1 rounded bg-muted/50">
+                    <div className="inline-flex items-start gap-1 px-1.5 py-0.5 rounded bg-muted/50">
                       <div
-                        className="w-2.5 h-2.5 rounded-sm shrink-0 mt-0.5"
+                        className="w-2 h-2 rounded-sm shrink-0 mt-0.5"
                         style={{ backgroundColor: call.service_call_statuses.color }}
                       />
                       <span className="text-xs leading-tight">{call.service_call_statuses.name}</span>
@@ -133,11 +131,11 @@ export const ServiceCallsTable = ({
                     <span className="text-xs text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2">
                   {call.commercial_status ? (
-                    <div className="inline-flex items-start gap-1.5 px-2 py-1 rounded bg-muted/50">
+                    <div className="inline-flex items-start gap-1 px-1.5 py-0.5 rounded bg-muted/50">
                       <div
-                        className="w-2.5 h-2.5 rounded-sm shrink-0 mt-0.5"
+                        className="w-2 h-2 rounded-sm shrink-0 mt-0.5"
                         style={{ backgroundColor: call.commercial_status.color }}
                       />
                       <span className="text-xs leading-tight">{call.commercial_status.name}</span>
@@ -146,7 +144,7 @@ export const ServiceCallsTable = ({
                     <span className="text-xs text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
                   <ServiceCallMarkersList markers={callMarkers} />
                 </TableCell>
               </TableRow>

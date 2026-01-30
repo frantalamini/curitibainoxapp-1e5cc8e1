@@ -93,10 +93,10 @@ export function ServiceCallActionsMenu({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="h-7 w-7 shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <MoreHorizontal className="h-4 w-4" />
+            <MoreHorizontal className="h-3.5 w-3.5" />
             <span className="sr-only">Ações</span>
           </Button>
         </DropdownMenuTrigger>
