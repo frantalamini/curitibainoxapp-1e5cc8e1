@@ -431,6 +431,7 @@ export type Database = {
       financial_transactions: {
         Row: {
           amount: number
+          bank_statement_ref: string | null
           category_id: string | null
           client_id: string | null
           cost_center_id: string | null
@@ -448,15 +449,18 @@ export type Database = {
           installments_total: number | null
           interest: number | null
           interval_days: number | null
+          is_reconciled: boolean | null
           notes: string | null
           origin: Database["public"]["Enums"]["transaction_origin"]
           paid_at: string | null
           payment_method: string | null
+          reconciled_at: string | null
           service_call_id: string | null
           status: Database["public"]["Enums"]["transaction_status"] | null
         }
         Insert: {
           amount: number
+          bank_statement_ref?: string | null
           category_id?: string | null
           client_id?: string | null
           cost_center_id?: string | null
@@ -474,15 +478,18 @@ export type Database = {
           installments_total?: number | null
           interest?: number | null
           interval_days?: number | null
+          is_reconciled?: boolean | null
           notes?: string | null
           origin: Database["public"]["Enums"]["transaction_origin"]
           paid_at?: string | null
           payment_method?: string | null
+          reconciled_at?: string | null
           service_call_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
         }
         Update: {
           amount?: number
+          bank_statement_ref?: string | null
           category_id?: string | null
           client_id?: string | null
           cost_center_id?: string | null
@@ -500,10 +507,12 @@ export type Database = {
           installments_total?: number | null
           interest?: number | null
           interval_days?: number | null
+          is_reconciled?: boolean | null
           notes?: string | null
           origin?: Database["public"]["Enums"]["transaction_origin"]
           paid_at?: string | null
           payment_method?: string | null
+          reconciled_at?: string | null
           service_call_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
         }
