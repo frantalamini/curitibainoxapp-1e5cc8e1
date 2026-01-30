@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.get-os-report]
 verify_jwt = false
+
+[functions.reconcile-bank-statement]
+verify_jwt = true
