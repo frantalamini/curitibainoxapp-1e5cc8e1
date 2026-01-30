@@ -1947,6 +1947,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_technician_of_service_call: {
+        Args: { _service_call_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "technician" | "client"
