@@ -1536,56 +1536,6 @@ const ServiceCallForm = () => {
                     />
                   </div>
 
-                  {/* Gravação de Áudio (Informações Técnicas) */}
-                  <div className="space-y-2">
-                    <Label>Gravação de Áudio (Informações Técnicas)</Label>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Duração máxima do áudio: 1 minuto e 30 segundos
-                    </p>
-                    
-                    {!technicalAudioURL && !existingTechnicalAudioUrl ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={isRecordingTechnical ? stopRecordingTechnical : startRecordingTechnical}
-                        className="w-full"
-                      >
-                        <Mic className={`mr-2 h-4 w-4 ${isRecordingTechnical ? 'text-red-500 animate-pulse' : ''}`} />
-                        {isRecordingTechnical ? 'Parar Gravação' : 'Gravar Áudio'}
-                      </Button>
-                    ) : (
-                      <div className="space-y-2 mt-2">
-                        {technicalAudioURL && (
-                          <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
-                            <audio controls src={technicalAudioURL} className="flex-1" />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={removeTechnicalAudio}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                        {existingTechnicalAudioUrl && !technicalAudioURL && (
-                          <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
-                            <audio controls src={existingTechnicalAudioUrl} className="flex-1" />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={removeExistingTechnicalAudio}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
                   {/* Mídia Antes da Manutenção */}
                   <MediaSlots
                     mode="before"
@@ -1600,6 +1550,15 @@ const ServiceCallForm = () => {
                     disabled={isUploading || (isReadonly && isEditMode)}
                   />
 
+                  {/* Checklist */}
+                  {selectedChecklistId && selectedChecklist && (
+                    <ChecklistSelector
+                      items={selectedChecklist.items}
+                      onChange={setChecklistResponses}
+                      initialResponses={checklistResponses}
+                    />
+                  )}
+
                   {/* Mídia Depois da Manutenção */}
                   <MediaSlots
                     mode="after"
@@ -1613,15 +1572,6 @@ const ServiceCallForm = () => {
                     onExistingVideoUrlChange={setExistingVideoAfterUrl}
                     disabled={isUploading || (isReadonly && isEditMode)}
                   />
-
-                  {/* Checklist */}
-                  {selectedChecklistId && selectedChecklist && (
-                    <ChecklistSelector
-                      items={selectedChecklist.items}
-                      onChange={setChecklistResponses}
-                      initialResponses={checklistResponses}
-                    />
-                  )}
 
                   {/* Assinatura do Técnico - Read Only */}
                   <Card>
