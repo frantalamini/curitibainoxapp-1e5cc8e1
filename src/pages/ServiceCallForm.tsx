@@ -196,14 +196,21 @@ const ServiceCallForm = () => {
   };
 
   // Handlers para deslocamentos
-  const handleStartTrip = async (vehicleId: string) => {
+  const handleStartTrip = async (data: {
+    vehicleId: string;
+    originLat: number;
+    originLng: number;
+    destinationLat: number | null;
+    destinationLng: number | null;
+    estimatedDistanceKm: number | null;
+  }) => {
     if (!id || !existingCall) return;
 
     // Buscar quilometragem atual do veículo ANTES de qualquer navegação
     const { data: vehicleData } = await supabase
       .from("vehicles")
       .select("current_odometer_km")
-      .eq("id", vehicleId)
+      .eq("id", data.vehicleId)
       .single();
 
     const startOdometer = vehicleData?.current_odometer_km || 0;
@@ -213,8 +220,15 @@ const ServiceCallForm = () => {
     createTrip({
       service_call_id: id,
       technician_id: existingCall.technician_id,
-      vehicle_id: vehicleId,
+      vehicle_id: data.vehicleId,
       start_odometer_km: startOdometer,
+      origin_lat: data.originLat,
+      origin_lng: data.originLng,
+      destination_lat: data.destinationLat ?? undefined,
+      destination_lng: data.destinationLng ?? undefined,
+      estimated_distance_km: data.estimatedDistanceKm ?? undefined,
+      current_lat: data.originLat,
+      current_lng: data.originLng,
     });
 
     setStartTripModalOpen(false);
@@ -2036,6 +2050,14 @@ const ServiceCallForm = () => {
               open={startTripModalOpen}
               onOpenChange={setStartTripModalOpen}
               onConfirm={handleStartTrip}
+              clientAddress={existingCall.clients ? {
+                street: existingCall.clients.street,
+                number: existingCall.clients.number,
+                neighborhood: existingCall.clients.neighborhood,
+                city: existingCall.clients.city,
+                state: existingCall.clients.state,
+                cep: existingCall.clients.cep,
+              } : undefined}
               isLoading={isCreatingTrip}
             />
 
@@ -2045,6 +2067,7 @@ const ServiceCallForm = () => {
                 onOpenChange={setEndTripModalOpen}
                 onConfirm={handleEndTrip}
                 startOdometer={activeTrip.start_odometer_km}
+                estimatedDistanceKm={activeTrip.estimated_distance_km}
                 isLoading={isUpdatingTrip}
               />
             )}

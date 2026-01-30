@@ -899,10 +899,18 @@ export type Database = {
       service_call_trips: {
         Row: {
           created_at: string
+          current_lat: number | null
+          current_lng: number | null
+          destination_lat: number | null
+          destination_lng: number | null
           distance_km: number | null
           end_odometer_km: number | null
+          estimated_distance_km: number | null
           finished_at: string | null
           id: string
+          origin_lat: number | null
+          origin_lng: number | null
+          position_updated_at: string | null
           service_call_id: string
           start_odometer_km: number
           started_at: string
@@ -912,10 +920,18 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
+          destination_lat?: number | null
+          destination_lng?: number | null
           distance_km?: number | null
           end_odometer_km?: number | null
+          estimated_distance_km?: number | null
           finished_at?: string | null
           id?: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          position_updated_at?: string | null
           service_call_id: string
           start_odometer_km: number
           started_at?: string
@@ -925,10 +941,18 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
+          destination_lat?: number | null
+          destination_lng?: number | null
           distance_km?: number | null
           end_odometer_km?: number | null
+          estimated_distance_km?: number | null
           finished_at?: string | null
           id?: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          position_updated_at?: string | null
           service_call_id?: string
           start_odometer_km?: number
           started_at?: string

@@ -131,15 +131,29 @@ const MobileHome = () => {
     setEndTripModal({ isOpen: true, serviceCallId: id });
   };
 
-  const handleConfirmStartTrip = (vehicleId: string) => {
+  const handleConfirmStartTrip = (data: {
+    vehicleId: string;
+    originLat: number;
+    originLng: number;
+    destinationLat: number | null;
+    destinationLng: number | null;
+    estimatedDistanceKm: number | null;
+  }) => {
     if (!startTripModal.serviceCallId || !technicianId) return;
 
     createTrip({
       service_call_id: startTripModal.serviceCallId,
       technician_id: technicianId,
-      vehicle_id: vehicleId,
-      start_odometer_km: 0, // Will be updated by the modal in future
+      vehicle_id: data.vehicleId,
+      start_odometer_km: 0, // Fallback - GPS é a fonte primária agora
       status: "em_deslocamento",
+      origin_lat: data.originLat,
+      origin_lng: data.originLng,
+      destination_lat: data.destinationLat ?? undefined,
+      destination_lng: data.destinationLng ?? undefined,
+      estimated_distance_km: data.estimatedDistanceKm ?? undefined,
+      current_lat: data.originLat,
+      current_lng: data.originLng,
     });
 
     setStartTripModal({ isOpen: false, serviceCallId: null });
@@ -318,6 +332,7 @@ const MobileHome = () => {
           onOpenChange={(open) => setEndTripModal({ isOpen: open, serviceCallId: open ? endTripModal.serviceCallId : null })}
           onConfirm={handleConfirmEndTrip}
           startOdometer={openTrip.start_odometer_km}
+          estimatedDistanceKm={openTrip.estimated_distance_km}
           isLoading={isUpdating}
         />
       )}

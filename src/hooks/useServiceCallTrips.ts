@@ -16,6 +16,16 @@ export interface ServiceCallTrip {
   distance_km: number | null;
   status: TripStatus;
   created_at: string;
+  // Novos campos GPS
+  origin_lat: number | null;
+  origin_lng: number | null;
+  destination_lat: number | null;
+  destination_lng: number | null;
+  estimated_distance_km: number | null;
+  current_lat: number | null;
+  current_lng: number | null;
+  position_updated_at: string | null;
+  // Joins
   vehicles?: { 
     name: string; 
     plate: string; 
@@ -39,6 +49,14 @@ export interface ServiceCallTripInsert {
   start_odometer_km: number;
   started_at?: string;
   status?: TripStatus;
+  // Campos GPS opcionais
+  origin_lat?: number;
+  origin_lng?: number;
+  destination_lat?: number;
+  destination_lng?: number;
+  estimated_distance_km?: number;
+  current_lat?: number;
+  current_lng?: number;
 }
 
 export interface ServiceCallTripUpdate {
@@ -46,6 +64,10 @@ export interface ServiceCallTripUpdate {
   end_odometer_km?: number;
   distance_km?: number;
   status?: TripStatus;
+  // Campos GPS opcionais
+  current_lat?: number;
+  current_lng?: number;
+  position_updated_at?: string;
 }
 
 // Hook para buscar deslocamento em aberto por service_call_id
