@@ -1,123 +1,75 @@
 
-# Plano: Corrigir Vulnerabilidades de Segurança
+# Plano: Corrigir Bug de Navegação ao Digitar Espaço no Marcador
 
-## Resumo Executivo
-Vou corrigir os 3 erros detectados no scan de segurança:
-1. Atualizar a biblioteca jsPDF para eliminar a vulnerabilidade crítica
-2. Implementar rate limiting no login para bloquear ataques de força bruta
-3. Marcar os avisos de dados como "resolvidos" (já estão protegidos por RLS)
+## Problema Identificado
+Quando você digita um marcador e pressiona **espaço** para continuar escrevendo, o sistema navega para a OS porque:
+
+1. A TableRow tem um handler `onKeyDown` que escuta a tecla espaço
+2. O evento de teclado do Input está "vazando" para a TableRow pai
+3. Isso dispara `onRowClick(id)` ao invés de simplesmente adicionar espaço ao texto
+
+## Solução
+Adicionar `e.stopPropagation()` no handler `onKeyDown` do Input para impedir que o evento de teclado suba para a TableRow.
 
 ---
 
-## 1. Atualizar jsPDF (5 min)
+## Arquivo a Modificar
 
-**Arquivo:** `package.json`
+**`src/components/service-calls/ServiceCallActionsMenu.tsx`**
 
-**Mudança:**
-```json
-// DE:
-"jspdf": "^3.0.3"
+### Mudança no handleKeyDown (linha 83-87)
 
-// PARA:
-"jspdf": "^4.0.0"
+```text
+DE:
+const handleKeyDown = (e: React.KeyboardEvent) => {
+  if (e.key === "Enter" && !isSaving) {
+    handleAddMarker();
+  }
+};
+
+PARA:
+const handleKeyDown = (e: React.KeyboardEvent) => {
+  // Impede que eventos de teclado "vazem" para a TableRow
+  e.stopPropagation();
+  
+  if (e.key === "Enter" && !isSaving) {
+    handleAddMarker();
+  }
+};
 ```
 
-**Verificação:** Testar o botão "Exportar PDF" no Dashboard após a atualização.
+## Por que isso resolve?
+
+| Evento | Antes | Depois |
+|--------|-------|--------|
+| Espaço no Input | Borbulha → TableRow detecta → Navega | Bloqueado no Input → Apenas adiciona espaço |
+| Enter no Input | Borbulha + adiciona marcador | Bloqueado + adiciona marcador |
+| Outras teclas | Borbulham | Bloqueadas (comportamento correto) |
 
 ---
 
-## 2. Implementar Rate Limiting no Login (20 min)
+## Mudança Adicional de Segurança
 
-**Arquivo:** `supabase/functions/login-with-username/index.ts`
+Também vou adicionar `onKeyDown={(e) => e.stopPropagation()}` no `DialogContent` para garantir que nenhum evento de teclado escape do modal.
 
-**Estratégia:** Usar um sistema de rate limiting baseado em memória (Map) com limite de 5 tentativas por IP a cada 15 minutos.
+```text
+DE:
+<DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
 
-**Implementação:**
-
-```typescript
-// Rate limiting simples baseado em memória
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const record = rateLimitMap.get(ip);
-  
-  // Limpar registro expirado
-  if (record && now > record.resetAt) {
-    rateLimitMap.delete(ip);
-    return true;
-  }
-  
-  // Novo IP
-  if (!record) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return true;
-  }
-  
-  // Verificar limite
-  if (record.count >= MAX_ATTEMPTS) {
-    return false;
-  }
-  
-  // Incrementar contador
-  record.count++;
-  return true;
-}
+PARA:
+<DialogContent 
+  className="sm:max-w-md" 
+  onClick={(e) => e.stopPropagation()}
+  onKeyDown={(e) => e.stopPropagation()}
+>
 ```
-
-**Fluxo da função atualizada:**
-1. Extrair IP do header `x-forwarded-for`
-2. Verificar rate limit antes de processar
-3. Se bloqueado → retornar erro 429 com mensagem amigável
-4. Se permitido → continuar com o login normal
-
-**Mensagem de bloqueio (PT-BR):**
-> "Muitas tentativas de login. Aguarde 15 minutos e tente novamente."
-
----
-
-## 3. Atualizar Status dos Findings de Segurança
-
-Após as correções, vou atualizar o scanner de segurança para:
-- **Marcar como ignorados** os avisos sobre dados de funcionários/clientes (já têm RLS adequado)
-- **Remover** o aviso de vulnerabilidade de dependências (após atualização do jsPDF)
-
----
-
-## Arquivos Modificados
-
-| Arquivo | Tipo de Mudança |
-|---------|-----------------|
-| `package.json` | Atualizar versão do jspdf |
-| `supabase/functions/login-with-username/index.ts` | Adicionar rate limiting |
-
----
-
-## Seção Técnica
-
-### Por que usar rate limiting em memória?
-- **Simplicidade:** Não requer dependências externas (Redis, etc.)
-- **Eficácia:** Funciona bem para o volume de usuários típico
-- **Limitação:** Reinicia se a Edge Function for reiniciada (aceitável para este caso)
-
-### Alternativa mais robusta (futuro)
-Para produção de alto volume, considerar:
-- Upstash Redis (integração nativa com Deno)
-- Supabase Database com tabela de rate limiting
-
-### Segurança das tabelas
-As tabelas `technicians` e `clients` já possuem:
-- RLS habilitado com políticas restritivas
-- Técnicos só veem seus próprios dados
-- Clientes só são visíveis durante OS ativas
-- Admins têm acesso total (esperado)
 
 ---
 
 ## Resultado Esperado
-Após implementar:
-- ✅ 0 vulnerabilidades críticas em dependências
-- ✅ Login protegido contra força bruta
-- ✅ Avisos de dados marcados como "protegidos adequadamente"
+
+Após a correção:
+- Digitar espaço no campo de marcador → funciona normalmente
+- Pressionar Enter → adiciona o marcador
+- Clicar no + → adiciona o marcador
+- Você permanece na tela de listagem das OS
