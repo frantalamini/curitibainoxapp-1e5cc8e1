@@ -3,7 +3,7 @@ import { MainLayout } from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate, Link } from "react-router-dom";
-import { Loader2, FileText, Plus, Check, X, Pencil, Trash2, CreditCard } from "lucide-react";
+import { Loader2, FileText, Plus, Check, X, Pencil, Trash2, CreditCard, ScanLine } from "lucide-react";
 import { usePayables, PayableInsert } from "@/hooks/usePayables";
 import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
 import { useFinancialCategories } from "@/hooks/useFinancialCategories";
@@ -21,9 +21,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
+import { ReceiptOCRCapture, OCRResult } from "@/components/financas/ReceiptOCRCapture";
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
@@ -104,6 +104,16 @@ export default function ContasAPagar() {
     setEditingId(null);
     setForm(emptyForm);
     setFormOpen(true);
+  };
+
+  // Handler para quando o OCR extrai dados
+  const handleOCRExtracted = (data: OCRResult) => {
+    setForm((prev) => ({
+      ...prev,
+      description: data.description || prev.description,
+      amount: data.amount || prev.amount,
+      due_date: data.date || prev.due_date,
+    }));
   };
 
   const handleEdit = (p: any) => {
@@ -402,6 +412,20 @@ export default function ContasAPagar() {
               <SheetTitle>{editingId ? "Editar Conta a Pagar" : "Nova Conta a Pagar"}</SheetTitle>
             </SheetHeader>
             <div className="space-y-4 py-4">
+              {/* OCR Capture - only show for new entries */}
+              {!editingId && (
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                  <Label className="flex items-center gap-2 text-primary font-medium">
+                    <ScanLine className="h-4 w-4" />
+                    Ler Nota/Cupom Fiscal
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Tire uma foto ou selecione uma imagem para pré-preencher automaticamente
+                  </p>
+                  <ReceiptOCRCapture onExtracted={handleOCRExtracted} />
+                </div>
+              )}
+
               <div>
                 <Label>Descrição *</Label>
                 <Input
