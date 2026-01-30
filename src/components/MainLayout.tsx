@@ -95,6 +95,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         { icon: "checklist", label: "Notas de Serviço", to: "/service-notes" },
         { icon: "relatorios", label: "Relatórios", to: "/service-reports" },
         { icon: "financeiro", label: "Reembolso Técnico", to: "/technician-reimbursements" },
+        { icon: "atividade", label: "Pendências", to: "/pendencias" },
       ],
     },
     // Módulo Vendas - Admin Only (após Serviços)
