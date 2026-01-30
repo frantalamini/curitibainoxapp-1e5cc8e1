@@ -54,12 +54,14 @@ const PaymentMethodForm = lazy(() => import("./pages/PaymentMethodForm"));
 const TechnicianReimbursements = lazy(() => import("./pages/TechnicianReimbursements"));
 
 // Módulo Finanças
+const DashboardFinanceiro = lazy(() => import("./pages/financas/DashboardFinanceiro"));
 const ContasAPagar = lazy(() => import("./pages/financas/ContasAPagar"));
 const ContasAReceber = lazy(() => import("./pages/financas/ContasAReceber"));
 const FluxoDeCaixa = lazy(() => import("./pages/financas/FluxoDeCaixa"));
 const ConfiguracoesFinanceiras = lazy(() => import("./pages/financas/ConfiguracoesFinanceiras"));
 const CartoesCredito = lazy(() => import("./pages/financas/CartoesCredito"));
 const DRE = lazy(() => import("./pages/financas/DRE"));
+const RentabilidadeOS = lazy(() => import("./pages/financas/RentabilidadeOS"));
 
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
@@ -521,6 +523,14 @@ const App = () => (
             />
             {/* MÓDULO FINANÇAS - Admin Only */}
             <Route
+              path="/financas/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardFinanceiro />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/financas/contas-a-pagar"
               element={
                 <ProtectedRoute>
@@ -565,6 +575,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DRE />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financas/rentabilidade-os"
+              element={
+                <ProtectedRoute>
+                  <RentabilidadeOS />
                 </ProtectedRoute>
               }
             />
