@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
-import { Loader2, Plus, Pencil, Trash2, Building2, Tags, Layers } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Building2, Tags, Layers, CreditCard } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useFinancialAccounts, FinancialAccount } from "@/hooks/useFinancialAccounts";
 import { useFinancialCategories, FinancialCategory } from "@/hooks/useFinancialCategories";
 import { useCostCenters, CostCenter } from "@/hooks/useCostCenters";
+import { useCreditCards, CreditCard as CreditCardType } from "@/hooks/useCreditCards";
 import { format } from "date-fns";
 
 type AccountFormData = {
@@ -37,11 +38,21 @@ type CostCenterFormData = {
   name: string;
 };
 
+type CreditCardFormData = {
+  name: string;
+  card_brand: string;
+  last_digits: string;
+  credit_limit: string;
+  due_day: string;
+  closing_day: string;
+};
+
 export default function ConfiguracoesFinanceiras() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const { accounts, isLoading: accountsLoading, createAccount, updateAccount, deleteAccount, toggleActive: toggleAccountActive } = useFinancialAccounts();
   const { categories, isLoading: categoriesLoading, createCategory, updateCategory, deleteCategory, toggleActive: toggleCategoryActive } = useFinancialCategories();
   const { costCenters, isLoading: costCentersLoading, createCostCenter, updateCostCenter, deleteCostCenter, toggleActive: toggleCostCenterActive } = useCostCenters();
+  const { creditCards, isLoading: cardsLoading, createCreditCard, updateCreditCard, deleteCreditCard, toggleActive: toggleCardActive } = useCreditCards();
 
   // Dialog states
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
@@ -65,6 +76,17 @@ export default function ConfiguracoesFinanceiras() {
   const [editingCostCenter, setEditingCostCenter] = useState<CostCenter | null>(null);
   const [costCenterForm, setCostCenterForm] = useState<CostCenterFormData>({
     name: "",
+  });
+
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<CreditCardType | null>(null);
+  const [cardForm, setCardForm] = useState<CreditCardFormData>({
+    name: "",
+    card_brand: "",
+    last_digits: "",
+    credit_limit: "0",
+    due_day: "10",
+    closing_day: "5",
   });
 
   // Account handlers
@@ -163,7 +185,51 @@ export default function ConfiguracoesFinanceiras() {
     setCostCenterDialogOpen(false);
   };
 
-  const isLoading = roleLoading || accountsLoading || categoriesLoading || costCentersLoading;
+  // Credit Card handlers
+  const handleOpenCardDialog = (card?: CreditCardType) => {
+    if (card) {
+      setEditingCard(card);
+      setCardForm({
+        name: card.name,
+        card_brand: card.card_brand || "",
+        last_digits: card.last_digits || "",
+        credit_limit: String(card.credit_limit),
+        due_day: String(card.due_day),
+        closing_day: String(card.closing_day),
+      });
+    } else {
+      setEditingCard(null);
+      setCardForm({
+        name: "",
+        card_brand: "",
+        last_digits: "",
+        credit_limit: "0",
+        due_day: "10",
+        closing_day: "5",
+      });
+    }
+    setCardDialogOpen(true);
+  };
+
+  const handleSaveCard = async () => {
+    const data = {
+      name: cardForm.name,
+      card_brand: cardForm.card_brand || null,
+      last_digits: cardForm.last_digits || null,
+      credit_limit: parseFloat(cardForm.credit_limit) || 0,
+      due_day: parseInt(cardForm.due_day) || 10,
+      closing_day: parseInt(cardForm.closing_day) || 5,
+    };
+
+    if (editingCard) {
+      await updateCreditCard.mutateAsync({ id: editingCard.id, ...data });
+    } else {
+      await createCreditCard.mutateAsync(data);
+    }
+    setCardDialogOpen(false);
+  };
+
+  const isLoading = roleLoading || accountsLoading || categoriesLoading || costCentersLoading || cardsLoading;
 
   if (roleLoading) {
     return (
@@ -193,10 +259,14 @@ export default function ConfiguracoesFinanceiras() {
         <PageHeader title="Configurações Financeiras" />
 
         <Tabs defaultValue="accounts" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsList className="grid w-full grid-cols-4 max-w-lg">
             <TabsTrigger value="accounts" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Contas</span>
+            </TabsTrigger>
+            <TabsTrigger value="cards" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              <span className="hidden sm:inline">Cartões</span>
             </TabsTrigger>
             <TabsTrigger value="categories" className="flex items-center gap-2">
               <Tags className="h-4 w-4" />
@@ -403,6 +473,78 @@ export default function ConfiguracoesFinanceiras() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Cartões de Crédito */}
+          <TabsContent value="cards">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Cartões de Crédito</CardTitle>
+                  <CardDescription>Configure seus cartões com datas de vencimento e corte</CardDescription>
+                </div>
+                <Button onClick={() => handleOpenCardDialog()} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Cartão
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {cardsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : creditCards.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum cartão cadastrado
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Bandeira</TableHead>
+                        <TableHead>Final</TableHead>
+                        <TableHead className="text-center">Vencimento</TableHead>
+                        <TableHead className="text-center">Fechamento</TableHead>
+                        <TableHead className="text-right">Limite</TableHead>
+                        <TableHead className="text-center">Ativo</TableHead>
+                        <TableHead className="w-[100px]">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {creditCards.map((card) => (
+                        <TableRow key={card.id}>
+                          <TableCell className="font-medium">{card.name}</TableCell>
+                          <TableCell>{card.card_brand || "-"}</TableCell>
+                          <TableCell>{card.last_digits ? `**** ${card.last_digits}` : "-"}</TableCell>
+                          <TableCell className="text-center">Dia {card.due_day}</TableCell>
+                          <TableCell className="text-center">Dia {card.closing_day}</TableCell>
+                          <TableCell className="text-right">
+                            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(card.credit_limit)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={card.is_active}
+                              onCheckedChange={(checked) => toggleCardActive.mutate({ id: card.id, is_active: checked })}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenCardDialog(card)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => deleteCreditCard.mutate(card.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Account Dialog */}
@@ -550,6 +692,106 @@ export default function ConfiguracoesFinanceiras() {
               <Button variant="outline" onClick={() => setCostCenterDialogOpen(false)}>Cancelar</Button>
               <Button onClick={handleSaveCostCenter} disabled={!costCenterForm.name || createCostCenter.isPending || updateCostCenter.isPending}>
                 {(createCostCenter.isPending || updateCostCenter.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Salvar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Credit Card Dialog */}
+        <Dialog open={cardDialogOpen} onOpenChange={setCardDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingCard ? "Editar Cartão" : "Novo Cartão de Crédito"}</DialogTitle>
+              <DialogDescription>
+                Configure as datas de vencimento e fechamento do cartão
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="card-name">Nome do Cartão *</Label>
+                <Input
+                  id="card-name"
+                  value={cardForm.name}
+                  onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })}
+                  placeholder="Ex: Nubank Empresa"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="card-brand">Bandeira</Label>
+                  <Select
+                    value={cardForm.card_brand || "__none__"}
+                    onValueChange={(v) => setCardForm({ ...cardForm, card_brand: v === "__none__" ? "" : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhuma</SelectItem>
+                      <SelectItem value="Visa">Visa</SelectItem>
+                      <SelectItem value="Mastercard">Mastercard</SelectItem>
+                      <SelectItem value="Elo">Elo</SelectItem>
+                      <SelectItem value="American Express">American Express</SelectItem>
+                      <SelectItem value="Hipercard">Hipercard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="last-digits">Últimos 4 dígitos</Label>
+                  <Input
+                    id="last-digits"
+                    value={cardForm.last_digits}
+                    onChange={(e) => setCardForm({ ...cardForm, last_digits: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                    placeholder="1234"
+                    maxLength={4}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="closing-day">Dia de Fechamento *</Label>
+                  <Input
+                    id="closing-day"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={cardForm.closing_day}
+                    onChange={(e) => setCardForm({ ...cardForm, closing_day: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Data de corte da fatura</p>
+                </div>
+                <div>
+                  <Label htmlFor="due-day">Dia de Vencimento *</Label>
+                  <Input
+                    id="due-day"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={cardForm.due_day}
+                    onChange={(e) => setCardForm({ ...cardForm, due_day: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Data de pagamento da fatura</p>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="credit-limit">Limite de Crédito</Label>
+                <Input
+                  id="credit-limit"
+                  type="number"
+                  step="0.01"
+                  value={cardForm.credit_limit}
+                  onChange={(e) => setCardForm({ ...cardForm, credit_limit: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCardDialogOpen(false)}>Cancelar</Button>
+              <Button 
+                onClick={handleSaveCard} 
+                disabled={!cardForm.name || !cardForm.due_day || !cardForm.closing_day || createCreditCard.isPending || updateCreditCard.isPending}
+              >
+                {(createCreditCard.isPending || updateCreditCard.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Salvar
               </Button>
             </DialogFooter>

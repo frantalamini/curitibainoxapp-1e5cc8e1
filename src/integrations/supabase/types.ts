@@ -221,6 +221,45 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_cards: {
+        Row: {
+          card_brand: string | null
+          closing_day: number
+          created_at: string
+          credit_limit: number | null
+          due_day: number
+          id: string
+          is_active: boolean
+          last_digits: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          card_brand?: string | null
+          closing_day: number
+          created_at?: string
+          credit_limit?: number | null
+          due_day: number
+          id?: string
+          is_active?: boolean
+          last_digits?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          card_brand?: string | null
+          closing_day?: number
+          created_at?: string
+          credit_limit?: number | null
+          due_day?: number
+          id?: string
+          is_active?: boolean
+          last_digits?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       equipment: {
         Row: {
           brand: string
@@ -346,6 +385,8 @@ export type Database = {
           client_id: string | null
           cost_center_id: string | null
           created_at: string | null
+          credit_card_id: string | null
+          credit_card_statement_date: string | null
           description: string | null
           direction: Database["public"]["Enums"]["transaction_direction"]
           discount: number | null
@@ -370,6 +411,8 @@ export type Database = {
           client_id?: string | null
           cost_center_id?: string | null
           created_at?: string | null
+          credit_card_id?: string | null
+          credit_card_statement_date?: string | null
           description?: string | null
           direction: Database["public"]["Enums"]["transaction_direction"]
           discount?: number | null
@@ -394,6 +437,8 @@ export type Database = {
           client_id?: string | null
           cost_center_id?: string | null
           created_at?: string | null
+          credit_card_id?: string | null
+          credit_card_statement_date?: string | null
           description?: string | null
           direction?: Database["public"]["Enums"]["transaction_direction"]
           discount?: number | null
@@ -432,6 +477,13 @@ export type Database = {
             columns: ["cost_center_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
             referencedColumns: ["id"]
           },
           {

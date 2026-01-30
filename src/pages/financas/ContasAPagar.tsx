@@ -2,13 +2,15 @@ import { useState } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Navigate } from "react-router-dom";
-import { Loader2, FileText, Plus, Check, X, Pencil, Trash2 } from "lucide-react";
+import { Navigate, Link } from "react-router-dom";
+import { Loader2, FileText, Plus, Check, X, Pencil, Trash2, CreditCard } from "lucide-react";
 import { usePayables, PayableInsert } from "@/hooks/usePayables";
 import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
 import { useFinancialCategories } from "@/hooks/useFinancialCategories";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useCadastros } from "@/hooks/useCadastros";
+import { useCreditCards, calculateStatementDate } from "@/hooks/useCreditCards";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +52,8 @@ const emptyForm: PayableInsert = {
   financial_account_id: null,
   payment_method: null,
   notes: null,
+  credit_card_id: null,
+  credit_card_statement_date: null,
 };
 
 export default function ContasAPagar() {
@@ -58,6 +62,8 @@ export default function ContasAPagar() {
   const { expenseCategories } = useFinancialCategories();
   const { costCenters } = useCostCenters();
   const { cadastros: suppliers } = useCadastros({ tipo: "fornecedor" });
+  const { activeCards } = useCreditCards();
+  const { activePaymentMethods } = usePaymentMethods();
 
   // Filters
   const today = new Date();
@@ -112,8 +118,30 @@ export default function ContasAPagar() {
       financial_account_id: p.financial_account_id,
       payment_method: p.payment_method,
       notes: p.notes,
+      credit_card_id: p.credit_card_id,
+      credit_card_statement_date: p.credit_card_statement_date,
     });
     setFormOpen(true);
+  };
+
+  // Quando seleciona cartão de crédito, calcula automaticamente a data de vencimento da fatura
+  const handleCreditCardChange = (cardId: string | null) => {
+    if (!cardId) {
+      setForm({ ...form, credit_card_id: null, credit_card_statement_date: null });
+      return;
+    }
+    
+    const card = activeCards.find(c => c.id === cardId);
+    if (card) {
+      const purchaseDate = form.due_date ? new Date(form.due_date) : new Date();
+      const statementDate = calculateStatementDate(purchaseDate, card.closing_day, card.due_day);
+      setForm({
+        ...form,
+        credit_card_id: cardId,
+        credit_card_statement_date: format(statementDate, "yyyy-MM-dd"),
+        payment_method: "Cartão de Crédito", // Auto-seleciona forma de pagamento
+      });
+    }
   };
 
   const handleSave = () => {
@@ -157,9 +185,16 @@ export default function ContasAPagar() {
     <MainLayout>
       <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
         <PageHeader title="Contas a Pagar">
-          <Button onClick={handleOpenNew}>
-            <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/financas/cartoes">
+                <CreditCard className="h-4 w-4 mr-2" /> Cartões
+              </Link>
+            </Button>
+            <Button onClick={handleOpenNew}>
+              <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
+            </Button>
+          </div>
         </PageHeader>
 
         {/* Summary Cards */}
@@ -429,6 +464,67 @@ export default function ContasAPagar() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Forma de Pagamento</Label>
+                <Select
+                  value={form.payment_method || "__none__"}
+                  onValueChange={(v) => setForm({ ...form, payment_method: v === "__none__" ? null : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
+                    {activePaymentMethods?.map((pm) => (
+                      <SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>
+                    ))}
+                    <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Seção Cartão de Crédito */}
+              {form.payment_method === "Cartão de Crédito" && (
+                <div className="p-3 bg-muted rounded-lg space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Cartão de Crédito
+                  </Label>
+                  <Select
+                    value={form.credit_card_id || "__none__"}
+                    onValueChange={(v) => handleCreditCardChange(v === "__none__" ? null : v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cartão..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {activeCards.map((card) => (
+                        <SelectItem key={card.id} value={card.id}>
+                          {card.name} {card.last_digits ? `(**** ${card.last_digits})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.credit_card_id && form.credit_card_statement_date && (
+                    <div className="text-sm text-muted-foreground">
+                      Esta despesa será cobrada na fatura com vencimento em{" "}
+                      <span className="font-medium text-foreground">
+                        {format(new Date(form.credit_card_statement_date), "dd/MM/yyyy")}
+                      </span>
+                    </div>
+                  )}
+                  {activeCards.length === 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      Nenhum cartão cadastrado.{" "}
+                      <Link to="/financas/configuracoes" className="text-primary underline">
+                        Cadastrar cartão
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <Label>Centro de Custo</Label>
                 <Select

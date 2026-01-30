@@ -43,6 +43,8 @@ export interface PayableInsert {
   financial_account_id?: string | null;
   payment_method?: string | null;
   notes?: string | null;
+  credit_card_id?: string | null;
+  credit_card_statement_date?: string | null;
 }
 
 interface PayablesFilters {
@@ -116,6 +118,8 @@ export function usePayables(filters?: PayablesFilters) {
         financial_account_id: data.financial_account_id || null,
         payment_method: data.payment_method || null,
         notes: data.notes || null,
+        credit_card_id: data.credit_card_id || null,
+        credit_card_statement_date: data.credit_card_statement_date || null,
       });
 
       if (error) throw error;
@@ -144,6 +148,8 @@ export function usePayables(filters?: PayablesFilters) {
           financial_account_id: data.financial_account_id,
           payment_method: data.payment_method,
           notes: data.notes,
+          credit_card_id: data.credit_card_id,
+          credit_card_statement_date: data.credit_card_statement_date,
         })
         .eq("id", id);
 
