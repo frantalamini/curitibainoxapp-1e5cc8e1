@@ -38,6 +38,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useChecklists } from "@/hooks/useChecklists";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { SendReportModal } from "@/components/SendReportModal";
+import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
 import { supabase } from "@/integrations/supabase/client";
 import MainLayout from "@/components/MainLayout";
 
@@ -956,6 +957,9 @@ const ServiceCallView = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Chat Interno */}
+      <ServiceCallChat serviceCallId={call.id} osNumber={call.os_number} />
 
       {/* Modais de Envio */}
       {call.clients && (

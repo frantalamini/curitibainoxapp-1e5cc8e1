@@ -74,6 +74,9 @@ const DespesasRecorrentes = lazy(() => import("./pages/financas/DespesasRecorren
 const Sales = lazy(() => import("./pages/vendas/Sales"));
 const SaleForm = lazy(() => import("./pages/vendas/SaleForm"));
 
+// Pendências
+const Pendencias = lazy(() => import("./pages/Pendencias"));
+
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -675,6 +678,15 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <SaleForm />
+                </ProtectedRoute>
+              }
+            />
+            {/* PENDÊNCIAS */}
+            <Route
+              path="/pendencias"
+              element={
+                <ProtectedRoute>
+                  <Pendencias />
                 </ProtectedRoute>
               }
             />
