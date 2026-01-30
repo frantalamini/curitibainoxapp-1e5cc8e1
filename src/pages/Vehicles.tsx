@@ -97,6 +97,7 @@ const Vehicles = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[120px] max-w-[120px]">Nome</TableHead>
+                  <TableHead className="w-16">Cor</TableHead>
                   <TableHead className="w-20">Marca</TableHead>
                   <TableHead className="w-20">Placa</TableHead>
                   <TableHead className="w-28">RENAVAM</TableHead>
@@ -109,6 +110,7 @@ const Vehicles = () => {
                 {vehicles.map((vehicle) => (
                   <TableRow key={vehicle.id}>
                     <TableCell className="font-medium text-sm">{vehicle.name}</TableCell>
+                    <TableCell className="text-sm truncate max-w-[80px]">{vehicle.color || "-"}</TableCell>
                     <TableCell className="text-sm">{vehicle.brand || "-"}</TableCell>
                     <TableCell className="text-sm">{vehicle.plate}</TableCell>
                     <TableCell className="text-sm">{vehicle.renavam || "-"}</TableCell>
