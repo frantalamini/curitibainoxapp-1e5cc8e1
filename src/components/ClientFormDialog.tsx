@@ -243,6 +243,15 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="secondary_name">Nome Secundário</Label>
+            <Input
+              id="secondary_name"
+              {...register("secondary_name")}
+              placeholder="Identificação complementar (ex: Unidade Centro)"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label>Tipo de Documento *</Label>
             <RadioGroup 
               value={documentType} 

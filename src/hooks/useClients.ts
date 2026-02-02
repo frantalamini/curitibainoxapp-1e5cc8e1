@@ -8,6 +8,7 @@ export type Client = {
   client_number?: number;
   full_name: string;
   nome_fantasia?: string;
+  secondary_name?: string;
   email?: string;
   phone: string;
   phone_2?: string;
