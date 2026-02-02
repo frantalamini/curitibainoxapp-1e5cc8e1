@@ -67,7 +67,8 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
   const [priority, setPriority] = useState<MessagePriority>("normal");
   const [dueDate, setDueDate] = useState<string>("");
   const [mentionedUsers, setMentionedUsers] = useState<UserWithRole[]>([]);
-  const [showMentions, setShowMentions] = useState(false);
+  const [showMentionsMobile, setShowMentionsMobile] = useState(false);
+  const [showMentionsDesktop, setShowMentionsDesktop] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
   const [attachments, setAttachments] = useState<{
     file_url: string;
@@ -89,14 +90,15 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
     user.full_name.toLowerCase().includes(mentionSearch.toLowerCase())
   );
 
-  // Handle @ key for mentions
+  // Handle @ key for mentions (desktop only - mobile uses button)
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === '@') {
-      setShowMentions(true);
+      setShowMentionsDesktop(true);
       setMentionSearch("");
     }
     if (e.key === 'Escape') {
-      setShowMentions(false);
+      setShowMentionsMobile(false);
+      setShowMentionsDesktop(false);
     }
   };
 
@@ -111,7 +113,8 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
     setMentionedUsers(prev => 
       prev.some(u => u.user_id === user.user_id) ? prev : [...prev, user]
     );
-    setShowMentions(false);
+    setShowMentionsMobile(false);
+    setShowMentionsDesktop(false);
     textareaRef.current?.focus();
   };
 
@@ -298,7 +301,7 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
           <span className="text-xs">Anexo</span>
         </Button>
 
-        <Popover open={showMentions} onOpenChange={setShowMentions}>
+        <Popover open={showMentionsMobile} onOpenChange={setShowMentionsMobile}>
           <PopoverTrigger asChild>
             <Button size="sm" variant="outline" className="flex-1 gap-1.5">
               <AtSign className="h-4 w-4" />
@@ -409,7 +412,7 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
           )}
         </Button>
 
-        <Popover open={showMentions} onOpenChange={setShowMentions}>
+        <Popover open={showMentionsDesktop} onOpenChange={setShowMentionsDesktop}>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="shrink-0">
               <AtSign className="h-4 w-4" />
