@@ -90,6 +90,8 @@ export interface ServiceCallInsert {
   internal_notes_text?: string;
   internal_notes_audio_url?: string;
   purchase_order_number?: string;
+  equipment_manufacturer?: string;
+  equipment_sector?: string;
 }
 
 // Helper para sanitizar campos UUID (converte "" para null)
