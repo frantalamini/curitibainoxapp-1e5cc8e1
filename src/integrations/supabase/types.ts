@@ -603,6 +603,42 @@ export type Database = {
           },
         ]
       }
+      in_app_notifications: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          id: string
+          link: string | null
+          metadata: Json | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_templates: {
         Row: {
           category: string | null
