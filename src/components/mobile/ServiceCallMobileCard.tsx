@@ -68,6 +68,9 @@ export function ServiceCallMobileCard({
           value={
             <div className="flex flex-col">
               <span className="font-medium">{call.clients?.full_name}</span>
+              {call.clients?.secondary_name && (
+                <span className="text-xs text-blue-600 font-medium">{call.clients.secondary_name}</span>
+              )}
               {call.clients?.phone && (
                 <span className="text-xs text-muted-foreground">{call.clients.phone}</span>
               )}
