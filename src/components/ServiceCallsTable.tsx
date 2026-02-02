@@ -89,6 +89,8 @@ export const ServiceCallsTable = ({
                     onAddMarker={handleAddMarker}
                     onRemoveMarker={handleRemoveMarker}
                     isLoading={markersLoading}
+                    currentStatusId={call.status_id}
+                    currentCommercialStatusId={call.commercial_status_id}
                   />
                 </TableCell>
                 <TableCell className="py-2">

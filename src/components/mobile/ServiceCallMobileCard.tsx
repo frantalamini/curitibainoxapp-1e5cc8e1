@@ -50,6 +50,8 @@ export function ServiceCallMobileCard({
               onAddMarker={onAddMarker}
               onRemoveMarker={onRemoveMarker}
               isLoading={isLoadingMarkers}
+              currentStatusId={call.status_id}
+              currentCommercialStatusId={call.commercial_status_id}
             />
           </div>
         )}
