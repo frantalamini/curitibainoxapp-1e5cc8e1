@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle, DollarSign, Pencil, Save, ArrowLeft } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle, DollarSign, Pencil, Save, ArrowLeft, FileText, Stethoscope } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -1074,8 +1074,15 @@ const ServiceCallForm = () => {
               "grid w-full mb-6",
               isEditMode ? "grid-cols-4" : "grid-cols-2"
             )}>
-              <TabsTrigger value="geral">Geral</TabsTrigger>
-              <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
+              <TabsTrigger value="geral" className="flex items-center justify-center gap-1.5">
+                <FileText className="w-4 h-4 sm:hidden" />
+                <span>Geral</span>
+              </TabsTrigger>
+              <TabsTrigger value="tecnicas" className="flex items-center justify-center gap-1.5">
+                <Stethoscope className="w-4 h-4" />
+                <span className="hidden sm:inline">Informações Técnicas</span>
+                <span className="sm:hidden">Técnico</span>
+              </TabsTrigger>
               {isEditMode && (
                 <TabsTrigger 
                   value="financeiro" 
