@@ -1282,58 +1282,99 @@ const ServiceCallForm = () => {
 
                   <div className="space-y-2">
                     <Label>Data e Hora Agendada</Label>
-                    <div className="flex gap-2">
-                      <Popover open={(isReadonly && isEditMode) ? false : isDatePickerOpen} onOpenChange={(isReadonly && isEditMode) ? undefined : setIsDatePickerOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={"outline"}
-                            disabled={isReadonly && isEditMode}
-                            className={cn(
-                              "w-[240px] justify-start text-left font-normal",
-                              !selectedDate && "text-muted-foreground",
-                              isReadonly && isEditMode && "bg-muted"
-                            )}
-                          >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedDate ? (
-                              format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })
-                            ) : (
-                              <span>Selecione uma data</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={(date) => {
-                              if (date) {
-                                setSelectedDate(date);
-                                setIsDatePickerOpen(false);
+                    <div className="flex gap-2 flex-wrap items-center">
+                      {/* Input de data digitável + calendário */}
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="text"
+                          placeholder="DD/MM/AAAA"
+                          value={selectedDate ? format(selectedDate, "dd/MM/yyyy") : ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Tentar parsear a data no formato DD/MM/AAAA
+                            const parts = value.split('/');
+                            if (parts.length === 3) {
+                              const day = parseInt(parts[0], 10);
+                              const month = parseInt(parts[1], 10) - 1;
+                              const year = parseInt(parts[2], 10);
+                              if (!isNaN(day) && !isNaN(month) && !isNaN(year) && year > 1900) {
+                                const date = new Date(year, month, day);
+                                if (date.getDate() === day && date.getMonth() === month) {
+                                  setSelectedDate(date);
+                                }
                               }
-                            }}
-                            // TEMPORÁRIO: Desabilitado para permitir inserção de OS antigas
-                            // disabled={(date) => {
-                            //   const today = new Date();
-                            //   today.setHours(0, 0, 0, 0);
-                            //   return date < today;
-                            // }}
-                            locale={ptBR}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
+                            }
+                          }}
+                          disabled={isReadonly && isEditMode}
+                          className={cn("w-[120px]", isReadonly && isEditMode && "bg-muted")}
+                        />
+                        <Popover open={(isReadonly && isEditMode) ? false : isDatePickerOpen} onOpenChange={(isReadonly && isEditMode) ? undefined : setIsDatePickerOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              disabled={isReadonly && isEditMode}
+                              type="button"
+                            >
+                              <CalendarIcon className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={(date) => {
+                                if (date) {
+                                  setSelectedDate(date);
+                                  setIsDatePickerOpen(false);
+                                }
+                              }}
+                              // TEMPORÁRIO: Desabilitado para permitir inserção de OS antigas
+                              // disabled={(date) => {
+                              //   const today = new Date();
+                              //   today.setHours(0, 0, 0, 0);
+                              //   return date < today;
+                              // }}
+                              locale={ptBR}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
 
-                      <TimePickerPopover
-                        value={selectedTime}
-                        onChange={(time) => {
-                          setSelectedTime(time);
-                          setValue("scheduled_time", time, { shouldDirty: true });
-                        }}
-                        placeholder="--:--"
-                        disabled={isReadonly && isEditMode}
-                      />
+                      {/* Input de hora digitável + seletor */}
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="text"
+                          placeholder="HH:MM"
+                          value={selectedTime}
+                          onChange={(e) => {
+                            let value = e.target.value.replace(/[^\d:]/g, '');
+                            // Auto-formatar com :
+                            if (value.length === 2 && !value.includes(':') && e.nativeEvent instanceof InputEvent && e.nativeEvent.inputType !== 'deleteContentBackward') {
+                              value = value + ':';
+                            }
+                            if (value.length <= 5) {
+                              setSelectedTime(value);
+                              if (value.length === 5) {
+                                setValue("scheduled_time", value, { shouldDirty: true });
+                              }
+                            }
+                          }}
+                          disabled={isReadonly && isEditMode}
+                          className={cn("w-[80px]", isReadonly && isEditMode && "bg-muted")}
+                        />
+                        <TimePickerPopover
+                          value={selectedTime}
+                          onChange={(time) => {
+                            setSelectedTime(time);
+                            setValue("scheduled_time", time, { shouldDirty: true });
+                          }}
+                          placeholder=""
+                          disabled={isReadonly && isEditMode}
+                        />
+                      </div>
                     </div>
                     {errors.scheduled_date && (
                       <p className="text-sm text-red-500">
