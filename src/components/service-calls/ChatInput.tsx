@@ -271,17 +271,130 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
         </div>
       )}
 
-      {/* Main input area */}
-      <div className="flex gap-2 items-start">
-        {/* Attachment button */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
-          className="hidden"
-          onChange={handleFileUpload}
-        />
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
+
+      {/* Mobile: Action buttons on separate row */}
+      <div className="flex gap-2 sm:hidden">
+        <Button
+          size="sm"
+          variant="outline"
+          className="flex-1 gap-1.5"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+        >
+          {isUploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Paperclip className="h-4 w-4" />
+          )}
+          <span className="text-xs">Anexo</span>
+        </Button>
+
+        <Popover open={showMentions} onOpenChange={setShowMentions}>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline" className="flex-1 gap-1.5">
+              <AtSign className="h-4 w-4" />
+              <span className="text-xs">Mencionar</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-2" align="start">
+            <Input
+              placeholder="Buscar usuário..."
+              value={mentionSearch}
+              onChange={(e) => setMentionSearch(e.target.value)}
+              className="mb-2"
+            />
+            <div className="max-h-48 overflow-y-auto space-y-1">
+              {filteredUsers.map(user => (
+                <button
+                  key={user.user_id}
+                  className="w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm"
+                  onClick={() => addMention(user)}
+                >
+                  {user.full_name}
+                  {user.profile_type && (
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({user.profile_type})
+                    </span>
+                  )}
+                </button>
+              ))}
+              {filteredUsers.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  Nenhum usuário encontrado
+                </p>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline" className="flex-1 gap-1.5">
+              <MessageSquarePlus className="h-4 w-4" />
+              <span className="text-xs">Template</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-2" align="end">
+            <p className="text-xs text-muted-foreground mb-2 px-2">
+              Templates Rápidos
+            </p>
+            <div className="space-y-1">
+              {templates.map(template => (
+                <button
+                  key={template.id}
+                  className="w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm flex items-center gap-2"
+                  onClick={() => applyTemplate(template)}
+                >
+                  <span>
+                    {template.category 
+                      ? TEMPLATE_ICONS[template.category] 
+                      : TEMPLATE_ICONS.default}
+                  </span>
+                  {template.title}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {/* Mobile: Text area + send button row */}
+      <div className="flex gap-2 items-end sm:hidden">
+        <div className="flex-1">
+          <Textarea
+            ref={textareaRef}
+            placeholder="Digite sua mensagem..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="min-h-[60px] resize-none"
+          />
+        </div>
+        <Button
+          size="icon"
+          className="shrink-0 h-10 w-10"
+          onClick={handleSubmit}
+          disabled={isLoading || (!content.trim() && attachments.length === 0)}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+
+      {/* Desktop: Original layout */}
+      <div className="hidden sm:flex gap-2 items-start">
         <Button
           size="icon"
           variant="ghost"
@@ -296,7 +409,6 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
           )}
         </Button>
 
-        {/* Mention button */}
         <Popover open={showMentions} onOpenChange={setShowMentions}>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="shrink-0">
@@ -334,7 +446,6 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
           </PopoverContent>
         </Popover>
 
-        {/* Text area */}
         <div className="flex-1 relative">
           <Textarea
             ref={textareaRef}
@@ -346,7 +457,6 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
           />
         </div>
 
-        {/* Templates dropdown */}
         <Popover>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="shrink-0">
@@ -376,7 +486,6 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
           </PopoverContent>
         </Popover>
 
-        {/* Send button */}
         <Button
           size="icon"
           className="shrink-0"
