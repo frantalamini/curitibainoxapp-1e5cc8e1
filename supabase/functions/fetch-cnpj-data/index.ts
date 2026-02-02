@@ -138,8 +138,15 @@ serve(async (req) => {
         );
       }
 
+      if (brasilAPIResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Limite de consultas excedido. Aguarde alguns segundos e tente novamente.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ success: false, error: 'Erro ao consultar Receita Federal' }),
+        JSON.stringify({ success: false, error: 'Erro ao consultar Receita Federal. Tente novamente.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
