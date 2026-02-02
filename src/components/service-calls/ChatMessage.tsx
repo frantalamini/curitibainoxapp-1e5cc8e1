@@ -1,6 +1,7 @@
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { renderContentWithMentions } from "@/lib/mentionUtils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -89,41 +90,6 @@ export const ChatMessage = ({
     }
   };
   
-  // Parse mentions from content (format: @[userId:userName])
-  const renderContentWithMentions = (content: string) => {
-    // Simple regex to find @mentions in format @[id:name]
-    const mentionRegex = /@\[([^\]]+)\]/g;
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = mentionRegex.exec(content)) !== null) {
-      // Add text before mention
-      if (match.index > lastIndex) {
-        parts.push(content.slice(lastIndex, match.index));
-      }
-      
-      // Parse mention [id:name]
-      const [, mentionData] = match;
-      const [, ...nameParts] = mentionData.split(':');
-      const name = nameParts.join(':') || mentionData;
-      
-      parts.push(
-        <span key={match.index} className="text-primary font-medium">
-          @{name}
-        </span>
-      );
-      
-      lastIndex = match.index + match[0].length;
-    }
-    
-    // Add remaining text
-    if (lastIndex < content.length) {
-      parts.push(content.slice(lastIndex));
-    }
-    
-    return parts.length > 0 ? parts : content;
-  };
 
   const getAttachmentIcon = (type: string) => {
     switch (type) {
