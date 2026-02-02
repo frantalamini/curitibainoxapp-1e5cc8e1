@@ -601,6 +601,24 @@ const ServiceCallForm = () => {
   };
 
   const onSubmit = async (data: ServiceCallInsert) => {
+    if (!selectedClientId) {
+      toast({
+        title: "Erro",
+        description: "Selecione um cliente para o chamado",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedTechnicianId) {
+      toast({
+        title: "Erro",
+        description: "Selecione um técnico responsável para o chamado",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!selectedDate) {
       toast({
         title: "Erro",
@@ -829,7 +847,11 @@ const ServiceCallForm = () => {
 
       const formattedData: any = {
         ...data,
+        client_id: selectedClientId,
+        technician_id: selectedTechnicianId,
+        service_type_id: selectedServiceTypeId || null,
         scheduled_date: format(selectedDate, "yyyy-MM-dd"),
+        scheduled_time: selectedTime,
         audio_url: audioUrl,
         media_urls: mediaUrls.length > 0 ? mediaUrls : null,
         technical_diagnosis: technicalDiagnosis || null,
