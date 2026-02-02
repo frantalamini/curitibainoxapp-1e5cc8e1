@@ -1312,13 +1312,15 @@ const ServiceCallForm = () => {
                                 setIsDatePickerOpen(false);
                               }
                             }}
-                            disabled={(date) => {
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0);
-                              return date < today;
-                            }}
+                            // TEMPORÁRIO: Desabilitado para permitir inserção de OS antigas
+                            // disabled={(date) => {
+                            //   const today = new Date();
+                            //   today.setHours(0, 0, 0, 0);
+                            //   return date < today;
+                            // }}
                             locale={ptBR}
                             initialFocus
+                            className="pointer-events-auto"
                           />
                         </PopoverContent>
                       </Popover>
