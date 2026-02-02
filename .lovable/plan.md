@@ -1,115 +1,188 @@
 
 
-# Plano: Restringir Edição da Aba Geral para Técnicos
+# Plano: Ajustar Chat Input Mobile + Notificações de Menções
 
-## Problema Identificado
+## Problema 1: Layout do Chat Input no Mobile
 
-Atualmente, quando um técnico clica em "Editar", **todas as abas ficam editáveis**, incluindo a aba "Geral" com dados do cliente, equipamento, técnico responsável e tipo de serviço. Isso permite que técnicos alterem informações que deveriam ser controladas apenas por ADM/Gerencial.
+### Situação Atual
+O campo de digitação está na mesma linha que 4 botões (anexo, @, templates, enviar), resultando em pouco espaço para digitar no mobile.
 
-## Solução Proposta
-
-Criar um controle de permissão por aba:
-- **Técnicos**: Só podem editar a aba "Técnico" (informações técnicas, fotos, assinaturas)
-- **ADM/Gerencial**: Podem editar todas as abas
-
----
-
-## Arquitetura da Solução
+### Solução
+Reorganizar o layout para mobile:
+- **Linha 1**: Botões de ação (Anexo, @, Templates)
+- **Linha 2**: Campo de texto + botão enviar
 
 ```text
-+------------------+     +-----------------------+
-|  Usuário clica   | --> | Verifica perfil       |
-|  em "Editar"     |     | (isAdmin/isTechnician)|
-+------------------+     +-----------------------+
-                                   |
-             +---------------------+---------------------+
-             |                                           |
-             v                                           v
-   +-------------------+                      +-------------------+
-   | ADM/Gerencial     |                      | Técnico           |
-   | isReadonly=false  |                      | isReadonly=false  |
-   | (todas as abas)   |                      | isGeralReadonly   |
-   +-------------------+                      | =true (aba Geral) |
-                                              +-------------------+
+ANTES (layout atual):
++----------------------------------------------+
+| [📎] [@] [textarea.........] [📝] [➤]        |
++----------------------------------------------+
+
+DEPOIS (layout proposto):
++----------------------------------------------+
+| [📎 Anexo]  [@Mencionar]  [📝 Template]      |
++----------------------------------------------+
+| [textarea..............................] [➤] |
++----------------------------------------------+
 ```
+
+### Arquivo Afetado
+`src/components/service-calls/ChatInput.tsx`
 
 ---
 
-## Mudanças Detalhadas
+## Problema 2: Notificação de Menção In-App
 
-### 1. Novo Estado: `isGeralReadonly`
+### Situação Atual
+- Quando alguém é mencionado (@Jonatas), o registro é salvo na tabela `service_call_message_mentions`
+- Mas não há notificação visual na tela do usuário mencionado
+- Existe um sistema de notificações para técnicos (novas OSs), mas não para menções
 
-```typescript
-// Estado separado para controle da aba Geral
-const isGeralReadonly = isTechnician && !isAdmin;
-```
+### Solução Proposta
 
-### 2. Modificar Campos da Aba "Geral"
+Criar um sistema de notificações in-app para menções com as seguintes partes:
 
-Todos os campos da aba "Geral" usarão a condição:
+#### 1. Tabela de Notificações (Nova)
+Criar tabela `in_app_notifications` para armazenar notificações genéricas:
 
-```typescript
-// Antes (atual)
-disabled={isReadonly && isEditMode}
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | uuid | ID da notificação |
+| user_id | uuid | Usuário destinatário |
+| type | text | Tipo (mention, assignment, etc) |
+| title | text | Título da notificação |
+| body | text | Corpo da mensagem |
+| link | text | Link para navegar |
+| read_at | timestamp | Data de leitura |
+| created_at | timestamp | Data de criação |
 
-// Depois (novo)
-disabled={(isReadonly || isGeralReadonly) && isEditMode}
-```
+#### 2. Trigger Automático
+Quando uma menção é criada em `service_call_message_mentions`, um trigger cria automaticamente uma notificação para o usuário mencionado.
 
-**Campos afetados na aba Geral:**
-- Cliente (ClientAsyncSelect)
-- Equipamento (Input)
-- Fabricante (Input)
-- Setor (Input)
-- Modelo (Input)
-- Número de Série (Input)
-- Número OC (Input)
-- Descrição do Problema (Textarea)
-- Técnico Responsável (Select)
-- Tipo de Serviço (Select)
-- Status Técnico (StatusSelectField) - já tem lógica própria
-- Status Comercial (StatusSelectField) - já tem lógica própria
-- Checklist Aplicável (Select)
-- Data e Hora Agendada (Input + Calendar + Time)
-- Local do Atendimento (Input)
-- Observações Internas (Textarea)
+#### 3. Hook de Notificações de Menções
+Novo hook `useMentionNotifications` que:
+- Busca notificações não lidas do usuário logado
+- Usa Realtime para atualização instantânea
+- Expõe contador e lista de notificações
 
-### 3. Comportamento Visual
+#### 4. Componente de Badge Global
+Modificar o `NotificationBell` existente para incluir também notificações de menções, ou criar um badge separado para menções.
 
-Para técnicos em modo edição:
-- A aba "Geral" mostrará todos os campos com fundo cinza (visual readonly)
-- A aba "Técnico" ficará editável normalmente
-- A aba "Financeiro" permanece controlada pelo FinanceiroGuard (já existente)
-- A aba "Chat" permanece funcional (já existente)
+#### 5. Toast/Popup Instantâneo
+Quando uma nova menção chegar via Realtime, exibir um toast temporário na tela do usuário mencionado.
 
----
-
-## Fluxo do Usuário
-
-**Técnico:**
-1. Abre a OS
-2. Clica em "Editar"
-3. Na aba "Geral": todos os campos permanecem readonly (fundo cinza)
-4. Na aba "Técnico": campos editáveis (diagnóstico, fotos, assinaturas)
-5. Salva apenas as informações técnicas
-
-**ADM/Gerencial:**
-1. Abre a OS
-2. Clica em "Editar"
-3. Todas as abas ficam editáveis
-4. Pode alterar qualquer campo
-
----
-
-## Arquivo Afetado
+### Arquivos a Criar/Modificar
 
 | Arquivo | Ação |
 |---------|------|
-| `src/pages/ServiceCallForm.tsx` | Adicionar lógica de `isGeralReadonly` e aplicar em todos os campos da aba Geral |
+| `src/components/service-calls/ChatInput.tsx` | Reorganizar layout mobile |
+| `src/hooks/useMentionNotifications.ts` | Novo - Hook para buscar menções não lidas |
+| `src/components/mobile/NotificationBell.tsx` | Modificar - Incluir notificações de menções |
+| Migração SQL | Nova tabela + trigger |
 
 ---
 
-## Segurança
+## Arquitetura de Notificações Realtime
 
-Esta é uma proteção de UX (frontend). A segurança real está nas RLS policies do backend que já existem e restringem o que técnicos podem atualizar.
+```text
++-------------------------+
+|  Usuário envia menção   |
++-------------------------+
+            |
+            v
++-------------------------+
+|  INSERT em mentions     |
++-------------------------+
+            |
+            v
++-------------------------+
+|  Trigger cria notif     |
+|  em in_app_notifications|
++-------------------------+
+            |
+            v (Realtime)
++-------------------------+
+|  Usuário mencionado     |
+|  recebe atualização     |
++-------------------------+
+            |
+            v
++-------------------------+
+|  Toast + Badge atualiza |
++-------------------------+
+```
+
+---
+
+## Detalhes Técnicos
+
+### Migração SQL (Resumo)
+
+```sql
+-- Tabela de notificações in-app
+CREATE TABLE public.in_app_notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  type text NOT NULL DEFAULT 'general',
+  title text NOT NULL,
+  body text,
+  link text,
+  metadata jsonb DEFAULT '{}',
+  read_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+-- RLS: usuário só vê suas notificações
+CREATE POLICY "Users can view own notifications"
+  ON in_app_notifications FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Trigger para criar notificação ao mencionar
+CREATE FUNCTION create_mention_notification()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Cria notificação para usuário mencionado
+  INSERT INTO in_app_notifications (user_id, type, title, body, link, metadata)
+  SELECT 
+    NEW.mentioned_user_id,
+    'mention',
+    'Você foi mencionado em uma OS',
+    -- Buscar OS number e autor
+    ...
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### Hook useMentionNotifications
+
+```typescript
+export const useMentionNotifications = () => {
+  // Busca notificações type='mention' não lidas
+  // Subscreve ao Realtime para atualizações
+  // Retorna: unreadCount, notifications, markAsRead
+};
+```
+
+### Toast Instantâneo
+
+Quando uma nova notificação chegar via Realtime, dispara um toast:
+
+```typescript
+toast({
+  title: "Nova menção",
+  description: "@Fulano mencionou você na OS #123",
+  action: <Button onClick={() => navigate(link)}>Ver</Button>
+});
+```
+
+---
+
+## Resumo das Mudanças
+
+1. **ChatInput.tsx**: Reorganizar botões em linha separada para mobile
+2. **Nova migração**: Tabela `in_app_notifications` + trigger
+3. **Novo hook**: `useMentionNotifications.ts`
+4. **NotificationBell**: Incluir badge de menções
+5. **Toast realtime**: Popup instantâneo ao receber menção
 
