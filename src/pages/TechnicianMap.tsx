@@ -1,16 +1,13 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Loader2, Navigation, Clock, AlertCircle } from "lucide-react";
 import { useServiceCallTrips, ServiceCallTrip } from "@/hooks/useServiceCallTrips";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-// Lazy load do componente do mapa para evitar problemas de SSR/hydration
-const TechnicianMapContent = lazy(() => import("@/components/map/TechnicianMapContent"));
+import { LeafletTripsMap } from "@/components/map/LeafletTripsMap";
 
 const getStatusLabel = (trip: ServiceCallTrip) => {
   const updateTime = trip.position_updated_at || trip.started_at;
@@ -123,13 +120,7 @@ const TechnicianMap = () => {
               </div>
             ) : (
               <div className="h-[500px]">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-full bg-muted">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  </div>
-                }>
-                  <TechnicianMapContent trips={tripsEmDeslocamento} />
-                </Suspense>
+                <LeafletTripsMap trips={tripsEmDeslocamento} className="h-full w-full" />
               </div>
             )}
           </CardContent>
