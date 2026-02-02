@@ -381,6 +381,9 @@ const ServiceCallForm = () => {
       setValue("scheduled_time", existingCall.scheduled_time);
       setValue("notes", existingCall.notes || "");
       setValue("service_type_id", existingCall.service_type_id || "");
+      // Novos campos: Fabricante e Setor
+      setValue("equipment_manufacturer", (existingCall as any).equipment_manufacturer || "");
+      setValue("equipment_sector", (existingCall as any).equipment_sector || "");
       
       setSelectedClientId(existingCall.client_id);
       setSelectedTechnicianId(existingCall.technician_id);
@@ -868,6 +871,9 @@ const ServiceCallForm = () => {
         internal_notes_text: internalNotesText || null,
         internal_notes_audio_url: null,
         technical_diagnosis_audio_url: technicalAudioUrl,
+        // Novos campos: Fabricante e Setor
+        equipment_manufacturer: data.equipment_manufacturer || null,
+        equipment_sector: data.equipment_sector || null,
         // Assinaturas: usar as processadas (com URLs do storage em vez de base64)
         signatures: processedSignatures,
         // Manter campos antigos para compatibilidade (deprecated)
@@ -1155,9 +1161,9 @@ const ServiceCallForm = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    {/* Equipamento - 50% da largura (6/12) */}
-                    <div className="md:col-span-6 space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+                    {/* Equipamento - 4/12 */}
+                    <div className="lg:col-span-4 space-y-2">
                       <Label htmlFor="equipment_description">Equipamento *</Label>
                       <Input
                         id="equipment_description"
@@ -1172,13 +1178,39 @@ const ServiceCallForm = () => {
                       )}
                     </div>
 
-                    {/* Número de Série - 25% da largura (3/12) */}
-                    <div className="md:col-span-3 space-y-2">
-                      <Label htmlFor="equipment_serial_number">Número de Série</Label>
+                    {/* Fabricante - 2/12 */}
+                    <div className="lg:col-span-2 space-y-2">
+                      <Label htmlFor="equipment_manufacturer">Fabricante</Label>
+                      <Input
+                        id="equipment_manufacturer"
+                        type="text"
+                        placeholder="Ex: Samsung"
+                        disabled={isReadonly && isEditMode}
+                        className={cn(isReadonly && isEditMode && "bg-muted")}
+                        {...register("equipment_manufacturer")}
+                      />
+                    </div>
+
+                    {/* Setor - 2/12 */}
+                    <div className="lg:col-span-2 space-y-2">
+                      <Label htmlFor="equipment_sector">Setor</Label>
+                      <Input
+                        id="equipment_sector"
+                        type="text"
+                        placeholder="Ex: Cozinha"
+                        disabled={isReadonly && isEditMode}
+                        className={cn(isReadonly && isEditMode && "bg-muted")}
+                        {...register("equipment_sector")}
+                      />
+                    </div>
+
+                    {/* Número de Série - 2/12 */}
+                    <div className="lg:col-span-2 space-y-2">
+                      <Label htmlFor="equipment_serial_number">Nº Série</Label>
                       <Input
                         id="equipment_serial_number"
                         type="text"
-                        placeholder="Ex: SN123456789"
+                        placeholder="SN123456"
                         value={equipmentSerialNumber}
                         onChange={(e) => setEquipmentSerialNumber(e.target.value)}
                         disabled={isReadonly && isEditMode}
@@ -1186,13 +1218,13 @@ const ServiceCallForm = () => {
                       />
                     </div>
 
-                    {/* Número da OC - 25% da largura (3/12) */}
-                    <div className="md:col-span-3 space-y-2">
-                      <Label htmlFor="purchase_order_number">Nº da OC</Label>
+                    {/* Número da OC - 2/12 */}
+                    <div className="lg:col-span-2 space-y-2">
+                      <Label htmlFor="purchase_order_number">OC</Label>
                       <Input
                         id="purchase_order_number"
                         type="text"
-                        placeholder="Ex: OC-12345"
+                        placeholder="OC-12345"
                         disabled={isReadonly && isEditMode}
                         className={cn(isReadonly && isEditMode && "bg-muted")}
                         {...register("purchase_order_number")}

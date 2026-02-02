@@ -1340,6 +1340,8 @@ export type Database = {
           discount_total_type: string | null
           discount_total_value: number | null
           equipment_description: string
+          equipment_manufacturer: string | null
+          equipment_sector: string | null
           equipment_serial_number: string | null
           has_financial_report: boolean
           id: string
@@ -1394,6 +1396,8 @@ export type Database = {
           discount_total_type?: string | null
           discount_total_value?: number | null
           equipment_description: string
+          equipment_manufacturer?: string | null
+          equipment_sector?: string | null
           equipment_serial_number?: string | null
           has_financial_report?: boolean
           id?: string
@@ -1448,6 +1452,8 @@ export type Database = {
           discount_total_type?: string | null
           discount_total_value?: number | null
           equipment_description?: string
+          equipment_manufacturer?: string | null
+          equipment_sector?: string | null
           equipment_serial_number?: string | null
           has_financial_report?: boolean
           id?: string
