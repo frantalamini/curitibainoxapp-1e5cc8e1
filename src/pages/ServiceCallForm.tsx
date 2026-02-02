@@ -83,6 +83,10 @@ const ServiceCallForm = () => {
   // Estado de modo readonly - inicia como true em edição (isEditMode = !!id), false em criação
   const [isReadonly, setIsReadonly] = useState(!!id);
   
+  // Técnicos não podem editar a aba Geral mesmo em modo edição
+  // Apenas ADM/Gerencial podem editar todas as abas
+  const isGeralReadonly = isTechnician && !isAdmin;
+  
   // Estados para deslocamentos
   const [startTripModalOpen, setStartTripModalOpen] = useState(false);
   const [endTripModalOpen, setEndTripModalOpen] = useState(false);
@@ -1175,7 +1179,7 @@ const ServiceCallForm = () => {
                       }}
                       onNewClientClick={() => setIsClientDialogOpen(true)}
                       error={!!errors.client_id}
-                      disabled={isReadonly && isEditMode}
+                      disabled={(isReadonly || isGeralReadonly) && isEditMode}
                     />
                     {errors.client_id && (
                       <p className="text-sm text-destructive">
@@ -1192,8 +1196,8 @@ const ServiceCallForm = () => {
                         id="equipment_description"
                         type="text"
                         placeholder="Ex: Ar condicionado split 12000 BTU"
-                        disabled={isReadonly && isEditMode}
-                        className={cn(isReadonly && isEditMode && "bg-muted")}
+                        disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                        className={cn((isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                         {...register("equipment_description", { required: true })}
                       />
                       {errors.equipment_description && (
@@ -1208,8 +1212,8 @@ const ServiceCallForm = () => {
                         id="equipment_manufacturer"
                         type="text"
                         placeholder="Ex: Samsung"
-                        disabled={isReadonly && isEditMode}
-                        className={cn(isReadonly && isEditMode && "bg-muted")}
+                        disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                        className={cn((isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                         {...register("equipment_manufacturer")}
                       />
                     </div>
@@ -1221,8 +1225,8 @@ const ServiceCallForm = () => {
                         id="equipment_sector"
                         type="text"
                         placeholder="Ex: Cozinha"
-                        disabled={isReadonly && isEditMode}
-                        className={cn(isReadonly && isEditMode && "bg-muted")}
+                        disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                        className={cn((isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                         {...register("equipment_sector")}
                       />
                     </div>
@@ -1236,8 +1240,8 @@ const ServiceCallForm = () => {
                         placeholder="SN123456"
                         value={equipmentSerialNumber}
                         onChange={(e) => setEquipmentSerialNumber(e.target.value)}
-                        disabled={isReadonly && isEditMode}
-                        className={cn(isReadonly && isEditMode && "bg-muted")}
+                        disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                        className={cn((isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                       />
                     </div>
 
@@ -1248,8 +1252,8 @@ const ServiceCallForm = () => {
                         id="purchase_order_number"
                         type="text"
                         placeholder="OC-12345"
-                        disabled={isReadonly && isEditMode}
-                        className={cn(isReadonly && isEditMode && "bg-muted")}
+                        disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                        className={cn((isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                         {...register("purchase_order_number")}
                       />
                     </div>
@@ -1262,16 +1266,16 @@ const ServiceCallForm = () => {
                     <Textarea
                       id="problem_description"
                       placeholder="Descreva o problema relatado pelo cliente"
-                      disabled={isReadonly && isEditMode}
-                      className={cn(isReadonly && isEditMode && "bg-muted")}
+                      disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                      className={cn((isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                       {...register("problem_description")}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="technician_id">Técnico Responsável</Label>
-              <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId} disabled={isReadonly && isEditMode}>
-                <SelectTrigger className={cn("w-full", isReadonly && isEditMode && "bg-muted")}>
+              <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId} disabled={(isReadonly || isGeralReadonly) && isEditMode}>
+                <SelectTrigger className={cn("w-full", (isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}>
                   <SelectValue placeholder="Selecione um técnico" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1291,8 +1295,8 @@ const ServiceCallForm = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="service_type_id">Tipo de Serviço *</Label>
-              <Select value={selectedServiceTypeId} onValueChange={setSelectedServiceTypeId} disabled={isReadonly && isEditMode}>
-                <SelectTrigger className={cn("w-full", isReadonly && isEditMode && "bg-muted")}>
+              <Select value={selectedServiceTypeId} onValueChange={setSelectedServiceTypeId} disabled={(isReadonly || isGeralReadonly) && isEditMode}>
+                <SelectTrigger className={cn("w-full", (isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}>
                   <SelectValue placeholder="Selecione o tipo de serviço" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1333,9 +1337,9 @@ const ServiceCallForm = () => {
                     <Select 
                       value={selectedChecklistId} 
                       onValueChange={setSelectedChecklistId}
-                      disabled={isReadonly && isEditMode}
+                      disabled={(isReadonly || isGeralReadonly) && isEditMode}
                     >
-                      <SelectTrigger className={cn("w-full", isReadonly && isEditMode && "bg-muted")}>
+                      <SelectTrigger className={cn("w-full", (isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}>
                         <SelectValue placeholder="Selecione um checklist (opcional)" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1388,15 +1392,15 @@ const ServiceCallForm = () => {
                               }
                             }
                           }}
-                          disabled={isReadonly && isEditMode}
-                          className={cn("w-[120px]", isReadonly && isEditMode && "bg-muted")}
+                          disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                          className={cn("w-[120px]", (isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                         />
-                        <Popover open={(isReadonly && isEditMode) ? false : isDatePickerOpen} onOpenChange={(isReadonly && isEditMode) ? undefined : setIsDatePickerOpen}>
+                        <Popover open={((isReadonly || isGeralReadonly) && isEditMode) ? false : isDatePickerOpen} onOpenChange={((isReadonly || isGeralReadonly) && isEditMode) ? undefined : setIsDatePickerOpen}>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
                               size="icon"
-                              disabled={isReadonly && isEditMode}
+                              disabled={(isReadonly || isGeralReadonly) && isEditMode}
                               type="button"
                             >
                               <CalendarIcon className="h-4 w-4" />
@@ -1446,8 +1450,8 @@ const ServiceCallForm = () => {
                               }
                             }
                           }}
-                          disabled={isReadonly && isEditMode}
-                          className={cn("w-[80px]", isReadonly && isEditMode && "bg-muted")}
+                          disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                          className={cn("w-[80px]", (isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                         />
                         <TimePickerPopover
                           value={selectedTime}
@@ -1455,12 +1459,12 @@ const ServiceCallForm = () => {
                             setSelectedTime(time);
                             setValue("scheduled_time", time, { shouldDirty: true });
                           }}
-                          disabled={isReadonly && isEditMode}
+                          disabled={(isReadonly || isGeralReadonly) && isEditMode}
                           trigger={
                             <Button
                               variant="outline"
                               size="icon"
-                              disabled={isReadonly && isEditMode}
+                              disabled={(isReadonly || isGeralReadonly) && isEditMode}
                               type="button"
                             >
                               <Clock className="h-4 w-4" />
@@ -1481,13 +1485,13 @@ const ServiceCallForm = () => {
                     <Textarea
                       id="notes"
                       placeholder="Anotações sobre o chamado"
-                      disabled={isReadonly && isEditMode}
-                      className={cn(isReadonly && isEditMode && "bg-muted")}
+                      disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                      className={cn((isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                       {...register("notes")}
                     />
                   </div>
 
-                  {!(isReadonly && isEditMode) && (
+                  {!((isReadonly || isGeralReadonly) && isEditMode) && (
                     <div className="space-y-2">
                       <Label>Gravação de Áudio</Label>
                       {!audioURL && !existingAudioUrl ? (
@@ -1653,8 +1657,8 @@ const ServiceCallForm = () => {
                           onChange={(e) => setInternalNotesText(e.target.value)}
                           maxLength={2000}
                           rows={4}
-                          disabled={isReadonly && isEditMode}
-                          className={cn(isReadonly && isEditMode && "bg-muted")}
+                          disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                          className={cn((isReadonly || isGeralReadonly) && isEditMode && "bg-muted")}
                         />
                         <div className="text-xs text-muted-foreground text-right">
                           {internalNotesText.length}/2000 caracteres
