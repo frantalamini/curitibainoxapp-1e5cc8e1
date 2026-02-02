@@ -1,121 +1,75 @@
 
-## Plano: Adicionar Campos Fabricante e Setor na Seção de Equipamento
+## Plano: Exibir Nome Secundário no Card Mobile de Chamados
 
-### Resumo
-Vou ajustar a seção de equipamento na OS para incluir os campos **Fabricante** e **Setor**, reorganizando o layout para ficar lado a lado conforme o modelo:
-
-**Layout Atual:** Equipamento (6/12) | Nº Série (3/12) | Nº OC (3/12)
-
-**Layout Novo:** Equipamento | Fabricante | Setor | Nº Série (10 chars) | Nº OC (10 chars)
+### Objetivo
+Adicionar o campo **Nome Secundário** (secondary_name) no card mobile dos chamados técnicos, exibido em azul logo abaixo do nome do cliente.
 
 ---
 
-### Etapa 1: Migração de Banco de Dados
+### Alteração Necessária
 
-Adicionar duas novas colunas na tabela `service_calls`:
+**Arquivo:** `src/components/mobile/ServiceCallMobileCard.tsx`
 
-```sql
-ALTER TABLE service_calls 
-ADD COLUMN IF NOT EXISTS equipment_manufacturer TEXT,
-ADD COLUMN IF NOT EXISTS equipment_sector TEXT;
-```
+**Mudança no bloco de Cliente (linhas 65-76):**
 
----
+Adicionar o `secondary_name` logo após o nome do cliente, estilizado em azul (`text-blue-600`) conforme o padrão já estabelecido no sistema.
 
-### Etapa 2: Atualizar Formulário
-
-**Arquivo:** `src/pages/ServiceCallForm.tsx`
-
-**Mudança no grid (linhas 1158-1201):**
-
-- Alterar o grid de 12 colunas para acomodar 5 campos
-- Proporções sugeridas para o novo layout:
-  - Equipamento: flex-1 (ocupa espaço restante)
-  - Fabricante: 2/12
-  - Setor: 2/12
-  - Nº Série: tamanho fixo para ~10 caracteres
-  - Nº OC: tamanho fixo para ~10 caracteres
-
-**Código do novo grid:**
-
+**De:**
 ```tsx
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
-  {/* Equipamento - flexível */}
-  <div className="lg:col-span-4 space-y-2">
-    <Label>Equipamento *</Label>
-    <Input {...register("equipment_description")} />
-  </div>
-
-  {/* Fabricante */}
-  <div className="lg:col-span-2 space-y-2">
-    <Label>Fabricante</Label>
-    <Input {...register("equipment_manufacturer")} />
-  </div>
-
-  {/* Setor */}
-  <div className="lg:col-span-2 space-y-2">
-    <Label>Setor</Label>
-    <Input {...register("equipment_sector")} />
-  </div>
-
-  {/* Nº Série */}
-  <div className="lg:col-span-2 space-y-2">
-    <Label>Nº Série</Label>
-    <Input maxLength={15} {...} />
-  </div>
-
-  {/* Nº OC */}
-  <div className="lg:col-span-2 space-y-2">
-    <Label>OC</Label>
-    <Input maxLength={10} {...} />
-  </div>
-</div>
+<MobileCardRow
+  icon={<User className="h-4 w-4" />}
+  label="Cliente"
+  value={
+    <div className="flex flex-col">
+      <span className="font-medium">{call.clients?.full_name}</span>
+      {call.clients?.phone && (
+        <span className="text-xs text-muted-foreground">{call.clients.phone}</span>
+      )}
+    </div>
+  }
+/>
 ```
 
----
-
-### Etapa 3: Atualizar useEffect de Inicialização
-
-Na inicialização do formulário ao editar uma OS, preencher os novos campos:
-
+**Para:**
 ```tsx
-setValue("equipment_manufacturer", existingCall.equipment_manufacturer || "");
-setValue("equipment_sector", existingCall.equipment_sector || "");
+<MobileCardRow
+  icon={<User className="h-4 w-4" />}
+  label="Cliente"
+  value={
+    <div className="flex flex-col">
+      <span className="font-medium">{call.clients?.full_name}</span>
+      {call.clients?.secondary_name && (
+        <span className="text-xs text-blue-600 font-medium">{call.clients.secondary_name}</span>
+      )}
+      {call.clients?.phone && (
+        <span className="text-xs text-muted-foreground">{call.clients.phone}</span>
+      )}
+    </div>
+  }
+/>
 ```
-
----
-
-### Etapa 4: Atualizar Payload de Envio
-
-No `onSubmit`, incluir os novos campos no objeto `formattedData`:
-
-```tsx
-equipment_manufacturer: data.equipment_manufacturer || null,
-equipment_sector: data.equipment_sector || null,
-```
-
----
-
-### Arquivos Impactados
-
-| Arquivo | Tipo de Mudança |
-|---------|-----------------|
-| Migração SQL | Adicionar 2 colunas |
-| `src/pages/ServiceCallForm.tsx` | Layout + campos |
-| `src/hooks/useServiceCalls.ts` | Incluir novos campos na interface (opcional - tipagem) |
 
 ---
 
 ### Resultado Visual
 
-No desktop (tela grande):
-
 ```
-+-------------+------------+--------+-----------+-------+
-| Equipamento | Fabricante | Setor  | Nº Série  |  OC   |
-+-------------+------------+--------+-----------+-------+
-| [........] | [........] | [....] | [10 char] | [10c] |
-+-------------+------------+--------+-----------+-------+
+📅 Data/Hora
+   02/02/2026 às 10:30:00
+
+👤 Cliente
+   R&R SANTOS CONFEITARIA LTDA
+   DOCE CHIC                    ← (azul)
+   (41) 3667-9335
+
+⏰ Técnico
+   Anderson
 ```
 
-No mobile: campos empilhados verticalmente, 2 por linha em tablets.
+---
+
+### Arquivo Impactado
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/mobile/ServiceCallMobileCard.tsx` | Adicionar exibição do secondary_name em azul |
