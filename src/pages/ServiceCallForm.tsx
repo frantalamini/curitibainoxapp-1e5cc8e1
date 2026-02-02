@@ -52,6 +52,7 @@ import { generateSimpleWhatsAppLink } from "@/lib/whatsapp-templates";
 import { StartTripModal } from "@/components/StartTripModal";
 import { EndTripModal } from "@/components/EndTripModal";
 import { useOpenTrip, useHasCompletedTrip, useServiceCallTripsMutations } from "@/hooks/useServiceCallTrips";
+import { useGpsTracking } from "@/hooks/useGpsTracking";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FinanceiroGuard } from "@/components/os-financeiro/FinanceiroGuard";
 import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
@@ -86,6 +87,9 @@ const ServiceCallForm = () => {
   const { data: activeTrip } = useOpenTrip(id);
   const { data: hasCompletedTrip } = useHasCompletedTrip(id);
   const { createTrip, updateTrip, isCreating: isCreatingTrip, isUpdating: isUpdatingTrip } = useServiceCallTripsMutations();
+  
+  // Rastreamento GPS automático durante deslocamento ativo
+  useGpsTracking(activeTrip);
   
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [dateInputText, setDateInputText] = useState<string>("");
