@@ -236,7 +236,7 @@ function splitMedia(urls: string[]): { images: string[]; videos: string[] } {
 function getLatestSignature(
   signatures: any[] | undefined, 
   role: 'tech' | 'client'
-): { image_url: string; signed_at: string; signed_by?: string; position?: string } | null {
+): { image_url: string; storage_path?: string; signed_at: string; signed_by?: string; position?: string } | null {
   if (!signatures || !Array.isArray(signatures)) return null;
   
   const filtered = signatures.filter((s: any) => s.role === role);
@@ -245,6 +245,74 @@ function getLatestSignature(
   return filtered.sort((a: any, b: any) => 
     new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime()
   )[0];
+}
+
+/**
+ * Gera signed URL a partir de um caminho de storage ou URL existente
+ * Suporta: caminhos relativos (novo), signed URLs (legacy), e data URLs
+ */
+async function resolveSignatureUrl(
+  imageUrlOrPath: string | undefined | null
+): Promise<string | null> {
+  if (!imageUrlOrPath) return null;
+  
+  // Se já é data URL, retorna direto
+  if (imageUrlOrPath.startsWith('data:')) {
+    return imageUrlOrPath;
+  }
+  
+  // Se é URL completa (https://...), pode ser signed URL antiga - tentar usar direto
+  if (imageUrlOrPath.startsWith('http')) {
+    // Tentar converter para data URL (pode falhar se expirada)
+    const dataUrl = await toDataUrlWithRetry(imageUrlOrPath, 1, 5000);
+    if (dataUrl) return dataUrl;
+    
+    // Se falhou e parece ser URL do Supabase storage, extrair o path e gerar nova signed URL
+    if (imageUrlOrPath.includes('/storage/v1/object/')) {
+      try {
+        // Extrair path do storage da URL
+        const match = imageUrlOrPath.match(/\/service-call-attachments\/([^?]+)/);
+        if (match) {
+          const storagePath = match[1];
+          console.log('🔄 [PDF] Regenerando signed URL para path:', storagePath);
+          
+          const { data: signedData, error } = await supabase.storage
+            .from('service-call-attachments')
+            .createSignedUrl(storagePath, 3600); // 1 hora
+          
+          if (!error && signedData?.signedUrl) {
+            return toDataUrlWithRetry(signedData.signedUrl, 2, 8000);
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ [PDF] Falha ao regenerar signed URL:', err);
+      }
+    }
+    
+    return null;
+  }
+  
+  // É um caminho relativo no storage (novo formato)
+  console.log('🔄 [PDF] Gerando signed URL para path:', imageUrlOrPath);
+  
+  try {
+    const { data: signedData, error } = await supabase.storage
+      .from('service-call-attachments')
+      .createSignedUrl(imageUrlOrPath, 3600); // 1 hora
+    
+    if (error) {
+      console.error('❌ [PDF] Erro ao gerar signed URL:', error);
+      return null;
+    }
+    
+    if (!signedData?.signedUrl) return null;
+    
+    // Converter para data URL
+    return toDataUrlWithRetry(signedData.signedUrl, 2, 8000);
+  } catch (err) {
+    console.error('❌ [PDF] Falha ao resolver assinatura:', err);
+    return null;
+  }
 }
 
 /**
@@ -508,34 +576,40 @@ export const generateOSPdf = async (
     after: afterPhotos.length,
   });
 
-  // 5. PROCESSAR ASSINATURAS (novo formato com histórico)
+  // 5. PROCESSAR ASSINATURAS (novo formato com histórico + resolução robusta de URLs)
   const latestTechSignature = getLatestSignature((call as any).signatures, 'tech');
   const latestClientSignature = getLatestSignature((call as any).signatures, 'client');
 
   let techSignatureDataUrl: string | null = null;
   let clientSignatureDataUrl: string | null = null;
 
-  // Técnico: buscar do array de histórico, fallback para campos antigos
-  if (latestTechSignature?.image_url) {
-    techSignatureDataUrl = await toDataUrlWithRetry(latestTechSignature.image_url);
+  // Técnico: usar nova função que resolve paths e regenera signed URLs se necessário
+  if (latestTechSignature?.storage_path) {
+    techSignatureDataUrl = await resolveSignatureUrl(latestTechSignature.storage_path);
+  } else if (latestTechSignature?.image_url) {
+    techSignatureDataUrl = await resolveSignatureUrl(latestTechSignature.image_url);
   } else if (call.technician_signature_data) {
-    techSignatureDataUrl = await toDataUrlWithRetry(call.technician_signature_data);
+    techSignatureDataUrl = await resolveSignatureUrl(call.technician_signature_data);
   } else if (call.technician_signature_url) {
-    techSignatureDataUrl = await toDataUrlWithRetry(call.technician_signature_url);
+    techSignatureDataUrl = await resolveSignatureUrl(call.technician_signature_url);
   }
 
-  // Cliente: buscar do array de histórico, fallback para campos antigos
-  if (latestClientSignature?.image_url) {
-    clientSignatureDataUrl = await toDataUrlWithRetry(latestClientSignature.image_url);
+  // Cliente: usar nova função que resolve paths e regenera signed URLs se necessário
+  if (latestClientSignature?.storage_path) {
+    clientSignatureDataUrl = await resolveSignatureUrl(latestClientSignature.storage_path);
+  } else if (latestClientSignature?.image_url) {
+    clientSignatureDataUrl = await resolveSignatureUrl(latestClientSignature.image_url);
   } else if (call.customer_signature_data) {
-    clientSignatureDataUrl = await toDataUrlWithRetry(call.customer_signature_data);
+    clientSignatureDataUrl = await resolveSignatureUrl(call.customer_signature_data);
   } else if (call.customer_signature_url) {
-    clientSignatureDataUrl = await toDataUrlWithRetry(call.customer_signature_url);
+    clientSignatureDataUrl = await resolveSignatureUrl(call.customer_signature_url);
   }
 
   console.log('🔍 [PDF] Assinaturas processadas:', {
     techFromHistory: !!latestTechSignature,
     clientFromHistory: !!latestClientSignature,
+    techResolved: !!techSignatureDataUrl,
+    clientResolved: !!clientSignatureDataUrl,
     techFallback: !latestTechSignature && !!(call.technician_signature_data || call.technician_signature_url),
     clientFallback: !latestClientSignature && !!(call.customer_signature_data || call.customer_signature_url),
   });

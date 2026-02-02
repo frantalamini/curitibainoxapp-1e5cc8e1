@@ -59,7 +59,8 @@ import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
 import { StatusSelectField } from "@/components/service-calls/StatusSelectField";
 
 type Signature = {
-  image_url: string;
+  image_url: string; // Pode ser caminho no storage OU URL completa (legacy)
+  storage_path?: string; // Caminho explícito no storage (novo formato)
   signed_at: string;
   signed_by?: string;
   position?: string;
@@ -835,14 +836,12 @@ const ServiceCallForm = () => {
 
             if (error) throw error;
 
-            const { data: signedData } = await supabase.storage
-              .from('service-call-attachments')
-              .createSignedUrl(fileName, 31536000); // 1 ano
-
-            // Substituir base64 pela URL do storage
+            // IMPORTANTE: Salvar o CAMINHO do arquivo, não a signed URL
+            // Isso evita problemas de expiração - a signed URL será gerada no momento de uso
             processedSignatures.push({
               ...sig,
-              image_url: signedData?.signedUrl || sig.image_url
+              image_url: fileName, // Caminho relativo no bucket
+              storage_path: fileName // Campo explícito para clareza
             });
           } catch (err) {
             console.error('Erro ao fazer upload da assinatura:', err);
@@ -855,7 +854,7 @@ const ServiceCallForm = () => {
             return; // Abortar submit
           }
         } else {
-          // Já é URL, manter como está
+          // Já é URL ou path, manter como está
           processedSignatures.push(sig);
         }
       }

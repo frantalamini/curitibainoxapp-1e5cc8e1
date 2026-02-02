@@ -52,6 +52,43 @@ const getLatestSignature = (signatures: any[] | undefined, role: 'tech' | 'clien
   )[0];
 };
 
+/**
+ * Resolve URL da assinatura - suporta paths de storage e URLs
+ */
+const resolveSignatureForDisplay = async (
+  imageUrlOrPath: string | undefined | null
+): Promise<string | null> => {
+  if (!imageUrlOrPath) return null;
+  
+  // Se já é data URL ou URL completa válida, retorna direto
+  if (imageUrlOrPath.startsWith('data:')) {
+    return imageUrlOrPath;
+  }
+  
+  // Se é URL completa (https://...), verifica se é Supabase storage
+  if (imageUrlOrPath.startsWith('http')) {
+    // Se parece ser URL assinada do Supabase storage, extrair path e gerar nova
+    if (imageUrlOrPath.includes('/storage/v1/object/')) {
+      const match = imageUrlOrPath.match(/\/service-call-attachments\/([^?]+)/);
+      if (match) {
+        const storagePath = match[1];
+        const { data: signedData } = await supabase.storage
+          .from('service-call-attachments')
+          .createSignedUrl(storagePath, 3600);
+        return signedData?.signedUrl || imageUrlOrPath;
+      }
+    }
+    return imageUrlOrPath;
+  }
+  
+  // É um caminho relativo no storage
+  const { data: signedData } = await supabase.storage
+    .from('service-call-attachments')
+    .createSignedUrl(imageUrlOrPath, 3600);
+  
+  return signedData?.signedUrl || null;
+};
+
 const ServiceCallView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -66,6 +103,12 @@ const ServiceCallView = () => {
   const { checklists } = useChecklists();
   const { settings: systemSettings } = useSystemSettings();
   
+  // Estado para assinaturas resolvidas (com URLs válidas)
+  const [resolvedSignatures, setResolvedSignatures] = useState<{
+    tech: string | null;
+    client: string | null;
+  }>({ tech: null, client: null });
+  
   // Marcar como visto ao abrir a página
   const markSeen = useMarkServiceCallSeen();
   const hasMarkedRef = useRef(false);
@@ -76,6 +119,44 @@ const ServiceCallView = () => {
       markSeen.mutate(call.id);
     }
   }, [call?.id, call?.seen_by_tech_at]);
+  
+  // Resolver assinaturas ao carregar a OS
+  useEffect(() => {
+    const resolveSignatures = async () => {
+      if (!call) return;
+      
+      const latestTech = getLatestSignature((call as any).signatures, 'tech');
+      const latestClient = getLatestSignature((call as any).signatures, 'client');
+      
+      // Resolver técnico
+      let techUrl: string | null = null;
+      if (latestTech?.storage_path) {
+        techUrl = await resolveSignatureForDisplay(latestTech.storage_path);
+      } else if (latestTech?.image_url) {
+        techUrl = await resolveSignatureForDisplay(latestTech.image_url);
+      } else if (call.technician_signature_data) {
+        techUrl = call.technician_signature_data;
+      } else if (call.technician_signature_url) {
+        techUrl = await resolveSignatureForDisplay(call.technician_signature_url);
+      }
+      
+      // Resolver cliente
+      let clientUrl: string | null = null;
+      if (latestClient?.storage_path) {
+        clientUrl = await resolveSignatureForDisplay(latestClient.storage_path);
+      } else if (latestClient?.image_url) {
+        clientUrl = await resolveSignatureForDisplay(latestClient.image_url);
+      } else if (call.customer_signature_data) {
+        clientUrl = call.customer_signature_data;
+      } else if (call.customer_signature_url) {
+        clientUrl = await resolveSignatureForDisplay(call.customer_signature_url);
+      }
+      
+      setResolvedSignatures({ tech: techUrl, client: clientUrl });
+    };
+    
+    resolveSignatures();
+  }, [call]);
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
@@ -853,8 +934,8 @@ const ServiceCallView = () => {
             {(() => {
               const latestTech = getLatestSignature((call as any).signatures, 'tech');
               const latestClient = getLatestSignature((call as any).signatures, 'client');
-              const hasTech = latestTech || call.technician_signature_url || call.technician_signature_data;
-              const hasClient = latestClient || call.customer_signature_url || call.customer_signature_data;
+              const hasTech = resolvedSignatures.tech || latestTech || call.technician_signature_url || call.technician_signature_data;
+              const hasClient = resolvedSignatures.client || latestClient || call.customer_signature_url || call.customer_signature_data;
               
               return (hasTech || hasClient) && (
               <Card>
@@ -867,7 +948,8 @@ const ServiceCallView = () => {
                 <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   {/* Técnico */}
                   {(() => {
-                    const imgUrl = latestTech?.image_url || call.technician_signature_data || call.technician_signature_url;
+                    // Usar URL resolvida (com signed URL válida) ou fallback
+                    const imgUrl = resolvedSignatures.tech;
                     const signedAt = latestTech?.signed_at || call.technician_signature_date;
                     const signedBy = latestTech?.signed_by || call.technicians?.full_name;
                     
@@ -891,7 +973,8 @@ const ServiceCallView = () => {
 
                   {/* Cliente */}
                   {(() => {
-                    const imgUrl = latestClient?.image_url || call.customer_signature_data || call.customer_signature_url;
+                    // Usar URL resolvida (com signed URL válida) ou fallback
+                    const imgUrl = resolvedSignatures.client;
                     const signedAt = latestClient?.signed_at || call.customer_signature_date;
                     const signedBy = latestClient?.signed_by || call.customer_name;
                     const position = latestClient?.position || call.customer_position;
