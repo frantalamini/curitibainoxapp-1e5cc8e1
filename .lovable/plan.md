@@ -1,97 +1,66 @@
 
-## Plano: Técnicos Visualizam Todos os Chamados
+## Plano: Ajustar Largura das Abas para Exibir Chat
 
-### Situação Atual
-Hoje as políticas RLS restringem técnicos a visualizar apenas chamados onde eles são o técnico atribuído:
-- **service_calls**: "Technicians see only assigned calls, admins see all"
-- **clients**: "Technicians see only active assignment clients" 
-- **service_call_markers**: Restringe por chamado atribuído
-- **service_call_messages**: Usa função `is_technician_of_service_call` que verifica atribuição
+### Problema Identificado
+A aba "Chat" não aparece para técnicos porque:
+1. A aba "Informações Técnicas" tem texto muito longo sem tratamento responsivo
+2. O grid de 4 colunas força todas as abas em espaço igual, mas o texto longo estoura
+3. No mobile, a aba "Chat" fica cortada ou invisível
 
-### O Que Será Alterado
+### Solução
+Aplicar o mesmo padrão responsivo já usado em "Financeiro" e "Chat" para a aba "Informações Técnicas":
+- No mobile: mostrar apenas ícone + texto curto
+- No desktop: mostrar texto completo
 
-| Tabela | Mudança |
-|--------|---------|
-| `service_calls` | Técnicos veem **todos** os chamados |
-| `clients` | Técnicos veem **todos** os clientes que têm chamados ativos |
-| `service_call_markers` | Técnicos veem marcadores de **todos** os chamados |
-| `service_call_messages` | Técnicos veem mensagens de **todos** os chamados |
+### Mudanças
 
-### O Que **Não** Será Alterado
-- **Notificações**: Continuam filtradas por técnico atribuído (`useNotifications.ts` e `useNewServiceCallsCount.ts` já filtram por `technician_id`)
-- **Contador de "Novos"**: Continua mostrando apenas chamados novos do técnico logado
-- **Aba "Novos" em Chamados**: Continua filtrando por técnico logado
+**Arquivo:** `src/pages/ServiceCallForm.tsx`
 
----
+**Linha 1077-1078** - Aba "Informações Técnicas":
 
-## Detalhes Técnicos
-
-### 1. Alterar Política de SELECT em `service_calls`
-
-**Antes:**
-```sql
-(has_role('admin') OR (has_role('technician') AND técnico == usuário))
+Antes:
+```tsx
+<TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
 ```
 
-**Depois:**
-```sql
-(has_role('admin') OR has_role('technician'))
+Depois:
+```tsx
+<TabsTrigger 
+  value="tecnicas" 
+  className="flex items-center justify-center gap-1.5"
+>
+  <Stethoscope className="w-4 h-4" />
+  <span className="hidden sm:inline">Informações Técnicas</span>
+  <span className="sm:hidden">Técnico</span>
+</TabsTrigger>
 ```
 
-### 2. Alterar Política de SELECT em `clients`
+**Linha 1077** - Aba "Geral" (também otimizar):
 
-**Antes:**
-```sql
--- Técnicos veem apenas clientes de chamados atribuídos a eles
+Antes:
+```tsx
+<TabsTrigger value="geral">Geral</TabsTrigger>
 ```
 
-**Depois:**
-```sql
--- Técnicos veem todos os clientes que possuem chamados ativos (não completados/cancelados)
+Depois:
+```tsx
+<TabsTrigger value="geral" className="flex items-center justify-center gap-1.5">
+  <FileText className="w-4 h-4 sm:hidden" />
+  <span>Geral</span>
+</TabsTrigger>
 ```
 
-### 3. Alterar Política de SELECT em `service_call_markers`
+### Resultado Visual no Mobile
 
-**Antes:**
-```sql
--- Verifica se técnico é atribuído ao chamado
-```
+| Antes | Depois |
+|-------|--------|
+| Geral | Geral |
+| Informações Técnicas (cortado) | 🩺 Técnico |
+| $ | 💲 $ |
+| (invisível) | 💬 Chat |
 
-**Depois:**
-```sql
--- Técnicos veem marcadores de todos os chamados
-```
+### Arquivos Impactados
+- `src/pages/ServiceCallForm.tsx` (linhas 1077-1078)
 
-### 4. Alterar Política de SELECT em `service_call_messages`
-
-**Antes:**
-```sql
--- Técnicos veem apenas mensagens de chamados atribuídos
-```
-
-**Depois:**
-```sql
--- Técnicos veem mensagens de todos os chamados
-```
-
----
-
-## Resumo do Comportamento Final
-
-| Funcionalidade | Comportamento |
-|----------------|---------------|
-| Lista de chamados | Técnicos veem **todos** os chamados |
-| Detalhes do chamado | Técnicos podem abrir **qualquer** chamado |
-| Chat do chamado | Técnicos veem mensagens de **qualquer** chamado |
-| Notificações | Apenas para chamados **atribuídos ao técnico** |
-| Contador "Novos" | Apenas chamados novos **atribuídos ao técnico** |
-
----
-
-## Arquivos Impactados
-
-**Banco de dados (migrations):**
-- 1 nova migration SQL para alterar as 4 políticas RLS
-
-**Frontend:**
-- Nenhuma alteração necessária (a lógica de notificações já filtra corretamente por `technician_id`)
+### Observação
+O ícone `Stethoscope` já está importado no arquivo (linha 24). Nenhuma nova dependência necessária.
