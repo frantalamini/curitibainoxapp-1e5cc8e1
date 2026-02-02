@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { renderContentWithMentions } from "@/lib/mentionUtils";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -157,7 +158,7 @@ const Pendencias = () => {
             </div>
 
             {/* Content */}
-            <p className="text-sm line-clamp-2">{pending.content}</p>
+            <p className="text-sm line-clamp-2">{renderContentWithMentions(pending.content)}</p>
 
             {/* Meta */}
             <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
