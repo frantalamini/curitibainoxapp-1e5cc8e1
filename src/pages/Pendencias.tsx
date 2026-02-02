@@ -272,7 +272,7 @@ const Pendencias = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos Técnicos</SelectItem>
-                  {technicians.map((tech) => (
+                  {(technicians || []).map((tech) => (
                     <SelectItem key={tech.id} value={tech.id}>
                       {tech.full_name}
                     </SelectItem>
