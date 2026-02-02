@@ -5,9 +5,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Tag, X, Plus, Loader2 } from "lucide-react";
+import { MoreHorizontal, Tag, X, Plus, Loader2, CircleDot } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -16,6 +19,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useServiceCallStatuses, StatusType } from "@/hooks/useServiceCallStatuses";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useCurrentUserPermissions } from "@/hooks/useUserPermissions";
 import type { ServiceCallMarker } from "@/hooks/useServiceCallMarkers";
 
 interface ServiceCallActionsMenuProps {
@@ -26,6 +34,8 @@ interface ServiceCallActionsMenuProps {
   onAddMarker: (serviceCallId: string, text: string) => Promise<void>;
   onRemoveMarker: (markerId: string) => Promise<void>;
   isLoading?: boolean;
+  currentStatusId?: string;
+  currentCommercialStatusId?: string;
 }
 
 export function ServiceCallActionsMenu({
@@ -36,11 +46,31 @@ export function ServiceCallActionsMenu({
   onAddMarker,
   onRemoveMarker,
   isLoading,
+  currentStatusId,
+  currentCommercialStatusId,
 }: ServiceCallActionsMenuProps) {
   const [isMarkersOpen, setIsMarkersOpen] = useState(false);
   const [newMarkerText, setNewMarkerText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const { toast } = useToast();
+  const { statuses } = useServiceCallStatuses();
+  const queryClient = useQueryClient();
+  
+  // Permissões
+  const { isAdmin, isTechnician } = useUserRole();
+  const { data: permissionsData } = useCurrentUserPermissions();
+  const profileType = permissionsData?.profileType;
+  const isGerencial = profileType === "gerencial";
+  const isAdm = profileType === "adm";
+
+  // Permissões para alteração de status
+  const canEditTechnicalStatus = isAdmin || isTechnician || isGerencial || isAdm;
+  const canEditCommercialStatus = isAdmin || isGerencial || isAdm;
+
+  // Filtrar status por tipo
+  const technicalStatuses = statuses?.filter(s => s.active && s.status_type === 'tecnico') || [];
+  const commercialStatuses = statuses?.filter(s => s.active && s.status_type === 'comercial') || [];
 
   const handleAddMarker = async () => {
     if (!newMarkerText.trim()) return;
@@ -89,6 +119,41 @@ export function ServiceCallActionsMenu({
     }
   };
 
+  const handleStatusChange = async (statusType: 'tecnico' | 'comercial', statusId: string | null) => {
+    setIsUpdatingStatus(true);
+    try {
+      const updateField = statusType === 'tecnico' ? 'status_id' : 'commercial_status_id';
+      
+      const { error } = await supabase
+        .from("service_calls")
+        .update({ [updateField]: statusId })
+        .eq("id", serviceCallId);
+
+      if (error) throw error;
+
+      // Invalidar queries para atualizar a lista
+      queryClient.invalidateQueries({ queryKey: ["service-calls"] });
+      queryClient.invalidateQueries({ queryKey: ["service-call", serviceCallId] });
+
+      const statusName = statusId 
+        ? statuses?.find(s => s.id === statusId)?.name 
+        : "Nenhum";
+      
+      toast({
+        title: "Status atualizado",
+        description: `${statusType === 'tecnico' ? 'Status Técnico' : 'Status Comercial'} alterado para "${statusName}"`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Não foi possível alterar o status: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -99,7 +164,11 @@ export function ServiceCallActionsMenu({
             className="h-7 w-7 shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <MoreHorizontal className="h-3.5 w-3.5" />
+            {isUpdatingStatus ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            )}
             <span className="sr-only">Ações</span>
           </Button>
         </DropdownMenuTrigger>
@@ -108,6 +177,95 @@ export function ServiceCallActionsMenu({
             Nº {osNumber} - {clientName || "Sem cliente"}
           </div>
           <DropdownMenuSeparator />
+          
+          {/* Status Técnico */}
+          {canEditTechnicalStatus && technicalStatuses.length > 0 && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <CircleDot className="mr-2 h-4 w-4" />
+                Status Técnico
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="min-w-[180px]">
+                <DropdownMenuItem
+                  onClick={() => handleStatusChange('tecnico', null)}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full border-2 border-muted-foreground" />
+                    <span className="text-muted-foreground">Nenhum</span>
+                    {!currentStatusId && (
+                      <span className="ml-auto text-xs">✓</span>
+                    )}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {technicalStatuses.map((status) => (
+                  <DropdownMenuItem
+                    key={status.id}
+                    onClick={() => handleStatusChange('tecnico', status.id)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: status.color }}
+                      />
+                      <span>{status.name}</span>
+                      {currentStatusId === status.id && (
+                        <span className="ml-auto text-xs">✓</span>
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
+
+          {/* Status Comercial */}
+          {canEditCommercialStatus && commercialStatuses.length > 0 && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <CircleDot className="mr-2 h-4 w-4" />
+                Status Comercial
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="min-w-[180px]">
+                <DropdownMenuItem
+                  onClick={() => handleStatusChange('comercial', null)}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full border-2 border-muted-foreground" />
+                    <span className="text-muted-foreground">Nenhum</span>
+                    {!currentCommercialStatusId && (
+                      <span className="ml-auto text-xs">✓</span>
+                    )}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {commercialStatuses.map((status) => (
+                  <DropdownMenuItem
+                    key={status.id}
+                    onClick={() => handleStatusChange('comercial', status.id)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: status.color }}
+                      />
+                      <span>{status.name}</span>
+                      {currentCommercialStatusId === status.id && (
+                        <span className="ml-auto text-xs">✓</span>
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
+
+          {(canEditTechnicalStatus || canEditCommercialStatus) && <DropdownMenuSeparator />}
+
           <DropdownMenuItem
             onClick={() => setIsMarkersOpen(true)}
             className="cursor-pointer"
