@@ -88,6 +88,7 @@ const ServiceCallForm = () => {
   const { createTrip, updateTrip, isCreating: isCreatingTrip, isUpdating: isUpdatingTrip } = useServiceCallTripsMutations();
   
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const [dateInputText, setDateInputText] = useState<string>("");
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("");
@@ -385,7 +386,9 @@ const ServiceCallForm = () => {
       setSelectedTechnicianId(existingCall.technician_id);
       setSelectedServiceTypeId(existingCall.service_type_id || "");
       setSelectedTime(existingCall.scheduled_time);
-      setSelectedDate(parseLocalDate(existingCall.scheduled_date));
+      const parsedDate = parseLocalDate(existingCall.scheduled_date);
+      setSelectedDate(parsedDate);
+      setDateInputText(format(parsedDate, "dd/MM/yyyy"));
       setExistingAudioUrl(existingCall.audio_url || null);
       setExistingMediaUrls(existingCall.media_urls || []);
       setTechnicalDiagnosis(existingCall.technical_diagnosis || "");
@@ -1288,19 +1291,26 @@ const ServiceCallForm = () => {
                         <Input
                           type="text"
                           placeholder="DD/MM/AAAA"
-                          value={selectedDate ? format(selectedDate, "dd/MM/yyyy") : ""}
+                          value={dateInputText}
                           onChange={(e) => {
-                            const value = e.target.value;
-                            // Tentar parsear a data no formato DD/MM/AAAA
-                            const parts = value.split('/');
-                            if (parts.length === 3) {
-                              const day = parseInt(parts[0], 10);
-                              const month = parseInt(parts[1], 10) - 1;
-                              const year = parseInt(parts[2], 10);
-                              if (!isNaN(day) && !isNaN(month) && !isNaN(year) && year > 1900) {
-                                const date = new Date(year, month, day);
-                                if (date.getDate() === day && date.getMonth() === month) {
-                                  setSelectedDate(date);
+                            let value = e.target.value.replace(/[^\d/]/g, '');
+                            // Auto-formatar com /
+                            if ((value.length === 2 || value.length === 5) && !value.endsWith('/') && e.nativeEvent instanceof InputEvent && e.nativeEvent.inputType !== 'deleteContentBackward') {
+                              value = value + '/';
+                            }
+                            if (value.length <= 10) {
+                              setDateInputText(value);
+                              // Tentar parsear a data no formato DD/MM/AAAA
+                              const parts = value.split('/');
+                              if (parts.length === 3 && parts[2]?.length === 4) {
+                                const day = parseInt(parts[0], 10);
+                                const month = parseInt(parts[1], 10) - 1;
+                                const year = parseInt(parts[2], 10);
+                                if (!isNaN(day) && !isNaN(month) && !isNaN(year) && year > 1900) {
+                                  const date = new Date(year, month, day);
+                                  if (date.getDate() === day && date.getMonth() === month) {
+                                    setSelectedDate(date);
+                                  }
                                 }
                               }
                             }
@@ -1326,6 +1336,7 @@ const ServiceCallForm = () => {
                               onSelect={(date) => {
                                 if (date) {
                                   setSelectedDate(date);
+                                  setDateInputText(format(date, "dd/MM/yyyy"));
                                   setIsDatePickerOpen(false);
                                 }
                               }}
@@ -1371,8 +1382,17 @@ const ServiceCallForm = () => {
                             setSelectedTime(time);
                             setValue("scheduled_time", time, { shouldDirty: true });
                           }}
-                          placeholder=""
                           disabled={isReadonly && isEditMode}
+                          trigger={
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              disabled={isReadonly && isEditMode}
+                              type="button"
+                            >
+                              <Clock className="h-4 w-4" />
+                            </Button>
+                          }
                         />
                       </div>
                     </div>

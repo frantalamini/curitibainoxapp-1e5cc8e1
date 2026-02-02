@@ -15,6 +15,7 @@ interface TimePickerPopoverProps {
   onChange: (time: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  trigger?: React.ReactNode;
 }
 
 export const TimePickerPopover = ({
@@ -22,6 +23,7 @@ export const TimePickerPopover = ({
   onChange,
   placeholder = "--:--",
   disabled = false,
+  trigger,
 }: TimePickerPopoverProps) => {
   const [open, setOpen] = useState(false);
   const [tmpHour, setTmpHour] = useState<string | undefined>();
@@ -93,18 +95,20 @@ export const TimePickerPopover = ({
   return (
     <Popover open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          disabled={disabled}
-          className={cn(
-            "w-[150px] justify-start text-left font-normal",
-            !value && "text-muted-foreground",
-            disabled && "bg-muted cursor-not-allowed opacity-70"
-          )}
-        >
-          <Clock className="mr-2 h-4 w-4" />
-          {value || placeholder}
-        </Button>
+        {trigger || (
+          <Button
+            variant="outline"
+            disabled={disabled}
+            className={cn(
+              "w-[150px] justify-start text-left font-normal",
+              !value && "text-muted-foreground",
+              disabled && "bg-muted cursor-not-allowed opacity-70"
+            )}
+          >
+            <Clock className="mr-2 h-4 w-4" />
+            {value || placeholder}
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent
         className="w-auto p-0"
