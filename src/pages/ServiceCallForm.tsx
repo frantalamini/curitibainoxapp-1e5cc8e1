@@ -56,6 +56,7 @@ import { useGpsTracking } from "@/hooks/useGpsTracking";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FinanceiroGuard } from "@/components/os-financeiro/FinanceiroGuard";
 import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
+import { StatusSelectField } from "@/components/service-calls/StatusSelectField";
 
 type Signature = {
   image_url: string;
@@ -113,6 +114,8 @@ const ServiceCallForm = () => {
   const [existingVideoAfterUrl, setExistingVideoAfterUrl] = useState<string | null>(null);
   const [selectedChecklistId, setSelectedChecklistId] = useState<string>("");
   const [checklistResponses, setChecklistResponses] = useState<Record<string, boolean>>({});
+  const [selectedStatusId, setSelectedStatusId] = useState<string>("");
+  const [selectedCommercialStatusId, setSelectedCommercialStatusId] = useState<string>("");
   const [sendWhatsAppModalOpen, setSendWhatsAppModalOpen] = useState(false);
   const [sendEmailModalOpen, setSendEmailModalOpen] = useState(false);
   const { settings: systemSettings } = useSystemSettings();
@@ -412,6 +415,8 @@ const ServiceCallForm = () => {
       setEquipmentSerialNumber(existingCall.equipment_serial_number || "");
       setInternalNotesText(existingCall.internal_notes_text || "");
       setExistingTechnicalAudioUrl(existingCall.technical_diagnosis_audio_url || null);
+      setSelectedStatusId(existingCall.status_id || "");
+      setSelectedCommercialStatusId(existingCall.commercial_status_id || "");
       
       // Marca como inicializado para evitar re-inicializações dos campos do form
       initializedRef.current = true;
@@ -880,6 +885,11 @@ const ServiceCallForm = () => {
         equipment_sector: data.equipment_sector || null,
         // Assinaturas: usar as processadas (com URLs do storage em vez de base64)
         signatures: processedSignatures,
+        // Status - apenas incluir se estamos em modo edição
+        ...(isEditMode ? {
+          status_id: selectedStatusId || null,
+          commercial_status_id: selectedCommercialStatusId || null,
+        } : {}),
         // Manter campos antigos para compatibilidade (deprecated)
         technician_signature_data: (existingCall as any)?.technician_signature_data || null,
         technician_signature_url: (existingCall as any)?.technician_signature_url || null,
@@ -1290,6 +1300,24 @@ const ServiceCallForm = () => {
                       </p>
                     )}
                   </div>
+
+                  {/* Status Técnico e Status Comercial - apenas em modo edição */}
+                  {isEditMode && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <StatusSelectField
+                        statusType="tecnico"
+                        value={selectedStatusId}
+                        onChange={setSelectedStatusId}
+                        disabled={isReadonly}
+                      />
+                      <StatusSelectField
+                        statusType="comercial"
+                        value={selectedCommercialStatusId}
+                        onChange={setSelectedCommercialStatusId}
+                        disabled={isReadonly}
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="checklist_id">Checklist Aplicável</Label>
