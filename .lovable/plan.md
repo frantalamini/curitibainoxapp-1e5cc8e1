@@ -1,104 +1,97 @@
 
-Contexto (o que está acontecendo)
-- Você consegue anexar, mas ao clicar para abrir o anexo aparece “Bucket not found (404)”.
-- Isso acontece porque o código está salvando/abrindo o link como “URL pública” (endpoint `/object/public/...`), porém o bucket `chat-attachments` está configurado como privado. Em buckets privados, abrir pelo endpoint público retorna “Bucket not found” por segurança, mesmo que o arquivo exista.
+## Plano: Técnicos Visualizam Todos os Chamados
 
-Objetivo
-- Manter o bucket privado (mais seguro).
-- Permitir que usuários autenticados (com as permissões atuais) consigam abrir anexos do chat normalmente.
-- Garantir que anexos antigos continuem funcionando (mesmo os que já foram salvos com `file_url` público).
-- Evitar “links que expiram”: em vez de salvar URL assinada no banco (que expira), salvar o “caminho do arquivo” e gerar uma URL assinada na hora de abrir.
+### Situação Atual
+Hoje as políticas RLS restringem técnicos a visualizar apenas chamados onde eles são o técnico atribuído:
+- **service_calls**: "Technicians see only assigned calls, admins see all"
+- **clients**: "Technicians see only active assignment clients" 
+- **service_call_markers**: Restringe por chamado atribuído
+- **service_call_messages**: Usa função `is_technician_of_service_call` que verifica atribuição
 
-O que vamos mudar (visão geral)
-1) Banco de dados
-- Adicionar uma coluna nova em `service_call_message_attachments`:
-  - `file_path TEXT NULL` (vai armazenar o caminho dentro do bucket, ex: `SERVICE_CALL_ID/123-nome.png`)
-- Fazer backfill dos registros antigos:
-  - Para anexos já existentes, extrair o `file_path` a partir do `file_url` (que hoje aponta para `/object/public/chat-attachments/<path>`).
-- Não vamos remover `file_url` para manter compatibilidade, mas a UI vai priorizar `file_path`.
+### O Que Será Alterado
 
-2) Frontend – envio (ChatInput)
-- Em `src/components/service-calls/ChatInput.tsx`:
-  - Parar de usar `getPublicUrl()` para montar `file_url`.
-  - Após upload, salvar no estado do anexo algo como:
-    - `file_path: <filePath>`
-    - manter `file_url` apenas como fallback (opcional) ou salvar vazio.
-  - Ajustar o payload enviado no `onSend` para incluir `file_path` (além dos metadados já existentes).
+| Tabela | Mudança |
+|--------|---------|
+| `service_calls` | Técnicos veem **todos** os chamados |
+| `clients` | Técnicos veem **todos** os clientes que têm chamados ativos |
+| `service_call_markers` | Técnicos veem marcadores de **todos** os chamados |
+| `service_call_messages` | Técnicos veem mensagens de **todos** os chamados |
 
-3) Frontend – gravação no banco (useCreateMessage)
-- Em `src/hooks/useServiceCallMessages.ts`:
-  - Atualizar o tipo `MessageAttachment` e o input de anexos para aceitar `file_path?: string | null`.
-  - No insert em `service_call_message_attachments`, salvar `file_path` (e manter `file_url` como compatibilidade, se ainda existir no payload).
+### O Que **Não** Será Alterado
+- **Notificações**: Continuam filtradas por técnico atribuído (`useNotifications.ts` e `useNewServiceCallsCount.ts` já filtram por `technician_id`)
+- **Contador de "Novos"**: Continua mostrando apenas chamados novos do técnico logado
+- **Aba "Novos" em Chamados**: Continua filtrando por técnico logado
 
-4) Frontend – abrir anexo (ChatMessage)
-- Em `src/components/service-calls/ChatMessage.tsx`:
-  - Trocar o `<a href={att.file_url}>` por um botão/ação de clique.
-  - Ao clicar:
-    - Determinar o `path` do arquivo:
-      - Preferir `att.file_path`.
-      - Se não existir, tentar extrair do `att.file_url` (para anexos antigos).
-    - Gerar uma URL assinada on-demand:
-      - `supabase.storage.from('chat-attachments').createSignedUrl(path, <tempo_em_segundos>)`
-    - Abrir a URL assinada em nova aba.
-  - Se falhar, mostrar toast amigável (“Não foi possível abrir o anexo. Tente novamente.”) e logar o erro no console.
+---
 
-Detalhes técnicos (passo a passo)
+## Detalhes Técnicos
 
-Passo 1 — Migração no banco
-- Criar migration SQL para:
-  1. `ALTER TABLE public.service_call_message_attachments ADD COLUMN IF NOT EXISTS file_path TEXT;`
-  2. Backfill (somente onde `file_path` estiver nulo):
-     - Extrair o trecho após `.../object/public/chat-attachments/`
-     - Exemplo de lógica (ajustada no SQL final):
-       - `file_path = regexp_replace(file_url, '^.*/object/public/chat-attachments/', '')`
-     - Filtrar apenas URLs que contenham `/object/public/chat-attachments/`.
-- Observação: essa migração não altera RLS nem torna o bucket público.
+### 1. Alterar Política de SELECT em `service_calls`
 
-Passo 2 — Ajustar tipagens e payload de anexos
-- Atualizar as interfaces/types em `useServiceCallMessages.ts`:
-  - `MessageAttachment` incluir `file_path?: string | null`
-  - `CreateMessageInput.attachments[]` incluir `file_path?: string | null`
+**Antes:**
+```sql
+(has_role('admin') OR (has_role('technician') AND técnico == usuário))
+```
 
-Passo 3 — Ajustar upload no ChatInput
-- `ChatInput.tsx` já sanitiza nome (bom).
-- Alterar o trecho que hoje faz:
-  - `getPublicUrl(filePath)`
-- Para:
-  - Salvar `file_path: filePath` no array `attachments` do estado.
-  - (Opcional) manter `file_url` como string vazia ou manter o antigo comportamento apenas como fallback — mas a UI não dependerá mais disso.
+**Depois:**
+```sql
+(has_role('admin') OR has_role('technician'))
+```
 
-Passo 4 — Ajustar insert de anexos no useCreateMessage
-- Ao inserir em `service_call_message_attachments`:
-  - inserir também `file_path`.
-- Garantir que continue passando nos checks/constraints (não há constraint de `file_path`, então ok).
+### 2. Alterar Política de SELECT em `clients`
 
-Passo 5 — Ajustar abertura no ChatMessage (ponto principal do bug)
-- Implementar uma função utilitária local, por exemplo `openAttachment(att)`:
-  - resolve `path`
-  - chama `createSignedUrl`
-  - `window.open(signedUrl, "_blank", "noopener,noreferrer")`
-- Render:
-  - manter o layout visual como link, mas tecnicamente ser `<button>` (ou `<a>` sem `href`, com `onClick`) para evitar navegação para o URL público quebrado.
+**Antes:**
+```sql
+-- Técnicos veem apenas clientes de chamados atribuídos a eles
+```
 
-Critérios de aceite (o que você vai validar)
-- Dentro de uma OS, na aba Chat:
-  - Anexar uma foto com nome normal e com nome com acentos/espaços.
-  - Enviar a mensagem.
-  - Clicar no anexo e abrir em nova aba sem erro.
-- Mensagens antigas (já enviadas antes dessa correção):
-  - Clicar no anexo e abrir normalmente (via extração de `file_path` do `file_url` + URL assinada).
+**Depois:**
+```sql
+-- Técnicos veem todos os clientes que possuem chamados ativos (não completados/cancelados)
+```
 
-Riscos / observações
-- URLs assinadas expiram, por isso não vamos armazenar URL assinada no banco; vamos gerar na hora de abrir.
-- Se houver anexos antigos cujo `file_url` não siga o padrão esperado, a abertura pode falhar; nesses casos, vamos mostrar um erro amigável e o registro pode precisar ser corrigido manualmente (raro).
+### 3. Alterar Política de SELECT em `service_call_markers`
 
-Arquivos envolvidos
-- Backend (migration):
-  - `supabase/migrations/<nova_migration>.sql`
-- Frontend:
-  - `src/components/service-calls/ChatInput.tsx`
-  - `src/components/service-calls/ChatMessage.tsx`
-  - `src/hooks/useServiceCallMessages.ts`
+**Antes:**
+```sql
+-- Verifica se técnico é atribuído ao chamado
+```
 
-Próximo passo após sua aprovação
-- Eu implemento a migration + ajustes no ChatInput/ChatMessage/useServiceCallMessages e você testa abrindo um anexo novo e um antigo no chat.
+**Depois:**
+```sql
+-- Técnicos veem marcadores de todos os chamados
+```
+
+### 4. Alterar Política de SELECT em `service_call_messages`
+
+**Antes:**
+```sql
+-- Técnicos veem apenas mensagens de chamados atribuídos
+```
+
+**Depois:**
+```sql
+-- Técnicos veem mensagens de todos os chamados
+```
+
+---
+
+## Resumo do Comportamento Final
+
+| Funcionalidade | Comportamento |
+|----------------|---------------|
+| Lista de chamados | Técnicos veem **todos** os chamados |
+| Detalhes do chamado | Técnicos podem abrir **qualquer** chamado |
+| Chat do chamado | Técnicos veem mensagens de **qualquer** chamado |
+| Notificações | Apenas para chamados **atribuídos ao técnico** |
+| Contador "Novos" | Apenas chamados novos **atribuídos ao técnico** |
+
+---
+
+## Arquivos Impactados
+
+**Banco de dados (migrations):**
+- 1 nova migration SQL para alterar as 4 políticas RLS
+
+**Frontend:**
+- Nenhuma alteração necessária (a lógica de notificações já filtra corretamente por `technician_id`)
