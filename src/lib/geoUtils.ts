@@ -107,6 +107,61 @@ export function getCurrentPosition(
 }
 
 /**
+ * Callback para atualizações de posição
+ */
+export type PositionCallback = (coords: GeoCoordinates) => void;
+export type PositionErrorCallback = (error: GeolocationPositionError) => void;
+
+/**
+ * Inicia o monitoramento contínuo de posição GPS
+ * @param onPosition Callback chamado a cada atualização de posição
+ * @param onError Callback chamado em caso de erro (opcional)
+ * @param options Opções de geolocalização
+ * @returns ID do watcher para cancelamento posterior
+ */
+export function watchCurrentPosition(
+  onPosition: PositionCallback,
+  onError?: PositionErrorCallback,
+  options?: PositionOptions
+): number | null {
+  if (!navigator.geolocation) {
+    console.warn("[GPS] Geolocalização não suportada pelo navegador");
+    return null;
+  }
+
+  const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+      onPosition({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      });
+    },
+    (error) => {
+      console.warn("[GPS] Erro no watchPosition:", error.message);
+      onError?.(error);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 30000,
+      maximumAge: 10000, // Aceita posição com até 10s de idade
+      ...options,
+    }
+  );
+
+  return watchId;
+}
+
+/**
+ * Para o monitoramento de posição GPS
+ * @param watchId ID retornado por watchCurrentPosition
+ */
+export function clearPositionWatch(watchId: number | null): void {
+  if (watchId !== null && navigator.geolocation) {
+    navigator.geolocation.clearWatch(watchId);
+  }
+}
+
+/**
  * Verifica se a API de geolocalização está disponível
  */
 export function isGeolocationAvailable(): boolean {
