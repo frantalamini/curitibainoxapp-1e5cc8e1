@@ -653,6 +653,15 @@ const ServiceCallForm = () => {
       return;
     }
 
+    if (!selectedServiceTypeId) {
+      toast({
+        title: "Erro",
+        description: "Selecione um tipo de serviço para o chamado",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -1018,8 +1027,9 @@ const ServiceCallForm = () => {
               </Button>
             )}
             
+            {/* Botões de edição no header - apenas desktop */}
             {isEditMode && !isReadonly && (
-              <>
+              <div className="hidden md:flex gap-2">
                 <Button type="button" disabled={isUploading} onClick={handleSubmit(onSubmit)}>
                   <Save className="mr-2 h-4 w-4" />
                   {isUploading ? "Salvando..." : "Salvar"}
@@ -1036,7 +1046,7 @@ const ServiceCallForm = () => {
                 >
                   Cancelar
                 </Button>
-              </>
+              </div>
             )}
             
             {!isEditMode && (
@@ -1280,7 +1290,7 @@ const ServiceCallForm = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="service_type_id">Tipo de Serviço</Label>
+                    <Label htmlFor="service_type_id">Tipo de Serviço *</Label>
               <Select value={selectedServiceTypeId} onValueChange={setSelectedServiceTypeId} disabled={isReadonly && isEditMode}>
                 <SelectTrigger className={cn("w-full", isReadonly && isEditMode && "bg-muted")}>
                   <SelectValue placeholder="Selecione o tipo de serviço" />
@@ -1866,6 +1876,27 @@ const ServiceCallForm = () => {
           </Tabs>
 
           <div className="flex gap-4 mt-6 flex-wrap">
+            {/* Botão Salvar no mobile - posicionado antes dos PDFs */}
+            {isEditMode && !isReadonly && (
+              <div className="w-full md:hidden flex gap-2 mb-2">
+                <Button type="button" disabled={isUploading} onClick={handleSubmit(onSubmit)} className="flex-1">
+                  <Save className="mr-2 h-4 w-4" />
+                  {isUploading ? "Salvando..." : "Salvar"}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    initializedRef.current = false;
+                    refetchCall();
+                    setIsReadonly(true);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            )}
+            
             {isEditMode && existingCall && (
               <>
                 {/* Verificar se técnico está bloqueado */}
