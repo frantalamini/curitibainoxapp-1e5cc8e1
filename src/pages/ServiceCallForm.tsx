@@ -621,7 +621,25 @@ const ServiceCallForm = () => {
   };
 
   const onSubmit = async (data: ServiceCallInsert) => {
-    if (!selectedClientId) {
+    // Para técnicos editando, usar valores do existingCall para campos readonly da aba Geral
+    // Isso evita erros de validação quando o técnico só pode editar a aba Técnico
+    const effectiveClientId = (isGeralReadonly && isEditMode && existingCall) 
+      ? existingCall.client_id 
+      : selectedClientId;
+    const effectiveTechnicianId = (isGeralReadonly && isEditMode && existingCall) 
+      ? existingCall.technician_id 
+      : selectedTechnicianId;
+    const effectiveServiceTypeId = (isGeralReadonly && isEditMode && existingCall) 
+      ? (existingCall.service_type_id || "") 
+      : selectedServiceTypeId;
+    const effectiveDate = (isGeralReadonly && isEditMode && existingCall) 
+      ? parseLocalDate(existingCall.scheduled_date) 
+      : selectedDate;
+    const effectiveTime = (isGeralReadonly && isEditMode && existingCall) 
+      ? existingCall.scheduled_time 
+      : selectedTime;
+
+    if (!effectiveClientId) {
       toast({
         title: "Erro",
         description: "Selecione um cliente para o chamado",
@@ -630,7 +648,7 @@ const ServiceCallForm = () => {
       return;
     }
 
-    if (!selectedTechnicianId) {
+    if (!effectiveTechnicianId) {
       toast({
         title: "Erro",
         description: "Selecione um técnico responsável para o chamado",
@@ -639,7 +657,7 @@ const ServiceCallForm = () => {
       return;
     }
 
-    if (!selectedDate) {
+    if (!effectiveDate) {
       toast({
         title: "Erro",
         description: "Selecione uma data para o chamado",
@@ -648,7 +666,7 @@ const ServiceCallForm = () => {
       return;
     }
 
-    if (!selectedTime) {
+    if (!effectiveTime) {
       toast({
         title: "Erro",
         description: "Selecione um horário para o chamado",
@@ -657,7 +675,7 @@ const ServiceCallForm = () => {
       return;
     }
 
-    if (!selectedServiceTypeId) {
+    if (!effectiveServiceTypeId) {
       toast({
         title: "Erro",
         description: "Selecione um tipo de serviço para o chamado",
@@ -874,11 +892,11 @@ const ServiceCallForm = () => {
 
       const formattedData: any = {
         ...data,
-        client_id: selectedClientId,
-        technician_id: selectedTechnicianId,
-        service_type_id: selectedServiceTypeId || null,
-        scheduled_date: format(selectedDate, "yyyy-MM-dd"),
-        scheduled_time: selectedTime,
+        client_id: effectiveClientId,
+        technician_id: effectiveTechnicianId,
+        service_type_id: effectiveServiceTypeId || null,
+        scheduled_date: format(effectiveDate!, "yyyy-MM-dd"),
+        scheduled_time: effectiveTime,
         audio_url: audioUrl,
         media_urls: mediaUrls.length > 0 ? mediaUrls : null,
         technical_diagnosis: technicalDiagnosis || null,
