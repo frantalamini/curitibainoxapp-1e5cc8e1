@@ -1,154 +1,123 @@
 
-# Plano: Correção de Erros - Página Pendencias e Sistema de Notificações
+# Plano: Correção de Acesso dos Técnicos aos Chamados
 
-## Problema 1: Página /pendencias Quebrando
+## Diagnóstico
+
+O problema é uma **combinação de dados não vinculados + política RLS restritiva**.
+
+### Situação Atual
+
+```text
++-------------------+        +-------------------+        +-------------------+
+|    user_roles     |        |    technicians    |        |  service_calls    |
++-------------------+        +-------------------+        +-------------------+
+| user_id: abc123   |   X    | id: xyz789        |   -->  | technician_id:    |
+| role: technician  |  NÃO   | user_id: NULL     |        |     xyz789        |
+|                   | VINC.  | full_name: Jose   |        |                   |
++-------------------+        +-------------------+        +-------------------+
+```
+
+Quando um técnico (user_id: abc123) tenta ver chamados:
+1. A query `service_calls` faz JOIN com `technicians`
+2. A política RLS de `technicians` exige `auth.uid() = user_id`
+3. Como `user_id = NULL`, o técnico não consegue ver o registro
+4. O join falha silenciosamente e retorna dados vazios
 
 ### Causa Raiz
-A página `Pendencias.tsx` está tentando acessar `technicians.map()` na linha 275, mas `technicians` pode ser `undefined` enquanto os dados ainda estão carregando do hook `useTechnicians`.
 
-```typescript
-// Linha 83 - technicians pode ser undefined
-const { technicians } = useTechnicians();
-
-// Linha 275 - Erro quando technicians é undefined
-{technicians.map((tech) => (
-  <SelectItem key={tech.id} value={tech.id}>
-    {tech.full_name}
-  </SelectItem>
-))}
-```
-
-### Solução
-Adicionar proteção de array vazio usando optional chaining ou default value:
-
-```typescript
-{(technicians || []).map((tech) => (
-  <SelectItem key={tech.id} value={tech.id}>
-    {tech.full_name}
-  </SelectItem>
-))}
-```
-
-### Arquivo Afetado
-- `src/pages/Pendencias.tsx` (linha 275)
+A tabela `technicians` possui registros **sem** `user_id` preenchido, impossibilitando que a política RLS identifique quem pode ver quem.
 
 ---
 
-## Problema 2: Notificação de Menção Não Aparecendo
+## Solução em Duas Partes
 
-### Análise
-O sistema de notificações está **parcialmente funcionando**:
-1. O trigger no banco de dados está criando notificações corretamente (há registro em `in_app_notifications`)
-2. A tabela está com Realtime ativado
-3. O hook `useMentionNotifications` parece estar correto
+### Parte 1: Atualizar Política RLS (Urgente)
 
-### Possíveis Causas
-1. **Usuário testando consigo mesmo**: Se você está mencionando a si mesmo, a notificação vai para seu próprio ID, mas pode não aparecer toast porque o evento Realtime é disparado antes do canal estar inscrito
-
-2. **Link de navegação incorreto**: O trigger gera o link como `/service-calls/{id}` mas a rota correta pode ser `/service-calls/view/{id}`
-
-3. **Filtro de tipo no Realtime**: O Realtime não está filtrando por `type = 'mention'`, então está recebendo todas as notificações
-
-### Soluções
-
-#### Correção 1: Link de Navegação
-Atualizar o trigger para gerar o link correto:
+Modificar a política de SELECT da tabela `technicians` para permitir que **qualquer usuário com role technician** possa ver **todos os técnicos** (necessário para dropdowns e listagens).
 
 ```sql
--- Link incorreto atual
-'/service-calls/' || v_service_call_id
+-- Remover política restritiva atual
+DROP POLICY IF EXISTS "Technicians can view their own profile" ON public.technicians;
 
--- Link correto
-'/service-calls/view/' || v_service_call_id
+-- Nova política: Técnicos podem ver todos os técnicos (para dropdown/lista)
+CREATE POLICY "Technicians can view all technicians"
+  ON public.technicians
+  FOR SELECT
+  USING (
+    has_role(auth.uid(), 'admin'::app_role) 
+    OR has_role(auth.uid(), 'technician'::app_role)
+  );
 ```
 
-#### Correção 2: Log para Debug
-Adicionar console.log temporário no hook para verificar se o canal está recebendo eventos.
+Isso é seguro porque:
+- A tabela `technicians` não contém dados sensíveis (só nome e telefone)
+- É necessário para exibir listas de técnicos em dropdowns
+- Mantém consistência com as políticas de `service_calls`
+
+### Parte 2: Vincular Dados (Opcional, mas recomendado)
+
+Para funcionalidades futuras e melhor rastreabilidade, vincular os `user_id` dos usuários aos registros de técnicos:
+
+```sql
+-- Exemplo de vinculação (ajustar conforme correspondência de nomes)
+UPDATE technicians SET user_id = 'dd80bce6-64a9-46a3-842e-2005695dffd3' 
+WHERE full_name ILIKE '%Anderson%' AND user_id IS NULL;
+```
+
+Essa vinculação deve ser feita manualmente verificando as correspondências corretas.
 
 ---
 
 ## Arquivos a Modificar
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/Pendencias.tsx` | Adicionar fallback `(technicians \|\| [])` para evitar erro |
-| Migração SQL | Corrigir link no trigger `create_mention_notification` |
+| Tipo | Alteração |
+|------|-----------|
+| Migração SQL | Atualizar política RLS de `technicians` |
 
 ---
 
 ## Detalhes Técnicos
 
-### 1. Correção Pendencias.tsx (linha 275)
-
-```typescript
-// ANTES
-{technicians.map((tech) => (
-
-// DEPOIS  
-{(technicians || []).map((tech) => (
-```
-
-### 2. Migração SQL - Correção do Trigger
+### Migração SQL Proposta
 
 ```sql
--- Atualizar função para gerar link correto
-CREATE OR REPLACE FUNCTION create_mention_notification()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_os_number integer;
-  v_author_name text;
-  v_service_call_id uuid;
-BEGIN
-  SELECT 
-    sc.os_number,
-    sc.id,
-    COALESCE(p.full_name, 'Alguém')
-  INTO v_os_number, v_service_call_id, v_author_name
-  FROM service_call_messages msg
-  JOIN service_calls sc ON sc.id = msg.service_call_id
-  LEFT JOIN profiles p ON p.user_id = msg.author_id
-  WHERE msg.id = NEW.message_id;
+-- 1. Remover política restritiva que causa o bloqueio
+DROP POLICY IF EXISTS "Technicians can view their own profile" ON public.technicians;
 
-  INSERT INTO public.in_app_notifications (
-    user_id,
-    type,
-    title,
-    body,
-    link,
-    metadata
-  ) VALUES (
-    NEW.mentioned_user_id,
-    'mention',
-    'Você foi mencionado em uma OS',
-    v_author_name || ' mencionou você na OS #' || v_os_number,
-    '/service-calls/view/' || v_service_call_id,  -- CORRIGIDO: adicionado /view/
-    jsonb_build_object(
-      'service_call_id', v_service_call_id,
-      'os_number', v_os_number,
-      'message_id', NEW.message_id,
-      'author_name', v_author_name
-    )
+-- 2. Criar política permissiva para leitura (SELECT)
+-- Técnicos E admins podem ver todos os registros de técnicos
+CREATE POLICY "Admins and technicians can view all technicians"
+  ON public.technicians
+  FOR SELECT
+  USING (
+    has_role(auth.uid(), 'admin'::app_role) 
+    OR has_role(auth.uid(), 'technician'::app_role)
   );
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
+### Por que isso resolve
+
+Com a nova política:
+1. Técnico faz login e tem role `technician` na tabela `user_roles`
+2. Função `has_role()` confirma que ele é técnico
+3. Política RLS permite que ele leia `technicians`
+4. Query de `service_calls` com JOIN funciona corretamente
+5. Chamados são exibidos normalmente
+
+### Segurança Mantida
+
+- INSERT: Apenas admins (já configurado)
+- UPDATE próprio: Técnicos podem editar seu próprio registro (já configurado)
+- UPDATE geral: Apenas admins (já configurado)
+- DELETE: Não permitido (já configurado)
+
+A única mudança é no SELECT, que agora é permissivo para leitura - o que faz sentido pois não há dados sensíveis.
+
 ---
 
-## Sobre a Página Pendencias
+## Resumo
 
-Sim, a página `/pendencias` é o dashboard centralizado de **pendências do chat interno da OS**. Ela mostra:
-- Mensagens com `requires_action = true` que ainda não foram resolvidas
-- Agrupadas por status de SLA (Atrasadas, Vence Hoje, No Prazo)
-- Filtros por categoria, prioridade, técnico
-
-O erro atual está impedindo a página de carregar porque o array de técnicos não está disponível imediatamente.
-
----
-
-## Resumo das Correções
-
-1. **Pendencias.tsx**: Adicionar proteção `|| []` no mapeamento de técnicos
-2. **Migração SQL**: Corrigir o link do trigger de `/service-calls/` para `/service-calls/view/`
+1. Uma única migração SQL que atualiza a política RLS de `technicians`
+2. Nenhuma mudança de código frontend necessária
+3. Resolve imediatamente o problema de visualização para técnicos
+4. Recomendação adicional: vincular `user_id` aos técnicos para rastreabilidade futura
