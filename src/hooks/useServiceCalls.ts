@@ -196,8 +196,8 @@ export const useServiceCall = (id?: string) => {
   });
 };
 
-// Hook otimizado com paginação - carrega apenas 30 registros por padrão
-export const useServiceCalls = (limit: number = 30) => {
+// Hook otimizado com paginação - carrega até 100 registros por padrão
+export const useServiceCalls = (limit: number = 100) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
