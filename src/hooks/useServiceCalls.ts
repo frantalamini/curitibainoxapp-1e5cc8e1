@@ -204,6 +204,15 @@ export const useServiceCalls = (limit: number = 30) => {
   const { data: serviceCalls, isLoading } = useQuery({
     queryKey: ["service-calls", limit],
     queryFn: async () => {
+      // Evita executar com token anônimo (quando a sessão ainda não foi carregada)
+      // porque isso pode retornar [] e ficar cacheado como "sucesso".
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) {
+        // Força retry do react-query até a sessão existir.
+        throw new Error("AUTH_SESSION_NOT_READY");
+      }
+
       const { data, error } = await supabase
         .from("service_calls")
         .select(SERVICE_CALL_SELECT)
@@ -215,6 +224,14 @@ export const useServiceCalls = (limit: number = 30) => {
     },
     staleTime: 60 * 1000, // 1 minuto - lista de OS
     gcTime: 5 * 60 * 1000, // 5 minutos no cache
+    retry: (failureCount, error) => {
+      // Caso típico: app renderiza antes do token estar disponível.
+      if (error instanceof Error && error.message === "AUTH_SESSION_NOT_READY") {
+        return failureCount < 5;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(250 * (attemptIndex + 1), 1500),
   });
 
   const createMutation = useMutation({
