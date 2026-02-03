@@ -84,7 +84,7 @@ const queryClient = new QueryClient({
       staleTime: 60 * 1000,      // 1 minuto - dados são considerados frescos
       gcTime: 5 * 60 * 1000,     // 5 minutos no cache
       retry: 1,                   // Menos retries = mais rápido em caso de falha
-      refetchOnWindowFocus: false, // Não refetch ao focar - importante para mobile
+      refetchOnWindowFocus: true, // Refetch ao focar - atualiza dados ao voltar ao app
       refetchOnReconnect: true,   // Refetch ao reconectar
     },
   },
