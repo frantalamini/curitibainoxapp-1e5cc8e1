@@ -246,6 +246,8 @@ export const useServiceCalls = (
       let query = supabase
         .from("service_calls")
         .select(SERVICE_CALL_SELECT, { count: 'exact' })
+        // Importante: ordenar por número da OS para paginação consistente
+        .order("os_number", { ascending: false })
         .order("created_at", { ascending: false })
         .range(from, to);
 
