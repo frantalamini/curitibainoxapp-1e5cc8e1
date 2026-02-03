@@ -196,36 +196,54 @@ export const useServiceCall = (id?: string) => {
   });
 };
 
-// Hook otimizado com paginação - carrega até 100 registros por padrão
-export const useServiceCalls = (limit: number = 100) => {
+// Hook com paginação server-side
+export const useServiceCalls = (page: number = 1, pageSize: number = 30, searchTerm?: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: serviceCalls, isLoading } = useQuery({
-    queryKey: ["service-calls", limit],
+  const { data, isLoading } = useQuery({
+    queryKey: ["service-calls", page, pageSize, searchTerm],
     queryFn: async () => {
       // Evita executar com token anônimo (quando a sessão ainda não foi carregada)
-      // porque isso pode retornar [] e ficar cacheado como "sucesso".
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
       if (!session) {
-        // Força retry do react-query até a sessão existir.
         throw new Error("AUTH_SESSION_NOT_READY");
       }
 
-      const { data, error } = await supabase
+      // Se há termo de busca, buscar por os_number primeiro
+      if (searchTerm && /^\d+$/.test(searchTerm.trim())) {
+        const osNumber = parseInt(searchTerm.trim(), 10);
+        const { data: exactMatch, error: exactError } = await supabase
+          .from("service_calls")
+          .select(SERVICE_CALL_SELECT)
+          .eq("os_number", osNumber)
+          .maybeSingle();
+        
+        if (!exactError && exactMatch) {
+          return { serviceCalls: [exactMatch] as ServiceCall[], totalCount: 1 };
+        }
+      }
+
+      // Calcular offset para paginação
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      // Query com count
+      let query = supabase
         .from("service_calls")
-        .select(SERVICE_CALL_SELECT)
-        .order("created_at", { ascending: false }) // TRAVA DEFINITIVA: sempre por data de criação
-        .limit(limit); // OTIMIZAÇÃO: Limita a quantidade de registros
+        .select(SERVICE_CALL_SELECT, { count: 'exact' })
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      const { data: calls, error, count } = await query;
 
       if (error) throw error;
-      return data as ServiceCall[];
+      return { serviceCalls: calls as ServiceCall[], totalCount: count || 0 };
     },
-    staleTime: 60 * 1000, // 1 minuto - lista de OS
-    gcTime: 5 * 60 * 1000, // 5 minutos no cache
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     retry: (failureCount, error) => {
-      // Caso típico: app renderiza antes do token estar disponível.
       if (error instanceof Error && error.message === "AUTH_SESSION_NOT_READY") {
         return failureCount < 5;
       }
@@ -233,6 +251,9 @@ export const useServiceCalls = (limit: number = 100) => {
     },
     retryDelay: (attemptIndex) => Math.min(250 * (attemptIndex + 1), 1500),
   });
+
+  const serviceCalls = data?.serviceCalls;
+  const totalCount = data?.totalCount || 0;
 
   const createMutation = useMutation({
     mutationFn: async (newServiceCall: ServiceCallInsert) => {
@@ -324,6 +345,7 @@ export const useServiceCalls = (limit: number = 100) => {
   return {
     serviceCalls,
     isLoading,
+    totalCount,
     createServiceCall: createMutation.mutate,
     updateServiceCall: updateMutation.mutate,
     updateServiceCallAsync: updateMutation.mutateAsync,

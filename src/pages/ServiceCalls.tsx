@@ -18,11 +18,14 @@ import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { useServiceCallMarkers } from "@/hooks/useServiceCallMarkers";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
 import { ServiceCallsTable } from "@/components/ServiceCallsTable";
+import { CadastrosPagination } from "@/components/CadastrosPagination";
+import { useDebounce } from "@/hooks/useDebounce";
+
+const PAGE_SIZE = 30;
 
 const ServiceCalls = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { serviceCalls, isLoading } = useServiceCalls();
   const { statuses } = useServiceCallStatuses();
   const { technicianId } = useCurrentTechnician();
   const { data: newCallsCount = 0 } = useNewServiceCallsCount();
@@ -31,6 +34,17 @@ const ServiceCalls = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"todos" | "novos">("todos");
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Debounce do termo de busca para não fazer muitas requisições
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  
+  // Busca com paginação server-side
+  const { serviceCalls, isLoading, totalCount } = useServiceCalls(
+    currentPage, 
+    PAGE_SIZE, 
+    debouncedSearchTerm
+  );
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
@@ -41,23 +55,34 @@ const ServiceCalls = () => {
     }
   }, [searchParams]);
 
+  // Reset para página 1 quando busca muda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
+
+  // Filtros client-side (status e aba "novos")
   const filteredCalls = serviceCalls?.filter((call) => {
+    // Se busca por número exato, não aplicar outros filtros
+    if (debouncedSearchTerm && /^\d+$/.test(debouncedSearchTerm.trim())) {
+      return true;
+    }
+    
     const matchesSearch = 
-      call.clients?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.equipment_description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      call.technicians?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(call.os_number).includes(searchTerm);
+      !debouncedSearchTerm ||
+      call.clients?.full_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      call.equipment_description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      call.technicians?.full_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      String(call.os_number).includes(debouncedSearchTerm);
     
     const matchesStatus = statusFilter === "all" || call.status_id === statusFilter;
     
-    // Filtro por aba "Novos" - apenas chamados não vistos do técnico logado
     const matchesTab = activeTab === "todos" || 
       (activeTab === "novos" && call.technician_id === technicianId && !call.seen_by_tech_at);
     
     return matchesSearch && matchesStatus && matchesTab;
   });
 
-  // Ordenação por os_number DESC (numérico) com fallback created_at DESC
+  // Ordenação por os_number DESC
   const sortedCalls = [...(filteredCalls || [])].sort((a, b) => {
     const nA = Number(a.os_number) || 0;
     const nB = Number(b.os_number) || 0;
@@ -66,6 +91,8 @@ const ServiceCalls = () => {
     const cB = b.created_at ? new Date(b.created_at).getTime() : 0;
     return cB - cA;
   });
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   // Hook de marcadores para mobile
   const mobileServiceCallIds = useMemo(() => sortedCalls.map(c => c.id), [sortedCalls]);
@@ -171,6 +198,16 @@ const ServiceCalls = () => {
                 />
               ))}
             </div>
+
+            {/* Paginação */}
+            {totalPages > 1 && !debouncedSearchTerm && (
+              <CadastrosPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </>
         )}
       </div>
