@@ -85,7 +85,8 @@ const ServiceCallForm = () => {
   
   // Técnicos não podem editar a aba Geral mesmo em modo edição
   // Apenas ADM/Gerencial podem editar todas as abas
-  const isGeralReadonly = isTechnician && !isAdmin;
+  // IMPORTANTE: Só aplicar restrição APÓS roles carregarem para evitar falsos negativos
+  const isGeralReadonly = !rolesLoading && isTechnician && !isAdmin;
   
   // Estados para deslocamentos
   const [startTripModalOpen, setStartTripModalOpen] = useState(false);
@@ -621,6 +622,16 @@ const ServiceCallForm = () => {
   };
 
   const onSubmit = async (data: ServiceCallInsert) => {
+    // Bloquear submit enquanto roles estão carregando para evitar validações incorretas
+    if (rolesLoading) {
+      toast({
+        title: "Aguarde",
+        description: "Carregando informações do usuário...",
+        variant: "default"
+      });
+      return;
+    }
+
     // Para técnicos editando, usar valores do existingCall para campos readonly da aba Geral
     // Isso evita erros de validação quando o técnico só pode editar a aba Técnico
     const effectiveClientId = (isGeralReadonly && isEditMode && existingCall) 
