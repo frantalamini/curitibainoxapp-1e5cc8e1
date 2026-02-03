@@ -40,11 +40,11 @@ const ServiceCalls = () => {
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   
   // Busca com paginação server-side
-  const { serviceCalls, isLoading, totalCount } = useServiceCalls(
-    currentPage, 
-    PAGE_SIZE, 
-    debouncedSearchTerm
-  );
+  const { serviceCalls, isLoading, totalCount } = useServiceCalls(currentPage, PAGE_SIZE, {
+    searchTerm: debouncedSearchTerm,
+    statusId: statusFilter === "all" ? undefined : statusFilter,
+    onlyNewForTechnicianId: activeTab === "novos" ? technicianId : undefined,
+  });
 
   useEffect(() => {
     const statusParam = searchParams.get("status");
@@ -55,35 +55,13 @@ const ServiceCalls = () => {
     }
   }, [searchParams]);
 
-  // Reset para página 1 quando busca muda
+  // Reset para página 1 quando filtros mudam
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm]);
-
-  // Filtros client-side (status e aba "novos")
-  const filteredCalls = serviceCalls?.filter((call) => {
-    // Se busca por número exato, não aplicar outros filtros
-    if (debouncedSearchTerm && /^\d+$/.test(debouncedSearchTerm.trim())) {
-      return true;
-    }
-    
-    const matchesSearch = 
-      !debouncedSearchTerm ||
-      call.clients?.full_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      call.equipment_description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      call.technicians?.full_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      String(call.os_number).includes(debouncedSearchTerm);
-    
-    const matchesStatus = statusFilter === "all" || call.status_id === statusFilter;
-    
-    const matchesTab = activeTab === "todos" || 
-      (activeTab === "novos" && call.technician_id === technicianId && !call.seen_by_tech_at);
-    
-    return matchesSearch && matchesStatus && matchesTab;
-  });
+  }, [debouncedSearchTerm, statusFilter, activeTab, technicianId]);
 
   // Ordenação por os_number DESC
-  const sortedCalls = [...(filteredCalls || [])].sort((a, b) => {
+  const sortedCalls = [...(serviceCalls || [])].sort((a, b) => {
     const nA = Number(a.os_number) || 0;
     const nB = Number(b.os_number) || 0;
     if (nA !== nB) return nB - nA;
@@ -200,7 +178,7 @@ const ServiceCalls = () => {
             </div>
 
             {/* Paginação */}
-            {totalPages > 1 && !debouncedSearchTerm && (
+            {totalPages > 1 && (
               <CadastrosPagination
                 currentPage={currentPage}
                 totalPages={totalPages}

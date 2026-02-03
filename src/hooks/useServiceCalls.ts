@@ -197,12 +197,23 @@ export const useServiceCall = (id?: string) => {
 };
 
 // Hook com paginação server-side
-export const useServiceCalls = (page: number = 1, pageSize: number = 30, searchTerm?: string) => {
+type UseServiceCallsFilters = {
+  searchTerm?: string;
+  statusId?: string;
+  onlyNewForTechnicianId?: string;
+};
+
+export const useServiceCalls = (
+  page: number = 1,
+  pageSize: number = 30,
+  filters: UseServiceCallsFilters = {}
+) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { searchTerm, statusId, onlyNewForTechnicianId } = filters;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["service-calls", page, pageSize, searchTerm],
+    queryKey: ["service-calls", page, pageSize, searchTerm, statusId, onlyNewForTechnicianId],
     queryFn: async () => {
       // Evita executar com token anônimo (quando a sessão ainda não foi carregada)
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -211,8 +222,10 @@ export const useServiceCalls = (page: number = 1, pageSize: number = 30, searchT
         throw new Error("AUTH_SESSION_NOT_READY");
       }
 
-      // Se há termo de busca, buscar por os_number primeiro
-      if (searchTerm && /^\d+$/.test(searchTerm.trim())) {
+      const normalizedSearch = searchTerm?.trim();
+
+      // Se há termo de busca numérico, buscar por os_number exato primeiro
+      if (normalizedSearch && /^\d+$/.test(normalizedSearch)) {
         const osNumber = parseInt(searchTerm.trim(), 10);
         const { data: exactMatch, error: exactError } = await supabase
           .from("service_calls")
@@ -235,6 +248,29 @@ export const useServiceCalls = (page: number = 1, pageSize: number = 30, searchT
         .select(SERVICE_CALL_SELECT, { count: 'exact' })
         .order("created_at", { ascending: false })
         .range(from, to);
+
+      // Filtros server-side
+      if (statusId) {
+        query = query.eq("status_id", statusId);
+      }
+
+      if (onlyNewForTechnicianId) {
+        query = query.eq("technician_id", onlyNewForTechnicianId).is("seen_by_tech_at", null);
+      }
+
+      if (normalizedSearch && !/^\d+$/.test(normalizedSearch)) {
+        const like = `%${normalizedSearch}%`;
+        // OBS: filtros em colunas de tabelas relacionadas funcionam com dot-notation.
+        query = query.or(
+          [
+            `equipment_description.ilike.${like}`,
+            `clients.full_name.ilike.${like}`,
+            `clients.nome_fantasia.ilike.${like}`,
+            `clients.secondary_name.ilike.${like}`,
+            `technicians.full_name.ilike.${like}`,
+          ].join(",")
+        );
+      }
 
       const { data: calls, error, count } = await query;
 
