@@ -46,6 +46,7 @@ export interface ServiceCall {
   clients?: {
     full_name: string;
     phone: string;
+    phone_2?: string;
     address?: string;
     street?: string;
     number?: string;
@@ -56,6 +57,9 @@ export interface ServiceCall {
     cep?: string;
     nome_fantasia?: string;
     secondary_name?: string;
+    responsible_financial?: { name?: string; phone?: string; email?: string } | null;
+    responsible_technical?: { name?: string; phone?: string; email?: string } | null;
+    responsible_legal?: { name?: string; phone?: string; email?: string } | null;
   };
   technicians?: {
     full_name: string;
@@ -120,9 +124,13 @@ const SERVICE_CALL_SELECT = `
   clients (
     full_name,
     phone,
+    phone_2,
     address,
     nome_fantasia,
-    secondary_name
+    secondary_name,
+    responsible_financial,
+    responsible_technical,
+    responsible_legal
   ),
   technicians (
     full_name,
@@ -147,6 +155,7 @@ const SERVICE_CALL_SELECT_FULL = `
   clients (
     full_name,
     phone,
+    phone_2,
     address,
     street,
     number,
@@ -156,7 +165,10 @@ const SERVICE_CALL_SELECT_FULL = `
     state,
     cep,
     nome_fantasia,
-    secondary_name
+    secondary_name,
+    responsible_financial,
+    responsible_technical,
+    responsible_legal
   ),
   technicians (
     full_name,
