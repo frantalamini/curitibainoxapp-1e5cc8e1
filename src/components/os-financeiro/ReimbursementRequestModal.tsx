@@ -115,14 +115,17 @@ export function ReimbursementRequestModal({
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      // Bucket é privado - usar signed URL
+      const { data: urlData, error: signedUrlError } = await supabase.storage
         .from("service-call-attachments")
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 604800); // 7 dias
+
+      if (signedUrlError || !urlData) throw signedUrlError;
 
       const input: CreateReimbursementInput = {
         service_call_id: serviceCallId,
         technician_id: technicianId,
-        receipt_photo_url: urlData.publicUrl,
+        receipt_photo_url: urlData.signedUrl,
         description: description || undefined,
         amount: numericAmount,
         ocr_extracted_amount: ocrAmount || undefined,
