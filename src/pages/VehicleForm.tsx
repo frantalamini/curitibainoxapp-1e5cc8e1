@@ -177,11 +177,14 @@ const VehicleForm = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Bucket é privado - usar signed URL com validade de 1 ano
+      const { data: signedData, error: signedError } = await supabase.storage
         .from('service-call-attachments')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 31536000); // 1 ano
 
-      form.setValue("insurance_policy_url", publicUrl);
+      if (signedError || !signedData) throw signedError;
+
+      form.setValue("insurance_policy_url", signedData.signedUrl);
       setPolicyFileName(file.name);
       
       toast({

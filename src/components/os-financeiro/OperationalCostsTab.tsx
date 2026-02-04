@@ -82,13 +82,16 @@ export function OperationalCostsTab({ serviceCallId, osNumber }: OperationalCost
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      // Bucket é privado - usar signed URL
+      const { data: urlData, error: signedUrlError } = await supabase.storage
         .from("service-call-attachments")
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 604800); // 7 dias
+
+      if (signedUrlError || !urlData) throw signedUrlError;
 
       await markAsPaid.mutateAsync({
         id: payDialog.id,
-        paymentProofUrl: urlData.publicUrl,
+        paymentProofUrl: urlData.signedUrl,
       });
 
       setPayDialog({ open: false, id: null });
