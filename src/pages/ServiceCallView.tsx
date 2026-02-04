@@ -123,6 +123,13 @@ const ServiceCallView = () => {
       isMountedRef.current = false;
     };
   }, []);
+
+  // Ao voltar/navegar para fora, marcamos como não-montado antes da navegação
+  // para impedir toasts/updates que podem disparar no exato momento do back.
+  const handleBack = () => {
+    isMountedRef.current = false;
+    navigate("/service-calls");
+  };
   
   useEffect(() => {
     if (call?.id && !hasMarkedRef.current && !call.seen_by_tech_at) {
@@ -368,7 +375,7 @@ const ServiceCallView = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => navigate("/service-calls")}
+              onClick={handleBack}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
