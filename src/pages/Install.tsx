@@ -60,7 +60,7 @@ export default function Install() {
 
   const copyURL = async () => {
     try {
-      await navigator.clipboard.writeText('https://curitibainoxapp.com');
+      await navigator.clipboard.writeText('https://curitibainoxapp.lovable.app');
       setCopied(true);
       toast.success('Link copiado!');
       setTimeout(() => setCopied(false), 2000);

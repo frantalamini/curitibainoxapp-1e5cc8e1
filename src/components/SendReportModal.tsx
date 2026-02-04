@@ -233,7 +233,7 @@ function extractEmailContacts(clientData: any): EmailContact[] {
 /**
  * Constrói a mensagem do WhatsApp baseado na disponibilidade do PDF
  */
-const PUBLIC_BASE_URL = "https://curitibainoxapp.com";
+const PUBLIC_BASE_URL = "https://curitibainoxapp.lovable.app";
 
 function buildMessage(osNumber: string, pdfUrl: string, reportAccessToken?: string): string {
   // Include access token in URL if available
