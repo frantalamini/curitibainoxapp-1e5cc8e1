@@ -1,76 +1,84 @@
 
-## Plano de Correção: Sincronização de Dados no PWA
+## Plano de Correção: Chamados Nao Salvando
 
 ### Problema Identificado
 
-O PWA instalado no celular dos técnicos não está recebendo as atualizações dos chamados técnicos. A causa raiz é uma combinação de:
+Ao criar um novo chamado, o sistema exibe a mensagem "Chamado Criado com sucesso!" e redireciona para a lista, mas o chamado nao foi salvo no banco de dados.
 
-1. **Cache do Service Worker** - Armazena respostas do banco de dados por até 5 minutos
-2. **Cache do React Query** - Combinado com `refetchOnWindowFocus: false`, dados ficam estagnados
-3. **PWA não atualiza automaticamente** - O Service Worker antigo continua ativo até ser forçado a atualizar
+Causa: O codigo chama `createServiceCall()` que usa internamente `.mutate()` (fire-and-forget). Imediatamente apos, mostra o toast de sucesso e navega para outra pagina, sem aguardar a resposta do banco. Se houver qualquer erro na insercao, ele e ignorado silenciosamente.
 
-### Solução Proposta
+### Solucao
 
-#### 1. Ajustar Configuração do Service Worker (vite.config.ts)
+Alterar para usar a versao async da mutation e aguardar sua conclusao antes de mostrar sucesso.
 
-Modificar a estratégia de cache para requisições ao Supabase:
+### Alteracoes
 
-```text
-ANTES:
-- handler: 'NetworkFirst'
-- maxAgeSeconds: 60 * 5 (5 minutos)
-- networkTimeoutSeconds: 10
+| Arquivo | Mudanca |
+|---------|---------|
+| src/hooks/useServiceCalls.ts | Exportar `createServiceCallAsync` (mutateAsync) junto com `createServiceCall` |
+| src/pages/ServiceCallForm.tsx | Usar `createServiceCallAsync` com await e tratar erros adequadamente |
 
-DEPOIS:
-- handler: 'NetworkOnly' (sempre busca da rede, nunca serve cache)
-- Remover configuração de cache para API do Supabase
-```
+### Detalhes Tecnicos
 
-Isso garante que os dados do banco de dados sempre venham diretamente do servidor, sem intermediação de cache.
+**1. useServiceCalls.ts (linha 387)**
 
-#### 2. Adicionar Lógica de Atualização Automática do PWA (src/main.tsx)
-
-Implementar o registro do Service Worker com atualização automática:
-
-```text
-- Usar useRegisterSW do vite-plugin-pwa
-- Configurar para checar atualizações a cada 60 segundos
-- Quando houver nova versão, recarregar automaticamente a página
-```
-
-Isso força o PWA a baixar a nova versão do app assim que disponível.
-
-#### 3. Ajustar React Query para Refetch no PWA (src/App.tsx)
-
-Modificar as configurações padrão do QueryClient:
+Adicionar a exportacao da versao async:
 
 ```text
 ANTES:
-- refetchOnWindowFocus: false
+return {
+  ...
+  createServiceCall: createMutation.mutate,
+  ...
+}
 
 DEPOIS:
-- refetchOnWindowFocus: true (padrão - reativa)
+return {
+  ...
+  createServiceCall: createMutation.mutate,
+  createServiceCallAsync: createMutation.mutateAsync, // NOVO
+  ...
+}
 ```
 
-Quando o técnico voltar ao app após usar outro aplicativo, os dados serão atualizados automaticamente.
+**2. ServiceCallForm.tsx (linha 80)**
 
-### Arquivos a Modificar
+Importar a nova funcao:
 
-| Arquivo | Alteração |
-|---------|-----------|
-| vite.config.ts | Remover cache de API do Supabase (usar NetworkOnly) |
-| src/main.tsx | Adicionar registro do SW com auto-update |
-| src/App.tsx | Reativar refetchOnWindowFocus |
+```text
+ANTES:
+const { createServiceCall, updateServiceCallAsync } = useServiceCalls();
+
+DEPOIS:
+const { createServiceCallAsync, updateServiceCallAsync } = useServiceCalls();
+```
+
+**3. ServiceCallForm.tsx (linhas 1004-1016)**
+
+Usar await e try/catch:
+
+```text
+ANTES:
+createServiceCall({...});
+setNewSignatures([]);
+toast({ title: "Chamado Criado" });
+navigate("/service-calls");
+
+DEPOIS:
+try {
+  await createServiceCallAsync({...});
+  setNewSignatures([]);
+  toast({ title: "Chamado Criado" });
+  navigate("/service-calls");
+} catch (createError) {
+  console.error('Erro ao criar chamado:', createError);
+  // Toast de erro ja e exibido pelo hook
+}
+```
 
 ### Impacto
 
-- **Dados sempre atualizados** - Nenhum cache entre o app e o banco
-- **PWA auto-atualiza** - Novas versões são aplicadas automaticamente
-- **Compatível com todos usuários** - Mesma experiência para admin e técnicos
-
-### Orientação para Técnicos (após publicar)
-
-Para forçar a atualização imediata no PWA já instalado:
-1. Fechar completamente o app (remover da lista de apps recentes)
-2. Reabrir o app
-3. Se ainda não funcionar: desinstalar o PWA e reinstalar
+- O sistema aguardara a confirmacao do banco antes de mostrar sucesso
+- Erros de insercao serao tratados adequadamente
+- O usuario vera mensagem de erro se algo falhar
+- Nenhuma outra parte do sistema sera afetada
