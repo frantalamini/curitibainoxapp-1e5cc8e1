@@ -58,15 +58,19 @@ export function ServiceCallActionsMenu({
   const queryClient = useQueryClient();
   
   // Permissões
-  const { isAdmin, isTechnician } = useUserRole();
-  const { data: permissionsData } = useCurrentUserPermissions();
+  const { isAdmin, isTechnician, loading: roleLoading } = useUserRole();
+  const { data: permissionsData, isLoading: permissionsLoading } = useCurrentUserPermissions();
   const profileType = permissionsData?.profileType;
   const isGerencial = profileType === "gerencial";
   const isAdm = profileType === "adm";
 
+  // Enquanto carrega, considerar que PODE ter permissão (evita flickering/sumiço dos menus)
+  // Após carregar, usar a lógica real. Se não tiver permissão, RLS bloqueia no backend.
+  const isLoadingPermissions = roleLoading || permissionsLoading;
+
   // Permissões para alteração de status
-  const canEditTechnicalStatus = isAdmin || isTechnician || isGerencial || isAdm;
-  const canEditCommercialStatus = isAdmin || isGerencial || isAdm;
+  const canEditTechnicalStatus = isLoadingPermissions || isAdmin || isTechnician || isGerencial || isAdm;
+  const canEditCommercialStatus = isLoadingPermissions || isAdmin || isGerencial || isAdm;
 
   // Filtrar status por tipo
   const technicalStatuses = statuses?.filter(s => s.active && s.status_type === 'tecnico') || [];

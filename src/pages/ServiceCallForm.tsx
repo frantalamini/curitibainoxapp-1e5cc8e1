@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle, DollarSign, Pencil, Save, ArrowLeft, FileText, Stethoscope } from "lucide-react";
+import { CalendarIcon, Mic, Upload, Square, Volume2, X, FileDown, MessageCircle, Mail, Clock, Car, MapPin, AlertCircle, DollarSign, Pencil, Save, ArrowLeft, FileText, Stethoscope, Eye, Download } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -139,6 +139,8 @@ const ServiceCallForm = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
   const [equipmentSerialNumber, setEquipmentSerialNumber] = useState("");
   const [internalNotesText, setInternalNotesText] = useState("");
@@ -171,6 +173,13 @@ const ServiceCallForm = () => {
     isMountedRef.current = false;
     navigate("/service-calls");
   };
+  
+  // Cleanup do blob URL do PDF quando componente desmonta ou URL muda
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    };
+  }, [pdfBlobUrl]);
   
   // Estados de preview removidos - MediaSlots gerencia internamente
 
@@ -443,11 +452,11 @@ const ServiceCallForm = () => {
     
     // SEMPRE verificar se existe relatório gerado (mesmo após refetch)
     // Isso garante que os botões PDF/WhatsApp apareçam após gerar relatório
-    if (existingCall && isEditMode) {
-      if ((existingCall as any).report_pdf_path && (existingCall as any).report_access_token) {
-        const pdfUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${(existingCall as any).report_access_token}`;
-        setGeneratedPdfUrl(pdfUrl);
-      }
+    // Priorizar report_access_token - se existir, podemos montar a URL pública
+    // mesmo sem report_pdf_path (que pode ter falhado silenciosamente)
+    if (existingCall && isEditMode && (existingCall as any).report_access_token) {
+      const pdfUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${(existingCall as any).report_access_token}`;
+      setGeneratedPdfUrl(pdfUrl);
     }
   }, [existingCall, isEditMode, setValue]);
 
@@ -1973,15 +1982,10 @@ const ServiceCallForm = () => {
                             setIsGeneratingPDF(true);
                             const { blob, fileName, blobUrl } = await generateOSPdf(existingCall.id, { includeFinancial: false });
                             
-                            // Download automático local
-                            const autoLink = document.createElement('a');
-                            autoLink.href = blobUrl;
-                            autoLink.download = fileName;
-                            autoLink.style.display = 'none';
-                            document.body.appendChild(autoLink);
-                            autoLink.click();
-                            document.body.removeChild(autoLink);
-                            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                            // Armazenar blob para download posterior sob controle do usuário
+                            // NÃO navegar automaticamente para evitar perda de estado
+                            setPdfBlobUrl(blobUrl);
+                            setPdfBlob(blob);
                             
                             // Upload para storage
                             const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
@@ -2005,7 +2009,7 @@ const ServiceCallForm = () => {
                             
                             toast({
                               title: "PDF Técnico Gerado!",
-                              description: "O relatório técnico foi baixado e está pronto para envio.",
+                              description: "Use os botões abaixo para visualizar, salvar ou enviar.",
                             });
                           } catch (error: any) {
                             console.error("Error generating PDF:", error);
@@ -2045,14 +2049,9 @@ const ServiceCallForm = () => {
                               setIsGeneratingPDF(true);
                               const { blob, fileName, blobUrl } = await generateOSPdf(existingCall.id, { includeFinancial: false });
                               
-                              const autoLink = document.createElement('a');
-                              autoLink.href = blobUrl;
-                              autoLink.download = fileName;
-                              autoLink.style.display = 'none';
-                              document.body.appendChild(autoLink);
-                              autoLink.click();
-                              document.body.removeChild(autoLink);
-                              setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                              // Armazenar blob para download posterior sob controle do usuário
+                              setPdfBlobUrl(blobUrl);
+                              setPdfBlob(blob);
                               
                               const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
                               
@@ -2074,7 +2073,7 @@ const ServiceCallForm = () => {
                               
                               toast({
                                 title: "PDF Técnico Gerado!",
-                                description: "O relatório técnico foi baixado.",
+                                description: "Use os botões abaixo para visualizar, salvar ou enviar.",
                               });
                             } catch (error: any) {
                               console.error("Error generating PDF:", error);
@@ -2110,14 +2109,9 @@ const ServiceCallForm = () => {
                               setIsGeneratingPDF(true);
                               const { blob, fileName, blobUrl } = await generateOSPdf(existingCall.id, { includeFinancial: true });
                               
-                              const autoLink = document.createElement('a');
-                              autoLink.href = blobUrl;
-                              autoLink.download = fileName;
-                              autoLink.style.display = 'none';
-                              document.body.appendChild(autoLink);
-                              autoLink.click();
-                              document.body.removeChild(autoLink);
-                              setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                              // Armazenar blob para download posterior sob controle do usuário
+                              setPdfBlobUrl(blobUrl);
+                              setPdfBlob(blob);
                               
                               const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
                               
@@ -2142,7 +2136,7 @@ const ServiceCallForm = () => {
                               
                               toast({
                                 title: "PDF Completo Gerado!",
-                                description: "Relatório com dados financeiros. Técnicos não poderão mais acessar relatórios desta OS.",
+                                description: "Use os botões abaixo para visualizar, salvar ou enviar.",
                               });
                             } catch (error: any) {
                               console.error("Error generating PDF:", error);
@@ -2174,26 +2168,62 @@ const ServiceCallForm = () => {
                   </>
                 )}
                 
-                {generatedPdfUrl && existingCall && (
-                  <>
+                {(generatedPdfUrl || pdfBlobUrl) && existingCall && (
+                  <div className="flex flex-wrap gap-2 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                    <span className="w-full text-sm font-medium text-green-700 dark:text-green-300 mb-1">
+                      ✓ PDF gerado com sucesso
+                    </span>
+                    
+                    {/* Abrir PDF */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const url = pdfBlobUrl || generatedPdfUrl;
+                        if (url) window.open(url, '_blank');
+                      }}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Visualizar PDF
+                    </Button>
+                    
+                    {/* Salvar PDF (download) */}
+                    {pdfBlob && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = pdfBlobUrl!;
+                          link.download = `OS-${existingCall.os_number}.pdf`;
+                          link.click();
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Salvar PDF
+                      </Button>
+                    )}
+                    
+                    {/* WhatsApp */}
                     <Button
                       type="button"
                       onClick={() => setSendWhatsAppModalOpen(true)}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-green-600 hover:bg-green-700 text-white"
                     >
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Enviar via WhatsApp
                     </Button>
                     
+                    {/* E-mail */}
                     <Button
                       type="button"
                       onClick={() => setSendEmailModalOpen(true)}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       <Mail className="mr-2 h-4 w-4" />
                       Enviar por E-mail
                     </Button>
-                  </>
+                  </div>
                 )}
               </>
             )}
