@@ -4,11 +4,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, Mail, AlertCircle } from "lucide-react";
+import { MessageCircle, Mail, AlertCircle, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { openWhatsApp } from "@/lib/whatsapp-templates";
+import InputMask from "react-input-mask";
 
 type WhatsAppContact = {
   id: string;
@@ -264,6 +265,7 @@ export const SendReportModal = ({
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [manualPhone, setManualPhone] = useState('');
   const [manualPhoneError, setManualPhoneError] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
   const { toast } = useToast();
   
   const availableContacts = mode === 'whatsapp' 
@@ -278,8 +280,14 @@ export const SendReportModal = ({
         .map(c => c.id);
       
       setSelectedContacts(likelyWhatsAppIds);
+      setShowManualInput(false);
+      setManualPhone('');
+      setManualPhoneError('');
     } else if (open) {
       setSelectedContacts([]);
+      setShowManualInput(false);
+      setManualPhone('');
+      setManualPhoneError('');
     }
   }, [open, mode, availableContacts]);
   
@@ -375,7 +383,7 @@ export const SendReportModal = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
           {availableContacts.length === 0 ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
@@ -387,17 +395,24 @@ export const SendReportModal = ({
               {mode === 'whatsapp' && (
                 <div className="space-y-2">
                   <Label htmlFor="manual-phone">Informar número manualmente:</Label>
-                  <Input
-                    id="manual-phone"
-                    type="text"
-                    placeholder="(XX) XXXXX-XXXX ou +55 XX XXXXX-XXXX"
+                  <InputMask
+                    mask="(99) 99999-9999"
                     value={manualPhone}
                     onChange={(e) => {
                       setManualPhone(e.target.value);
                       setManualPhoneError('');
                     }}
-                    className={manualPhoneError ? 'border-destructive' : ''}
-                  />
+                  >
+                    {(inputProps: any) => (
+                      <Input
+                        {...inputProps}
+                        id="manual-phone"
+                        type="text"
+                        placeholder="(XX) XXXXX-XXXX"
+                        className={manualPhoneError ? 'border-destructive' : ''}
+                      />
+                    )}
+                  </InputMask>
                   {manualPhoneError && (
                     <p className="text-xs text-destructive">{manualPhoneError}</p>
                   )}
@@ -407,54 +422,113 @@ export const SendReportModal = ({
           ) : (
             <div className="space-y-3">
               {mode === 'whatsapp' ? (
-                (availableContacts as WhatsAppContact[]).map(contact => (
-                  <div
-                    key={contact.id}
-                    className={cn(
-                      "flex items-start space-x-3 p-3 rounded-lg border transition-colors",
-                      contact.isLikelyWhatsApp 
-                        ? "hover:bg-green-50 dark:hover:bg-green-950/20 border-green-200 dark:border-green-900" 
-                        : "hover:bg-amber-50 dark:hover:bg-amber-950/20 border-amber-200 dark:border-amber-900"
-                    )}
-                  >
-                    <Checkbox
-                      id={contact.id}
-                      checked={selectedContacts.includes(contact.id)}
-                      onCheckedChange={() => handleToggleContact(contact.id)}
-                    />
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label
-                          htmlFor={contact.id}
-                          className="font-medium cursor-pointer"
-                        >
-                          {contact.label}
-                        </Label>
-                        {contact.isLikelyWhatsApp ? (
-                          <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs">
-                            Celular
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-amber-600 border-amber-600 text-xs">
-                            Fixo
-                          </Badge>
+                <>
+                  {(availableContacts as WhatsAppContact[]).map(contact => (
+                    <div
+                      key={contact.id}
+                      className={cn(
+                        "flex items-start space-x-3 p-3 rounded-lg border transition-colors",
+                        contact.isLikelyWhatsApp 
+                          ? "hover:bg-green-50 dark:hover:bg-green-950/20 border-green-200 dark:border-green-900" 
+                          : "hover:bg-amber-50 dark:hover:bg-amber-950/20 border-amber-200 dark:border-amber-900"
+                      )}
+                    >
+                      <Checkbox
+                        id={contact.id}
+                        checked={selectedContacts.includes(contact.id)}
+                        onCheckedChange={() => handleToggleContact(contact.id)}
+                      />
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label
+                            htmlFor={contact.id}
+                            className="font-medium cursor-pointer"
+                          >
+                            {contact.label}
+                          </Label>
+                          {contact.isLikelyWhatsApp ? (
+                            <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs">
+                              Celular
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-amber-600 border-amber-600 text-xs">
+                              Fixo
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {contact.name}
+                        </p>
+                        <p className="text-xs font-mono text-muted-foreground">
+                          {contact.phoneE164}
+                        </p>
+                        {!contact.isLikelyWhatsApp && (
+                          <p className="text-xs text-amber-600 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Pode não ter WhatsApp
+                          </p>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {contact.name}
-                      </p>
-                      <p className="text-xs font-mono text-muted-foreground">
-                        {contact.phoneE164}
-                      </p>
-                      {!contact.isLikelyWhatsApp && (
-                        <p className="text-xs text-amber-600 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Pode não ter WhatsApp
-                        </p>
-                      )}
                     </div>
+                  ))}
+                  
+                  {/* Opção para digitar outro número */}
+                  <div className="pt-2 border-t">
+                    {!showManualInput ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowManualInput(true)}
+                        className="w-full text-muted-foreground hover:text-foreground"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Enviar para outro número
+                      </Button>
+                    ) : (
+                      <div className="space-y-2 p-3 rounded-lg border border-dashed bg-muted/30">
+                        <Label htmlFor="manual-phone-extra" className="text-sm font-medium">
+                          Outro número:
+                        </Label>
+                        <div className="flex gap-2">
+                          <InputMask
+                            mask="(99) 99999-9999"
+                            value={manualPhone}
+                            onChange={(e) => {
+                              setManualPhone(e.target.value);
+                              setManualPhoneError('');
+                            }}
+                          >
+                            {(inputProps: any) => (
+                              <Input
+                                {...inputProps}
+                                id="manual-phone-extra"
+                                type="text"
+                                placeholder="(XX) XXXXX-XXXX"
+                                className={cn("flex-1", manualPhoneError ? 'border-destructive' : '')}
+                              />
+                            )}
+                          </InputMask>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleManualSend}
+                            disabled={!manualPhone.replace(/\D/g, '').length}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        {manualPhoneError && (
+                          <p className="text-xs text-destructive">{manualPhoneError}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Digite o DDD + número do celular
+                        </p>
+                      </div>
+                    )}
                   </div>
-                ))
+                </>
               ) : (
                 (availableContacts as EmailContact[]).map(contact => (
                   <div
