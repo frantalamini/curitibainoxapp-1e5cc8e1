@@ -176,7 +176,7 @@ export function ServiceCallActionsMenu({
             <span className="sr-only">Ações</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuContent align="start" className="max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="px-2 py-1.5 text-sm font-medium">
             Nº {osNumber} - {clientName || "Sem cliente"}
           </div>
@@ -189,7 +189,7 @@ export function ServiceCallActionsMenu({
                 <CircleDot className="mr-2 h-4 w-4" />
                 Status Técnico
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="min-w-[180px]">
+              <DropdownMenuSubContent className="min-w-[180px] max-h-[50vh] overflow-y-auto" sideOffset={2} alignOffset={-5}>
                 <DropdownMenuItem
                   onClick={() => handleStatusChange('tecnico', null)}
                   className="cursor-pointer"
@@ -232,7 +232,7 @@ export function ServiceCallActionsMenu({
                 <CircleDot className="mr-2 h-4 w-4" />
                 Status Comercial
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="min-w-[180px]">
+              <DropdownMenuSubContent className="min-w-[180px] max-h-[50vh] overflow-y-auto" sideOffset={2} alignOffset={-5}>
                 <DropdownMenuItem
                   onClick={() => handleStatusChange('comercial', null)}
                   className="cursor-pointer"
