@@ -109,9 +109,20 @@ const ServiceCallView = () => {
     client: string | null;
   }>({ tech: null, client: null });
   
+  // Ref para rastrear se o componente está montado
+  const isMountedRef = useRef(true);
+  
   // Marcar como visto ao abrir a página
   const markSeen = useMarkServiceCallSeen();
   const hasMarkedRef = useRef(false);
+  
+  // Cleanup ao desmontar componente
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   useEffect(() => {
     if (call?.id && !hasMarkedRef.current && !call.seen_by_tech_at) {
@@ -233,13 +244,18 @@ const ServiceCallView = () => {
       }
     } catch (error) {
       console.error("Error generating PDF:", error);
-      toast({
-        title: "Erro ao gerar PDF",
-        description: "Ocorreu um erro ao gerar o relatório.",
-        variant: "destructive",
-      });
+      // Só mostrar erro se componente ainda estiver montado
+      if (isMountedRef.current) {
+        toast({
+          title: "Erro ao gerar PDF",
+          description: "Ocorreu um erro ao gerar o relatório.",
+          variant: "destructive",
+        });
+      }
     } finally {
-      setIsGeneratingPDF(false);
+      if (isMountedRef.current) {
+        setIsGeneratingPDF(false);
+      }
     }
   };
 

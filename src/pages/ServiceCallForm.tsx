@@ -162,6 +162,9 @@ const ServiceCallForm = () => {
   // Flag para evitar re-inicialização do formulário quando queries são invalidadas
   const initializedRef = useRef(false);
   
+  // Ref para rastrear se o componente está montado (evita erros de state em componentes desmontados)
+  const isMountedRef = useRef(true);
+  
   // Estados de preview removidos - MediaSlots gerencia internamente
 
   const {
@@ -338,8 +341,11 @@ const ServiceCallForm = () => {
     }
   }, [selectedTime, setValue]);
 
+  // Cleanup de URLs e marcação de componente desmontado
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (audioURL) URL.revokeObjectURL(audioURL);
       if (technicalAudioURL) URL.revokeObjectURL(technicalAudioURL);
       mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
@@ -1985,13 +1991,18 @@ const ServiceCallForm = () => {
                             });
                           } catch (error) {
                             console.error("Error generating PDF:", error);
-                            toast({
-                              title: "Erro ao gerar PDF",
-                              description: "Ocorreu um erro ao gerar o relatório.",
-                              variant: "destructive",
-                            });
+                            // Só mostrar erro se componente ainda estiver montado
+                            if (isMountedRef.current) {
+                              toast({
+                                title: "Erro ao gerar PDF",
+                                description: "Ocorreu um erro ao gerar o relatório.",
+                                variant: "destructive",
+                              });
+                            }
                           } finally {
-                            setIsGeneratingPDF(false);
+                            if (isMountedRef.current) {
+                              setIsGeneratingPDF(false);
+                            }
                           }
                         }}
                         disabled={isGeneratingPDF}
@@ -2039,13 +2050,17 @@ const ServiceCallForm = () => {
                               });
                             } catch (error) {
                               console.error("Error generating PDF:", error);
-                              toast({
-                                title: "Erro ao gerar PDF",
-                                description: "Ocorreu um erro ao gerar o relatório.",
-                                variant: "destructive",
-                              });
+                              if (isMountedRef.current) {
+                                toast({
+                                  title: "Erro ao gerar PDF",
+                                  description: "Ocorreu um erro ao gerar o relatório.",
+                                  variant: "destructive",
+                                });
+                              }
                             } finally {
-                              setIsGeneratingPDF(false);
+                              if (isMountedRef.current) {
+                                setIsGeneratingPDF(false);
+                              }
                             }
                           }}
                           disabled={isGeneratingPDF}
@@ -2095,13 +2110,17 @@ const ServiceCallForm = () => {
                               });
                             } catch (error) {
                               console.error("Error generating PDF:", error);
-                              toast({
-                                title: "Erro ao gerar PDF",
-                                description: "Ocorreu um erro ao gerar o relatório.",
-                                variant: "destructive",
-                              });
+                              if (isMountedRef.current) {
+                                toast({
+                                  title: "Erro ao gerar PDF",
+                                  description: "Ocorreu um erro ao gerar o relatório.",
+                                  variant: "destructive",
+                                });
+                              }
                             } finally {
-                              setIsGeneratingPDF(false);
+                              if (isMountedRef.current) {
+                                setIsGeneratingPDF(false);
+                              }
                             }
                           }}
                           disabled={isGeneratingPDF}
