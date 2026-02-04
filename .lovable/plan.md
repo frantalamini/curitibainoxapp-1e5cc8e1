@@ -1,98 +1,215 @@
 
-## Plano de Correção: Erro ao Voltar do PDF + Modal WhatsApp Não Abre
+## Plano de Correção Completo - Chamados Técnicos
 
 ### Problemas Identificados
 
-**Problema 1: "Erro ao gerar PDF" ao Voltar**
-O toast de erro aparece porque, durante a geração do PDF, se ocorrer qualquer exceção (ou o processo for abortado ao navegar), o `catch` dispara o toast ANTES de verificar `isMountedRef.current`. O check está correto para os blocos que já foram corrigidos, mas a geração do PDF em si (`generateOSPdf`) pode falhar internamente e lançar exceção que não é relacionada à navegação.
+| # | Problema | Causa Raiz |
+|---|----------|------------|
+| 1 | "Erro ao gerar PDF" ao voltar | `autoLink.click()` navega para blob URL, abortando requisições e causando exceções |
+| 2 | Botões WhatsApp/E-mail não aparecem | Estado `generatedPdfUrl` é perdido na navegação; condição do `useEffect` muito restritiva |
+| 3 | Submenus de Status não aparecem | Condições de permissão retornam `false` enquanto hooks carregam |
 
-Causa-raiz: A função `generateOSPdf` depende de fetch de imagens/assinaturas que podem timeout ou falhar. Quando você volta rapidamente, essas requisições são abortadas e lançam exceção, que cai no catch mostrando o toast.
+---
 
-**Problema 2: Modal WhatsApp Não Abre**
-O modal de envio via WhatsApp só aparece se `generatedPdfUrl` estiver preenchido. Após gerar o PDF, o código define:
+### Solução Detalhada
+
+#### Correção 1: Remover navegação automática do PDF
+
+**Arquivo:** `src/pages/ServiceCallForm.tsx`
+
+**Ação:** Remover completamente os blocos `autoLink.click()` nos 3 lugares (técnico, admin técnico, admin completo).
+
+**Antes (linhas 1977-1984):**
 ```typescript
-setGeneratedPdfUrl(uploadResult.signedUrl);  // URL assinada do Storage
+const autoLink = document.createElement('a');
+autoLink.href = blobUrl;
+autoLink.download = fileName;
+autoLink.style.display = 'none';
+document.body.appendChild(autoLink);
+autoLink.click();
+document.body.removeChild(autoLink);
+setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 ```
 
-Porém, na verificação para exibir botões de envio, espera-se que `generatedPdfUrl` seja uma URL pública válida. O problema é que ao gerar o PDF com sucesso, a URL está sendo salva corretamente, MAS existe uma condição de corrida onde:
-1. PDF é gerado com sucesso
-2. `setGeneratedPdfUrl(uploadResult.signedUrl)` é chamado
-3. Navegação acontece antes do React atualizar o estado
-4. Ao voltar, `generatedPdfUrl` está `null`
+**Depois:**
+```typescript
+// Armazenar blob para download posterior sob controle do usuário
+setPdfBlobUrl(blobUrl);
+setPdfBlob(blob);
+```
 
-Além disso, verificando o código, a lógica no `useEffect` (linhas 444-451) está verificando `report_pdf_path` E `report_access_token` do banco. Se o upload falhar em salvar esses campos (erro silencioso), o modal nunca aparecerá.
+Isso mantém o PDF disponível para ações manuais sem navegar automaticamente.
 
-### Solução
+---
 
-#### Correção 1: Melhorar tratamento de erros na geração de PDF
+#### Correção 2: Adicionar estados e UI para ações do PDF
 
-Adicionar verificação mais granular para distinguir erros de "navegação/abort" de erros reais:
+**Arquivo:** `src/pages/ServiceCallForm.tsx`
 
-```text
-ANTES (linha 2004-2012):
-} catch (error) {
-  console.error("Error generating PDF:", error);
-  if (isMountedRef.current) {
-    toast({ title: "Erro ao gerar PDF", ... });
-  }
+**Novos estados (após linha ~130):**
+```typescript
+const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+```
+
+**Cleanup no useEffect existente:**
+```typescript
+useEffect(() => {
+  return () => {
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+  };
+}, [pdfBlobUrl]);
+```
+
+**Nova UI após geração do PDF (substitui o bloco atual de botões WhatsApp/Email):**
+```typescript
+{(generatedPdfUrl || pdfBlobUrl) && existingCall && (
+  <div className="flex flex-wrap gap-2 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+    <span className="w-full text-sm font-medium text-green-700 dark:text-green-300 mb-1">
+      ✓ PDF gerado com sucesso
+    </span>
+    
+    {/* Abrir PDF */}
+    <Button
+      type="button"
+      variant="outline"
+      onClick={() => {
+        const url = pdfBlobUrl || generatedPdfUrl;
+        if (url) window.open(url, '_blank');
+      }}
+    >
+      <Eye className="mr-2 h-4 w-4" />
+      Visualizar PDF
+    </Button>
+    
+    {/* Salvar PDF (download) */}
+    {pdfBlob && (
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          const link = document.createElement('a');
+          link.href = pdfBlobUrl!;
+          link.download = `OS-${existingCall.os_number}.pdf`;
+          link.click();
+        }}
+      >
+        <Download className="mr-2 h-4 w-4" />
+        Salvar PDF
+      </Button>
+    )}
+    
+    {/* WhatsApp */}
+    <Button
+      type="button"
+      onClick={() => setSendWhatsAppModalOpen(true)}
+      className="bg-green-600 hover:bg-green-700"
+    >
+      <MessageCircle className="mr-2 h-4 w-4" />
+      Enviar via WhatsApp
+    </Button>
+    
+    {/* E-mail */}
+    <Button
+      type="button"
+      onClick={() => setSendEmailModalOpen(true)}
+      className="bg-blue-600 hover:bg-blue-700"
+    >
+      <Mail className="mr-2 h-4 w-4" />
+      Enviar por E-mail
+    </Button>
+  </div>
+)}
+```
+
+---
+
+#### Correção 3: Melhorar useEffect que popula generatedPdfUrl
+
+**Arquivo:** `src/pages/ServiceCallForm.tsx` (linhas 446-451)
+
+**Antes:**
+```typescript
+if ((existingCall as any).report_pdf_path && (existingCall as any).report_access_token) {
+  const pdfUrl = `...`;
+  setGeneratedPdfUrl(pdfUrl);
 }
+```
 
-DEPOIS:
-} catch (error: any) {
-  console.error("Error generating PDF:", error);
-  // Só mostrar erro se componente ainda estiver montado
-  // E não for erro de abort (navegação)
-  const isAbortError = error?.name === 'AbortError' || 
-                       error?.message?.includes('abort') ||
-                       error?.message?.includes('cancel');
-  if (isMountedRef.current && !isAbortError) {
-    toast({ title: "Erro ao gerar PDF", ... });
-  }
+**Depois:**
+```typescript
+// Priorizar report_access_token - se existir, podemos montar a URL pública
+// mesmo sem report_pdf_path (que pode ter falhado silenciosamente)
+if ((existingCall as any).report_access_token) {
+  const pdfUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${(existingCall as any).report_access_token}`;
+  setGeneratedPdfUrl(pdfUrl);
 }
 ```
 
-Aplicar essa correção em TODOS os 3 blocos de geração de PDF em ServiceCallForm.tsx (linhas 2004-2013, 2064-2071, 2123-2130).
+---
 
-#### Correção 2: Garantir que generatedPdfUrl seja definido com URL pública após upload
+#### Correção 4: Garantir que submenus de status apareçam
 
-Após o upload bem-sucedido, definir a URL pública correta (não a signedUrl do storage):
+**Arquivo:** `src/components/service-calls/ServiceCallActionsMenu.tsx`
 
-```text
-ANTES:
-setGeneratedPdfUrl(uploadResult.signedUrl);
+**Problema:** Os hooks `useUserRole` e `useCurrentUserPermissions` podem estar em estado de loading, fazendo as permissões retornarem `false`.
 
-DEPOIS:
-// Usar URL pública para o modal de envio
-const publicUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
-setGeneratedPdfUrl(publicUrl);
+**Solução:** Adicionar verificação de loading e considerar como "sem permissão" apenas se carregou E não tem permissão.
+
+**Antes (linhas 61-69):**
+```typescript
+const { isAdmin, isTechnician } = useUserRole();
+const { data: permissionsData } = useCurrentUserPermissions();
+const profileType = permissionsData?.profileType;
+const isGerencial = profileType === "gerencial";
+const isAdm = profileType === "adm";
+
+const canEditTechnicalStatus = isAdmin || isTechnician || isGerencial || isAdm;
+const canEditCommercialStatus = isAdmin || isGerencial || isAdm;
 ```
 
-Aplicar em TODOS os 3 blocos de geração (linhas 1988, 2048, 2102).
+**Depois:**
+```typescript
+const { isAdmin, isTechnician, loading: roleLoading } = useUserRole();
+const { data: permissionsData, isLoading: permissionsLoading } = useCurrentUserPermissions();
+const profileType = permissionsData?.profileType;
+const isGerencial = profileType === "gerencial";
+const isAdm = profileType === "adm";
 
-#### Correção 3: Refetch após upload para garantir sincronização
+// Enquanto carrega, considerar que PODE ter permissão (evita flickering)
+// Após carregar, usar a lógica real
+const isLoadingPermissions = roleLoading || permissionsLoading;
 
-Após gerar o PDF, forçar um refetch do chamado para garantir que os campos `report_access_token` e `report_pdf_path` estejam sincronizados com o banco:
-
-```text
-// Após toast de sucesso
-await refetchCall();
+const canEditTechnicalStatus = isLoadingPermissions || isAdmin || isTechnician || isGerencial || isAdm;
+const canEditCommercialStatus = isLoadingPermissions || isAdmin || isGerencial || isAdm;
 ```
 
-### Arquivos a Modificar
+**Nota:** Isso faz os submenus aparecerem enquanto carrega. Se o usuário não tiver permissão, ao tentar alterar o status, a RLS do banco irá bloquear.
 
-| Arquivo | Alteração |
-|---------|-----------|
-| src/pages/ServiceCallForm.tsx | 3x correção de tratamento de erro de abort + 3x correção de URL pública + 3x refetch |
+---
 
-### Impacto
+### Arquivos Modificados
 
-- Erro ao voltar desaparecerá (aborts não serão mais reportados como erro)
-- Modal de WhatsApp abrirá corretamente após gerar PDF
-- URL correta será enviada no WhatsApp (pública, não signedUrl)
-- Dados sincronizados após geração do PDF
+| Arquivo | Alterações |
+|---------|------------|
+| `src/pages/ServiceCallForm.tsx` | Remover autoLink.click() em 3 lugares; adicionar estados pdfBlob/pdfBlobUrl; nova UI de ações do PDF; ajustar useEffect do generatedPdfUrl |
+| `src/components/service-calls/ServiceCallActionsMenu.tsx` | Adicionar verificação de loading nos hooks; ajustar lógica de permissões |
 
-### Localizações Exatas das Alterações
+---
 
-1. **Técnico PDF** (linhas 1971-2018): Corrigir catch + setGeneratedPdfUrl + adicionar refetch
-2. **Admin PDF Técnico** (linhas 2030-2077): Corrigir catch + setGeneratedPdfUrl + adicionar refetch  
-3. **Admin PDF Completo** (linhas 2084-2137): Corrigir catch + setGeneratedPdfUrl + adicionar refetch
+### Impacto Esperado
+
+1. **Erro ao voltar** - Eliminado (não há mais navegação automática)
+2. **Botões WhatsApp/E-mail** - Aparecem imediatamente após gerar PDF e persistem ao reabrir a OS
+3. **Submenus de Status** - Aparecem corretamente, sem depender do timing de carregamento dos hooks
+4. **Experiência do usuário** - PDF fica disponível para visualizar/salvar/enviar sem perder o contexto da OS
+
+---
+
+### Sem Alterações Em
+
+- Rotas do app (`App.tsx`)
+- Página pública do relatório (`/relatorio-os`)
+- Backend/Edge Functions
+- Estrutura do banco de dados
+- Demais módulos do sistema
