@@ -385,6 +385,7 @@ export const useServiceCalls = (
     isLoading,
     totalCount,
     createServiceCall: createMutation.mutate,
+    createServiceCallAsync: createMutation.mutateAsync,
     updateServiceCall: updateMutation.mutate,
     updateServiceCallAsync: updateMutation.mutateAsync,
     deleteServiceCall: deleteMutation.mutate,

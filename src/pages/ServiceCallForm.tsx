@@ -77,7 +77,7 @@ const ServiceCallForm = () => {
   const { checklists, isLoading: checklistsLoading } = useChecklists();
   const { data: existingCall, isLoading: isLoadingCall, refetch: refetchCall } = useServiceCall(id);
   const isEditMode = !!id;
-  const { createServiceCall, updateServiceCallAsync } = useServiceCalls();
+  const { createServiceCallAsync, updateServiceCallAsync } = useServiceCalls();
   const { isAdmin, isTechnician, loading: rolesLoading } = useUserRole();
   
   // Estado de modo readonly - inicia como true em edição (isEditMode = !!id), false em criação
@@ -1001,19 +1001,24 @@ const ServiceCallForm = () => {
           .eq("status_type", "comercial")
           .maybeSingle();
 
-        createServiceCall({
-          ...formattedData,
-          status_id: defaultTechnicalStatus?.id,
-          commercial_status_id: defaultCommercialStatus?.id,
-        });
-        setNewSignatures([]); // Limpar após criar
-        toast({
-          title: "✅ Chamado Criado",
-          description: "Novo chamado criado com sucesso!",
-        });
-        
-        // Apenas novo chamado redireciona para lista
-        navigate("/service-calls");
+        try {
+          await createServiceCallAsync({
+            ...formattedData,
+            status_id: defaultTechnicalStatus?.id,
+            commercial_status_id: defaultCommercialStatus?.id,
+          });
+          setNewSignatures([]); // Limpar após criar
+          toast({
+            title: "✅ Chamado Criado",
+            description: "Novo chamado criado com sucesso!",
+          });
+          
+          // Apenas novo chamado redireciona para lista
+          navigate("/service-calls");
+        } catch (createError) {
+          console.error('Erro ao criar chamado:', createError);
+          // Toast de erro já é exibido pelo hook useServiceCalls
+        }
       }
     } catch (error) {
       console.error('Erro ao salvar chamado:', error);
