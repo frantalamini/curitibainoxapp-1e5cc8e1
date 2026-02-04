@@ -274,16 +274,33 @@ export const useServiceCalls = (
 
       if (normalizedSearch && !/^\d+$/.test(normalizedSearch)) {
         const like = `%${normalizedSearch}%`;
-        // OBS: filtros em colunas de tabelas relacionadas funcionam com dot-notation.
-        query = query.or(
-          [
-            `equipment_description.ilike.${like}`,
-            `clients.full_name.ilike.${like}`,
-            `clients.nome_fantasia.ilike.${like}`,
-            `clients.secondary_name.ilike.${like}`,
-            `technicians.full_name.ilike.${like}`,
-          ].join(",")
-        );
+        
+        // Buscar IDs de clientes e técnicos que correspondem à busca
+        // (Supabase não suporta .or() com colunas de tabelas relacionadas)
+        const [clientsResult, techniciansResult] = await Promise.all([
+          supabase
+            .from("clients")
+            .select("id")
+            .or(`full_name.ilike.${like},nome_fantasia.ilike.${like},secondary_name.ilike.${like}`),
+          supabase
+            .from("technicians")
+            .select("id")
+            .ilike("full_name", like)
+        ]);
+
+        const clientIds = clientsResult.data?.map(c => c.id) || [];
+        const technicianIds = techniciansResult.data?.map(t => t.id) || [];
+
+        // Construir filtros OR com os IDs encontrados
+        const orFilters = [`equipment_description.ilike.${like}`];
+        if (clientIds.length > 0) {
+          orFilters.push(`client_id.in.(${clientIds.join(',')})`);
+        }
+        if (technicianIds.length > 0) {
+          orFilters.push(`technician_id.in.(${technicianIds.join(',')})`);
+        }
+
+        query = query.or(orFilters.join(","));
       }
 
       const { data: calls, error, count } = await query;
