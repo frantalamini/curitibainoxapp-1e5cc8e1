@@ -2174,12 +2174,14 @@ const ServiceCallForm = () => {
                       ✓ PDF gerado com sucesso
                     </span>
                     
-                    {/* Abrir PDF */}
+                    {/* Abrir PDF - priorizar URL pública para funcionar em qualquer contexto */}
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        const url = pdfBlobUrl || generatedPdfUrl;
+                        // Priorizar URL pública (generatedPdfUrl) que funciona mesmo após fechar/reabrir
+                        // pdfBlobUrl só funciona na mesma sessão do browser
+                        const url = generatedPdfUrl || pdfBlobUrl;
                         if (url) window.open(url, '_blank');
                       }}
                     >
