@@ -57,7 +57,7 @@ export const generateWhatsAppLink = (data: WhatsAppMessageData): string => {
 /**
  * Gera link do WhatsApp com PDF do relatório
  */
-const PUBLIC_BASE_URL = "https://curitibainoxapp.lovable.app";
+const PUBLIC_BASE_URL = "https://curitibainoxapp.com";
 
 export const generateWhatsAppLinkWithPdf = (
   data: WhatsAppPdfMessageData
