@@ -276,35 +276,30 @@ export const SendReportModal = ({
   const [showManualInput, setShowManualInput] = useState(false);
   const { toast } = useToast();
   
+  // Memoizar contatos para evitar recálculos desnecessários
   const availableContacts = mode === 'whatsapp' 
     ? collectAllPhones(clientData)
     : extractEmailContacts(clientData);
   
-  // Selecionar primeiro celular automaticamente ao abrir
+  const contactsCount = availableContacts.length;
+  
+  // Resetar estado apenas quando o modal ABRE (não em cada render)
   useEffect(() => {
-    if (open && mode === 'whatsapp') {
-      const firstWhatsApp = (availableContacts as WhatsAppContact[])
-        .find(c => c.isLikelyWhatsApp);
-      
-      // Só seleciona o primeiro se houver apenas um, senão deixa vazio para forçar escolha
-      if (availableContacts.length === 1) {
-        setSelectedContact(availableContacts[0].id);
-      } else if (firstWhatsApp) {
-        setSelectedContact(''); // Não pré-seleciona quando há múltiplos
-      } else {
-        setSelectedContact('');
-      }
-      
-      setShowManualInput(false);
-      setManualPhone('');
-      setManualPhoneError('');
-    } else if (open) {
-      setSelectedContact(availableContacts.length === 1 ? availableContacts[0].id : '');
-      setShowManualInput(false);
-      setManualPhone('');
-      setManualPhoneError('');
+    if (!open) return;
+    
+    // Reset apenas na abertura do modal
+    setShowManualInput(false);
+    setManualPhone('');
+    setManualPhoneError('');
+    
+    // Só pré-seleciona se houver apenas 1 contato
+    if (contactsCount === 1) {
+      setSelectedContact(availableContacts[0]?.id || '');
+    } else {
+      setSelectedContact('');
     }
-  }, [open, mode, availableContacts.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]); // Apenas 'open' como dependência para evitar resets indesejados
   
   const handleManualSend = () => {
     if (!isManualPhoneComplete(manualPhone)) {
@@ -492,27 +487,27 @@ export const SendReportModal = ({
                     ))}
                   </RadioGroup>
                   
-                  {/* Opção para digitar outro número */}
-                  <div className="pt-2 border-t">
+                  {/* Opção para digitar outro número - SEMPRE visível */}
+                  <div className="pt-3 border-t mt-2">
                     {!showManualInput ? (
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => {
                           setShowManualInput(true);
                           setSelectedContact(''); // Limpa seleção ao usar número manual
                         }}
-                        className="w-full text-muted-foreground hover:text-foreground"
+                        className="w-full"
                       >
                         <Plus className="mr-2 h-4 w-4" />
                         Enviar para outro número
                       </Button>
                     ) : (
-                      <div className="space-y-2 p-3 rounded-lg border-2 border-primary bg-primary/5">
+                      <div className="space-y-3 p-3 rounded-lg border-2 border-primary bg-primary/5">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="manual-phone-extra" className="text-sm font-medium">
-                            Outro número:
+                            Digite o número:
                           </Label>
                           <Button
                             type="button"
@@ -542,9 +537,9 @@ export const SendReportModal = ({
                               id="manual-phone-extra"
                               type="tel"
                               inputMode="numeric"
-                              placeholder="(XX) XXXXX-XXXX"
+                              placeholder="(41) 99999-9999"
                               className={cn(
-                                "text-base",
+                                "text-lg font-mono",
                                 manualPhoneError ? 'border-destructive' : ''
                               )}
                               autoFocus
@@ -555,7 +550,7 @@ export const SendReportModal = ({
                           <p className="text-xs text-destructive">{manualPhoneError}</p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          Digite o DDD + número do celular
+                          DDD + número com 9 dígitos
                         </p>
                       </div>
                     )}
