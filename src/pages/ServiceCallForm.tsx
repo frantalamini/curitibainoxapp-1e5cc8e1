@@ -1985,7 +1985,10 @@ const ServiceCallForm = () => {
                             
                             // Upload para storage
                             const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
-                            setGeneratedPdfUrl(uploadResult.signedUrl);
+                            
+                            // Usar URL pública para o modal de envio
+                            const publicUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
+                            setGeneratedPdfUrl(publicUrl);
                             
                             // Salvar o caminho do PDF no banco de dados
                             const { error: updateError } = await supabase
@@ -1997,14 +2000,21 @@ const ServiceCallForm = () => {
                               console.error("Erro ao salvar caminho do PDF:", updateError);
                             }
                             
+                            // Refetch para sincronizar dados do relatório
+                            await refetchCall();
+                            
                             toast({
                               title: "PDF Técnico Gerado!",
                               description: "O relatório técnico foi baixado e está pronto para envio.",
                             });
-                          } catch (error) {
+                          } catch (error: any) {
                             console.error("Error generating PDF:", error);
                             // Só mostrar erro se componente ainda estiver montado
-                            if (isMountedRef.current) {
+                            // E não for erro de abort (navegação)
+                            const isAbortError = error?.name === 'AbortError' || 
+                                                 error?.message?.includes('abort') ||
+                                                 error?.message?.includes('cancel');
+                            if (isMountedRef.current && !isAbortError) {
                               toast({
                                 title: "Erro ao gerar PDF",
                                 description: "Ocorreu um erro ao gerar o relatório.",
@@ -2045,7 +2055,10 @@ const ServiceCallForm = () => {
                               setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
                               
                               const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
-                              setGeneratedPdfUrl(uploadResult.signedUrl);
+                              
+                              // Usar URL pública para o modal de envio
+                              const publicUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
+                              setGeneratedPdfUrl(publicUrl);
                               
                               const { error: updateError } = await supabase
                                 .from('service_calls')
@@ -2056,13 +2069,21 @@ const ServiceCallForm = () => {
                                 console.error("Erro ao salvar caminho do PDF:", updateError);
                               }
                               
+                              // Refetch para sincronizar dados do relatório
+                              await refetchCall();
+                              
                               toast({
                                 title: "PDF Técnico Gerado!",
                                 description: "O relatório técnico foi baixado.",
                               });
-                            } catch (error) {
+                            } catch (error: any) {
                               console.error("Error generating PDF:", error);
-                              if (isMountedRef.current) {
+                              // Só mostrar erro se componente ainda estiver montado
+                              // E não for erro de abort (navegação)
+                              const isAbortError = error?.name === 'AbortError' || 
+                                                   error?.message?.includes('abort') ||
+                                                   error?.message?.includes('cancel');
+                              if (isMountedRef.current && !isAbortError) {
                                 toast({
                                   title: "Erro ao gerar PDF",
                                   description: "Ocorreu um erro ao gerar o relatório.",
@@ -2099,7 +2120,10 @@ const ServiceCallForm = () => {
                               setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
                               
                               const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
-                              setGeneratedPdfUrl(uploadResult.signedUrl);
+                              
+                              // Usar URL pública para o modal de envio
+                              const publicUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
+                              setGeneratedPdfUrl(publicUrl);
                               
                               const { error: updateError } = await supabase
                                 .from('service_calls')
@@ -2114,15 +2138,20 @@ const ServiceCallForm = () => {
                               await markOSWithFinancialReport(existingCall.id);
                               
                               // Refetch para atualizar o estado
-                              refetchCall();
+                              await refetchCall();
                               
                               toast({
                                 title: "PDF Completo Gerado!",
                                 description: "Relatório com dados financeiros. Técnicos não poderão mais acessar relatórios desta OS.",
                               });
-                            } catch (error) {
+                            } catch (error: any) {
                               console.error("Error generating PDF:", error);
-                              if (isMountedRef.current) {
+                              // Só mostrar erro se componente ainda estiver montado
+                              // E não for erro de abort (navegação)
+                              const isAbortError = error?.name === 'AbortError' || 
+                                                   error?.message?.includes('abort') ||
+                                                   error?.message?.includes('cancel');
+                              if (isMountedRef.current && !isAbortError) {
                                 toast({
                                   title: "Erro ao gerar PDF",
                                   description: "Ocorreu um erro ao gerar o relatório.",
