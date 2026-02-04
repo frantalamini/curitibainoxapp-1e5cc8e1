@@ -1,84 +1,98 @@
 
-## Plano de Correção: Chamados Nao Salvando
+## Plano de Correção: Erro ao Voltar do PDF + Modal WhatsApp Não Abre
 
-### Problema Identificado
+### Problemas Identificados
 
-Ao criar um novo chamado, o sistema exibe a mensagem "Chamado Criado com sucesso!" e redireciona para a lista, mas o chamado nao foi salvo no banco de dados.
+**Problema 1: "Erro ao gerar PDF" ao Voltar**
+O toast de erro aparece porque, durante a geração do PDF, se ocorrer qualquer exceção (ou o processo for abortado ao navegar), o `catch` dispara o toast ANTES de verificar `isMountedRef.current`. O check está correto para os blocos que já foram corrigidos, mas a geração do PDF em si (`generateOSPdf`) pode falhar internamente e lançar exceção que não é relacionada à navegação.
 
-Causa: O codigo chama `createServiceCall()` que usa internamente `.mutate()` (fire-and-forget). Imediatamente apos, mostra o toast de sucesso e navega para outra pagina, sem aguardar a resposta do banco. Se houver qualquer erro na insercao, ele e ignorado silenciosamente.
+Causa-raiz: A função `generateOSPdf` depende de fetch de imagens/assinaturas que podem timeout ou falhar. Quando você volta rapidamente, essas requisições são abortadas e lançam exceção, que cai no catch mostrando o toast.
 
-### Solucao
+**Problema 2: Modal WhatsApp Não Abre**
+O modal de envio via WhatsApp só aparece se `generatedPdfUrl` estiver preenchido. Após gerar o PDF, o código define:
+```typescript
+setGeneratedPdfUrl(uploadResult.signedUrl);  // URL assinada do Storage
+```
 
-Alterar para usar a versao async da mutation e aguardar sua conclusao antes de mostrar sucesso.
+Porém, na verificação para exibir botões de envio, espera-se que `generatedPdfUrl` seja uma URL pública válida. O problema é que ao gerar o PDF com sucesso, a URL está sendo salva corretamente, MAS existe uma condição de corrida onde:
+1. PDF é gerado com sucesso
+2. `setGeneratedPdfUrl(uploadResult.signedUrl)` é chamado
+3. Navegação acontece antes do React atualizar o estado
+4. Ao voltar, `generatedPdfUrl` está `null`
 
-### Alteracoes
+Além disso, verificando o código, a lógica no `useEffect` (linhas 444-451) está verificando `report_pdf_path` E `report_access_token` do banco. Se o upload falhar em salvar esses campos (erro silencioso), o modal nunca aparecerá.
 
-| Arquivo | Mudanca |
-|---------|---------|
-| src/hooks/useServiceCalls.ts | Exportar `createServiceCallAsync` (mutateAsync) junto com `createServiceCall` |
-| src/pages/ServiceCallForm.tsx | Usar `createServiceCallAsync` com await e tratar erros adequadamente |
+### Solução
 
-### Detalhes Tecnicos
+#### Correção 1: Melhorar tratamento de erros na geração de PDF
 
-**1. useServiceCalls.ts (linha 387)**
-
-Adicionar a exportacao da versao async:
+Adicionar verificação mais granular para distinguir erros de "navegação/abort" de erros reais:
 
 ```text
-ANTES:
-return {
-  ...
-  createServiceCall: createMutation.mutate,
-  ...
+ANTES (linha 2004-2012):
+} catch (error) {
+  console.error("Error generating PDF:", error);
+  if (isMountedRef.current) {
+    toast({ title: "Erro ao gerar PDF", ... });
+  }
 }
 
 DEPOIS:
-return {
-  ...
-  createServiceCall: createMutation.mutate,
-  createServiceCallAsync: createMutation.mutateAsync, // NOVO
-  ...
+} catch (error: any) {
+  console.error("Error generating PDF:", error);
+  // Só mostrar erro se componente ainda estiver montado
+  // E não for erro de abort (navegação)
+  const isAbortError = error?.name === 'AbortError' || 
+                       error?.message?.includes('abort') ||
+                       error?.message?.includes('cancel');
+  if (isMountedRef.current && !isAbortError) {
+    toast({ title: "Erro ao gerar PDF", ... });
+  }
 }
 ```
 
-**2. ServiceCallForm.tsx (linha 80)**
+Aplicar essa correção em TODOS os 3 blocos de geração de PDF em ServiceCallForm.tsx (linhas 2004-2013, 2064-2071, 2123-2130).
 
-Importar a nova funcao:
+#### Correção 2: Garantir que generatedPdfUrl seja definido com URL pública após upload
 
-```text
-ANTES:
-const { createServiceCall, updateServiceCallAsync } = useServiceCalls();
-
-DEPOIS:
-const { createServiceCallAsync, updateServiceCallAsync } = useServiceCalls();
-```
-
-**3. ServiceCallForm.tsx (linhas 1004-1016)**
-
-Usar await e try/catch:
+Após o upload bem-sucedido, definir a URL pública correta (não a signedUrl do storage):
 
 ```text
 ANTES:
-createServiceCall({...});
-setNewSignatures([]);
-toast({ title: "Chamado Criado" });
-navigate("/service-calls");
+setGeneratedPdfUrl(uploadResult.signedUrl);
 
 DEPOIS:
-try {
-  await createServiceCallAsync({...});
-  setNewSignatures([]);
-  toast({ title: "Chamado Criado" });
-  navigate("/service-calls");
-} catch (createError) {
-  console.error('Erro ao criar chamado:', createError);
-  // Toast de erro ja e exibido pelo hook
-}
+// Usar URL pública para o modal de envio
+const publicUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
+setGeneratedPdfUrl(publicUrl);
 ```
+
+Aplicar em TODOS os 3 blocos de geração (linhas 1988, 2048, 2102).
+
+#### Correção 3: Refetch após upload para garantir sincronização
+
+Após gerar o PDF, forçar um refetch do chamado para garantir que os campos `report_access_token` e `report_pdf_path` estejam sincronizados com o banco:
+
+```text
+// Após toast de sucesso
+await refetchCall();
+```
+
+### Arquivos a Modificar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| src/pages/ServiceCallForm.tsx | 3x correção de tratamento de erro de abort + 3x correção de URL pública + 3x refetch |
 
 ### Impacto
 
-- O sistema aguardara a confirmacao do banco antes de mostrar sucesso
-- Erros de insercao serao tratados adequadamente
-- O usuario vera mensagem de erro se algo falhar
-- Nenhuma outra parte do sistema sera afetada
+- Erro ao voltar desaparecerá (aborts não serão mais reportados como erro)
+- Modal de WhatsApp abrirá corretamente após gerar PDF
+- URL correta será enviada no WhatsApp (pública, não signedUrl)
+- Dados sincronizados após geração do PDF
+
+### Localizações Exatas das Alterações
+
+1. **Técnico PDF** (linhas 1971-2018): Corrigir catch + setGeneratedPdfUrl + adicionar refetch
+2. **Admin PDF Técnico** (linhas 2030-2077): Corrigir catch + setGeneratedPdfUrl + adicionar refetch  
+3. **Admin PDF Completo** (linhas 2084-2137): Corrigir catch + setGeneratedPdfUrl + adicionar refetch
