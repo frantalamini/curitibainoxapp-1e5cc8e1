@@ -164,6 +164,13 @@ const ServiceCallForm = () => {
   
   // Ref para rastrear se o componente está montado (evita erros de state em componentes desmontados)
   const isMountedRef = useRef(true);
+
+  // Ao navegar para fora (ex: Voltar), marcamos como não-montado antes da navegação
+  // para impedir toasts/updates que podem disparar no exato momento do back.
+  const handleBack = () => {
+    isMountedRef.current = false;
+    navigate("/service-calls");
+  };
   
   // Estados de preview removidos - MediaSlots gerencia internamente
 
@@ -1037,7 +1044,7 @@ const ServiceCallForm = () => {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/service-calls")}>
+            <Button variant="outline" size="sm" onClick={handleBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar
             </Button>
