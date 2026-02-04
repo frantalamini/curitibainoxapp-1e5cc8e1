@@ -455,7 +455,7 @@ const ServiceCallForm = () => {
     // Priorizar report_access_token - se existir, podemos montar a URL pública
     // mesmo sem report_pdf_path (que pode ter falhado silenciosamente)
     if (existingCall && isEditMode && (existingCall as any).report_access_token) {
-      const pdfUrl = `https://curitibainoxapp.lovable.app/relatorio-os/${existingCall.os_number}/${(existingCall as any).report_access_token}`;
+      const pdfUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${(existingCall as any).report_access_token}`;
       setGeneratedPdfUrl(pdfUrl);
     }
   }, [existingCall, isEditMode, setValue]);
@@ -983,7 +983,7 @@ const ServiceCallForm = () => {
             .single();
           
           if (updatedCall?.report_pdf_path && updatedCall?.report_access_token) {
-            setGeneratedPdfUrl(`https://curitibainoxapp.lovable.app/relatorio-os/${updatedCall.os_number}/${updatedCall.report_access_token}`);
+            setGeneratedPdfUrl(`https://curitibainoxapp.com/relatorio-os/${updatedCall.os_number}/${updatedCall.report_access_token}`);
           }
           
           toast({
@@ -1991,7 +1991,7 @@ const ServiceCallForm = () => {
                             const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
                             
                             // Usar URL pública para o modal de envio
-                            const publicUrl = `https://curitibainoxapp.lovable.app/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
+                            const publicUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
                             setGeneratedPdfUrl(publicUrl);
                             
                             // Salvar o caminho do PDF no banco de dados
@@ -2056,7 +2056,7 @@ const ServiceCallForm = () => {
                               const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
                               
                               // Usar URL pública para o modal de envio
-                              const publicUrl = `https://curitibainoxapp.lovable.app/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
+                              const publicUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
                               setGeneratedPdfUrl(publicUrl);
                               
                               const { error: updateError } = await supabase
@@ -2116,7 +2116,7 @@ const ServiceCallForm = () => {
                               const uploadResult = await uploadPdfToStorage(blob, existingCall.id, fileName);
                               
                               // Usar URL pública para o modal de envio
-                              const publicUrl = `https://curitibainoxapp.lovable.app/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
+                              const publicUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${uploadResult.newAccessToken}`;
                               setGeneratedPdfUrl(publicUrl);
                               
                               const { error: updateError } = await supabase
