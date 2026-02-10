@@ -4,9 +4,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Receipt, Clock, CheckCircle, XCircle, DollarSign, Eye } from "lucide-react";
+import { Plus, Receipt, Clock, CheckCircle, XCircle, DollarSign, Eye, Filter } from "lucide-react";
 import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
-import { useTechnicianReimbursements } from "@/hooks/useTechnicianReimbursements";
+import { useTechnicianReimbursements, ReimbursementStatus } from "@/hooks/useTechnicianReimbursements";
 import { TechnicianReimbursementModal } from "@/components/reimbursements/TechnicianReimbursementModal";
 import { AdminReimbursementModal } from "@/components/reimbursements/AdminReimbursementModal";
 import { ReimbursementDetailsDialog } from "@/components/reimbursements/ReimbursementDetailsDialog";
@@ -22,13 +22,17 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   REJECTED: { label: "Rejeitado", variant: "destructive", icon: XCircle },
 };
 
+type StatusFilter = ReimbursementStatus | "all";
+
 export default function TechnicianReimbursements() {
   const { technicianId, isLoading: isLoadingTechnician } = useCurrentTechnician();
   const { isAdmin, loading: isLoadingRole } = useUserRole();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   
-  // Admin vê todos os reembolsos, técnico vê apenas os seus
-  const { reimbursements, isLoading: isLoadingReimbursements } = useTechnicianReimbursements(
-    isAdmin ? undefined : (technicianId ? { technicianId } : undefined)
+  const { reimbursements, isLoading: isLoadingReimbursements, summary } = useTechnicianReimbursements(
+    isAdmin 
+      ? (statusFilter !== "all" ? { status: statusFilter } : undefined)
+      : (technicianId ? { technicianId, ...(statusFilter !== "all" ? { status: statusFilter } : {}) } : undefined)
   );
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,7 +41,6 @@ export default function TechnicianReimbursements() {
 
   const isLoading = isLoadingTechnician || isLoadingReimbursements || isLoadingRole;
 
-  // Só bloqueia se não for admin E não for técnico
   if (!isLoadingTechnician && !isLoadingRole && !technicianId && !isAdmin) {
     return (
       <MainLayout>
@@ -57,8 +60,18 @@ export default function TechnicianReimbursements() {
     );
   }
 
-  // Técnico pode criar via modal de técnico
   const isTechnician = !!technicianId;
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
+  const statusFilters: { value: StatusFilter; label: string }[] = [
+    { value: "all", label: "Todos" },
+    { value: "PENDING", label: "Pendentes" },
+    { value: "APPROVED", label: "Aprovados" },
+    { value: "PAID", label: "Pagos" },
+    { value: "REJECTED", label: "Rejeitados" },
+  ];
 
   return (
     <MainLayout>
@@ -83,6 +96,51 @@ export default function TechnicianReimbursements() {
             : "Solicite reembolso de despesas vinculadas às suas OS"
           }
         </p>
+
+        {/* Dashboard Summary Cards */}
+        {isAdmin && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="border-yellow-500/30 bg-yellow-500/5">
+              <CardContent className="py-4 text-center">
+                <Clock className="h-6 w-6 mx-auto mb-1 text-yellow-600" />
+                <div className="text-sm text-muted-foreground">Pendentes</div>
+                <div className="text-2xl font-bold text-yellow-600">{formatCurrency(summary.totalPending)}</div>
+                <div className="text-xs text-muted-foreground">{summary.countPending} solicitação(ões)</div>
+              </CardContent>
+            </Card>
+            <Card className="border-blue-500/30 bg-blue-500/5">
+              <CardContent className="py-4 text-center">
+                <CheckCircle className="h-6 w-6 mx-auto mb-1 text-blue-600" />
+                <div className="text-sm text-muted-foreground">Aprovados (aguardando pagamento)</div>
+                <div className="text-2xl font-bold text-blue-600">{formatCurrency(summary.totalApproved)}</div>
+                <div className="text-xs text-muted-foreground">{summary.countApproved} solicitação(ões)</div>
+              </CardContent>
+            </Card>
+            <Card className="border-green-500/30 bg-green-500/5">
+              <CardContent className="py-4 text-center">
+                <DollarSign className="h-6 w-6 mx-auto mb-1 text-green-600" />
+                <div className="text-sm text-muted-foreground">Pagos</div>
+                <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalPaid)}</div>
+                <div className="text-xs text-muted-foreground">{summary.countPaid} solicitação(ões)</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          {statusFilters.map((f) => (
+            <Button
+              key={f.value}
+              variant={statusFilter === f.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter(f.value)}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
 
         {isLoading ? (
           <div className="space-y-3">
@@ -190,7 +248,6 @@ export default function TechnicianReimbursements() {
           </Card>
         )}
 
-        {/* Modal para nova solicitação - técnicos */}
         {isTechnician && technicianId && (
           <TechnicianReimbursementModal
             open={isModalOpen}
@@ -199,7 +256,6 @@ export default function TechnicianReimbursements() {
           />
         )}
 
-        {/* Modal para admin cadastrar reembolso */}
         {isAdmin && (
           <AdminReimbursementModal
             open={isAdminModalOpen}
@@ -207,7 +263,6 @@ export default function TechnicianReimbursements() {
           />
         )}
 
-        {/* Dialog para ver detalhes */}
         <ReimbursementDetailsDialog
           open={!!selectedReimbursement}
           onOpenChange={(open) => !open && setSelectedReimbursement(null)}

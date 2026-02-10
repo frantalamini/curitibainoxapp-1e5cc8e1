@@ -21,7 +21,6 @@ export interface TechnicianReimbursement {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  // Joined data
   technician?: {
     full_name: string;
     phone: string;
@@ -81,6 +80,11 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
     },
   });
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["technician-reimbursements"] });
+    queryClient.invalidateQueries({ queryKey: ["reimbursement-details"] });
+  };
+
   const createReimbursement = useMutation({
     mutationFn: async (input: CreateReimbursementInput) => {
       const { data, error } = await supabase
@@ -100,7 +104,7 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["technician-reimbursements"] });
+      invalidateAll();
       toast.success("Solicitação de reembolso enviada!");
     },
     onError: (error: Error) => {
@@ -112,8 +116,9 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
   const approveReimbursement = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      const { error } = await supabase
+
+      // 1. Approve the reimbursement
+      const { data: reimbursementData, error } = await supabase
         .from("technician_reimbursements")
         .update({
           status: "APPROVED",
@@ -121,13 +126,37 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
           approved_by: user?.id,
           notes: notes || null,
         })
-        .eq("id", id);
+        .eq("id", id)
+        .select("*, service_call:service_calls(os_number)")
+        .single();
 
       if (error) throw error;
+
+      // 2. Create a financial_transaction (Conta a Pagar)
+      const osNumber = reimbursementData?.service_call?.os_number;
+      const { error: txError } = await supabase
+        .from("financial_transactions")
+        .insert({
+          direction: "PAY" as const,
+          origin: "MANUAL" as const,
+          status: "OPEN" as const,
+          amount: reimbursementData.amount,
+          due_date: new Date().toISOString().split("T")[0],
+          description: `Reembolso técnico - OS #${osNumber || "?"}${reimbursementData.description ? ` - ${reimbursementData.description}` : ""}`,
+          service_call_id: reimbursementData.service_call_id,
+          notes: `Reembolso ID: ${id}`,
+        });
+
+      if (txError) {
+        console.error("Erro ao criar conta a pagar:", txError);
+        // Don't throw - reimbursement was already approved
+        toast.warning("Reembolso aprovado, mas houve erro ao criar a conta a pagar");
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["technician-reimbursements"] });
-      toast.success("Reembolso aprovado!");
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
+      toast.success("Reembolso aprovado e conta a pagar gerada!");
     },
     onError: (error: Error) => {
       toast.error(`Erro ao aprovar: ${error.message}`);
@@ -147,7 +176,7 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["technician-reimbursements"] });
+      invalidateAll();
       toast.success("Reembolso rejeitado");
     },
     onError: (error: Error) => {
@@ -157,19 +186,38 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
 
   const markAsPaid = useMutation({
     mutationFn: async ({ id, paymentProofUrl }: { id: string; paymentProofUrl: string }) => {
-      const { error } = await supabase
+      // 1. Mark reimbursement as paid
+      const { data: reimbursementData, error } = await supabase
         .from("technician_reimbursements")
         .update({
           status: "PAID",
           paid_at: new Date().toISOString(),
           payment_proof_url: paymentProofUrl,
         })
-        .eq("id", id);
+        .eq("id", id)
+        .select("*, service_call:service_calls(os_number)")
+        .single();
 
       if (error) throw error;
+
+      // 2. Try to settle the corresponding financial_transaction
+      const { error: txError } = await supabase
+        .from("financial_transactions")
+        .update({
+          status: "PAID" as const,
+          paid_at: new Date().toISOString(),
+        })
+        .eq("service_call_id", reimbursementData.service_call_id)
+        .eq("direction", "PAY")
+        .ilike("notes", `%Reembolso ID: ${id}%`);
+
+      if (txError) {
+        console.error("Erro ao baixar conta a pagar:", txError);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["technician-reimbursements"] });
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
       toast.success("Reembolso marcado como pago!");
     },
     onError: (error: Error) => {
@@ -187,7 +235,7 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["technician-reimbursements"] });
+      invalidateAll();
       toast.success("Reembolso excluído");
     },
     onError: (error: Error) => {
@@ -195,7 +243,7 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
     },
   });
 
-  // Calculate summary
+  // Calculate summary from ALL reimbursements (not filtered by status)
   const pendingReimbursements = reimbursements.filter(r => r.status === "PENDING");
   const approvedReimbursements = reimbursements.filter(r => r.status === "APPROVED");
   const paidReimbursements = reimbursements.filter(r => r.status === "PAID");
