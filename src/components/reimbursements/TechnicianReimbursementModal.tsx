@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Loader2, Scan, Upload, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Camera, Check, ChevronsUpDown, Loader2, Scan, Upload, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTechnicianReimbursements, CreateReimbursementInput } from "@/hooks/useTechnicianReimbursements";
@@ -35,6 +37,7 @@ export function TechnicianReimbursementModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [selectedServiceCallId, setSelectedServiceCallId] = useState<string>("");
+  const [osPopoverOpen, setOsPopoverOpen] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [description, setDescription] = useState("");
@@ -205,31 +208,55 @@ export function TechnicianReimbursementModal({
           {/* Service Call Selector */}
           <div>
             <Label>Vincular à OS *</Label>
-            <Select 
-              value={selectedServiceCallId} 
-              onValueChange={setSelectedServiceCallId}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder={isLoadingCalls ? "Carregando..." : "Selecione a OS"} />
-              </SelectTrigger>
-              <SelectContent>
-                {openServiceCalls?.map((sc) => (
-                  <SelectItem key={sc.id} value={sc.id}>
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">OS #{sc.os_number}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {sc.clients?.full_name} • {sc.equipment_description}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-                {openServiceCalls?.length === 0 && (
-                  <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                    Nenhuma OS aberta encontrada
-                  </div>
-                )}
-              </SelectContent>
-            </Select>
+            <Popover open={osPopoverOpen} onOpenChange={setOsPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={osPopoverOpen}
+                  className="w-full justify-between mt-1 font-normal"
+                >
+                  {selectedServiceCallId
+                    ? (() => {
+                        const sc = openServiceCalls?.find(s => s.id === selectedServiceCallId);
+                        return sc ? `OS #${sc.os_number} - ${sc.clients?.full_name || ""}` : "Selecione a OS";
+                      })()
+                    : isLoadingCalls
+                      ? "Carregando..."
+                      : "Selecione a OS"
+                  }
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar por nº da OS ou cliente..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhuma OS encontrada</CommandEmpty>
+                    <CommandGroup>
+                      {openServiceCalls?.map((sc) => (
+                        <CommandItem
+                          key={sc.id}
+                          value={`${sc.os_number} ${sc.clients?.full_name || ""} ${sc.equipment_description}`}
+                          onSelect={() => {
+                            setSelectedServiceCallId(sc.id);
+                            setOsPopoverOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", selectedServiceCallId === sc.id ? "opacity-100" : "opacity-0")} />
+                          <div className="flex flex-col">
+                            <span className="font-medium">OS #{sc.os_number}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {sc.clients?.full_name} • {sc.equipment_description}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Photo Upload */}
