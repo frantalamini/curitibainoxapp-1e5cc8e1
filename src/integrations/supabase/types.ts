@@ -911,6 +911,164 @@ export type Database = {
           },
         ]
       }
+      sale_delivery_proofs: {
+        Row: {
+          created_at: string
+          delivered_at: string
+          delivered_by: string | null
+          id: string
+          notes: string | null
+          photo_urls: string[] | null
+          receiver_name: string
+          receiver_position: string | null
+          sale_id: string
+          signature_storage_path: string
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string
+          delivered_by?: string | null
+          id?: string
+          notes?: string | null
+          photo_urls?: string[] | null
+          receiver_name: string
+          receiver_position?: string | null
+          sale_id: string
+          signature_storage_path: string
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string
+          delivered_by?: string | null
+          id?: string
+          notes?: string | null
+          photo_urls?: string[] | null
+          receiver_name?: string
+          receiver_position?: string | null
+          sale_id?: string
+          signature_storage_path?: string
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_delivery_proofs_delivered_by_fkey"
+            columns: ["delivered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "sale_delivery_proofs_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_delivery_proofs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "sale_delivery_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_delivery_trips: {
+        Row: {
+          created_at: string
+          current_lat: number | null
+          current_lng: number | null
+          destination_lat: number | null
+          destination_lng: number | null
+          distance_km: number | null
+          driver_id: string | null
+          estimated_distance_km: number | null
+          finished_at: string | null
+          id: string
+          origin_lat: number | null
+          origin_lng: number | null
+          position_updated_at: string | null
+          route_group_id: string | null
+          route_order: number | null
+          sale_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
+          destination_lat?: number | null
+          destination_lng?: number | null
+          distance_km?: number | null
+          driver_id?: string | null
+          estimated_distance_km?: number | null
+          finished_at?: string | null
+          id?: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          position_updated_at?: string | null
+          route_group_id?: string | null
+          route_order?: number | null
+          sale_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
+          destination_lat?: number | null
+          destination_lng?: number | null
+          distance_km?: number | null
+          driver_id?: string | null
+          estimated_distance_km?: number | null
+          finished_at?: string | null
+          id?: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          position_updated_at?: string | null
+          route_group_id?: string | null
+          route_order?: number | null
+          sale_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_delivery_trips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "sale_delivery_trips_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_delivery_trips_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           created_at: string | null

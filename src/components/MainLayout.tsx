@@ -106,6 +106,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
             icon: "carrinho" as IconName,
             items: [
               { icon: "carrinho" as IconName, label: "Orçamentos e Vendas", to: "/vendas" },
+              { icon: "veiculo" as IconName, label: "Entregas", to: "/vendas/entregas" },
             ],
           },
         ]

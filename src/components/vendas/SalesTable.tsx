@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, Edit, MoreHorizontal, CheckCircle, XCircle, Copy, ShoppingCart } from "lucide-react";
+import { Eye, Edit, MoreHorizontal, CheckCircle, XCircle, Copy, ShoppingCart, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -131,6 +131,13 @@ export function SalesTable({
                         <DropdownMenuItem onClick={() => onFinalize(sale.id)}>
                           <ShoppingCart className="mr-2 h-4 w-4 text-green-500" />
                           Finalizar Venda
+                        </DropdownMenuItem>
+                      )}
+
+                      {(sale.status === "SALE" || sale.status === "INVOICED") && (
+                        <DropdownMenuItem onClick={() => navigate(`/vendas/entregas`)}>
+                          <Truck className="mr-2 h-4 w-4 text-blue-500" />
+                          Registrar Entrega
                         </DropdownMenuItem>
                       )}
 
