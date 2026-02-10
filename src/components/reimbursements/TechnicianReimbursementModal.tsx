@@ -150,7 +150,7 @@ export function TechnicianReimbursementModal({
       return;
     }
 
-    const numericAmount = parseFloat(amount.replace(",", "."));
+    const numericAmount = parseFloat(amount.replace(/\./g, "").replace(",", "."));
     if (isNaN(numericAmount) || numericAmount <= 0) {
       toast.error("Valor inválido");
       return;
@@ -311,9 +311,16 @@ export function TechnicianReimbursementModal({
             </Label>
             <Input
               type="text"
+              inputMode="numeric"
               placeholder="0,00"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "");
+                if (!raw) { setAmount(""); return; }
+                const cents = parseInt(raw, 10);
+                const formatted = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                setAmount(formatted);
+              }}
               className="mt-1"
             />
           </div>
