@@ -134,7 +134,7 @@ export default function Sales() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SaleStatus | "ALL")}>
-          <TabsList className="grid grid-cols-5 w-full max-w-xl">
+          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
             <TabsTrigger value="ALL" className="gap-1">
               Todos
               <span className="text-xs text-muted-foreground">({sales.length})</span>
