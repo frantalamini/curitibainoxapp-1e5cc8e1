@@ -73,6 +73,8 @@ const DespesasRecorrentes = lazy(() => import("./pages/financas/DespesasRecorren
 // Módulo Vendas
 const Sales = lazy(() => import("./pages/vendas/Sales"));
 const SaleForm = lazy(() => import("./pages/vendas/SaleForm"));
+const SaleDeliveries = lazy(() => import("./pages/vendas/SaleDeliveries"));
+const SaleDeliveryFlow = lazy(() => import("./pages/vendas/SaleDeliveryFlow"));
 
 // Pendências
 const Pendencias = lazy(() => import("./pages/Pendencias"));
@@ -678,6 +680,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <SaleForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendas/entregas"
+              element={
+                <ProtectedRoute>
+                  <SaleDeliveries />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendas/entregas/:routeGroupId"
+              element={
+                <ProtectedRoute>
+                  <SaleDeliveryFlow />
                 </ProtectedRoute>
               }
             />

@@ -19,6 +19,7 @@ import {
   ShoppingCart,
   User,
   Calendar,
+  Truck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -92,6 +93,13 @@ export function SaleMobileCard({
                 <DropdownMenuItem onClick={() => onFinalize(sale.id)}>
                   <ShoppingCart className="mr-2 h-4 w-4 text-green-500" />
                   Finalizar Venda
+                </DropdownMenuItem>
+              )}
+
+              {(sale.status === "SALE" || sale.status === "INVOICED") && (
+                <DropdownMenuItem onClick={() => navigate(`/vendas/entregas`)}>
+                  <Truck className="mr-2 h-4 w-4 text-blue-500" />
+                  Registrar Entrega
                 </DropdownMenuItem>
               )}
 
