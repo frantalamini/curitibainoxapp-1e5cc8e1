@@ -1186,7 +1186,9 @@ const ServiceCallForm = () => {
             */}
             <TabsList className={cn(
               "grid w-full mb-6",
-              isEditMode ? "grid-cols-4" : "grid-cols-2"
+              isEditMode 
+                ? (isTechnician && !isAdmin ? "grid-cols-3" : "grid-cols-4")
+                : "grid-cols-2"
             )}>
               <TabsTrigger value="geral" className="flex items-center justify-center gap-1.5">
                 <FileText className="w-4 h-4 sm:hidden" />
@@ -1197,7 +1199,7 @@ const ServiceCallForm = () => {
                 <span className="hidden sm:inline">Informações Técnicas</span>
                 <span className="sm:hidden">Técnico</span>
               </TabsTrigger>
-              {isEditMode && (
+              {isEditMode && !(isTechnician && !isAdmin) && (
                 <TabsTrigger 
                   value="financeiro" 
                   className="flex items-center justify-center gap-1.5"
@@ -1905,7 +1907,7 @@ const ServiceCallForm = () => {
               
               NÃO REMOVER ou CONDICIONAR esta TabsContent!
             */}
-            {isEditMode && (
+            {isEditMode && !(isTechnician && !isAdmin) && (
               <TabsContent value="financeiro" data-testid="financeiro-tab-content">
                 <Card>
                   <CardHeader>
