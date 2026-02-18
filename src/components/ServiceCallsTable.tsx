@@ -51,6 +51,7 @@ export const ServiceCallsTable = ({
             <TableHead className="w-[60px]">Nº OS</TableHead>
             <TableHead className="w-8 px-1"></TableHead>
             <TableHead>Cliente</TableHead>
+            <TableHead className="w-[10%]">Equip.</TableHead>
             <TableHead className="w-[10%]">Data</TableHead>
             <TableHead className="w-[10%]">Técnico</TableHead>
             <TableHead className="w-[12%]">
@@ -94,7 +95,7 @@ export const ServiceCallsTable = ({
                   />
                 </TableCell>
                 <TableCell className="py-2">
-                  <div className="flex flex-col max-w-[240px]">
+                  <div className="flex flex-col max-w-[200px]">
                     <span className="font-medium text-sm truncate" title={call.clients?.full_name}>
                       {call.clients?.full_name || "-"}
                     </span>
@@ -109,6 +110,11 @@ export const ServiceCallsTable = ({
                       </span>
                     )}
                   </div>
+                </TableCell>
+                <TableCell className="py-2">
+                  <span className="text-xs truncate block max-w-[100px]" title={call.equipment_description}>
+                    {call.equipment_description || "-"}
+                  </span>
                 </TableCell>
                 <TableCell className="py-2">
                   <span className="text-sm text-muted-foreground">
