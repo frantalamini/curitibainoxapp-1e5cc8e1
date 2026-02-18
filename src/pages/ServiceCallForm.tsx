@@ -454,7 +454,10 @@ const ServiceCallForm = () => {
     // Isso garante que os botões PDF/WhatsApp apareçam após gerar relatório
     // Priorizar report_access_token - se existir, podemos montar a URL pública
     // mesmo sem report_pdf_path (que pode ter falhado silenciosamente)
-    if (existingCall && isEditMode && (existingCall as any).report_access_token) {
+    // IMPORTANTE: Se o técnico está bloqueado (has_financial_report=true), NÃO mostrar
+    // o link do PDF armazenado pois pode conter dados financeiros do admin
+    const isTechBlocked = isTechnician && !isAdmin && (existingCall as any)?.has_financial_report;
+    if (existingCall && isEditMode && (existingCall as any).report_access_token && !isTechBlocked) {
       const pdfUrl = `https://curitibainoxapp.com/relatorio-os/${existingCall.os_number}/${(existingCall as any).report_access_token}`;
       setGeneratedPdfUrl(pdfUrl);
     }
