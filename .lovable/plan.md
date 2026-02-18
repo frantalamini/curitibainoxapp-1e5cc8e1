@@ -1,29 +1,24 @@
 
 
-## Habilitar acesso financeiro da OS para o usuario Jonatas
+## Exibir Equipamento na tabela de Chamados Tecnicos
 
-### Diagnostico
+### O que sera feito
 
-O usuario Jonatas (profile_type: **adm**) tem as permissoes do modulo `finances` todas desabilitadas (`can_view = false`, `can_edit = false`, `can_delete = false`). O `FinanceiroGuard` so libera acesso para perfil **gerencial** (acesso total) ou para quem tem `can_view = true` no modulo `finances`. Como nenhuma das duas condicoes e atendida, ele ve "Acesso Restrito".
+Adicionar uma coluna "Equipamento" na tabela de listagem de OS (ServiceCallsTable), entre a coluna "Cliente" e "Data", exibindo o campo `equipment_description` que ja esta disponivel nos dados carregados.
 
-### Solucao
+### Como encaixar sem alterar estrutura
 
-Atualizar as permissoes do Jonatas no banco de dados, habilitando `can_view`, `can_edit` e `can_delete` para o modulo `finances`.
-
-**Nenhum arquivo de codigo sera modificado.** Apenas uma atualizacao de dados no banco.
+- A coluna "Cliente" atualmente ocupa espaco livre (sem width definido). Vou dividir esse espaco: Cliente continua sem width fixo mas com `max-w` reduzido, e Equipamento entra com `w-[12%]` (mesma proporcao das colunas de status).
+- O texto do equipamento sera truncado com `truncate` para nao estourar o layout.
+- Nenhuma outra coluna tera seu tamanho ou margem alterado.
 
 ### Detalhes Tecnicos
 
-Executar a seguinte migracao SQL:
+**Arquivo**: `src/components/ServiceCallsTable.tsx`
 
-```sql
-UPDATE public.user_permissions
-SET can_view = true, can_edit = true, can_delete = true, updated_at = now()
-WHERE user_id = 'f8032b50-2892-45bd-9aaa-723e6dc23ca7'
-  AND module = 'finances';
-```
+1. Adicionar `<TableHead>` "Equip." entre "Cliente" e "Data" com `w-[10%]`
+2. Adicionar `<TableCell>` correspondente exibindo `call.equipment_description` com `truncate`, `text-xs` e `max-w-[100px]`
+3. Reduzir o `max-w` da coluna Cliente de `240px` para `200px` para acomodar
 
-Isso habilita o acesso completo (consultar, editar, excluir) ao modulo Financeiro da OS para o Jonatas, mantendo o perfil **adm** dele inalterado.
-
-Nenhuma rota, componente ou estrutura de banco sera alterada.
+Nenhuma alteracao em banco, hooks, rotas ou outros componentes.
 
