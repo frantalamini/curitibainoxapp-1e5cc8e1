@@ -5,6 +5,7 @@ import { OSReport } from '@/components/pdf/OSReport';
 import { ServiceCall } from '@/hooks/useServiceCalls';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dateUtils';
 
 interface GenerateOSPdfResult {
   blob: Blob;
@@ -410,7 +411,7 @@ async function fetchFinancialData(osId: string, osData: any): Promise<Report['fi
       .filter(t => t.status !== 'CANCELED')
       .map(t => ({
         number: t.installment_number || 1,
-        dueDate: format(new Date(t.due_date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }),
+        dueDate: format(parseLocalDate(t.due_date), 'dd/MM/yyyy', { locale: ptBR }),
         amount: t.amount || 0,
         paymentMethod: t.payment_method,
         notes: t.notes || null,
