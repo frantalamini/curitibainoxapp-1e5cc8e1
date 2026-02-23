@@ -100,7 +100,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch system transactions for the period
+    // Fetch system transactions for the period (include direction for frontend separation)
     const { data: systemTransactions, error } = await supabaseAdmin
       .from("financial_transactions")
       .select("id, description, amount, direction, due_date, paid_at, is_reconciled")

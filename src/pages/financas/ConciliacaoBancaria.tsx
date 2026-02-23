@@ -26,13 +26,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useBankReconciliation } from "@/hooks/useBankReconciliation";
 import { useOFXReconciliation, MatchSuggestion } from "@/hooks/useOFXReconciliation";
 import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
@@ -54,6 +53,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -139,6 +139,215 @@ function StatusBadge({ status }: { status: MatchSuggestion["status"] }) {
   }
 }
 
+interface ReassignPopoverProps {
+  ofxFitId: string;
+  availableTransactions: any[];
+  onReassign: (ofxFitId: string, systemTxId: string) => void;
+}
+
+function ReassignPopover({ ofxFitId, availableTransactions, onReassign }: ReassignPopoverProps) {
+  const [open, setOpen] = useState(false);
+
+  if (availableTransactions.length === 0) return null;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8" title="Trocar match">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0 max-h-60 overflow-y-auto" align="end">
+        <div className="p-2 border-b">
+          <p className="text-xs font-medium text-muted-foreground">Selecione outra transação do sistema</p>
+        </div>
+        <div className="divide-y">
+          {availableTransactions.map((tx) => (
+            <button
+              key={tx.id}
+              className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors text-sm"
+              onClick={() => {
+                onReassign(ofxFitId, tx.id);
+                setOpen(false);
+              }}
+            >
+              <p className="font-medium truncate">{tx.description || "Sem descrição"}</p>
+              <p className="text-xs text-muted-foreground">
+                {tx.paid_at
+                  ? format(new Date(tx.paid_at), "dd/MM/yy", { locale: ptBR })
+                  : tx.due_date} •{" "}
+                <span className={tx.direction === "PAY" ? "text-red-600" : "text-green-600"}>
+                  {formatCurrency(tx.amount)}
+                </span>
+              </p>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+interface ReconciliationTableProps {
+  suggestions: MatchSuggestion[];
+  unmatchedTransactions: any[];
+  onUpdateStatus: (fitId: string, status: MatchSuggestion["status"]) => void;
+  onReassign: (fitId: string, systemTxId: string) => void;
+  onApproveAll: () => void;
+  direction: "RECEIVE" | "PAY";
+}
+
+function ReconciliationTable({
+  suggestions,
+  unmatchedTransactions,
+  onUpdateStatus,
+  onReassign,
+  onApproveAll,
+  direction,
+}: ReconciliationTableProps) {
+  const approvedCount = suggestions.filter((s) => s.status === "approved").length;
+  const highConfidenceCount = suggestions.filter((s) => s.systemTransaction && s.confidence >= 80).length;
+
+  // Available transactions for reassignment: unmatched + currently matched in this direction
+  const allAvailableForReassign = unmatchedTransactions;
+
+  if (suggestions.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Nenhuma transação de {direction === "RECEIVE" ? "recebimento" : "pagamento"} no extrato.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">
+          {approvedCount} aprovados de {suggestions.length}
+        </span>
+        {highConfidenceCount > 0 && (
+          <Button variant="outline" size="sm" onClick={onApproveAll}>
+            <Check className="h-4 w-4 mr-1" />
+            Aprovar Todos ({">"}80%)
+          </Button>
+        )}
+      </div>
+
+      <div className="border rounded-lg overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Extrato (OFX)</TableHead>
+              <TableHead>Sugestão do Sistema</TableHead>
+              <TableHead className="text-center w-[100px]">Confiança</TableHead>
+              <TableHead className="text-center w-[100px]">Status</TableHead>
+              <TableHead className="w-[120px]">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {suggestions.map((match) => (
+              <TableRow key={match.ofxTransaction.fitId}>
+                <TableCell>
+                  <div className="text-sm">
+                    <p className="font-medium truncate max-w-[200px]">
+                      {match.ofxTransaction.description}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {match.ofxTransaction.date} •{" "}
+                      <span
+                        className={
+                          match.ofxTransaction.amount < 0
+                            ? "text-red-600"
+                            : "text-green-600"
+                        }
+                      >
+                        {formatCurrency(Math.abs(match.ofxTransaction.amount))}
+                      </span>
+                    </p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {match.systemTransaction ? (
+                    <div className="text-sm">
+                      <p className="font-medium truncate max-w-[200px]">
+                        {match.systemTransaction.description || "-"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {match.systemTransaction.paid_at
+                          ? format(
+                              new Date(match.systemTransaction.paid_at),
+                              "dd/MM/yy",
+                              { locale: ptBR }
+                            )
+                          : match.systemTransaction.due_date}{" "}
+                        •{" "}
+                        <span
+                          className={
+                            match.systemTransaction.direction === "PAY"
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }
+                        >
+                          {formatCurrency(match.systemTransaction.amount)}
+                        </span>
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground italic">
+                      Sem correspondência
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="text-center">
+                  <ConfidenceBadge confidence={match.confidence} />
+                </TableCell>
+                <TableCell className="text-center">
+                  <StatusBadge status={match.status} />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    {match.status === "pending" && match.systemTransaction && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-green-600"
+                          onClick={() =>
+                            onUpdateStatus(match.ofxTransaction.fitId, "approved")
+                          }
+                          title="Aprovar"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600"
+                          onClick={() =>
+                            onUpdateStatus(match.ofxTransaction.fitId, "rejected")
+                          }
+                          title="Rejeitar"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    <ReassignPopover
+                      ofxFitId={match.ofxTransaction.fitId}
+                      availableTransactions={allAvailableForReassign}
+                      onReassign={onReassign}
+                    />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
 export default function ConciliacaoBancaria() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -146,7 +355,6 @@ export default function ConciliacaoBancaria() {
     String(new Date().getMonth() + 1)
   );
   const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
-  const [showOFXDialog, setShowOFXDialog] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -168,10 +376,15 @@ export default function ConciliacaoBancaria() {
     isParsing,
     ofxStatement,
     matchSuggestions,
+    receiveSuggestions,
+    paySuggestions,
+    unmatchedReceiveTransactions,
+    unmatchedPayTransactions,
     parseOFXFile,
     runAIMatching,
     updateSuggestionStatus,
-    approveAll,
+    reassignMatch,
+    approveAllByDirection,
     saveReconciliation,
     reset,
   } = useOFXReconciliation();
@@ -186,24 +399,22 @@ export default function ConciliacaoBancaria() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      await parseOFXFile(file);
+    if (file && selectedAccountId) {
+      const statement = await parseOFXFile(file);
+      if (statement) {
+        // Auto-trigger AI matching
+        await runAIMatching(selectedAccountId);
+      }
     }
   };
 
   const handleStartOFX = (accountId: string) => {
     setSelectedAccountId(accountId);
-    setShowOFXDialog(true);
     reset();
+    // Trigger file input
+    setTimeout(() => fileInputRef.current?.click(), 100);
   };
 
-  const handleRunAI = async () => {
-    if (selectedAccountId && ofxStatement) {
-      await runAIMatching(selectedAccountId);
-    }
-  };
-
-  const pendingCount = matchSuggestions.filter((s) => s.status === "pending").length;
   const approvedCount = matchSuggestions.filter((s) => s.status === "approved").length;
 
   return (
@@ -477,218 +688,111 @@ export default function ConciliacaoBancaria() {
         </CardContent>
       </Card>
 
-      {/* OFX Import Dialog */}
-      <Dialog open={showOFXDialog} onOpenChange={setShowOFXDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Conciliação Inteligente com OFX
-            </DialogTitle>
-            <DialogDescription>
-              Importe o extrato OFX do banco e a IA irá sugerir as correspondências automaticamente.
-            </DialogDescription>
-          </DialogHeader>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".ofx,.qfx,.ofc"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
 
-          <div className="space-y-6">
-            {/* Step 1: Upload */}
-            <div className="space-y-3">
-              <h3 className="font-medium flex items-center gap-2">
-                <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm">
-                  1
-                </span>
-                Upload do Extrato OFX
-              </h3>
-              <div className="flex items-center gap-4">
-                <Input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".ofx,.qfx"
-                  onChange={handleFileSelect}
-                  className="flex-1"
-                />
-                {isParsing && <Loader2 className="h-5 w-5 animate-spin" />}
-              </div>
-              {ofxStatement && (
-                <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-sm">
-                  <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
-                    <FileText className="h-4 w-4" />
-                    <span className="font-medium">
-                      {ofxStatement.transactions.length} transações carregadas
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Período: {ofxStatement.startDate} a {ofxStatement.endDate}
-                    {ofxStatement.balance && ` • Saldo: ${formatCurrency(ofxStatement.balance)}`}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Step 2: AI Matching */}
-            {ofxStatement && matchSuggestions.length === 0 && (
-              <div className="space-y-3">
-                <h3 className="font-medium flex items-center gap-2">
-                  <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm">
-                    2
+      {/* OFX Reconciliation Section - Full Page */}
+      {(isParsing || isOFXLoading || ofxStatement) && (
+        <Card className="mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Conciliação Inteligente
+                {selectedAccountId && accounts && (
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    — {accounts.find((a) => a.id === selectedAccountId)?.name}
                   </span>
-                  Executar Matching com IA
-                </h3>
-                <Button
-                  onClick={handleRunAI}
-                  disabled={isOFXLoading}
-                  className="gap-2"
-                >
-                  {isOFXLoading ? (
+                )}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {(isParsing || isOFXLoading) && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  Analisar com IA
+                    {isParsing ? "Lendo arquivo..." : "Analisando com IA..."}
+                  </div>
+                )}
+                <Button variant="ghost" size="sm" onClick={reset}>
+                  <X className="h-4 w-4 mr-1" />
+                  Fechar
                 </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* OFX Statement Info */}
+            {ofxStatement && (
+              <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-sm mb-4">
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                  <FileText className="h-4 w-4" />
+                  <span className="font-medium">
+                    {ofxStatement.transactions.length} transações carregadas
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Período: {ofxStatement.startDate} a {ofxStatement.endDate}
+                  {ofxStatement.balance && ` • Saldo: ${formatCurrency(ofxStatement.balance)}`}
+                </p>
               </div>
             )}
 
-            {/* Step 3: Review Matches */}
+            {/* Tabs: Recebimentos / Pagamentos */}
             {matchSuggestions.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium flex items-center gap-2">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm">
-                      3
-                    </span>
-                    Revisar Correspondências
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {approvedCount} aprovados de {matchSuggestions.length}
-                    </span>
-                    <Button variant="outline" size="sm" onClick={approveAll}>
-                      <Check className="h-4 w-4 mr-1" />
-                      Aprovar Todos ({">"}80%)
-                    </Button>
-                  </div>
-                </div>
+              <div className="space-y-4">
+                <Tabs defaultValue="receive" className="w-full">
+                  <TabsList className="w-full sm:w-auto">
+                    <TabsTrigger value="receive" className="gap-2">
+                      <ArrowUpRight className="h-4 w-4" />
+                      Recebimentos
+                      <Badge variant="secondary" className="ml-1 text-xs">
+                        {receiveSuggestions.length}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="pay" className="gap-2">
+                      <ArrowDownRight className="h-4 w-4" />
+                      Pagamentos
+                      <Badge variant="secondary" className="ml-1 text-xs">
+                        {paySuggestions.length}
+                      </Badge>
+                    </TabsTrigger>
+                  </TabsList>
 
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Extrato (OFX)</TableHead>
-                        <TableHead>Sistema</TableHead>
-                        <TableHead className="text-center w-[100px]">Confiança</TableHead>
-                        <TableHead className="text-center w-[100px]">Status</TableHead>
-                        <TableHead className="w-[100px]">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {matchSuggestions.map((match) => (
-                        <TableRow key={match.ofxTransaction.fitId}>
-                          <TableCell>
-                            <div className="text-sm">
-                              <p className="font-medium truncate max-w-[200px]">
-                                {match.ofxTransaction.description}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {match.ofxTransaction.date} •{" "}
-                                <span
-                                  className={
-                                    match.ofxTransaction.amount < 0
-                                      ? "text-red-600"
-                                      : "text-green-600"
-                                  }
-                                >
-                                  {formatCurrency(Math.abs(match.ofxTransaction.amount))}
-                                </span>
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {match.systemTransaction ? (
-                              <div className="text-sm">
-                                <p className="font-medium truncate max-w-[200px]">
-                                  {match.systemTransaction.description || "-"}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {match.systemTransaction.paid_at
-                                    ? format(
-                                        new Date(match.systemTransaction.paid_at),
-                                        "dd/MM/yy",
-                                        { locale: ptBR }
-                                      )
-                                    : "-"}{" "}
-                                  •{" "}
-                                  <span
-                                    className={
-                                      match.systemTransaction.direction === "PAY"
-                                        ? "text-red-600"
-                                        : "text-green-600"
-                                    }
-                                  >
-                                    {formatCurrency(match.systemTransaction.amount)}
-                                  </span>
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="text-sm text-muted-foreground italic">
-                                Sem correspondência
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <ConfidenceBadge confidence={match.confidence} />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <StatusBadge status={match.status} />
-                          </TableCell>
-                          <TableCell>
-                            {match.systemTransaction && match.status === "pending" && (
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-green-600"
-                                  onClick={() =>
-                                    updateSuggestionStatus(
-                                      match.ofxTransaction.fitId,
-                                      "approved"
-                                    )
-                                  }
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-red-600"
-                                  onClick={() =>
-                                    updateSuggestionStatus(
-                                      match.ofxTransaction.fitId,
-                                      "rejected"
-                                    )
-                                  }
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                  <TabsContent value="receive">
+                    <ReconciliationTable
+                      suggestions={receiveSuggestions}
+                      unmatchedTransactions={unmatchedReceiveTransactions}
+                      onUpdateStatus={updateSuggestionStatus}
+                      onReassign={reassignMatch}
+                      onApproveAll={() => approveAllByDirection("RECEIVE")}
+                      direction="RECEIVE"
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="pay">
+                    <ReconciliationTable
+                      suggestions={paySuggestions}
+                      unmatchedTransactions={unmatchedPayTransactions}
+                      onUpdateStatus={updateSuggestionStatus}
+                      onReassign={reassignMatch}
+                      onApproveAll={() => approveAllByDirection("PAY")}
+                      direction="PAY"
+                    />
+                  </TabsContent>
+                </Tabs>
 
                 {/* Save Button */}
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button variant="outline" onClick={() => setShowOFXDialog(false)}>
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={reset}>
                     Cancelar
                   </Button>
                   <Button
-                    onClick={async () => {
-                      await saveReconciliation();
-                      setShowOFXDialog(false);
-                    }}
+                    onClick={saveReconciliation}
                     disabled={approvedCount === 0 || isOFXLoading}
                   >
                     {isOFXLoading ? (
@@ -701,9 +805,9 @@ export default function ConciliacaoBancaria() {
                 </div>
               </div>
             )}
-          </div>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      )}
     </PageContainer>
   );
 }
