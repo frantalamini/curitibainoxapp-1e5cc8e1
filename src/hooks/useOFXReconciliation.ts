@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseOFX, OFXStatement, OFXTransaction } from "@/lib/ofxParser";
 import { toast } from "sonner";
@@ -24,6 +24,37 @@ export const useOFXReconciliation = () => {
   const [ofxStatement, setOfxStatement] = useState<OFXStatement | null>(null);
   const [matchSuggestions, setMatchSuggestions] = useState<MatchSuggestion[]>([]);
   const [unmatchedSystemTransactions, setUnmatchedSystemTransactions] = useState<any[]>([]);
+
+  // Computed: suggestions separated by direction
+  const receiveSuggestions = useMemo(
+    () =>
+      matchSuggestions.filter((s) => {
+        // OFX positive = RECEIVE; or matched system tx is RECEIVE
+        if (s.systemTransaction) return s.systemTransaction.direction === "RECEIVE";
+        return s.ofxTransaction.amount > 0;
+      }),
+    [matchSuggestions]
+  );
+
+  const paySuggestions = useMemo(
+    () =>
+      matchSuggestions.filter((s) => {
+        if (s.systemTransaction) return s.systemTransaction.direction === "PAY";
+        return s.ofxTransaction.amount < 0;
+      }),
+    [matchSuggestions]
+  );
+
+  // Unmatched system transactions separated by direction
+  const unmatchedReceiveTransactions = useMemo(
+    () => unmatchedSystemTransactions.filter((t) => t.direction === "RECEIVE"),
+    [unmatchedSystemTransactions]
+  );
+
+  const unmatchedPayTransactions = useMemo(
+    () => unmatchedSystemTransactions.filter((t) => t.direction === "PAY"),
+    [unmatchedSystemTransactions]
+  );
 
   const parseOFXFile = useCallback(async (file: File): Promise<OFXStatement | null> => {
     setIsParsing(true);
@@ -121,11 +152,82 @@ export const useOFXReconciliation = () => {
     []
   );
 
+  const reassignMatch = useCallback(
+    (ofxFitId: string, newSystemTransactionId: string) => {
+      setMatchSuggestions((prev) => {
+        // Find the system transaction from unmatched list or from another suggestion
+        let newSystemTx: MatchSuggestion["systemTransaction"] | null = null;
+
+        // Check unmatched system transactions
+        const fromUnmatched = unmatchedSystemTransactions.find(
+          (t) => t.id === newSystemTransactionId
+        );
+        if (fromUnmatched) {
+          newSystemTx = fromUnmatched;
+        } else {
+          // Check if it's currently assigned to another suggestion
+          for (const s of prev) {
+            if (s.systemTransaction?.id === newSystemTransactionId) {
+              newSystemTx = s.systemTransaction;
+              break;
+            }
+          }
+        }
+
+        if (!newSystemTx) return prev;
+
+        // Get the old system transaction from the current suggestion to put back in unmatched
+        const currentSuggestion = prev.find((s) => s.ofxTransaction.fitId === ofxFitId);
+        const oldSystemTx = currentSuggestion?.systemTransaction;
+
+        const updated = prev.map((s) => {
+          if (s.ofxTransaction.fitId === ofxFitId) {
+            return { ...s, systemTransaction: newSystemTx, confidence: 100, reason: "Match manual", status: "pending" as const };
+          }
+          // Remove from any other suggestion that had this system tx
+          if (s.systemTransaction?.id === newSystemTransactionId) {
+            return { ...s, systemTransaction: null, confidence: 0, reason: "Reatribuído manualmente", status: "manual" as const };
+          }
+          return s;
+        });
+
+        // Update unmatched list
+        setUnmatchedSystemTransactions((prevUnmatched) => {
+          let newUnmatched = prevUnmatched.filter((t) => t.id !== newSystemTransactionId);
+          if (oldSystemTx) {
+            newUnmatched = [...newUnmatched, oldSystemTx];
+          }
+          return newUnmatched;
+        });
+
+        return updated;
+      });
+    },
+    [unmatchedSystemTransactions]
+  );
+
   const approveAll = useCallback(() => {
     setMatchSuggestions((prev) =>
       prev.map((s) =>
         s.systemTransaction && s.confidence >= 80 ? { ...s, status: "approved" } : s
       )
+    );
+  }, []);
+
+  const approveAllByDirection = useCallback((direction: "RECEIVE" | "PAY") => {
+    setMatchSuggestions((prev) =>
+      prev.map((s) => {
+        const isTargetDirection = s.systemTransaction
+          ? s.systemTransaction.direction === direction
+          : direction === "RECEIVE"
+            ? s.ofxTransaction.amount > 0
+            : s.ofxTransaction.amount < 0;
+
+        if (isTargetDirection && s.systemTransaction && s.confidence >= 80) {
+          return { ...s, status: "approved" };
+        }
+        return s;
+      })
     );
   }, []);
 
@@ -141,7 +243,6 @@ export const useOFXReconciliation = () => {
 
     setIsLoading(true);
     try {
-      // Update each approved transaction as reconciled
       for (const match of approved) {
         const { error } = await supabase
           .from("financial_transactions")
@@ -157,7 +258,6 @@ export const useOFXReconciliation = () => {
 
       toast.success(`${approved.length} transações conciliadas com sucesso!`);
       
-      // Clear state
       setOfxStatement(null);
       setMatchSuggestions([]);
       setUnmatchedSystemTransactions([]);
@@ -180,11 +280,17 @@ export const useOFXReconciliation = () => {
     isParsing,
     ofxStatement,
     matchSuggestions,
+    receiveSuggestions,
+    paySuggestions,
     unmatchedSystemTransactions,
+    unmatchedReceiveTransactions,
+    unmatchedPayTransactions,
     parseOFXFile,
     runAIMatching,
     updateSuggestionStatus,
+    reassignMatch,
     approveAll,
+    approveAllByDirection,
     saveReconciliation,
     reset,
   };
