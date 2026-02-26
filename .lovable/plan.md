@@ -1,39 +1,54 @@
 
+### Contexto validado
+- OS 2844 no banco: due_date = 2026-02-27 em financial_transactions (direção RECEIVE).
+- Problema relatado: no PDF financeiro aparece 26/02/2026.
+- Código atual do PDF financeiro: `src/lib/generateOSPdf.tsx` mapeia parcelas em `fetchFinancialData` (linha ~410) e formata vencimento via `format(parseLocalDate(t.due_date), 'dd/MM/yyyy')`.
+- Restrições: correção cirúrgica, sem alterar rotas, schema, fluxo UI já estável.
 
-## Editar Descrição de Itens ja Lançados no Financeiro da OS
+### Hipótese técnica principal
+- O deslocamento de 1 dia acontece quando a data chega em formato com timezone/UTC (ex.: `YYYY-MM-DDT00:00:00Z`) e passa por `Date`.
+- Mesmo com `parseLocalDate`, ainda existe risco em strings com `T` porque hoje elas são parseadas diretamente como timestamp.
+- Para vencimento de parcela (campo de negócio “date-only”), a estratégia mais segura é **não depender de timezone** para formatar.
 
-### Problema
+### Objetivo da correção
+Garantir que o vencimento exibido no PDF financeiro reflita exatamente o dia salvo no backend (date-only), sem retroagir/adiantar por fuso.
 
-Atualmente, os itens de Servicos (e Pecas) lançados na aba Financeiro da OS sao somente leitura. Para alterar qualquer campo (descricao, quantidade, valor, desconto), o usuario precisa excluir o item e incluir novamente.
+### Plano de implementação (cirúrgico)
+1. **Criar formatação determinística para vencimento financeiro (date-only)**
+   - Arquivo: `src/lib/generateOSPdf.tsx`
+   - Adicionar helper local (somente para PDF financeiro), por exemplo:
+     - Extrair a parte `YYYY-MM-DD` de `t.due_date` (inclusive quando vier com timestamp).
+     - Converter para `dd/MM/yyyy` por string (sem `new Date`), com fallback seguro.
+   - Resultado: `2026-02-27` sempre vira `27/02/2026`, independentemente do timezone do cliente.
 
-### O Que Sera Feito
+2. **Trocar apenas o ponto de montagem das parcelas no PDF**
+   - Arquivo: `src/lib/generateOSPdf.tsx` (bloco `fetchFinancialData`, mapping de `installments`).
+   - Substituir:
+     - `dueDate: format(parseLocalDate(t.due_date), 'dd/MM/yyyy', { locale: ptBR })`
+   - Por:
+     - `dueDate: formatFinancialDueDate(t.due_date)` (helper determinístico).
+   - Não alterar lógica de totais, filtros, query, assinatura, upload ou fluxo de geração.
 
-Tornar os campos dos itens ja lancados **editaveis inline** (clicando no valor para editar), tanto na tabela de **Servicos** quanto na de **Pecas/Produtos**. Os campos editaveis serao: Descricao, Qtd, Valor Unitario, %Desc e R$Desc. O total sera recalculado automaticamente ao salvar.
+3. **Manter isolado para não impactar o restante do sistema**
+   - Não mexer em:
+     - `src/lib/dateUtils.ts` (evita efeito colateral global agora)
+     - schema/migrations
+     - telas/rotas de financeiro
+     - fluxo de geração e compartilhamento do PDF
 
-### Como Vai Funcionar
+### Validação (obrigatória antes de concluir)
+1. Regerar **PDF Completo** da OS 2844.
+2. Conferir tabela “Condições de Pagamento”:
+   - esperado: vencimento `27/02/2026`.
+3. Conferir não-regressão:
+   - PDF técnico continua gerando normal.
+   - Financeiro da OS continua com mesmos valores/parcelas.
+   - Sem alteração de comportamento em contas a pagar/receber.
 
-1. O usuario clica em qualquer campo de um item ja lancado (descricao, qtd, unit, desconto)
-2. A linha entra em modo de edicao: os campos viram inputs editaveis
-3. Dois botoes aparecem na linha: Salvar (check) e Cancelar (X)
-4. Ao salvar, o sistema recalcula o total do item e atualiza no banco via `updateItem`
-5. Ao cancelar, a linha volta ao modo leitura sem alteracoes
+### Critérios de aceite
+- Vencimento no PDF financeiro igual ao vencimento salvo (sem -1 dia).
+- Correção aplicada apenas no pipeline de renderização de parcelas do PDF.
+- Nenhuma mudança estrutural em banco, rotas ou fluxo de UI já validado.
 
-### Detalhes Tecnicos
-
-**Arquivo unico alterado**: `src/components/os-financeiro/FinanceiroTab.tsx`
-
-1. Adicionar estado `editingItemId` e estados temporarios (`editItemDescription`, `editItemQty`, `editItemUnitPrice`, `editItemDiscountType`, `editItemDiscountPercent`, `editItemDiscountValue`)
-2. Na tabela de Servicos (linhas ~782-812), quando `editingItemId === item.id`, renderizar inputs em vez de texto estatico
-3. Na tabela de Pecas (linhas ~648-682), mesma logica -- descricao nao editavel (vem do produto), mas Qtd, Unit e Descontos sim
-4. Funcao `handleStartEditItem(item)` preenche os estados temporarios
-5. Funcao `handleSaveEditItem()` calcula o novo total e chama `updateItem.mutateAsync`
-6. Funcao `handleCancelEditItem()` limpa o estado de edicao
-7. O botao de excluir continua no mesmo lugar; os botoes de salvar/cancelar substituem ele durante a edicao
-
-**Nenhuma alteracao em**:
-- Banco de dados
-- Hook `useServiceCallItems` (ja possui `updateItem`)
-- Rotas
-- Layout geral
-- Nenhum outro componente
-
+### Arquivo que será alterado
+- `src/lib/generateOSPdf.tsx` (somente)
