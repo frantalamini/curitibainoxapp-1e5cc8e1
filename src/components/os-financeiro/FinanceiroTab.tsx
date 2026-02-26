@@ -174,6 +174,15 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
 
   const [isSaving, setIsSaving] = useState(false);
 
+  // === Inline editing state for items (products/services) ===
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editItemDescription, setEditItemDescription] = useState("");
+  const [editItemQty, setEditItemQty] = useState(1);
+  const [editItemUnitPrice, setEditItemUnitPrice] = useState(0);
+  const [editItemDiscountType, setEditItemDiscountType] = useState<"percent" | "value">("value");
+  const [editItemDiscountPercent, setEditItemDiscountPercent] = useState(0);
+  const [editItemDiscountValue, setEditItemDiscountValue] = useState(0);
+
   // Load existing data from service call
   useEffect(() => {
     if (serviceCall) {
@@ -332,6 +341,55 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     } catch (error) {
       toast({ title: "Erro ao remover item", variant: "destructive" });
     }
+  };
+
+  // === Inline edit handlers for items ===
+  const handleStartEditItem = (item: ServiceCallItem) => {
+    setEditingItemId(item.id);
+    setEditItemDescription(item.description);
+    setEditItemQty(item.qty);
+    setEditItemUnitPrice(item.unit_price);
+    const subtotal = item.qty * item.unit_price;
+    if (item.discount_type === "percent" && subtotal > 0) {
+      setEditItemDiscountType("percent");
+      setEditItemDiscountPercent(Math.round((item.discount_value / subtotal) * 100));
+      setEditItemDiscountValue(0);
+    } else {
+      setEditItemDiscountType("value");
+      setEditItemDiscountPercent(0);
+      setEditItemDiscountValue(item.discount_value || 0);
+    }
+  };
+
+  const handleSaveEditItem = async () => {
+    if (!editingItemId) return;
+    const qty = editItemQty || 1;
+    const unitPrice = editItemUnitPrice || 0;
+    const subtotal = qty * unitPrice;
+    const discountVal = editItemDiscountType === "percent"
+      ? (subtotal * editItemDiscountPercent / 100)
+      : editItemDiscountValue;
+    const total = subtotal - discountVal;
+
+    try {
+      await updateItem.mutateAsync({
+        id: editingItemId,
+        description: editItemDescription,
+        qty,
+        unit_price: unitPrice,
+        discount_type: editItemDiscountType,
+        discount_value: discountVal,
+        total,
+      });
+      setEditingItemId(null);
+      toast({ title: "Item atualizado" });
+    } catch (error) {
+      toast({ title: "Erro ao atualizar item", variant: "destructive" });
+    }
+  };
+
+  const handleCancelEditItem = () => {
+    setEditingItemId(null);
   };
 
   // Handle product selection
@@ -641,41 +699,64 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                     <TableHead className="py-1 px-1 text-right w-12">%Desc</TableHead>
                     <TableHead className="py-1 px-1 text-right w-14">R$Desc</TableHead>
                     <TableHead className="py-1 px-1 text-right w-16">Total</TableHead>
-                    <TableHead className="py-1 px-1 w-6"></TableHead>
+                    <TableHead className="py-1 px-1 w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {productItems.map(item => {
-                    const subtotal = item.qty * item.unit_price;
+                    const isEditing = editingItemId === item.id;
+                    const subtotal = isEditing
+                      ? editItemQty * editItemUnitPrice
+                      : item.qty * item.unit_price;
                     const discountPercent = item.discount_type === "percent" && subtotal > 0 
                       ? Math.round((item.discount_value / subtotal) * 100) 
                       : 0;
+                    const editTotal = isEditing
+                      ? subtotal - (editItemDiscountType === "percent" ? subtotal * editItemDiscountPercent / 100 : editItemDiscountValue)
+                      : item.total;
                     return (
-                      <TableRow key={item.id} className="text-xs">
+                      <TableRow key={item.id} className="text-xs cursor-pointer" onClick={() => !isEditing && handleStartEditItem(item)}>
                         <TableCell className="py-1 px-1">
-                          <span className="font-medium truncate block max-w-[150px]" title={item.description}>{item.description}</span>
-                          {item.products?.sku && (
-                            <span className="text-muted-foreground text-[10px]">({item.products.sku})</span>
+                          {isEditing ? (
+                            <Input className="h-6 text-xs" value={editItemDescription} onChange={e => setEditItemDescription(e.target.value)} onClick={e => e.stopPropagation()} />
+                          ) : (
+                            <>
+                              <span className="font-medium truncate block max-w-[150px]" title={item.description}>{item.description}</span>
+                              {item.products?.sku && <span className="text-muted-foreground text-[10px]">({item.products.sku})</span>}
+                            </>
                           )}
                         </TableCell>
-                        <TableCell className="py-1 px-1 text-right">{item.qty}</TableCell>
-                        <TableCell className="py-1 px-1 text-right">{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="py-1 px-1 text-right">
+                          {isEditing ? <Input type="number" min="1" className="h-6 text-xs w-14 text-right" value={editItemQty} onChange={e => setEditItemQty(Number(e.target.value))} onClick={e => e.stopPropagation()} /> : item.qty}
+                        </TableCell>
+                        <TableCell className="py-1 px-1 text-right">
+                          {isEditing ? <Input type="number" step="0.01" min="0" className="h-6 text-xs w-20 text-right" value={editItemUnitPrice} onChange={e => setEditItemUnitPrice(Number(e.target.value))} onClick={e => e.stopPropagation()} /> : formatCurrency(item.unit_price)}
+                        </TableCell>
                         <TableCell className="py-1 px-1 text-right text-muted-foreground hidden lg:table-cell">{formatCurrency(subtotal)}</TableCell>
                         <TableCell className="py-1 px-1 text-right text-destructive">
-                          {item.discount_type === "percent" && item.discount_value > 0 
-                            ? `-${discountPercent}%` 
-                            : "-"}
+                          {isEditing ? <Input type="number" min="0" max="100" className="h-6 text-xs w-14 text-right" value={editItemDiscountType === "percent" ? editItemDiscountPercent : ""} placeholder="-" onClick={e => e.stopPropagation()} onChange={e => { setEditItemDiscountType("percent"); setEditItemDiscountPercent(Number(e.target.value)); setEditItemDiscountValue(0); }} />
+                            : item.discount_type === "percent" && item.discount_value > 0 ? `-${discountPercent}%` : "-"}
                         </TableCell>
                         <TableCell className="py-1 px-1 text-right text-destructive">
-                          {item.discount_type === "value" && item.discount_value > 0 
-                            ? `-${formatCurrency(item.discount_value)}` 
-                            : "-"}
+                          {isEditing ? <Input type="number" step="0.01" min="0" className="h-6 text-xs w-16 text-right" value={editItemDiscountType === "value" ? editItemDiscountValue : ""} placeholder="-" onClick={e => e.stopPropagation()} onChange={e => { setEditItemDiscountType("value"); setEditItemDiscountValue(Number(e.target.value)); setEditItemDiscountPercent(0); }} />
+                            : item.discount_type === "value" && item.discount_value > 0 ? `-${formatCurrency(item.discount_value)}` : "-"}
                         </TableCell>
-                        <TableCell className="py-1 px-1 text-right font-medium">{formatCurrency(item.total)}</TableCell>
-                        <TableCell className="py-1 px-1">
-                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDeleteItem(item.id)}>
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </Button>
+                        <TableCell className="py-1 px-1 text-right font-medium">{formatCurrency(isEditing ? editTotal : item.total)}</TableCell>
+                        <TableCell className="py-1 px-1" onClick={e => e.stopPropagation()}>
+                          {isEditing ? (
+                            <div className="flex gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleSaveEditItem} disabled={updateItem.isPending}>
+                                <Check className="h-3 w-3 text-primary" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCancelEditItem}>
+                                <X className="h-3 w-3 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDeleteItem(item.id)}>
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -776,36 +857,57 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                     <TableHead className="py-1 px-1 text-right w-12">%Desc</TableHead>
                     <TableHead className="py-1 px-1 text-right w-14">R$Desc</TableHead>
                     <TableHead className="py-1 px-1 text-right w-16">Total</TableHead>
-                    <TableHead className="py-1 px-1 w-6"></TableHead>
+                    <TableHead className="py-1 px-1 w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {serviceItems.map(item => {
-                    const subtotal = item.qty * item.unit_price;
+                    const isEditing = editingItemId === item.id;
+                    const subtotal = isEditing
+                      ? editItemQty * editItemUnitPrice
+                      : item.qty * item.unit_price;
                     const discountPercent = item.discount_type === "percent" && subtotal > 0 
                       ? Math.round((item.discount_value / subtotal) * 100) 
                       : 0;
+                    const editTotal = isEditing
+                      ? subtotal - (editItemDiscountType === "percent" ? subtotal * editItemDiscountPercent / 100 : editItemDiscountValue)
+                      : item.total;
                     return (
-                      <TableRow key={item.id} className="text-xs">
-                        <TableCell className="py-1 px-1 font-medium truncate max-w-[150px]" title={item.description}>{item.description}</TableCell>
-                        <TableCell className="py-1 px-1 text-right">{item.qty}</TableCell>
-                        <TableCell className="py-1 px-1 text-right">{formatCurrency(item.unit_price)}</TableCell>
+                      <TableRow key={item.id} className="text-xs cursor-pointer" onClick={() => !isEditing && handleStartEditItem(item)}>
+                        <TableCell className="py-1 px-1">
+                          {isEditing ? <Input className="h-6 text-xs" value={editItemDescription} onChange={e => setEditItemDescription(e.target.value)} onClick={e => e.stopPropagation()} /> : <span className="font-medium truncate block max-w-[150px]" title={item.description}>{item.description}</span>}
+                        </TableCell>
+                        <TableCell className="py-1 px-1 text-right">
+                          {isEditing ? <Input type="number" min="1" className="h-6 text-xs w-14 text-right" value={editItemQty} onChange={e => setEditItemQty(Number(e.target.value))} onClick={e => e.stopPropagation()} /> : item.qty}
+                        </TableCell>
+                        <TableCell className="py-1 px-1 text-right">
+                          {isEditing ? <Input type="number" step="0.01" min="0" className="h-6 text-xs w-20 text-right" value={editItemUnitPrice} onChange={e => setEditItemUnitPrice(Number(e.target.value))} onClick={e => e.stopPropagation()} /> : formatCurrency(item.unit_price)}
+                        </TableCell>
                         <TableCell className="py-1 px-1 text-right text-muted-foreground hidden lg:table-cell">{formatCurrency(subtotal)}</TableCell>
                         <TableCell className="py-1 px-1 text-right text-destructive">
-                          {item.discount_type === "percent" && item.discount_value > 0 
-                            ? `-${discountPercent}%` 
-                            : "-"}
+                          {isEditing ? <Input type="number" min="0" max="100" className="h-6 text-xs w-14 text-right" value={editItemDiscountType === "percent" ? editItemDiscountPercent : ""} placeholder="-" onClick={e => e.stopPropagation()} onChange={e => { setEditItemDiscountType("percent"); setEditItemDiscountPercent(Number(e.target.value)); setEditItemDiscountValue(0); }} />
+                            : item.discount_type === "percent" && item.discount_value > 0 ? `-${discountPercent}%` : "-"}
                         </TableCell>
                         <TableCell className="py-1 px-1 text-right text-destructive">
-                          {item.discount_type === "value" && item.discount_value > 0 
-                            ? `-${formatCurrency(item.discount_value)}` 
-                            : "-"}
+                          {isEditing ? <Input type="number" step="0.01" min="0" className="h-6 text-xs w-16 text-right" value={editItemDiscountType === "value" ? editItemDiscountValue : ""} placeholder="-" onClick={e => e.stopPropagation()} onChange={e => { setEditItemDiscountType("value"); setEditItemDiscountValue(Number(e.target.value)); setEditItemDiscountPercent(0); }} />
+                            : item.discount_type === "value" && item.discount_value > 0 ? `-${formatCurrency(item.discount_value)}` : "-"}
                         </TableCell>
-                        <TableCell className="py-1 px-1 text-right font-medium">{formatCurrency(item.total)}</TableCell>
-                        <TableCell className="py-1 px-1">
-                          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDeleteItem(item.id)}>
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </Button>
+                        <TableCell className="py-1 px-1 text-right font-medium">{formatCurrency(isEditing ? editTotal : item.total)}</TableCell>
+                        <TableCell className="py-1 px-1" onClick={e => e.stopPropagation()}>
+                          {isEditing ? (
+                            <div className="flex gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleSaveEditItem} disabled={updateItem.isPending}>
+                                <Check className="h-3 w-3 text-primary" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCancelEditItem}>
+                                <X className="h-3 w-3 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDeleteItem(item.id)}>
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
