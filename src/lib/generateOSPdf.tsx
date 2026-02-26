@@ -7,6 +7,15 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseLocalDate } from '@/lib/dateUtils';
 
+/** Formata date-only (YYYY-MM-DD) para DD/MM/YYYY sem passar por Date/timezone */
+function formatDateOnly(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-';
+  const part = dateStr.split('T')[0]; // garante só YYYY-MM-DD
+  const [y, m, d] = part.split('-');
+  if (!y || !m || !d) return dateStr;
+  return `${d}/${m}/${y}`;
+}
+
 interface GenerateOSPdfResult {
   blob: Blob;
   fileName: string;
@@ -411,7 +420,7 @@ async function fetchFinancialData(osId: string, osData: any): Promise<Report['fi
       .filter(t => t.status !== 'CANCELED')
       .map(t => ({
         number: t.installment_number || 1,
-        dueDate: format(parseLocalDate(t.due_date), 'dd/MM/yyyy', { locale: ptBR }),
+        dueDate: formatDateOnly(t.due_date),
         amount: t.amount || 0,
         paymentMethod: t.payment_method,
         notes: t.notes || null,
