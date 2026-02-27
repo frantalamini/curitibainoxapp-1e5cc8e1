@@ -1,36 +1,18 @@
 
 
-## Reorganizar botoes de acoes do PDF
+## Alterar nome do arquivo PDF para incluir nome do cliente
 
-### Problema atual
-Apos gerar o PDF, os botoes (Visualizar PDF, Salvar PDF, Enviar via WhatsApp, Enviar por E-mail) ficam dispostos de forma desorganizada usando `flex-wrap`, sem estrutura visual clara. Alem disso, o botao "Salvar PDF" depende do `pdfBlobUrl` que pode nao estar disponivel em todos os cenarios.
+### O que muda
+O nome do arquivo ao salvar o PDF passara de `OS-2832.pdf` para `Coritiba - OS2832.pdf`, usando o nome fantasia (primeiros dois nomes) ou o primeiro nome do cliente.
 
-### Solucao
+### Logica do nome
+1. Se o cliente tem `nome_fantasia`, pegar apenas as duas primeiras palavras (ex: "Coritiba Inox Ltda" -> "Coritiba Inox")
+2. Senao, pegar apenas o primeiro nome de `full_name` (ex: "Joao Carlos Silva" -> "Joao")
+3. Formato final: `{NomeCliente} - OS{numero}.pdf`
 
-**Arquivo: `src/pages/ServiceCallForm.tsx` (linhas 2221-2278)**
+### Alteracao tecnica
 
-Reorganizar o bloco de acoes do PDF com layout responsivo:
-
-1. **Layout em grid responsivo**: Substituir o `flex-wrap` por um `grid` com 2 colunas no mobile e 4 colunas no desktop, garantindo botoes alinhados e proporcionais
-2. **Mensagem de sucesso separada**: Mover o texto "PDF gerado com sucesso" para uma linha propria acima dos botoes
-3. **Botoes uniformes**: Todos os botoes com mesma altura e `flex-1` dentro do grid para ficarem proporcionais
-4. **Corrigir Salvar PDF**: Garantir que o botao "Salvar PDF" funcione mesmo quando so existe `generatedPdfUrl` (sem blob local), fazendo download via `fetch` + blob quando necessario. Tambem exibir o botao sempre (nao apenas quando `pdfBlob` existe), ja que o PDF esta salvo no storage
-
-### Estrutura visual esperada
-
-```text
-[check] PDF gerado com sucesso
-
-[ Visualizar PDF ] [ Salvar PDF    ]
-[ WhatsApp       ] [ E-mail        ]
-```
-
-No desktop, os 4 botoes ficam lado a lado em uma unica linha.
-
-### Detalhes tecnicos
-
-- Trocar `flex flex-wrap gap-2` por `grid grid-cols-2 sm:grid-cols-4 gap-2`
-- Mover o texto de sucesso para fora do grid, como um `<p>` separado
-- No botao "Salvar PDF": remover condicao `{pdfBlob && ...}`, e no `onClick` usar `pdfBlobUrl` se disponivel, senao fazer `fetch(generatedPdfUrl)` para obter o blob e disparar download
-- Manter as cores dos botoes WhatsApp (verde) e E-mail (azul)
+**Arquivo: `src/pages/ServiceCallForm.tsx`**
+- Criar uma funcao helper local que gera o nome do arquivo a partir de `existingCall.clients` e `existingCall.os_number`
+- Substituir as duas ocorrencias de `` `OS-${existingCall.os_number}.pdf` `` (linhas 2252 e 2268) pelo resultado dessa funcao
 
