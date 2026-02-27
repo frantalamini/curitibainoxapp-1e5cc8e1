@@ -58,6 +58,7 @@ import { FinanceiroGuard } from "@/components/os-financeiro/FinanceiroGuard";
 import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
 import { StatusSelectField } from "@/components/service-calls/StatusSelectField";
 import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
+import { useCurrentUserPermissions } from "@/hooks/useUserPermissions";
 
 type Signature = {
   image_url: string; // Pode ser caminho no storage OU URL completa (legacy)
@@ -81,6 +82,8 @@ const ServiceCallForm = () => {
   const { createServiceCallAsync, updateServiceCallAsync } = useServiceCalls();
   const { isAdmin, isTechnician, loading: rolesLoading } = useUserRole();
   const { statuses: allStatuses } = useServiceCallStatuses();
+  const { data: currentUserPerms, isLoading: permsLoading } = useCurrentUserPermissions();
+  const isGerencial = currentUserPerms?.profileType === "gerencial";
   
   // Estado de modo readonly - inicia como true em edição (isEditMode = !!id), false em criação
   const [isReadonly, setIsReadonly] = useState(!!id);
@@ -198,10 +201,12 @@ const ServiceCallForm = () => {
   const activeServiceTypes = serviceTypes?.filter((st) => st.active);
   const selectedChecklist = checklists?.find((c) => c.id === selectedChecklistId);
 
-  // OS bloqueada quando status comercial é "Faturado" — ninguém pode editar (ADM e técnicos)
-  const isFaturado = !!selectedCommercialStatusId && !!allStatuses?.some(
+  // OS bloqueada quando status comercial é "Faturado"
+  // Gerencial pode editar mesmo faturada; ADM e Técnicos ficam bloqueados
+  const isStatusFaturado = !!selectedCommercialStatusId && !!allStatuses?.some(
     s => s.id === selectedCommercialStatusId && s.name.toLowerCase() === 'faturado'
   );
+  const isFaturado = isStatusFaturado && !isGerencial;
 
   // Função helper para obter assinatura mais recente por role (banco + novas pendentes)
   const getCurrentSignature = (existingSignatures: any[] | undefined, newSigs: Signature[], role: 'tech' | 'client') => {

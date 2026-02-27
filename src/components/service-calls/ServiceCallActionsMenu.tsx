@@ -77,9 +77,11 @@ export function ServiceCallActionsMenu({
   const commercialStatuses = statuses?.filter(s => s.active && s.status_type === 'comercial') || [];
 
   // Verificar se a OS está faturada (bloqueio de edição)
-  const isFaturado = !!currentCommercialStatusId && statuses?.some(
+  // Gerencial pode alterar status mesmo quando faturado
+  const isStatusFaturado = !!currentCommercialStatusId && statuses?.some(
     s => s.id === currentCommercialStatusId && s.name.toLowerCase() === 'faturado'
   );
+  const isFaturado = isStatusFaturado && !isGerencial;
 
   const handleAddMarker = async () => {
     if (!newMarkerText.trim()) return;
@@ -143,6 +145,13 @@ export function ServiceCallActionsMenu({
       // Invalidar queries para atualizar a lista
       queryClient.invalidateQueries({ queryKey: ["service-calls"] });
       queryClient.invalidateQueries({ queryKey: ["service-call", serviceCallId] });
+
+      // Invalidar queries financeiras quando status comercial muda
+      if (statusType === 'comercial') {
+        queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
+        queryClient.invalidateQueries({ queryKey: ["receivables"] });
+        queryClient.invalidateQueries({ queryKey: ["cash-flow"] });
+      }
 
       const statusName = statusId 
         ? statuses?.find(s => s.id === statusId)?.name 
