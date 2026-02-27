@@ -212,6 +212,7 @@ export const useServiceCall = (id?: string) => {
 type UseServiceCallsFilters = {
   searchTerm?: string;
   statusId?: string;
+  commercialStatusId?: string;
   onlyNewForTechnicianId?: string;
 };
 
@@ -222,10 +223,10 @@ export const useServiceCalls = (
 ) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { searchTerm, statusId, onlyNewForTechnicianId } = filters;
+  const { searchTerm, statusId, commercialStatusId, onlyNewForTechnicianId } = filters;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["service-calls", page, pageSize, searchTerm, statusId, onlyNewForTechnicianId],
+    queryKey: ["service-calls", page, pageSize, searchTerm, statusId, commercialStatusId, onlyNewForTechnicianId],
     queryFn: async () => {
       // Evita executar com token anônimo (quando a sessão ainda não foi carregada)
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -266,6 +267,10 @@ export const useServiceCalls = (
       // Filtros server-side
       if (statusId) {
         query = query.eq("status_id", statusId);
+      }
+
+      if (commercialStatusId) {
+        query = query.eq("commercial_status_id", commercialStatusId);
       }
 
       if (onlyNewForTechnicianId) {

@@ -16,6 +16,7 @@ import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
 import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
 import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { useServiceCallMarkers } from "@/hooks/useServiceCallMarkers";
+import { useCommercialStatusCounts } from "@/hooks/useCommercialStatusCounts";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
 import { ServiceCallsTable } from "@/components/ServiceCallsTable";
 import { CadastrosPagination } from "@/components/CadastrosPagination";
@@ -29,20 +30,23 @@ const ServiceCalls = () => {
   const { statuses } = useServiceCallStatuses();
   const { technicianId } = useCurrentTechnician();
   const { data: newCallsCount = 0 } = useNewServiceCallsCount();
+  const { data: commercialCounts } = useCommercialStatusCounts();
   
   const technicalStatuses = statuses?.filter(s => s.status_type === 'tecnico') || [];
+  const commercialStatuses = statuses?.filter(s => s.status_type === 'comercial' && s.active) || [];
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [commercialTab, setCommercialTab] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"todos" | "novos">("todos");
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Debounce do termo de busca para não fazer muitas requisições
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   
-  // Busca com paginação server-side
   const { serviceCalls, isLoading, totalCount } = useServiceCalls(currentPage, PAGE_SIZE, {
     searchTerm: debouncedSearchTerm,
     statusId: statusFilter === "all" ? undefined : statusFilter,
+    commercialStatusId: commercialTab === "all" ? undefined : commercialTab,
     onlyNewForTechnicianId: activeTab === "novos" ? technicianId : undefined,
   });
 
@@ -58,7 +62,7 @@ const ServiceCalls = () => {
   // Reset para página 1 quando filtros mudam
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm, statusFilter, activeTab, technicianId]);
+  }, [debouncedSearchTerm, statusFilter, commercialTab, activeTab, technicianId]);
 
   // Ordenação por os_number DESC
   const sortedCalls = [...(serviceCalls || [])].sort((a, b) => {
@@ -89,6 +93,23 @@ const ServiceCalls = () => {
     await removeMarker.mutateAsync(markerId);
   };
 
+  // Abas comerciais dinâmicas
+  const commercialTabs = useMemo(() => {
+    const tabs = [
+      { value: "all", label: "Todas", count: commercialCounts?.all ?? 0 },
+    ];
+    commercialStatuses
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+      .forEach((s) => {
+        tabs.push({
+          value: s.id,
+          label: s.name,
+          count: commercialCounts?.[s.id] ?? 0,
+        });
+      });
+    return tabs;
+  }, [commercialStatuses, commercialCounts]);
+
   return (
     <MainLayout>
       <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
@@ -97,6 +118,47 @@ const ServiceCalls = () => {
           actionLabel="Novo Chamado"
           onAction={() => navigate("/service-calls/new")}
         />
+
+        {/* Abas por Status Comercial — Desktop: tabs horizontais / Mobile: dropdown */}
+        <div>
+          {/* Desktop */}
+          <Tabs value={commercialTab} onValueChange={setCommercialTab} className="hidden md:block">
+            <TabsList className="bg-transparent border-b border-border rounded-none h-auto p-0 w-full justify-start overflow-x-auto">
+              {commercialTabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
+                >
+                  <span className="font-medium text-sm whitespace-nowrap">
+                    {tab.label}{' '}
+                    <span className="text-xs text-muted-foreground ml-1">
+                      {tab.count}
+                    </span>
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          {/* Mobile */}
+          <div className="md:hidden">
+            <Select value={commercialTab} onValueChange={setCommercialTab}>
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {commercialTabs.find(t => t.value === commercialTab)?.label} ({commercialTabs.find(t => t.value === commercialTab)?.count})
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {commercialTabs.map((tab) => (
+                  <SelectItem key={tab.value} value={tab.value}>
+                    {tab.label} ({tab.count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
           <SearchBar
@@ -120,7 +182,7 @@ const ServiceCalls = () => {
           </Select>
         </div>
 
-        {/* Tabs Todos | Novos */}
+        {/* Tabs Todos | Novos (apenas para técnicos) */}
         {technicianId && (
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "todos" | "novos")} className="w-full">
             <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
@@ -147,7 +209,7 @@ const ServiceCalls = () => {
           <div className="card-mobile text-center text-muted-foreground">
             <p>Nenhum chamado técnico encontrado</p>
             <p className="text-sm mt-2">
-              {searchTerm || statusFilter !== "all"
+              {searchTerm || statusFilter !== "all" || commercialTab !== "all"
                 ? "Tente ajustar os filtros"
                 : "Clique em 'Novo Chamado' para criar o primeiro"}
             </p>
