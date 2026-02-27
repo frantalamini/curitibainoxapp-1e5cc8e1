@@ -288,8 +288,8 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               </SheetContent>
             </Sheet>
               {/* Clickable logo/name to go Home */}
-              <button
-                onClick={() => navigate("/")}
+              <a
+                href="/"
                 className="flex items-center gap-2 touch-manipulation active:opacity-70 transition-opacity"
               >
                 <img 
@@ -300,7 +300,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 <span className="font-semibold text-lg truncate max-w-[150px]">
                   {settings?.company_name || "Curitiba Inox"}
                 </span>
-              </button>
+              </a>
             </div>
             {/* Home button + User Avatar + Notification Bell */}
             <div className="flex items-center gap-1">
@@ -331,7 +331,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           {/* Column 1: Main Menu (90px) */}
           <div className="w-[90px] flex flex-col items-center py-6 bg-sidebar border-r border-sidebar-accent">
             {/* Logo */}
-            <img src={settings?.logo_url || logoUrl} alt="Logo" className="w-16 h-16 mb-6 object-contain" />
+            <a href="/" className="block w-16 h-16 mb-6">
+              <img src={settings?.logo_url || logoUrl} alt="Logo" className="w-full h-full object-contain" />
+            </a>
 
             {/* Main Menu Icons */}
             <nav className="flex flex-col gap-2.5 flex-1">
