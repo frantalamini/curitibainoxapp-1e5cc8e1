@@ -1112,7 +1112,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                 min="1" 
                 className="h-8 text-xs mt-1" 
                 value={installmentInterval}
-                onChange={e => setInstallmentInterval(Number(e.target.value) || 30)} 
+                onChange={e => setInstallmentInterval(e.target.value === '' ? 0 : Number(e.target.value))} 
               />
             </div>
             <Button 
