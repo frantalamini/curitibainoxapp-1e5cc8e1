@@ -57,6 +57,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FinanceiroGuard } from "@/components/os-financeiro/FinanceiroGuard";
 import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
 import { StatusSelectField } from "@/components/service-calls/StatusSelectField";
+import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
 
 type Signature = {
   image_url: string; // Pode ser caminho no storage OU URL completa (legacy)
@@ -79,6 +80,7 @@ const ServiceCallForm = () => {
   const isEditMode = !!id;
   const { createServiceCallAsync, updateServiceCallAsync } = useServiceCalls();
   const { isAdmin, isTechnician, loading: rolesLoading } = useUserRole();
+  const { statuses: allStatuses } = useServiceCallStatuses();
   
   // Estado de modo readonly - inicia como true em edição (isEditMode = !!id), false em criação
   const [isReadonly, setIsReadonly] = useState(!!id);
@@ -195,6 +197,11 @@ const ServiceCallForm = () => {
   const activeTechnicians = technicians?.filter((t) => t.active);
   const activeServiceTypes = serviceTypes?.filter((st) => st.active);
   const selectedChecklist = checklists?.find((c) => c.id === selectedChecklistId);
+
+  // OS bloqueada quando status comercial é "Faturado" — ninguém pode editar (ADM e técnicos)
+  const isFaturado = !!selectedCommercialStatusId && !!allStatuses?.some(
+    s => s.id === selectedCommercialStatusId && s.name.toLowerCase() === 'faturado'
+  );
 
   // Função helper para obter assinatura mais recente por role (banco + novas pendentes)
   const getCurrentSignature = (existingSignatures: any[] | undefined, newSigs: Signature[], role: 'tech' | 'client') => {
@@ -1083,11 +1090,16 @@ const ServiceCallForm = () => {
           
           {/* Botões de Ação */}
           <div className="flex items-center gap-2 shrink-0">
-            {isEditMode && isReadonly && (
+            {isEditMode && isReadonly && !isFaturado && (
               <Button type="button" onClick={() => setIsReadonly(false)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Editar
               </Button>
+            )}
+            {isFaturado && (
+              <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
+                OS Faturada — Edição bloqueada
+              </Badge>
             )}
             
             {/* Botões de edição no header - apenas desktop */}
