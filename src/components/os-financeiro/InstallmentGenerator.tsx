@@ -134,7 +134,7 @@ export const InstallmentGenerator = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Start Date */}
           <div>
-            <Label className="text-xs">Data de Início do Prazo</Label>
+            <Label className="text-xs">Data de Início da Contagem</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
