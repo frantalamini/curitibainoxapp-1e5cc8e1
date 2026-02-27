@@ -76,6 +76,11 @@ export function ServiceCallActionsMenu({
   const technicalStatuses = statuses?.filter(s => s.active && s.status_type === 'tecnico') || [];
   const commercialStatuses = statuses?.filter(s => s.active && s.status_type === 'comercial') || [];
 
+  // Verificar se a OS está faturada (bloqueio de edição)
+  const isFaturado = !!currentCommercialStatusId && statuses?.some(
+    s => s.id === currentCommercialStatusId && s.name.toLowerCase() === 'faturado'
+  );
+
   const handleAddMarker = async () => {
     if (!newMarkerText.trim()) return;
     
@@ -183,7 +188,7 @@ export function ServiceCallActionsMenu({
           <DropdownMenuSeparator />
           
           {/* Status Técnico */}
-          {canEditTechnicalStatus && technicalStatuses.length > 0 && (
+          {canEditTechnicalStatus && technicalStatuses.length > 0 && !isFaturado && (
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="cursor-pointer">
                 <CircleDot className="mr-2 h-4 w-4" />
@@ -226,7 +231,7 @@ export function ServiceCallActionsMenu({
           )}
 
           {/* Status Comercial */}
-          {canEditCommercialStatus && commercialStatuses.length > 0 && (
+          {canEditCommercialStatus && commercialStatuses.length > 0 && !isFaturado && (
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="cursor-pointer">
                 <CircleDot className="mr-2 h-4 w-4" />
