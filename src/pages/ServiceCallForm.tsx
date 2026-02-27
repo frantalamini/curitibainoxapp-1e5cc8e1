@@ -2251,8 +2251,16 @@ const ServiceCallForm = () => {
                               link.href = pdfBlobUrl;
                               link.download = `OS-${existingCall.os_number}.pdf`;
                               link.click();
-                            } else if (generatedPdfUrl) {
-                              const res = await fetch(generatedPdfUrl);
+                            } else if ((existingCall as any)?.report_pdf_path) {
+                              // Gerar signed URL do storage para download direto
+                              const { data: signedData, error: signedError } = await supabase.storage
+                                .from('service-call-attachments')
+                                .createSignedUrl((existingCall as any).report_pdf_path, 3600);
+                              if (signedError || !signedData) {
+                                toast({ title: "Erro ao gerar link de download", variant: "destructive" });
+                                return;
+                              }
+                              const res = await fetch(signedData.signedUrl);
                               const blob = await res.blob();
                               const url = URL.createObjectURL(blob);
                               const link = document.createElement('a');
@@ -2263,6 +2271,7 @@ const ServiceCallForm = () => {
                             }
                           } catch (e) {
                             console.error('Erro ao salvar PDF:', e);
+                            toast({ title: "Erro ao salvar PDF", variant: "destructive" });
                           }
                         }}
                       >
