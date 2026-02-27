@@ -2219,62 +2219,77 @@ const ServiceCallForm = () => {
                 )}
                 
                 {(generatedPdfUrl || pdfBlobUrl) && existingCall && (
-                  <div className="flex flex-wrap gap-2 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                    <span className="w-full text-sm font-medium text-green-700 dark:text-green-300 mb-1">
+                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800 space-y-3">
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300 flex items-center gap-1">
                       ✓ PDF gerado com sucesso
-                    </span>
+                    </p>
                     
-                    {/* Abrir PDF - priorizar URL pública para funcionar em qualquer contexto */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        // Priorizar URL pública (generatedPdfUrl) que funciona mesmo após fechar/reabrir
-                        // pdfBlobUrl só funciona na mesma sessão do browser
-                        const url = generatedPdfUrl || pdfBlobUrl;
-                        if (url) window.open(url, '_blank');
-                      }}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Visualizar PDF
-                    </Button>
-                    
-                    {/* Salvar PDF (download) */}
-                    {pdfBlob && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {/* Visualizar PDF */}
                       <Button
                         type="button"
                         variant="outline"
+                        className="w-full"
                         onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = pdfBlobUrl!;
-                          link.download = `OS-${existingCall.os_number}.pdf`;
-                          link.click();
+                          const url = generatedPdfUrl || pdfBlobUrl;
+                          if (url) window.open(url, '_blank');
+                        }}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Visualizar PDF
+                      </Button>
+                      
+                      {/* Salvar PDF (download) */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={async () => {
+                          try {
+                            if (pdfBlobUrl) {
+                              const link = document.createElement('a');
+                              link.href = pdfBlobUrl;
+                              link.download = `OS-${existingCall.os_number}.pdf`;
+                              link.click();
+                            } else if (generatedPdfUrl) {
+                              const res = await fetch(generatedPdfUrl);
+                              const blob = await res.blob();
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `OS-${existingCall.os_number}.pdf`;
+                              link.click();
+                              URL.revokeObjectURL(url);
+                            }
+                          } catch (e) {
+                            console.error('Erro ao salvar PDF:', e);
+                          }
                         }}
                       >
                         <Download className="mr-2 h-4 w-4" />
                         Salvar PDF
                       </Button>
-                    )}
-                    
-                    {/* WhatsApp */}
-                    <Button
-                      type="button"
-                      onClick={() => setSendWhatsAppModalOpen(true)}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      Enviar via WhatsApp
-                    </Button>
-                    
-                    {/* E-mail */}
-                    <Button
-                      type="button"
-                      onClick={() => setSendEmailModalOpen(true)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Mail className="mr-2 h-4 w-4" />
-                      Enviar por E-mail
-                    </Button>
+                      
+                      {/* WhatsApp */}
+                      <Button
+                        type="button"
+                        onClick={() => setSendWhatsAppModalOpen(true)}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        WhatsApp
+                      </Button>
+                      
+                      {/* E-mail */}
+                      <Button
+                        type="button"
+                        onClick={() => setSendEmailModalOpen(true)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        E-mail
+                      </Button>
+                    </div>
                   </div>
                 )}
               </>
