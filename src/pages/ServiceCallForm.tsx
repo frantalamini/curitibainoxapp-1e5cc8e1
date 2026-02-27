@@ -149,6 +149,7 @@ const ServiceCallForm = () => {
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
   const [equipmentSerialNumber, setEquipmentSerialNumber] = useState("");
   const [internalNotesText, setInternalNotesText] = useState("");
+  const [defectFound, setDefectFound] = useState("");
   
   // Estados para os modais de assinatura
   const [openTechSignatureModal, setOpenTechSignatureModal] = useState(false);
@@ -454,6 +455,7 @@ const ServiceCallForm = () => {
       setExistingCustomerSignatureUrl(existingCall.customer_signature_url || null);
       setEquipmentSerialNumber(existingCall.equipment_serial_number || "");
       setInternalNotesText(existingCall.internal_notes_text || "");
+      setDefectFound((existingCall as any).defect_found || "");
       setExistingTechnicalAudioUrl(existingCall.technical_diagnosis_audio_url || null);
       setSelectedStatusId(existingCall.status_id || "");
       setSelectedCommercialStatusId(existingCall.commercial_status_id || "");
@@ -732,6 +734,16 @@ const ServiceCallForm = () => {
       return;
     }
 
+    // Validação do campo "Defeito Encontrado" (obrigatório em modo edição)
+    if (isEditMode && !defectFound.trim()) {
+      toast({
+        title: "Erro",
+        description: "Preencha o campo 'Defeito Encontrado' na aba Informações Técnicas",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -948,6 +960,7 @@ const ServiceCallForm = () => {
         audio_url: audioUrl,
         media_urls: mediaUrls.length > 0 ? mediaUrls : null,
         technical_diagnosis: technicalDiagnosis || null,
+        defect_found: defectFound || null,
         photos_before_urls: photosBeforeUrls.length > 0 ? photosBeforeUrls : null,
         video_before_url: videoBeforeUrl,
         photos_after_urls: photosAfterUrls.length > 0 ? photosAfterUrls : null,
@@ -1265,6 +1278,24 @@ const ServiceCallForm = () => {
                       </p>
                     )}
                   </div>
+
+                  {/* CNPJ e Inscrição Estadual do cliente */}
+                  {existingCall?.clients && (existingCall.clients.cpf_cnpj || existingCall.clients.state_registration) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {existingCall.clients.cpf_cnpj && (
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">CNPJ / CPF</Label>
+                          <p className="text-sm font-medium">{existingCall.clients.cpf_cnpj}</p>
+                        </div>
+                      )}
+                      {existingCall.clients.state_registration && (
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Inscrição Estadual</Label>
+                          <p className="text-sm font-medium">{existingCall.clients.state_registration}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
                     {/* Equipamento - 4/12 */}
@@ -1770,6 +1801,21 @@ const ServiceCallForm = () => {
                     isEditMode && !hasCompletedTrip && "opacity-50 pointer-events-none",
                     isReadonly && isEditMode && "pointer-events-none"
                   )}>
+                  {/* Defeito Encontrado */}
+                  <div className="space-y-2">
+                    <Label>Defeito Encontrado *</Label>
+                    <Textarea
+                      value={defectFound}
+                      onChange={(e) => setDefectFound(e.target.value)}
+                      placeholder="Descreva o defeito encontrado no equipamento..."
+                      rows={4}
+                      maxLength={1000}
+                      className={cn("resize-none", isReadonly && isEditMode && "bg-muted")}
+                      disabled={isReadonly && isEditMode}
+                    />
+                    <p className="text-[10px] text-muted-foreground text-right">{defectFound.length}/1000</p>
+                  </div>
+
                   {/* Análises e Providências Realizadas */}
                   <div className="space-y-2">
                     <Label>Análises e Providências Realizadas</Label>
