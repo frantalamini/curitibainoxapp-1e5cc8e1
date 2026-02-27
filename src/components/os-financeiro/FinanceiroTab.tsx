@@ -67,6 +67,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Textarea } from "@/components/ui/textarea";
 import { QuickProductForm } from "./QuickProductForm";
 import { DiscountType, PaymentMode } from "./types";
 import { Calendar } from "@/components/ui/calendar";
@@ -173,6 +174,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const [editDays, setEditDays] = useState<number>(0);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [receiptObservation, setReceiptObservation] = useState("");
 
   // === Inline editing state for items (products/services) ===
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -189,6 +191,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       const sc = serviceCall as Record<string, any>;
       setOsDiscountType((sc.discount_total_type as DiscountType) || "value");
       setOsDiscountValue(sc.discount_total_value || 0);
+      setReceiptObservation(sc.receipt_observation || "");
 
       const paymentConfig = parsePaymentConfig(sc.payment_config);
       if (paymentConfig) {
@@ -623,6 +626,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
           discount_total_type: osDiscountType,
           discount_total_value: osDiscountValue,
           payment_config: paymentConfig as unknown as Record<string, unknown>,
+          receipt_observation: receiptObservation || null,
         } as any)
         .eq("id", serviceCallId);
 
@@ -1007,6 +1011,24 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               <p className="text-xl font-bold text-primary">{formatCurrency(grandTotal)}</p>
             </div>
           </div>
+    </CardContent>
+      </Card>
+
+      {/* === Observação do Recebimento === */}
+      <Card>
+        <CardHeader className="py-2 px-3">
+          <CardTitle className="text-sm">Observação do Recebimento</CardTitle>
+        </CardHeader>
+        <CardContent className="p-3">
+          <Textarea
+            value={receiptObservation}
+            onChange={(e) => setReceiptObservation(e.target.value)}
+            placeholder="Observações sobre o recebimento..."
+            maxLength={300}
+            rows={3}
+            className="resize-none text-sm"
+          />
+          <p className="text-[10px] text-muted-foreground text-right mt-1">{receiptObservation.length}/300</p>
         </CardContent>
       </Card>
 

@@ -57,6 +57,8 @@ export interface ServiceCall {
     cep?: string;
     nome_fantasia?: string;
     secondary_name?: string;
+    cpf_cnpj?: string;
+    state_registration?: string;
     responsible_financial?: { name?: string; phone?: string; email?: string } | null;
     responsible_technical?: { name?: string; phone?: string; email?: string } | null;
     responsible_legal?: { name?: string; phone?: string; email?: string } | null;
@@ -128,6 +130,8 @@ const SERVICE_CALL_SELECT = `
     address,
     nome_fantasia,
     secondary_name,
+    cpf_cnpj,
+    state_registration,
     responsible_financial,
     responsible_technical,
     responsible_legal
@@ -166,6 +170,8 @@ const SERVICE_CALL_SELECT_FULL = `
     cep,
     nome_fantasia,
     secondary_name,
+    cpf_cnpj,
+    state_registration,
     responsible_financial,
     responsible_technical,
     responsible_legal

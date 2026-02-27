@@ -1569,6 +1569,7 @@ export type Database = {
           customer_signature_data: string | null
           customer_signature_date: string | null
           customer_signature_url: string | null
+          defect_found: string | null
           discount_parts_type: string | null
           discount_parts_value: number | null
           discount_services_type: string | null
@@ -1591,6 +1592,7 @@ export type Database = {
           photos_before_urls: string[] | null
           problem_description: string | null
           purchase_order_number: string | null
+          receipt_observation: string | null
           report_access_token: string | null
           report_pdf_path: string | null
           report_token_expires_at: string | null
@@ -1625,6 +1627,7 @@ export type Database = {
           customer_signature_data?: string | null
           customer_signature_date?: string | null
           customer_signature_url?: string | null
+          defect_found?: string | null
           discount_parts_type?: string | null
           discount_parts_value?: number | null
           discount_services_type?: string | null
@@ -1647,6 +1650,7 @@ export type Database = {
           photos_before_urls?: string[] | null
           problem_description?: string | null
           purchase_order_number?: string | null
+          receipt_observation?: string | null
           report_access_token?: string | null
           report_pdf_path?: string | null
           report_token_expires_at?: string | null
@@ -1681,6 +1685,7 @@ export type Database = {
           customer_signature_data?: string | null
           customer_signature_date?: string | null
           customer_signature_url?: string | null
+          defect_found?: string | null
           discount_parts_type?: string | null
           discount_parts_value?: number | null
           discount_services_type?: string | null
@@ -1703,6 +1708,7 @@ export type Database = {
           photos_before_urls?: string[] | null
           problem_description?: string | null
           purchase_order_number?: string | null
+          receipt_observation?: string | null
           report_access_token?: string | null
           report_pdf_path?: string | null
           report_token_expires_at?: string | null
