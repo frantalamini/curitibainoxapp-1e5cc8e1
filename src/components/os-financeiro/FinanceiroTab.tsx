@@ -427,7 +427,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
 
     const groupId = crypto.randomUUID();
-    const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * i);
+    const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * (i + 1));
     
     // Default payment method from selected list
     const defaultMethod = selectedPaymentMethods.length > 0 ? selectedPaymentMethods[0] : null;
@@ -511,21 +511,17 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     setEditAmount(t.amount);
     setEditPaymentMethod(t.payment_method || '');
     setEditNotes(t.notes || '');
-    // Calculate days from first transaction
-    const days = transactions.length > 0 && index > 0
-      ? Math.round((new Date(t.due_date + "T12:00:00").getTime() - new Date(transactions[0].due_date + "T12:00:00").getTime()) / (1000 * 60 * 60 * 24))
-      : 0;
+    // Calculate days from payment start date
+    const currentDate = new Date(t.due_date + "T12:00:00");
+    const days = Math.round((currentDate.getTime() - paymentStartDate.getTime()) / (1000 * 60 * 60 * 24));
     setEditDays(days);
   };
 
-  // When days change, recalculate due date
+  // When days change, recalculate due date from payment start date
   const handleDaysChange = (newDays: number) => {
     setEditDays(newDays);
-    if (transactions.length > 0) {
-      const firstDate = new Date(transactions[0].due_date + "T12:00:00");
-      const newDueDate = addDays(firstDate, newDays);
-      setEditDueDate(newDueDate);
-    }
+    const newDueDate = addDays(paymentStartDate, newDays);
+    setEditDueDate(newDueDate);
   };
 
   const handleSaveEditTransaction = async () => {
@@ -579,12 +575,10 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
   };
 
-  // === Calculate days from first installment ===
+  // === Calculate days from payment start date ===
   const calculateDays = (t: any, index: number): number => {
-    if (transactions.length === 0) return 0;
-    const firstDate = new Date(transactions[0].due_date + "T12:00:00");
     const currentDate = new Date(t.due_date + "T12:00:00");
-    return Math.round((currentDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.round((currentDate.getTime() - paymentStartDate.getTime()) / (1000 * 60 * 60 * 24));
   };
 
   // === Save financial data ===
@@ -610,7 +604,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       }
 
       // 2. Build and save payment config to the service call
-      const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * i);
+      const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * (i + 1));
       const paymentConfig = buildPaymentConfig(
         paymentStartDate, 
         installmentDays, 
@@ -1079,7 +1073,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
               </Select>
             </div>
             <div className="min-w-[110px]">
-              <Label className="text-[10px]">Data Início 1ª Parcela</Label>
+              <Label className="text-[10px]">Data Início Contagem</Label>
               <Input 
                 type="text" 
                 placeholder="dd/mm/aaaa" 
@@ -1274,7 +1268,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                                 type="text" 
                                 placeholder="Observação..."
                                 className="h-7 text-xs w-full"
-                                maxLength={100}
+                                maxLength={300}
                                 value={editNotes} 
                                 onChange={e => setEditNotes(e.target.value)} 
                               />
@@ -1283,7 +1277,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
                                 type="text" 
                                 placeholder="Observação..."
                                 className="h-7 text-xs w-full"
-                                maxLength={100}
+                                maxLength={300}
                                 defaultValue={t.notes || ''}
                                 onBlur={(e) => {
                                   if (e.target.value !== (t.notes || '')) {
