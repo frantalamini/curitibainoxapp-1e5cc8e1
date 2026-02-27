@@ -1,46 +1,30 @@
 
 
-## Tres Ajustes na OS
+## Mover CNPJ e Inscricao Estadual para dentro do card do cliente
 
-### 1. Campo "Observacao do Recebimento" na aba Financeiro
+O CNPJ e a Inscricao Estadual estao aparecendo como um bloco separado abaixo do seletor de cliente. O ajuste e mover essas informacoes para dentro do card cinza que ja exibe razao social, telefone e endereco do cliente selecionado.
 
-Adicionar um campo de texto livre (Textarea, 300 caracteres) entre o card de totais (TOTAL OS) e o card de Condicao de Pagamento.
+### Alteracoes
 
-- **Banco de dados**: Criar coluna `receipt_observation` (text, nullable) na tabela `service_calls` via migration
-- **FinanceiroTab.tsx**: Adicionar estado local para o campo, carregar do `serviceCall`, exibir Textarea entre os dois cards, salvar junto com os demais dados financeiros
-- **useServiceCalls.ts**: Nao precisa alterar (ja usa `*` no select)
+**Arquivo: `src/components/ClientAsyncSelect.tsx`**
+- No card de cliente selecionado (bloco `bg-muted`), adicionar logo abaixo do nome (`full_name`):
+  - Linha com CNPJ/CPF (se existir): `CPF/CNPJ: XX.XXX.XXX/XXXX-XX`
+  - Linha com Inscricao Estadual (se existir): `IE: XXXXXXX`
+- O `selectedClient` ja traz todos os campos da tabela `clients`, incluindo `cpf_cnpj` e `state_registration`, pois a query usa `select('*')`
 
-### 2. Campo "Defeito Encontrado" na aba Tecnico (obrigatorio)
+**Arquivo: `src/pages/ServiceCallForm.tsx`**
+- Remover o bloco separado de CNPJ/IE (linhas 1282-1298) que foi adicionado anteriormente, ja que agora essas informacoes aparecerao automaticamente dentro do componente `ClientAsyncSelect`
 
-Adicionar um campo de texto (Textarea, 1000 caracteres) **antes** de "Analises e Providencias Realizadas", com preenchimento obrigatorio.
+### Resultado visual esperado
 
-- **Banco de dados**: Criar coluna `defect_found` (text, nullable) na tabela `service_calls` via migration
-- **ServiceCallForm.tsx**:
-  - Novo estado `defectFound`
-  - Carregar do `existingCall` na inicializacao
-  - Renderizar Textarea com label "Defeito Encontrado *" antes do campo "Analises e Providencias Realizadas" (linha ~1773)
-  - Incluir no `formattedData` ao salvar
-  - Validacao: exibir toast de erro se vazio ao salvar (exceto em modo readonly)
-
-### 3. CNPJ e Inscricao Estadual na aba Geral
-
-Exibir CNPJ e Inscricao Estadual do cliente selecionado como campos somente leitura na aba Geral, logo abaixo do seletor de cliente.
-
-- **useServiceCalls.ts**: Adicionar `cpf_cnpj` e `state_registration` nos dois selects (`SERVICE_CALL_SELECT` e `SERVICE_CALL_SELECT_FULL`) e na interface `clients`
-- **ServiceCallForm.tsx**: Apos o `ClientAsyncSelect`, renderizar os campos CNPJ e IE como texto somente leitura (apenas quando houver valor), buscando de `existingCall.clients`
-
-### Detalhes Tecnicos
-
-**Migration SQL:**
-```sql
-ALTER TABLE service_calls ADD COLUMN receipt_observation text;
-ALTER TABLE service_calls ADD COLUMN defect_found text;
+O card cinza do cliente ficara assim:
+```text
+Razao Social do Cliente
+CPF/CNPJ: 10.174.421/0001-92
+IE: 12345678
+Telefone: (41) 99999-9999
+Rua Exemplo, 123 - Curitiba
 ```
 
-**Arquivos alterados:**
-1. `src/components/os-financeiro/FinanceiroTab.tsx` - Novo campo Textarea "Observacao do Recebimento"
-2. `src/pages/ServiceCallForm.tsx` - Campo "Defeito Encontrado" na aba Tecnico + exibicao de CNPJ/IE na aba Geral
-3. `src/hooks/useServiceCalls.ts` - Incluir `cpf_cnpj` e `state_registration` nos selects de clients
-
-**Nenhuma parcela ou dado existente sera alterado.**
+Nenhuma alteracao no banco de dados. Apenas movimentacao de informacao no layout.
 
