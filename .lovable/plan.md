@@ -1,54 +1,58 @@
 
-### Contexto validado
-- OS 2844 no banco: due_date = 2026-02-27 em financial_transactions (direção RECEIVE).
-- Problema relatado: no PDF financeiro aparece 26/02/2026.
-- Código atual do PDF financeiro: `src/lib/generateOSPdf.tsx` mapeia parcelas em `fetchFinancialData` (linha ~410) e formata vencimento via `format(parseLocalDate(t.due_date), 'dd/MM/yyyy')`.
-- Restrições: correção cirúrgica, sem alterar rotas, schema, fluxo UI já estável.
 
-### Hipótese técnica principal
-- O deslocamento de 1 dia acontece quando a data chega em formato com timezone/UTC (ex.: `YYYY-MM-DDT00:00:00Z`) e passa por `Date`.
-- Mesmo com `parseLocalDate`, ainda existe risco em strings com `T` porque hoje elas são parseadas diretamente como timestamp.
-- Para vencimento de parcela (campo de negócio “date-only”), a estratégia mais segura é **não depender de timezone** para formatar.
+## Abas por Status Comercial na Listagem de Chamados
 
-### Objetivo da correção
-Garantir que o vencimento exibido no PDF financeiro reflita exatamente o dia salvo no backend (date-only), sem retroagir/adiantar por fuso.
+### O que sera feito
 
-### Plano de implementação (cirúrgico)
-1. **Criar formatação determinística para vencimento financeiro (date-only)**
-   - Arquivo: `src/lib/generateOSPdf.tsx`
-   - Adicionar helper local (somente para PDF financeiro), por exemplo:
-     - Extrair a parte `YYYY-MM-DD` de `t.due_date` (inclusive quando vier com timestamp).
-     - Converter para `dd/MM/yyyy` por string (sem `new Date`), com fallback seguro.
-   - Resultado: `2026-02-27` sempre vira `27/02/2026`, independentemente do timezone do cliente.
+Adicionar abas dinamicas na pagina de Chamados Tecnicos, baseadas nos **status comerciais** cadastrados. As abas serao geradas automaticamente a partir dos status comerciais existentes no banco -- ou seja, ao criar um novo status comercial, ele aparecera como uma nova aba automaticamente, sem necessidade de nenhuma alteracao no codigo.
 
-2. **Trocar apenas o ponto de montagem das parcelas no PDF**
-   - Arquivo: `src/lib/generateOSPdf.tsx` (bloco `fetchFinancialData`, mapping de `installments`).
-   - Substituir:
-     - `dueDate: format(parseLocalDate(t.due_date), 'dd/MM/yyyy', { locale: ptBR })`
-   - Por:
-     - `dueDate: formatFinancialDueDate(t.due_date)` (helper determinístico).
-   - Não alterar lógica de totais, filtros, query, assinatura, upload ou fluxo de geração.
+### Como vai funcionar
 
-3. **Manter isolado para não impactar o restante do sistema**
-   - Não mexer em:
-     - `src/lib/dateUtils.ts` (evita efeito colateral global agora)
-     - schema/migrations
-     - telas/rotas de financeiro
-     - fluxo de geração e compartilhamento do PDF
+- **Aba "Todas"**: mostra todos os chamados, independente do status comercial (comportamento atual)
+- **Uma aba por status comercial**: "Aguardando aprovacao", "Aprovado", "Cancelado", "Faturado" (e qualquer outro que for criado no futuro)
+- Cada aba exibira a **contagem** de OS naquele status comercial
+- Ao mudar o status comercial de uma OS (via formulario ou menu rapido), ela automaticamente aparecera na aba correta ao recarregar/navegar
+- O **filtro de status tecnico** (dropdown) continuara funcionando normalmente, combinando com a aba selecionada
+- A aba "Novos" para tecnicos sera mantida como esta
 
-### Validação (obrigatória antes de concluir)
-1. Regerar **PDF Completo** da OS 2844.
-2. Conferir tabela “Condições de Pagamento”:
-   - esperado: vencimento `27/02/2026`.
-3. Conferir não-regressão:
-   - PDF técnico continua gerando normal.
-   - Financeiro da OS continua com mesmos valores/parcelas.
-   - Sem alteração de comportamento em contas a pagar/receber.
+### Sobre criar novos status comerciais
 
-### Critérios de aceite
-- Vencimento no PDF financeiro igual ao vencimento salvo (sem -1 dia).
-- Correção aplicada apenas no pipeline de renderização de parcelas do PDF.
-- Nenhuma mudança estrutural em banco, rotas ou fluxo de UI já validado.
+**Nao precisa definir antes.** O sistema lera os status comerciais dinamicamente do banco de dados. Ao cadastrar um novo status comercial em Configuracoes > Status de Chamados, ele aparecera automaticamente como uma nova aba na listagem.
 
-### Arquivo que será alterado
-- `src/lib/generateOSPdf.tsx` (somente)
+### Detalhes Tecnicos
+
+**Arquivos alterados:**
+
+1. **`src/hooks/useServiceCalls.ts`**
+   - Adicionar filtro `commercialStatusId` nas opcoes de filtro
+   - Quando preenchido, aplicar `.eq("commercial_status_id", commercialStatusId)` na query
+   - Nao alterar nenhuma outra logica existente (busca, paginacao, ordenacao)
+
+2. **`src/pages/ServiceCalls.tsx`**
+   - Adicionar estado `commercialTab` (valor: `"all"` ou o ID do status comercial)
+   - Extrair status comerciais de `statuses` (filtrar por `status_type === 'comercial'`)
+   - Renderizar abas horizontais (desktop) com scroll e dropdown (mobile) -- similar ao componente `CadastrosTabs`
+   - Cada aba mostra nome + contagem
+   - Passar `commercialStatusId` para o hook `useServiceCalls`
+   - Manter tabs "Todos/Novos" para tecnicos separadamente (sem conflito)
+   - Reset de pagina ao trocar de aba
+
+3. **Contagem por aba**: Adicionar uma query auxiliar que busca a contagem de OS por `commercial_status_id` usando `group by` ou queries paralelas, para exibir os numeros nas abas sem afetar a listagem principal.
+
+**O que NAO sera alterado:**
+- Banco de dados / migrations
+- Rotas
+- Componentes de tabela e cards
+- Logica de status tecnico
+- Numeracao de OS
+- Nenhum outro fluxo existente
+
+### Layout visual
+
+```text
+[Todas (2793)] [Ag. Aprovacao (332)] [Aprovado (36)] [Cancelado (206)] [Faturado (2206)]
+```
+
+Desktop: abas horizontais com scroll se necessario
+Mobile: dropdown/select (como ja funciona no CadastrosTabs)
+
