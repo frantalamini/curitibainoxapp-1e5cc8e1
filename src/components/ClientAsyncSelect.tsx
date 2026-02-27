@@ -145,6 +145,16 @@ export const ClientAsyncSelect = ({
         <div className="flex items-start gap-2 p-3 bg-muted rounded-md">
           <div className="flex-1 min-w-0">
             <p className="font-semibold truncate">{selectedClient.full_name}</p>
+            {selectedClient.cpf_cnpj && (
+              <p className="text-sm text-muted-foreground">
+                CPF/CNPJ: {selectedClient.cpf_cnpj}
+              </p>
+            )}
+            {selectedClient.state_registration && (
+              <p className="text-sm text-muted-foreground">
+                IE: {selectedClient.state_registration}
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
               Telefone: {selectedClient.phone}
             </p>
