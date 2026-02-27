@@ -2246,13 +2246,18 @@ const ServiceCallForm = () => {
                         className="w-full"
                         onClick={async () => {
                           try {
+                            const clientData = existingCall.clients as any;
+                            const clientPart = clientData?.nome_fantasia
+                              ? clientData.nome_fantasia.split(' ').slice(0, 2).join(' ')
+                              : clientData?.full_name?.split(' ')[0] || 'Cliente';
+                            const pdfFilename = `${clientPart} - OS${existingCall.os_number}.pdf`;
+
                             if (pdfBlobUrl) {
                               const link = document.createElement('a');
                               link.href = pdfBlobUrl;
-                              link.download = `OS-${existingCall.os_number}.pdf`;
+                              link.download = pdfFilename;
                               link.click();
                             } else if ((existingCall as any)?.report_pdf_path) {
-                              // Gerar signed URL do storage para download direto
                               const { data: signedData, error: signedError } = await supabase.storage
                                 .from('service-call-attachments')
                                 .createSignedUrl((existingCall as any).report_pdf_path, 3600);
@@ -2265,7 +2270,7 @@ const ServiceCallForm = () => {
                               const url = URL.createObjectURL(blob);
                               const link = document.createElement('a');
                               link.href = url;
-                              link.download = `OS-${existingCall.os_number}.pdf`;
+                              link.download = pdfFilename;
                               link.click();
                               URL.revokeObjectURL(url);
                             }
