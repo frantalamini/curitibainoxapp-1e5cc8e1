@@ -1,30 +1,36 @@
 
 
-## Mover CNPJ e Inscricao Estadual para dentro do card do cliente
+## Reorganizar botoes de acoes do PDF
 
-O CNPJ e a Inscricao Estadual estao aparecendo como um bloco separado abaixo do seletor de cliente. O ajuste e mover essas informacoes para dentro do card cinza que ja exibe razao social, telefone e endereco do cliente selecionado.
+### Problema atual
+Apos gerar o PDF, os botoes (Visualizar PDF, Salvar PDF, Enviar via WhatsApp, Enviar por E-mail) ficam dispostos de forma desorganizada usando `flex-wrap`, sem estrutura visual clara. Alem disso, o botao "Salvar PDF" depende do `pdfBlobUrl` que pode nao estar disponivel em todos os cenarios.
 
-### Alteracoes
+### Solucao
 
-**Arquivo: `src/components/ClientAsyncSelect.tsx`**
-- No card de cliente selecionado (bloco `bg-muted`), adicionar logo abaixo do nome (`full_name`):
-  - Linha com CNPJ/CPF (se existir): `CPF/CNPJ: XX.XXX.XXX/XXXX-XX`
-  - Linha com Inscricao Estadual (se existir): `IE: XXXXXXX`
-- O `selectedClient` ja traz todos os campos da tabela `clients`, incluindo `cpf_cnpj` e `state_registration`, pois a query usa `select('*')`
+**Arquivo: `src/pages/ServiceCallForm.tsx` (linhas 2221-2278)**
 
-**Arquivo: `src/pages/ServiceCallForm.tsx`**
-- Remover o bloco separado de CNPJ/IE (linhas 1282-1298) que foi adicionado anteriormente, ja que agora essas informacoes aparecerao automaticamente dentro do componente `ClientAsyncSelect`
+Reorganizar o bloco de acoes do PDF com layout responsivo:
 
-### Resultado visual esperado
+1. **Layout em grid responsivo**: Substituir o `flex-wrap` por um `grid` com 2 colunas no mobile e 4 colunas no desktop, garantindo botoes alinhados e proporcionais
+2. **Mensagem de sucesso separada**: Mover o texto "PDF gerado com sucesso" para uma linha propria acima dos botoes
+3. **Botoes uniformes**: Todos os botoes com mesma altura e `flex-1` dentro do grid para ficarem proporcionais
+4. **Corrigir Salvar PDF**: Garantir que o botao "Salvar PDF" funcione mesmo quando so existe `generatedPdfUrl` (sem blob local), fazendo download via `fetch` + blob quando necessario. Tambem exibir o botao sempre (nao apenas quando `pdfBlob` existe), ja que o PDF esta salvo no storage
 
-O card cinza do cliente ficara assim:
+### Estrutura visual esperada
+
 ```text
-Razao Social do Cliente
-CPF/CNPJ: 10.174.421/0001-92
-IE: 12345678
-Telefone: (41) 99999-9999
-Rua Exemplo, 123 - Curitiba
+[check] PDF gerado com sucesso
+
+[ Visualizar PDF ] [ Salvar PDF    ]
+[ WhatsApp       ] [ E-mail        ]
 ```
 
-Nenhuma alteracao no banco de dados. Apenas movimentacao de informacao no layout.
+No desktop, os 4 botoes ficam lado a lado em uma unica linha.
+
+### Detalhes tecnicos
+
+- Trocar `flex flex-wrap gap-2` por `grid grid-cols-2 sm:grid-cols-4 gap-2`
+- Mover o texto de sucesso para fora do grid, como um `<p>` separado
+- No botao "Salvar PDF": remover condicao `{pdfBlob && ...}`, e no `onClick` usar `pdfBlobUrl` se disponivel, senao fazer `fetch(generatedPdfUrl)` para obter o blob e disparar download
+- Manter as cores dos botoes WhatsApp (verde) e E-mail (azul)
 
