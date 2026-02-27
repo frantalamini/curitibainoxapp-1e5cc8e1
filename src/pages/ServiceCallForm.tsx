@@ -1279,24 +1279,6 @@ const ServiceCallForm = () => {
                     )}
                   </div>
 
-                  {/* CNPJ e Inscrição Estadual do cliente */}
-                  {existingCall?.clients && (existingCall.clients.cpf_cnpj || existingCall.clients.state_registration) && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {existingCall.clients.cpf_cnpj && (
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">CNPJ / CPF</Label>
-                          <p className="text-sm font-medium">{existingCall.clients.cpf_cnpj}</p>
-                        </div>
-                      )}
-                      {existingCall.clients.state_registration && (
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Inscrição Estadual</Label>
-                          <p className="text-sm font-medium">{existingCall.clients.state_registration}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
                     {/* Equipamento - 4/12 */}
                     <div className="lg:col-span-4 space-y-2">
