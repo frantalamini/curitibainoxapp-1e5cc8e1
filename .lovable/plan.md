@@ -1,43 +1,46 @@
 
 
-## Ajustes na Aba Financeiro da OS
+## Tres Ajustes na OS
 
-### 1. Campo de Observacao com 300 caracteres
+### 1. Campo "Observacao do Recebimento" na aba Financeiro
 
-O campo "Obs" na tabela de parcelas ja existe, mas atualmente esta limitado a 100 caracteres. A alteracao e simples:
+Adicionar um campo de texto livre (Textarea, 300 caracteres) entre o card de totais (TOTAL OS) e o card de Condicao de Pagamento.
 
-**Arquivo:** `src/components/os-financeiro/FinanceiroTab.tsx`
-- Alterar o `maxLength` de `100` para `300` nos dois inputs de observacao (modo edicao inline e modo direto)
-- O campo no banco de dados ja e do tipo `text`, sem limite -- nenhuma alteracao no banco necessaria
+- **Banco de dados**: Criar coluna `receipt_observation` (text, nullable) na tabela `service_calls` via migration
+- **FinanceiroTab.tsx**: Adicionar estado local para o campo, carregar do `serviceCall`, exibir Textarea entre os dois cards, salvar junto com os demais dados financeiros
+- **useServiceCalls.ts**: Nao precisa alterar (ja usa `*` no select)
 
-### 2. Logica de Data de Inicio da Contagem
+### 2. Campo "Defeito Encontrado" na aba Tecnico (obrigatorio)
 
-Atualmente, ao gerar parcelas com "Data Inicio 1a Parcela" = 27/02 e intervalo = 7 dias:
-- Parcela 1: 27/02 (dia 0)
-- Parcela 2: 06/03 (dia 7)
-- Parcela 3: 13/03 (dia 14)
+Adicionar um campo de texto (Textarea, 1000 caracteres) **antes** de "Analises e Providencias Realizadas", com preenchimento obrigatorio.
 
-O comportamento desejado e que a data informada seja a **data de inicio da contagem**, nao a data da primeira parcela. Ou seja:
-- Parcela 1: 06/03 (contagem + 7 dias)
-- Parcela 2: 13/03 (contagem + 14 dias)
-- Parcela 3: 20/03 (contagem + 21 dias)
+- **Banco de dados**: Criar coluna `defect_found` (text, nullable) na tabela `service_calls` via migration
+- **ServiceCallForm.tsx**:
+  - Novo estado `defectFound`
+  - Carregar do `existingCall` na inicializacao
+  - Renderizar Textarea com label "Defeito Encontrado *" antes do campo "Analises e Providencias Realizadas" (linha ~1773)
+  - Incluir no `formattedData` ao salvar
+  - Validacao: exibir toast de erro se vazio ao salvar (exceto em modo readonly)
 
-**Arquivo:** `src/components/os-financeiro/FinanceiroTab.tsx`
+### 3. CNPJ e Inscricao Estadual na aba Geral
 
-Alteracoes:
-1. **Label**: Trocar "Data Inicio 1a Parcela" para "Data Inicio Contagem"
-2. **Calculo das parcelas** (funcao `doGenerateInstallments`): Mudar o array de dias de `[0, 30, 60, ...]` para `[interval, interval*2, interval*3, ...]`. Ou seja, a linha:
-   ```
-   const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * i);
-   ```
-   passa a ser:
-   ```
-   const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * (i + 1));
-   ```
-3. **Calculo dos dias na tabela** (`calculateDays`): A logica de exibicao de "Dias" na coluna da tabela de parcelas sera ajustada para calcular a partir da data de inicio da contagem (paymentStartDate) em vez da data da primeira parcela
+Exibir CNPJ e Inscricao Estadual do cliente selecionado como campos somente leitura na aba Geral, logo abaixo do seletor de cliente.
 
-### O que NAO muda
-- Parcelas ja existentes e suas datas permanecem intactas
-- Nenhuma alteracao no banco de dados
-- O campo `payment_config` salvo continua com a mesma estrutura
-- Nenhum outro componente ou arquivo e afetado
+- **useServiceCalls.ts**: Adicionar `cpf_cnpj` e `state_registration` nos dois selects (`SERVICE_CALL_SELECT` e `SERVICE_CALL_SELECT_FULL`) e na interface `clients`
+- **ServiceCallForm.tsx**: Apos o `ClientAsyncSelect`, renderizar os campos CNPJ e IE como texto somente leitura (apenas quando houver valor), buscando de `existingCall.clients`
+
+### Detalhes Tecnicos
+
+**Migration SQL:**
+```sql
+ALTER TABLE service_calls ADD COLUMN receipt_observation text;
+ALTER TABLE service_calls ADD COLUMN defect_found text;
+```
+
+**Arquivos alterados:**
+1. `src/components/os-financeiro/FinanceiroTab.tsx` - Novo campo Textarea "Observacao do Recebimento"
+2. `src/pages/ServiceCallForm.tsx` - Campo "Defeito Encontrado" na aba Tecnico + exibicao de CNPJ/IE na aba Geral
+3. `src/hooks/useServiceCalls.ts` - Incluir `cpf_cnpj` e `state_registration` nos selects de clients
+
+**Nenhuma parcela ou dado existente sera alterado.**
+
