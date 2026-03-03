@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,8 @@ import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
 import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { useServiceCallMarkers } from "@/hooks/useServiceCallMarkers";
 import { useCommercialStatusCounts } from "@/hooks/useCommercialStatusCounts";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
 import { ServiceCallsTable } from "@/components/ServiceCallsTable";
 import { CadastrosPagination } from "@/components/CadastrosPagination";
@@ -31,6 +34,7 @@ const ServiceCalls = () => {
   const { technicianId } = useCurrentTechnician();
   const { data: newCallsCount = 0 } = useNewServiceCallsCount();
   const { data: commercialCounts } = useCommercialStatusCounts();
+  const { isAdmin } = useUserRole();
   
   const technicalStatuses = statuses?.filter(s => s.status_type === 'tecnico') || [];
   const commercialStatuses = statuses?.filter(s => s.status_type === 'comercial' && s.active) || [];
@@ -92,6 +96,25 @@ const ServiceCalls = () => {
   const handleRemoveMarker = async (markerId: string) => {
     await removeMarker.mutateAsync(markerId);
   };
+
+  // Query de totais financeiros (apenas para admin)
+  const serviceCallIds = useMemo(() => sortedCalls.map(c => c.id), [sortedCalls]);
+  const { data: totalsByServiceCallId = {} } = useQuery({
+    queryKey: ["service-call-totals", serviceCallIds],
+    queryFn: async () => {
+      if (serviceCallIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("service_call_items")
+        .select("service_call_id, total")
+        .in("service_call_id", serviceCallIds);
+      if (error) throw error;
+      return (data || []).reduce((acc, item) => {
+        acc[item.service_call_id] = (acc[item.service_call_id] || 0) + Number(item.total);
+        return acc;
+      }, {} as Record<string, number>);
+    },
+    enabled: isAdmin && serviceCallIds.length > 0,
+  });
 
   // Abas comerciais dinâmicas
   const commercialTabs = useMemo(() => {
@@ -221,6 +244,8 @@ const ServiceCalls = () => {
               <ServiceCallsTable
                 calls={sortedCalls}
                 onRowClick={(id) => navigate(`/service-calls/${id}`)}
+                showTotal={isAdmin}
+                totalsByServiceCallId={totalsByServiceCallId}
               />
             </div>
 
@@ -235,6 +260,8 @@ const ServiceCalls = () => {
                   onAddMarker={handleAddMarker}
                   onRemoveMarker={handleRemoveMarker}
                   isLoadingMarkers={markersLoading}
+                  showTotal={isAdmin}
+                  totalValue={totalsByServiceCallId[call.id]}
                 />
               ))}
             </div>
