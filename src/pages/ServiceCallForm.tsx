@@ -202,12 +202,14 @@ const ServiceCallForm = () => {
   const activeServiceTypes = serviceTypes?.filter((st) => st.active);
   const selectedChecklist = checklists?.find((c) => c.id === selectedChecklistId);
 
-  // OS bloqueada quando status comercial é "Faturado"
-  // Gerencial pode editar mesmo faturada; ADM e Técnicos ficam bloqueados
-  const isStatusFaturado = !!selectedCommercialStatusId && !!allStatuses?.some(
-    s => s.id === selectedCommercialStatusId && s.name.toLowerCase() === 'faturado'
-  );
-  const isFaturado = isStatusFaturado && !isGerencial;
+  // OS bloqueada quando status comercial é "Faturado" ou "Concluído"
+  // Gerencial pode editar mesmo assim; ADM e Técnicos ficam bloqueados
+  const commercialStatusName = allStatuses?.find(
+    s => s.id === selectedCommercialStatusId
+  )?.name?.toLowerCase() || '';
+  const isStatusFaturado = !!selectedCommercialStatusId && commercialStatusName === 'faturado';
+  const isStatusConcluido = !!selectedCommercialStatusId && commercialStatusName === 'concluído';
+  const isFaturado = (isStatusFaturado || isStatusConcluido) && !isGerencial;
 
   // Função helper para obter assinatura mais recente por role (banco + novas pendentes)
   const getCurrentSignature = (existingSignatures: any[] | undefined, newSigs: Signature[], role: 'tech' | 'client') => {
@@ -1116,7 +1118,7 @@ const ServiceCallForm = () => {
             )}
             {isFaturado && (
               <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
-                OS Faturada — Edição bloqueada
+                {isStatusFaturado ? 'OS Faturada' : 'OS Concluída'} — Edição bloqueada
               </Badge>
             )}
             
