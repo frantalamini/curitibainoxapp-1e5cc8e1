@@ -36,6 +36,7 @@ import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
 import { useServiceCall, useMarkServiceCallSeen } from "@/hooks/useServiceCalls";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useCurrentUserPermissions } from "@/hooks/useUserPermissions";
 import { useChecklists } from "@/hooks/useChecklists";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { SendReportModal } from "@/components/SendReportModal";
@@ -100,6 +101,7 @@ const ServiceCallView = () => {
   const [sendWhatsAppModalOpen, setSendWhatsAppModalOpen] = useState(false);
   const [sendEmailModalOpen, setSendEmailModalOpen] = useState(false);
   const { isAdmin, isTechnician } = useUserRole();
+  const { data: permissionsData } = useCurrentUserPermissions();
   const { checklists } = useChecklists();
   const { settings: systemSettings } = useSystemSettings();
   
@@ -190,6 +192,11 @@ const ServiceCallView = () => {
   // Verificar se técnico está bloqueado de gerar PDF (usa casting para nova coluna)
   const callWithFinancialFlag = call as any;
   const isTechnicianBlockedFromPdf = isTechnician && !isAdmin && callWithFinancialFlag?.has_financial_report;
+
+  // Bloquear edição quando status comercial é "Concluído" ou "Faturado" (apenas Gerencial pode editar)
+  const commercialStatusName = (call as any)?.commercial_status?.name?.toLowerCase() || '';
+  const isGerencial = permissionsData?.profileType === 'gerencial';
+  const isEditBlocked = (commercialStatusName === 'concluído' || commercialStatusName === 'faturado') && !isGerencial;
 
   const handleGeneratePDF = async (includeFinancial = false) => {
     if (!call) return;
@@ -399,13 +406,19 @@ const ServiceCallView = () => {
           
           {/* Lado direito: Botões de Ação - condicionais por perfil */}
           <div className="flex items-center gap-2 shrink-0">
-            <Button
-              onClick={() => navigate(`/service-calls/edit/${call.id}`)}
-              size="default"
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </Button>
+            {!isEditBlocked ? (
+              <Button
+                onClick={() => navigate(`/service-calls/edit/${call.id}`)}
+                size="default"
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+            ) : (
+              <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
+                {commercialStatusName === 'faturado' ? 'OS Faturada' : 'OS Concluída'} — Edição bloqueada
+              </Badge>
+            )}
             
             {/* Técnico bloqueado: não pode gerar PDF */}
             {isTechnicianBlockedFromPdf ? (
