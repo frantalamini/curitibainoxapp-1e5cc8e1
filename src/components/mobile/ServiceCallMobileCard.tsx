@@ -1,6 +1,6 @@
 import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Calendar, User, Clock } from "lucide-react";
+import { Calendar, User, Clock, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ServiceCall } from "@/hooks/useServiceCalls";
@@ -16,6 +16,8 @@ interface ServiceCallMobileCardProps {
   onAddMarker?: (serviceCallId: string, text: string) => Promise<void>;
   onRemoveMarker?: (markerId: string) => Promise<void>;
   isLoadingMarkers?: boolean;
+  showTotal?: boolean;
+  totalValue?: number;
 }
 
 export function ServiceCallMobileCard({ 
@@ -25,6 +27,8 @@ export function ServiceCallMobileCard({
   onAddMarker,
   onRemoveMarker,
   isLoadingMarkers,
+  showTotal = false,
+  totalValue,
 }: ServiceCallMobileCardProps) {
   return (
     <MobileCard onClick={onClick}>
@@ -85,6 +89,19 @@ export function ServiceCallMobileCard({
             icon={<Clock className="h-4 w-4" />}
             label="Técnico"
             value={call.technicians.full_name}
+          />
+        )}
+        {showTotal && (
+          <MobileCardRow
+            icon={<DollarSign className="h-4 w-4" />}
+            label="Total"
+            value={
+              <span className="font-semibold text-foreground">
+                {totalValue != null
+                  ? totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                  : "-"}
+              </span>
+            }
           />
         )}
       </div>

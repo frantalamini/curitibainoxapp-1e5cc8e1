@@ -10,11 +10,15 @@ import { useMemo } from "react";
 type ServiceCallsTableProps = {
   calls: ServiceCall[];
   onRowClick: (id: string) => void;
+  showTotal?: boolean;
+  totalsByServiceCallId?: Record<string, number>;
 };
 
 export const ServiceCallsTable = ({
   calls,
   onRowClick,
+  showTotal = false,
+  totalsByServiceCallId = {},
 }: ServiceCallsTableProps) => {
   const serviceCallIds = useMemo(() => calls.map(c => c.id), [calls]);
   const { markersByServiceCall, isLoading: markersLoading, addMarker, removeMarker } = useServiceCallMarkers(serviceCallIds);
@@ -62,6 +66,9 @@ export const ServiceCallsTable = ({
               <span className="block">Status</span>
               <span className="block">Comercial</span>
             </TableHead>
+            {showTotal && (
+              <TableHead className="w-[100px] text-right">Total</TableHead>
+            )}
             <TableHead className="w-[140px]">Marcadores</TableHead>
           </TableRow>
         </TableHeader>
@@ -152,6 +159,15 @@ export const ServiceCallsTable = ({
                     <span className="text-xs text-muted-foreground">-</span>
                   )}
                 </TableCell>
+                {showTotal && (
+                  <TableCell className="py-2 text-right">
+                    <span className="text-sm font-medium text-foreground">
+                      {totalsByServiceCallId[call.id] != null
+                        ? totalsByServiceCallId[call.id].toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                        : "-"}
+                    </span>
+                  </TableCell>
+                )}
                 <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
                   <ServiceCallMarkersList markers={callMarkers} />
                 </TableCell>
