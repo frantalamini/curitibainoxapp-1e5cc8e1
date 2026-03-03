@@ -194,6 +194,16 @@ const ServiceCallView = () => {
   const handleGeneratePDF = async (includeFinancial = false) => {
     if (!call) return;
     
+    // HARD BLOCK: Técnicos NUNCA podem gerar PDF com dados financeiros
+    if (includeFinancial && isTechnician && !isAdmin) {
+      toast({
+        title: "Acesso Negado",
+        description: "Técnicos não têm permissão para gerar relatórios com dados financeiros.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Bloquear técnico se já tem relatório financeiro gerado
     if (isTechnician && !isAdmin && callWithFinancialFlag?.has_financial_report) {
       toast({
