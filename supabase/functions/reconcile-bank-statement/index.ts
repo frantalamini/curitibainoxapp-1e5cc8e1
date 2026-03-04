@@ -105,7 +105,7 @@ serve(async (req) => {
       .from("financial_transactions")
       .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status")
       .eq("financial_account_id", accountId)
-      .or("and(status.eq.PAID,is_reconciled.eq.false),status.in.(OPEN,PENDING)")
+      .or("and(status.eq.PAID,is_reconciled.eq.false),status.eq.OPEN")
       .gte("due_date", startDate)
       .lte("due_date", endDate + "T23:59:59")
       .order("due_date", { ascending: true });
