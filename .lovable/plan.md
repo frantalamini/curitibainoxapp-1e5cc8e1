@@ -1,46 +1,86 @@
 
 
-## Adicionar coluna "Total" na listagem de Ordens de Servico
+## Plano: Evolucao da Conciliacao Bancaria
 
-### Objetivo
-Exibir o valor total financeiro de cada OS na tabela de listagem, visivel apenas para perfis **Gerencial** e **Adm**. Tecnicos continuam sem acesso a informacoes financeiras.
+A pagina `ConciliacaoBancaria.tsx` ja existe com importacao OFX, matching por IA e aprovacao. O plano abaixo adiciona as funcionalidades solicitadas sem alterar nenhuma outra pagina/hook existente.
 
-### Abordagem
+---
 
-A coluna "Total" sera calculada a partir da tabela `service_call_items`, somando o campo `total` de todos os itens de cada OS. Para evitar N+1 queries, faremos uma unica consulta agregada para todas as OS visiveis na pagina.
+### 1. Botao "Incluir" para lancamentos sem correspondencia
 
-### Alteracoes
+**Problema:** Transacoes do extrato como tarifas e juros nao possuem correspondencia no sistema. O usuario precisa inclui-las diretamente.
 
-**1. `src/pages/ServiceCalls.tsx`**
-- Importar `useUserRole` para obter `isAdmin`
-- Criar um hook/query local que busca os totais agregados por `service_call_id` para as OS da pagina atual (apenas quando `isAdmin` for true)
-- Passar `isAdmin` e o mapa de totais para `ServiceCallsTable` e `ServiceCallMobileCard`
+**Solucao:** Adicionar um botao "Incluir" em cada linha da tabela de conciliacao que tenha `status: "manual"` (sem correspondencia). Ao clicar:
+- Abre um mini-formulario inline ou modal simples com:
+  - Categoria financeira (select das `financial_categories`)
+  - Centro de custo (opcional)
+  - Descricao pre-preenchida com a descricao do OFX
+  - Valor pre-preenchido do OFX
+- Ao confirmar, cria um `financial_transaction` com:
+  - `direction`: PAY (se OFX negativo) ou RECEIVE (se positivo)
+  - `origin`: MANUAL
+  - `status`: PAID
+  - `paid_at`: data da transacao OFX
+  - `due_date`: data da transacao OFX
+  - `financial_account_id`: conta selecionada
+  - `is_reconciled`: true
+  - `reconciled_at`: now()
+  - `bank_statement_ref`: fitId do OFX
+  - `description`: "Conciliacao bancaria - {descricao OFX}"
 
-**2. `src/components/ServiceCallsTable.tsx`**
-- Receber props `showTotal?: boolean` e `totalsByServiceCallId?: Record<string, number>`
-- Quando `showTotal` for true, renderizar a coluna "Total" entre "Status Comercial" e "Marcadores"
-- Formatar valor em R$ (BRL)
+**Arquivos:** `src/pages/financas/ConciliacaoBancaria.tsx`, `src/hooks/useOFXReconciliation.ts`
 
-**3. `src/components/mobile/ServiceCallMobileCard.tsx`**
-- Receber props `showTotal?: boolean` e `totalValue?: number`
-- Quando `showTotal` for true, exibir uma linha adicional com o valor total formatado
+### 2. Layout de 3 paineis (Contas a Receber, Contas a Pagar, Conciliacao)
 
-### Query de totais (dentro de ServiceCalls.tsx)
-```sql
-SELECT service_call_id, SUM(total) as total
-FROM service_call_items
-WHERE service_call_id IN (...)
-GROUP BY service_call_id
-```
-Sera implementada via Supabase JS com `.rpc()` ou query direta com agrupamento client-side (ja que o Supabase JS nao suporta GROUP BY nativamente, faremos select dos items e agrupamento no frontend).
+**Problema:** Atualmente usa tabs que alternam entre Recebimentos e Pagamentos. O usuario quer ver tudo ao mesmo tempo.
 
-### Seguranca
-- A tabela `service_call_items` ja possui RLS restrita a admins (policy "Admins can manage service call items")
-- Tecnicos nao conseguem consultar essa tabela, entao mesmo que o codigo tente buscar, a query retornara vazio
-- A flag `showTotal` sera `false` para tecnicos, ocultando a coluna na UI
+**Solucao:** Substituir as Tabs por um layout de 3 colunas (em tela grande) ou empilhado (mobile):
+- Coluna esquerda: **Contas a Receber** (transacoes RECEIVE nao conciliadas do sistema para o periodo)
+- Coluna direita: **Contas a Pagar** (transacoes PAY nao conciliadas do sistema para o periodo)
+- Coluna central: **Conciliacao Sugerida** (matches da IA + items sem match com botao Incluir)
 
-### Impacto
-- Nenhuma alteracao em funcionalidades existentes
-- Nenhuma migration necessaria
-- Apenas 3 arquivos editados
+Usando `react-resizable-panels` (ja instalado) para permitir redimensionar.
+
+**Arquivos:** `src/pages/financas/ConciliacaoBancaria.tsx`
+
+### 3. Matching muitos-para-muitos (1 OFX -> N sistema e vice-versa)
+
+**Problema:** Atualmente o matching e 1:1. O usuario precisa vincular 1 debito do extrato a varios lancamentos do sistema.
+
+**Solucao:** 
+- No `ReassignPopover`, permitir selecao multipla de transacoes do sistema (checkboxes em vez de click unico)
+- A soma dos valores selecionados e exibida em tempo real
+- Ao confirmar, o match armazena um array de `systemTransactionIds` em vez de um unico ID
+- No `saveReconciliation`, marcar todos os system transactions vinculados como reconciliados
+
+**Arquivos:** `src/hooks/useOFXReconciliation.ts`, `src/pages/financas/ConciliacaoBancaria.tsx`
+
+### 4. Inclusao manual vai para "Realizado" no Fluxo de Caixa
+
+**Problema:** Lancamentos criados via conciliacao precisam aparecer como realizados no fluxo de caixa.
+
+**Solucao:** Ja resolvido pela arquitetura atual. O hook `useCashFlow` busca transacoes com `status: PAID` e `paid_at` preenchido. Como as inclusoes manuais da conciliacao ja serao criadas com `status: PAID` e `paid_at` = data OFX, elas automaticamente aparecem no realizado. Nenhuma alteracao necessaria no fluxo de caixa.
+
+### 5. Restricao de acesso (apenas Gerencial)
+
+**Problema:** Garantir que apenas perfil gerencial acessa a conciliacao bancaria.
+
+**Solucao:** A pagina ja esta dentro do menu Financas que e restrito a admins. A edge function `reconcile-bank-statement` ja valida `isAdmin`. Nenhuma alteracao necessaria - o acesso ja esta protegido.
+
+---
+
+### Resumo de arquivos alterados
+
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/financas/ConciliacaoBancaria.tsx` | Layout 3 paineis, botao Incluir, multi-select no reassign |
+| `src/hooks/useOFXReconciliation.ts` | Funcao `createManualTransaction`, suporte multi-match |
+
+### Nenhuma migration necessaria
+Todas as colunas necessarias ja existem na tabela `financial_transactions`.
+
+### Impacto zero em funcionalidades existentes
+- Nenhum outro arquivo sera modificado
+- Fluxo de caixa, contas a pagar/receber, DRE continuam intactos
+- Permissoes e RLS inalteradas
 
