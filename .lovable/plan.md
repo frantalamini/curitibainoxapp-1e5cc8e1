@@ -1,39 +1,49 @@
 
 
-## Plano: Carregar Contas a Receber e a Pagar nos Painéis Laterais
+## Análise do Problema
 
-### Problema
-Os painéis "Contas a Receber" e "Contas a Pagar" mostram apenas transações PAGAS não conciliadas retornadas pela edge function. Mas o usuário precisa ver as transações **em aberto** (OPEN/PENDING) do sistema — incluindo vencidas e futuras — para poder vinculá-las manualmente aos itens do extrato OFX.
+### Por que "Nenhum lançamento" nos painéis laterais
 
-### Solução
+Confirmei no banco: existem **34 contas a receber em aberto** e **2 contas a pagar em aberto**, porém **todas as 34 receivables não têm `financial_account_id` definido**. A query atual filtra por `.eq("financial_account_id", accountId)`, então retorna zero resultados.
 
-**1. Buscar transações abertas no client-side** (`useOFXReconciliation.ts`)
-- Adicionar uma função `fetchOpenTransactions(accountId, startDate, endDate, includeOverdue, includeFuture)` que busca `financial_transactions` com `status != 'PAID'` (ou seja, OPEN/PENDING)
-- Separar em `openReceivables` (direction=RECEIVE) e `openPayables` (direction=PAY)
-- Parâmetros de filtro: período do OFX + flags para incluir vencidos e futuros
+Isso acontece porque quando a OS é faturada e gera parcelas no `financial_transactions`, o campo `financial_account_id` não é preenchido (a conta bancária só é definida quando o pagamento é efetivamente conciliado/liquidado). Logo, o filtro por conta está errado para buscar transações em aberto.
 
-**2. Adicionar filtros de período nos painéis** (`ConciliacaoBancaria.tsx`)
-- Cada painel lateral ganha dois toggles/checkboxes: "Incluir vencidos" e "Incluir futuros"
-- Por padrão ambos ativados (pois pagamentos podem ser adiantados ou atrasados)
-- Ao alterar, refaz a query
+### Melhorias solicitadas (referência Tela 2 - Time Olist)
 
-**3. Tornar transações dos painéis laterais "arrastáveis" para o matching**
-- Cada item nos painéis laterais terá um botão de ação para vincular ao item OFX selecionado
-- Reutilizar o `MultiSelectReassignPopover` já existente, alimentando-o com as transações abertas em vez de apenas as unmatched do AI
+O usuário quer que ao clicar num item OFX, os painéis laterais mostrem transações filtráveis por **período (De/Até)** com campos de data, em vez de apenas checkboxes "Vencidos/Futuros".
 
-**4. Atualizar edge function** (`reconcile-bank-statement/index.ts`)
-- Além de PAID+não conciliadas, também buscar transações OPEN/PENDING para o matching da IA
-- Isso permite que a IA sugira matches com transações que ainda não foram pagas
+---
 
-### Arquivos alterados
+## Plano de Correções
+
+### 1. Remover filtro por `financial_account_id` nas transações OPEN (`useOFXReconciliation.ts`)
+
+Transações em aberto (não pagas) não têm conta bancária definida. O filtro correto é buscar **todas as transações OPEN**, independente da conta, filtrando apenas por direção e período.
+
+Manter o filtro por conta apenas para transações PAID (já conciliadas/liquidadas).
+
+### 2. Substituir checkboxes por date pickers nos painéis laterais (`ConciliacaoBancaria.tsx`)
+
+Trocar os checkboxes "Vencidos" e "Futuros" por dois campos de data **"De" e "Até"**, inicializados com o período do extrato OFX mas editáveis pelo usuário. Assim o usuário controla exatamente o intervalo de busca, como na referência do Time Olist.
+
+- Painel Contas a Receber: campos `De` / `Até` próprios
+- Painel Contas a Pagar: campos `De` / `Até` próprios
+
+### 3. Atualizar `fetchOpenTransactions` para aceitar datas customizadas
+
+A função passa a receber `startDate` e `endDate` diretamente (sem flags booleanas), e remove o filtro por `financial_account_id` para transações OPEN.
+
+### 4. Edge function: também buscar transações sem conta
+
+No `reconcile-bank-statement/index.ts`, a query de system transactions também filtra por `financial_account_id`. Precisa incluir transações OPEN sem conta para que a IA consiga sugerir matches.
+
+---
+
+## Arquivos alterados
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/hooks/useOFXReconciliation.ts` | Nova query `fetchOpenTransactions`, novos states `openReceivables`/`openPayables` |
-| `src/pages/financas/ConciliacaoBancaria.tsx` | Painéis laterais usam transações abertas, filtros vencido/futuro, alimentar reassign popover |
-| `supabase/functions/reconcile-bank-statement/index.ts` | Incluir transações OPEN no matching da IA |
-
-### Impacto
-- Nenhum outro arquivo alterado
-- Fluxo de caixa, DRE, permissões inalterados
+| `src/hooks/useOFXReconciliation.ts` | Remover filtro `financial_account_id` para OPEN; simplificar params de data |
+| `src/pages/financas/ConciliacaoBancaria.tsx` | Trocar checkboxes por date pickers De/Até nos painéis; state de datas separado por painel |
+| `supabase/functions/reconcile-bank-statement/index.ts` | Incluir transações OPEN sem conta no pool de matching da IA |
 
