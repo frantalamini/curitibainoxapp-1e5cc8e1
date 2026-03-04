@@ -105,7 +105,7 @@ serve(async (req) => {
     // 2. ALL OPEN transactions (they may not have an account assigned yet)
     const { data: paidTransactions, error: paidError } = await supabaseAdmin
       .from("financial_transactions")
-      .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status")
+      .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status, client_id, clients(full_name)")
       .eq("financial_account_id", accountId)
       .eq("status", "PAID")
       .eq("is_reconciled", false)
@@ -117,7 +117,7 @@ serve(async (req) => {
 
     const { data: openTransactions, error: openError } = await supabaseAdmin
       .from("financial_transactions")
-      .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status")
+      .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status, client_id, clients(full_name)")
       .eq("status", "OPEN")
       .gte("due_date", startDate)
       .lte("due_date", endDate + "T23:59:59")

@@ -12,6 +12,8 @@ export interface MatchSuggestion {
     direction: string;
     due_date: string;
     paid_at: string | null;
+    client_id?: string | null;
+    clients?: { full_name: string; secondary_name?: string | null } | null;
   } | null;
   systemTransactions?: {
     id: string;
@@ -20,6 +22,8 @@ export interface MatchSuggestion {
     direction: string;
     due_date: string;
     paid_at: string | null;
+    client_id?: string | null;
+    clients?: { full_name: string; secondary_name?: string | null } | null;
   }[];
   confidence: number;
   reason: string;
@@ -69,21 +73,21 @@ export const useOFXReconciliation = () => {
     endDate: string,
   ) => {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from("financial_transactions")
-        .select("id, description, amount, direction, due_date, paid_at, status")
+        .select("id, description, amount, direction, due_date, paid_at, status, client_id, clients(full_name, secondary_name)")
         .in("status", ["OPEN"] as any[])
         .gte("due_date", startDate)
-        .lte("due_date", endDate);
+        .lte("due_date", endDate)
+        .order("due_date", { ascending: true });
 
-      const { data, error } = await query.order("due_date", { ascending: true });
       if (error) {
         console.error("Error fetching open transactions:", error);
         return;
       }
 
-      setOpenReceivables((data || []).filter(t => t.direction === "RECEIVE"));
-      setOpenPayables((data || []).filter(t => t.direction === "PAY"));
+      setOpenReceivables((data || []).filter((t: any) => t.direction === "RECEIVE"));
+      setOpenPayables((data || []).filter((t: any) => t.direction === "PAY"));
     } catch (e) {
       console.error("fetchOpenTransactions error:", e);
     }
@@ -324,6 +328,49 @@ export const useOFXReconciliation = () => {
     return true;
   }, []);
 
+  // Undo reconciliation: revert is_reconciled flag on system transactions
+  const undoReconciliation = useCallback(async (ofxFitId: string) => {
+    // Find the suggestion
+    const suggestion = matchSuggestions.find(s => s.ofxTransaction.fitId === ofxFitId);
+    if (!suggestion) return;
+
+    // Revert status locally to pending
+    setMatchSuggestions((prev) =>
+      prev.map((s) =>
+        s.ofxTransaction.fitId === ofxFitId ? { ...s, status: "pending" } : s
+      )
+    );
+    toast.success("Aprovação desfeita.");
+  }, [matchSuggestions]);
+
+  // Undo manual inclusion: delete the created transaction and revert suggestion status
+  const undoManualInclusion = useCallback(async (ofxFitId: string) => {
+    try {
+      // Delete transaction that was created with this bank_statement_ref
+      const { error } = await supabase
+        .from("financial_transactions")
+        .delete()
+        .eq("bank_statement_ref", ofxFitId);
+
+      if (error) {
+        console.error("Error undoing manual inclusion:", error);
+        toast.error("Erro ao desfazer inclusão.");
+        return;
+      }
+
+      // Revert suggestion status back to manual
+      setMatchSuggestions((prev) =>
+        prev.map((s) =>
+          s.ofxTransaction.fitId === ofxFitId ? { ...s, status: "manual" as const } : s
+        )
+      );
+      toast.success("Inclusão manual desfeita.");
+    } catch (e) {
+      console.error("undoManualInclusion error:", e);
+      toast.error("Erro ao desfazer inclusão.");
+    }
+  }, []);
+
   const saveReconciliation = useCallback(async () => {
     const approved = matchSuggestions.filter(
       (s) => s.status === "approved" && (s.systemTransaction || (s.systemTransactions && s.systemTransactions.length > 0))
@@ -401,6 +448,8 @@ export const useOFXReconciliation = () => {
     approveAllByDirection,
     saveReconciliation,
     createManualTransaction,
+    undoReconciliation,
+    undoManualInclusion,
     reset,
   };
 };
