@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -26,18 +25,20 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 import { useBankReconciliation } from "@/hooks/useBankReconciliation";
 import { useOFXReconciliation, MatchSuggestion } from "@/hooks/useOFXReconciliation";
 import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
-import { 
-  Landmark, 
-  ChevronDown, 
+import { ManualIncludeModal } from "@/components/conciliacao/ManualIncludeModal";
+import { MultiSelectReassignPopover } from "@/components/conciliacao/MultiSelectReassignPopover";
+import { OFXTransaction } from "@/lib/ofxParser";
+import {
+  Landmark,
+  ChevronDown,
   ChevronRight,
   TrendingUp,
   TrendingDown,
@@ -53,11 +54,12 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  RefreshCw,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -123,6 +125,13 @@ function StatusBadge({ status }: { status: MatchSuggestion["status"] }) {
           Rejeitado
         </Badge>
       );
+    case "included":
+      return (
+        <Badge className="bg-blue-100 text-blue-700">
+          <Plus className="h-3 w-3 mr-1" />
+          Incluído
+        </Badge>
+      );
     case "manual":
       return (
         <Badge variant="outline">
@@ -131,223 +140,216 @@ function StatusBadge({ status }: { status: MatchSuggestion["status"] }) {
         </Badge>
       );
     default:
-      return (
-        <Badge variant="secondary">
-          Pendente
+      return <Badge variant="secondary">Pendente</Badge>;
+  }
+}
+
+/* ===== Unmatched system transactions panel ===== */
+function SystemTransactionsPanel({
+  title,
+  icon,
+  transactions,
+  colorClass,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  transactions: any[];
+  colorClass: string;
+}) {
+  return (
+    <div className="h-full flex flex-col">
+      <div className="flex items-center gap-2 p-3 border-b bg-muted/30">
+        {icon}
+        <span className="font-medium text-sm">{title}</span>
+        <Badge variant="secondary" className="ml-auto text-xs">
+          {transactions.length}
         </Badge>
-      );
-  }
-}
-
-interface ReassignPopoverProps {
-  ofxFitId: string;
-  availableTransactions: any[];
-  onReassign: (ofxFitId: string, systemTxId: string) => void;
-}
-
-function ReassignPopover({ ofxFitId, availableTransactions, onReassign }: ReassignPopoverProps) {
-  const [open, setOpen] = useState(false);
-
-  if (availableTransactions.length === 0) return null;
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8" title="Trocar match">
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 max-h-60 overflow-y-auto" align="end">
-        <div className="p-2 border-b">
-          <p className="text-xs font-medium text-muted-foreground">Selecione outra transação do sistema</p>
-        </div>
-        <div className="divide-y">
-          {availableTransactions.map((tx) => (
-            <button
-              key={tx.id}
-              className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors text-sm"
-              onClick={() => {
-                onReassign(ofxFitId, tx.id);
-                setOpen(false);
-              }}
-            >
-              <p className="font-medium truncate">{tx.description || "Sem descrição"}</p>
-              <p className="text-xs text-muted-foreground">
-                {tx.paid_at
-                  ? format(new Date(tx.paid_at), "dd/MM/yy", { locale: ptBR })
-                  : tx.due_date} •{" "}
-                <span className={tx.direction === "PAY" ? "text-red-600" : "text-green-600"}>
-                  {formatCurrency(tx.amount)}
-                </span>
-              </p>
-            </button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-interface ReconciliationTableProps {
-  suggestions: MatchSuggestion[];
-  unmatchedTransactions: any[];
-  onUpdateStatus: (fitId: string, status: MatchSuggestion["status"]) => void;
-  onReassign: (fitId: string, systemTxId: string) => void;
-  onApproveAll: () => void;
-  direction: "RECEIVE" | "PAY";
-}
-
-function ReconciliationTable({
-  suggestions,
-  unmatchedTransactions,
-  onUpdateStatus,
-  onReassign,
-  onApproveAll,
-  direction,
-}: ReconciliationTableProps) {
-  const approvedCount = suggestions.filter((s) => s.status === "approved").length;
-  const highConfidenceCount = suggestions.filter((s) => s.systemTransaction && s.confidence >= 80).length;
-
-  // Available transactions for reassignment: unmatched + currently matched in this direction
-  const allAvailableForReassign = unmatchedTransactions;
-
-  if (suggestions.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Nenhuma transação de {direction === "RECEIVE" ? "recebimento" : "pagamento"} no extrato.
       </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">
-          {approvedCount} aprovados de {suggestions.length}
-        </span>
-        {highConfidenceCount > 0 && (
-          <Button variant="outline" size="sm" onClick={onApproveAll}>
-            <Check className="h-4 w-4 mr-1" />
-            Aprovar Todos ({">"}80%)
-          </Button>
-        )}
-      </div>
-
-      <div className="border rounded-lg overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Extrato (OFX)</TableHead>
-              <TableHead>Sugestão do Sistema</TableHead>
-              <TableHead className="text-center w-[100px]">Confiança</TableHead>
-              <TableHead className="text-center w-[100px]">Status</TableHead>
-              <TableHead className="w-[120px]">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {suggestions.map((match) => (
-              <TableRow key={match.ofxTransaction.fitId}>
-                <TableCell>
-                  <div className="text-sm">
-                    <p className="font-medium truncate max-w-[200px]">
-                      {match.ofxTransaction.description}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {match.ofxTransaction.date} •{" "}
-                      <span
-                        className={
-                          match.ofxTransaction.amount < 0
-                            ? "text-red-600"
-                            : "text-green-600"
-                        }
-                      >
-                        {formatCurrency(Math.abs(match.ofxTransaction.amount))}
-                      </span>
-                    </p>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {match.systemTransaction ? (
-                    <div className="text-sm">
-                      <p className="font-medium truncate max-w-[200px]">
-                        {match.systemTransaction.description || "-"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {match.systemTransaction.paid_at
-                          ? format(
-                              new Date(match.systemTransaction.paid_at),
-                              "dd/MM/yy",
-                              { locale: ptBR }
-                            )
-                          : match.systemTransaction.due_date}{" "}
-                        •{" "}
-                        <span
-                          className={
-                            match.systemTransaction.direction === "PAY"
-                              ? "text-red-600"
-                              : "text-green-600"
-                          }
-                        >
-                          {formatCurrency(match.systemTransaction.amount)}
-                        </span>
-                      </p>
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground italic">
-                      Sem correspondência
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="text-center">
-                  <ConfidenceBadge confidence={match.confidence} />
-                </TableCell>
-                <TableCell className="text-center">
-                  <StatusBadge status={match.status} />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    {match.status === "pending" && match.systemTransaction && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-green-600"
-                          onClick={() =>
-                            onUpdateStatus(match.ofxTransaction.fitId, "approved")
-                          }
-                          title="Aprovar"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-600"
-                          onClick={() =>
-                            onUpdateStatus(match.ofxTransaction.fitId, "rejected")
-                          }
-                          title="Rejeitar"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                    <ReassignPopover
-                      ofxFitId={match.ofxTransaction.fitId}
-                      availableTransactions={allAvailableForReassign}
-                      onReassign={onReassign}
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
+      <div className="flex-1 overflow-y-auto">
+        {transactions.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-6">Nenhum lançamento</p>
+        ) : (
+          <div className="divide-y">
+            {transactions.map((t) => (
+              <div key={t.id} className="px-3 py-2 text-sm">
+                <p className="font-medium truncate">{t.description || "Sem descrição"}</p>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-xs text-muted-foreground">
+                    {t.paid_at
+                      ? format(new Date(t.paid_at), "dd/MM/yy", { locale: ptBR })
+                      : t.due_date}
+                  </span>
+                  <span className={cn("text-xs font-medium", colorClass)}>
+                    {formatCurrency(t.amount)}
+                  </span>
+                </div>
+              </div>
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
+/* ===== Central reconciliation panel ===== */
+interface ConciliationPanelProps {
+  suggestions: MatchSuggestion[];
+  allUnmatchedTransactions: any[];
+  onUpdateStatus: (fitId: string, status: MatchSuggestion["status"]) => void;
+  onReassignMulti: (fitId: string, ids: string[]) => void;
+  onApproveAllReceive: () => void;
+  onApproveAllPay: () => void;
+  onInclude: (ofxTx: OFXTransaction) => void;
+}
+
+function ConciliationPanel({
+  suggestions,
+  allUnmatchedTransactions,
+  onUpdateStatus,
+  onReassignMulti,
+  onApproveAllReceive,
+  onApproveAllPay,
+  onInclude,
+}: ConciliationPanelProps) {
+  const approvedCount = suggestions.filter(s => s.status === "approved").length;
+  const highConfidenceCount = suggestions.filter(s => s.systemTransaction && s.confidence >= 80 && s.status === "pending").length;
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="flex items-center gap-2 p-3 border-b bg-muted/30">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <span className="font-medium text-sm">Conciliação Sugerida</span>
+        <Badge variant="secondary" className="ml-auto text-xs">
+          {approvedCount}/{suggestions.length}
+        </Badge>
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex items-center gap-2 p-2 border-b">
+        {highConfidenceCount > 0 && (
+          <>
+            <Button variant="outline" size="sm" className="text-xs h-7" onClick={onApproveAllReceive}>
+              <Check className="h-3 w-3 mr-1" />
+              Aprovar Receb.
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs h-7" onClick={onApproveAllPay}>
+              <Check className="h-3 w-3 mr-1" />
+              Aprovar Pgtos.
+            </Button>
+          </>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {suggestions.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-6">
+            Nenhuma sugestão de conciliação
+          </p>
+        ) : (
+          <div className="divide-y">
+            {suggestions.map((match) => {
+              const currentSelectedIds = match.systemTransactions?.map(t => t.id) ||
+                (match.systemTransaction ? [match.systemTransaction.id] : []);
+
+              return (
+                <div key={match.ofxTransaction.fitId} className="p-3 space-y-2">
+                  {/* OFX line */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{match.ofxTransaction.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {match.ofxTransaction.date} •{" "}
+                        <span className={match.ofxTransaction.amount < 0 ? "text-red-600" : "text-green-600"}>
+                          {formatCurrency(Math.abs(match.ofxTransaction.amount))}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <ConfidenceBadge confidence={match.confidence} />
+                      <StatusBadge status={match.status} />
+                    </div>
+                  </div>
+
+                  {/* System match */}
+                  {match.systemTransaction ? (
+                    <div className="ml-4 pl-3 border-l-2 border-primary/30">
+                      {(match.systemTransactions && match.systemTransactions.length > 1
+                        ? match.systemTransactions
+                        : [match.systemTransaction]
+                      ).map(tx => (
+                        <div key={tx.id} className="text-sm">
+                          <p className="truncate text-muted-foreground">{tx.description || "-"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {tx.paid_at
+                              ? format(new Date(tx.paid_at), "dd/MM/yy", { locale: ptBR })
+                              : tx.due_date} •{" "}
+                            <span className={tx.direction === "PAY" ? "text-red-600" : "text-green-600"}>
+                              {formatCurrency(tx.amount)}
+                            </span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="ml-4 text-xs text-muted-foreground italic">Sem correspondência</p>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 ml-4">
+                    {match.status === "pending" && match.systemTransaction && (
+                      <>
+                        <Button
+                          variant="ghost" size="sm"
+                          className="h-7 text-xs text-green-600"
+                          onClick={() => onUpdateStatus(match.ofxTransaction.fitId, "approved")}
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Aprovar
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm"
+                          className="h-7 text-xs text-red-600"
+                          onClick={() => onUpdateStatus(match.ofxTransaction.fitId, "rejected")}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Rejeitar
+                        </Button>
+                      </>
+                    )}
+
+                    {match.status !== "included" && (
+                      <MultiSelectReassignPopover
+                        ofxFitId={match.ofxTransaction.fitId}
+                        ofxAmount={match.ofxTransaction.amount}
+                        availableTransactions={allUnmatchedTransactions}
+                        currentSelectedIds={currentSelectedIds}
+                        onConfirm={onReassignMulti}
+                      />
+                    )}
+
+                    {match.status === "manual" && (
+                      <Button
+                        variant="outline" size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => onInclude(match.ofxTransaction)}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Incluir
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ===== Main Page ===== */
 export default function ConciliacaoBancaria() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -357,6 +359,11 @@ export default function ConciliacaoBancaria() {
   const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
+
+  // Manual include modal
+  const [includeModalOpen, setIncludeModalOpen] = useState(false);
+  const [includeOFXTx, setIncludeOFXTx] = useState<OFXTransaction | null>(null);
 
   const month = selectedMonth === "all" ? undefined : parseInt(selectedMonth);
   const {
@@ -378,14 +385,16 @@ export default function ConciliacaoBancaria() {
     matchSuggestions,
     receiveSuggestions,
     paySuggestions,
+    unmatchedSystemTransactions,
     unmatchedReceiveTransactions,
     unmatchedPayTransactions,
     parseOFXFile,
     runAIMatching,
     updateSuggestionStatus,
-    reassignMatch,
+    reassignMultiMatch,
     approveAllByDirection,
     saveReconciliation,
+    createManualTransaction,
     reset,
   } = useOFXReconciliation();
 
@@ -402,20 +411,31 @@ export default function ConciliacaoBancaria() {
     if (file && selectedAccountId) {
       const statement = await parseOFXFile(file);
       if (statement) {
-        // Auto-trigger AI matching
         await runAIMatching(selectedAccountId);
       }
     }
+    // Reset file input so same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleStartOFX = (accountId: string) => {
     setSelectedAccountId(accountId);
     reset();
-    // Trigger file input
     setTimeout(() => fileInputRef.current?.click(), 100);
   };
 
+  const handleIncludeClick = (ofxTx: OFXTransaction) => {
+    setIncludeOFXTx(ofxTx);
+    setIncludeModalOpen(true);
+  };
+
+  const handleManualIncludeConfirm = async (categoryId: string, costCenterId?: string, description?: string) => {
+    if (!includeOFXTx) return false;
+    return createManualTransaction(includeOFXTx, selectedAccountId, categoryId, costCenterId, description);
+  };
+
   const approvedCount = matchSuggestions.filter((s) => s.status === "approved").length;
+  const showReconciliation = isParsing || isOFXLoading || ofxStatement;
 
   return (
     <PageContainer>
@@ -423,18 +443,13 @@ export default function ConciliacaoBancaria() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <Select
-          value={String(selectedYear)}
-          onValueChange={(v) => setSelectedYear(parseInt(v))}
-        >
+        <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(parseInt(v))}>
           <SelectTrigger className="w-[120px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {years.map((y) => (
-              <SelectItem key={y} value={String(y)}>
-                {y}
-              </SelectItem>
+              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -445,9 +460,7 @@ export default function ConciliacaoBancaria() {
           </SelectTrigger>
           <SelectContent>
             {MONTHS.map((m) => (
-              <SelectItem key={m.value} value={m.value}>
-                {m.label}
-              </SelectItem>
+              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -461,63 +474,41 @@ export default function ConciliacaoBancaria() {
               <p className="text-sm font-medium text-muted-foreground">Saldo Inicial</p>
               <Wallet className="h-5 w-5 text-blue-500" />
             </div>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32 mt-2" />
-            ) : (
-              <p className="text-2xl font-bold mt-2">
-                {formatCurrency(totalOpeningBalance)}
-              </p>
+            {isLoading ? <Skeleton className="h-8 w-32 mt-2" /> : (
+              <p className="text-2xl font-bold mt-2">{formatCurrency(totalOpeningBalance)}</p>
             )}
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">Entradas</p>
               <TrendingUp className="h-5 w-5 text-green-500" />
             </div>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32 mt-2" />
-            ) : (
-              <p className="text-2xl font-bold text-green-600 mt-2">
-                {formatCurrency(totalReceived)}
-              </p>
+            {isLoading ? <Skeleton className="h-8 w-32 mt-2" /> : (
+              <p className="text-2xl font-bold text-green-600 mt-2">{formatCurrency(totalReceived)}</p>
             )}
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">Saídas</p>
               <TrendingDown className="h-5 w-5 text-red-500" />
             </div>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32 mt-2" />
-            ) : (
-              <p className="text-2xl font-bold text-red-600 mt-2">
-                {formatCurrency(totalPaid)}
-              </p>
+            {isLoading ? <Skeleton className="h-8 w-32 mt-2" /> : (
+              <p className="text-2xl font-bold text-red-600 mt-2">{formatCurrency(totalPaid)}</p>
             )}
           </CardContent>
         </Card>
-
         <Card className="bg-primary/5 border-primary/20">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">Saldo Final</p>
               <Landmark className="h-5 w-5 text-primary" />
             </div>
-            {isLoading ? (
-              <Skeleton className="h-8 w-32 mt-2" />
-            ) : (
-              <p
-                className={cn(
-                  "text-2xl font-bold mt-2",
-                  totalCalculatedBalance >= 0 ? "text-green-600" : "text-red-600"
-                )}
-              >
+            {isLoading ? <Skeleton className="h-8 w-32 mt-2" /> : (
+              <p className={cn("text-2xl font-bold mt-2", totalCalculatedBalance >= 0 ? "text-green-600" : "text-red-600")}>
                 {formatCurrency(totalCalculatedBalance)}
               </p>
             )}
@@ -536,22 +527,14 @@ export default function ConciliacaoBancaria() {
         <CardContent>
           {isLoading ? (
             <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-20 w-full" />
-              ))}
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full" />)}
             </div>
           ) : reconciliations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhuma conta financeira cadastrada
-            </div>
+            <div className="text-center py-8 text-muted-foreground">Nenhuma conta financeira cadastrada</div>
           ) : (
             <div className="space-y-3">
               {reconciliations.map((acc) => (
-                <Collapsible
-                  key={acc.id}
-                  open={expandedAccounts.includes(acc.id)}
-                  onOpenChange={() => toggleExpanded(acc.id)}
-                >
+                <Collapsible key={acc.id} open={expandedAccounts.includes(acc.id)} onOpenChange={() => toggleExpanded(acc.id)}>
                   <div className="flex items-center gap-2">
                     <CollapsibleTrigger asChild>
                       <div className="flex-1 flex items-center justify-between p-4 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors">
@@ -571,24 +554,15 @@ export default function ConciliacaoBancaria() {
                           </div>
                           <div className="text-right hidden md:block">
                             <p className="text-xs text-green-600">+ Entradas</p>
-                            <p className="font-medium text-green-600">
-                              {formatCurrency(acc.totalReceived)}
-                            </p>
+                            <p className="font-medium text-green-600">{formatCurrency(acc.totalReceived)}</p>
                           </div>
                           <div className="text-right hidden md:block">
                             <p className="text-xs text-red-600">- Saídas</p>
-                            <p className="font-medium text-red-600">
-                              {formatCurrency(acc.totalPaid)}
-                            </p>
+                            <p className="font-medium text-red-600">{formatCurrency(acc.totalPaid)}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-muted-foreground">Saldo Final</p>
-                            <p
-                              className={cn(
-                                "font-bold",
-                                acc.calculatedBalance >= 0 ? "text-green-600" : "text-red-600"
-                              )}
-                            >
+                            <p className={cn("font-bold", acc.calculatedBalance >= 0 ? "text-green-600" : "text-red-600")}>
                               {formatCurrency(acc.calculatedBalance)}
                             </p>
                           </div>
@@ -600,12 +574,7 @@ export default function ConciliacaoBancaria() {
                         </div>
                       </div>
                     </CollapsibleTrigger>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleStartOFX(acc.id)}
-                      className="gap-2"
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleStartOFX(acc.id)} className="gap-2">
                       <Upload className="h-4 w-4" />
                       <span className="hidden sm:inline">Importar OFX</span>
                     </Button>
@@ -624,10 +593,7 @@ export default function ConciliacaoBancaria() {
                         <TableBody>
                           {getTransactionsByAccount(acc.id).length === 0 ? (
                             <TableRow>
-                              <TableCell
-                                colSpan={4}
-                                className="text-center text-muted-foreground py-4"
-                              >
+                              <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
                                 Nenhuma transação no período
                               </TableCell>
                             </TableRow>
@@ -635,44 +601,24 @@ export default function ConciliacaoBancaria() {
                             getTransactionsByAccount(acc.id).map((t) => (
                               <TableRow key={t.id}>
                                 <TableCell className="text-sm">
-                                  {t.paid_at
-                                    ? format(new Date(t.paid_at), "dd/MM/yy", {
-                                        locale: ptBR,
-                                      })
-                                    : "-"}
+                                  {t.paid_at ? format(new Date(t.paid_at), "dd/MM/yy", { locale: ptBR }) : "-"}
                                 </TableCell>
-                                <TableCell className="text-sm">
-                                  {t.description || "-"}
-                                </TableCell>
+                                <TableCell className="text-sm">{t.description || "-"}</TableCell>
                                 <TableCell className="text-center">
                                   {t.direction === "RECEIVE" ? (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-green-600 border-green-200 bg-green-50"
-                                    >
+                                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
                                       <ArrowUpRight className="h-3 w-3 mr-1" />
                                       Entrada
                                     </Badge>
                                   ) : (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-red-600 border-red-200 bg-red-50"
-                                    >
+                                    <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">
                                       <ArrowDownRight className="h-3 w-3 mr-1" />
                                       Saída
                                     </Badge>
                                   )}
                                 </TableCell>
-                                <TableCell
-                                  className={cn(
-                                    "text-right font-medium",
-                                    t.direction === "RECEIVE"
-                                      ? "text-green-600"
-                                      : "text-red-600"
-                                  )}
-                                >
-                                  {t.direction === "RECEIVE" ? "+" : "-"}
-                                  {formatCurrency(t.amount)}
+                                <TableCell className={cn("text-right font-medium", t.direction === "RECEIVE" ? "text-green-600" : "text-red-600")}>
+                                  {t.direction === "RECEIVE" ? "+" : "-"}{formatCurrency(t.amount)}
                                 </TableCell>
                               </TableRow>
                             ))
@@ -689,16 +635,10 @@ export default function ConciliacaoBancaria() {
       </Card>
 
       {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".ofx,.qfx,.ofc"
-        onChange={handleFileSelect}
-        className="hidden"
-      />
+      <input ref={fileInputRef} type="file" accept=".ofx,.qfx,.ofc" onChange={handleFileSelect} className="hidden" />
 
-      {/* OFX Reconciliation Section - Full Page */}
-      {(isParsing || isOFXLoading || ofxStatement) && (
+      {/* OFX Reconciliation Section - 3-Panel Layout */}
+      {showReconciliation && (
         <Card className="mt-6">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -742,59 +682,87 @@ export default function ConciliacaoBancaria() {
               </div>
             )}
 
-            {/* Tabs: Recebimentos / Pagamentos */}
+            {/* 3-Panel Layout */}
             {matchSuggestions.length > 0 && (
               <div className="space-y-4">
-                <Tabs defaultValue="receive" className="w-full">
-                  <TabsList className="w-full sm:w-auto">
-                    <TabsTrigger value="receive" className="gap-2">
-                      <ArrowUpRight className="h-4 w-4" />
-                      Recebimentos
-                      <Badge variant="secondary" className="ml-1 text-xs">
-                        {receiveSuggestions.length}
-                      </Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="pay" className="gap-2">
-                      <ArrowDownRight className="h-4 w-4" />
-                      Pagamentos
-                      <Badge variant="secondary" className="ml-1 text-xs">
-                        {paySuggestions.length}
-                      </Badge>
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="receive">
-                    <ReconciliationTable
-                      suggestions={receiveSuggestions}
-                      unmatchedTransactions={unmatchedReceiveTransactions}
-                      onUpdateStatus={updateSuggestionStatus}
-                      onReassign={reassignMatch}
-                      onApproveAll={() => approveAllByDirection("RECEIVE")}
-                      direction="RECEIVE"
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="pay">
-                    <ReconciliationTable
-                      suggestions={paySuggestions}
-                      unmatchedTransactions={unmatchedPayTransactions}
-                      onUpdateStatus={updateSuggestionStatus}
-                      onReassign={reassignMatch}
-                      onApproveAll={() => approveAllByDirection("PAY")}
-                      direction="PAY"
-                    />
-                  </TabsContent>
-                </Tabs>
+                {isMobile ? (
+                  /* Mobile: stacked layout */
+                  <div className="space-y-4">
+                    <Card className="border">
+                      <div className="h-[300px] overflow-hidden">
+                        <SystemTransactionsPanel
+                          title="Contas a Receber"
+                          icon={<ArrowUpRight className="h-4 w-4 text-green-600" />}
+                          transactions={unmatchedReceiveTransactions}
+                          colorClass="text-green-600"
+                        />
+                      </div>
+                    </Card>
+                    <Card className="border">
+                      <div className="min-h-[400px]">
+                        <ConciliationPanel
+                          suggestions={matchSuggestions}
+                          allUnmatchedTransactions={unmatchedSystemTransactions}
+                          onUpdateStatus={updateSuggestionStatus}
+                          onReassignMulti={reassignMultiMatch}
+                          onApproveAllReceive={() => approveAllByDirection("RECEIVE")}
+                          onApproveAllPay={() => approveAllByDirection("PAY")}
+                          onInclude={handleIncludeClick}
+                        />
+                      </div>
+                    </Card>
+                    <Card className="border">
+                      <div className="h-[300px] overflow-hidden">
+                        <SystemTransactionsPanel
+                          title="Contas a Pagar"
+                          icon={<ArrowDownRight className="h-4 w-4 text-red-600" />}
+                          transactions={unmatchedPayTransactions}
+                          colorClass="text-red-600"
+                        />
+                      </div>
+                    </Card>
+                  </div>
+                ) : (
+                  /* Desktop: 3-column resizable */
+                  <div className="border rounded-lg overflow-hidden h-[600px]">
+                    <ResizablePanelGroup direction="horizontal">
+                      <ResizablePanel defaultSize={25} minSize={15}>
+                        <SystemTransactionsPanel
+                          title="Contas a Receber"
+                          icon={<ArrowUpRight className="h-4 w-4 text-green-600" />}
+                          transactions={unmatchedReceiveTransactions}
+                          colorClass="text-green-600"
+                        />
+                      </ResizablePanel>
+                      <ResizableHandle withHandle />
+                      <ResizablePanel defaultSize={50} minSize={30}>
+                        <ConciliationPanel
+                          suggestions={matchSuggestions}
+                          allUnmatchedTransactions={unmatchedSystemTransactions}
+                          onUpdateStatus={updateSuggestionStatus}
+                          onReassignMulti={reassignMultiMatch}
+                          onApproveAllReceive={() => approveAllByDirection("RECEIVE")}
+                          onApproveAllPay={() => approveAllByDirection("PAY")}
+                          onInclude={handleIncludeClick}
+                        />
+                      </ResizablePanel>
+                      <ResizableHandle withHandle />
+                      <ResizablePanel defaultSize={25} minSize={15}>
+                        <SystemTransactionsPanel
+                          title="Contas a Pagar"
+                          icon={<ArrowDownRight className="h-4 w-4 text-red-600" />}
+                          transactions={unmatchedPayTransactions}
+                          colorClass="text-red-600"
+                        />
+                      </ResizablePanel>
+                    </ResizablePanelGroup>
+                  </div>
+                )}
 
                 {/* Save Button */}
                 <div className="flex justify-end gap-2 pt-4 border-t">
-                  <Button variant="outline" onClick={reset}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={saveReconciliation}
-                    disabled={approvedCount === 0 || isOFXLoading}
-                  >
+                  <Button variant="outline" onClick={reset}>Cancelar</Button>
+                  <Button onClick={saveReconciliation} disabled={approvedCount === 0 || isOFXLoading}>
                     {isOFXLoading ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
@@ -808,6 +776,14 @@ export default function ConciliacaoBancaria() {
           </CardContent>
         </Card>
       )}
+
+      {/* Manual Include Modal */}
+      <ManualIncludeModal
+        open={includeModalOpen}
+        onOpenChange={setIncludeModalOpen}
+        ofxTransaction={includeOFXTx}
+        onConfirm={handleManualIncludeConfirm}
+      />
     </PageContainer>
   );
 }
