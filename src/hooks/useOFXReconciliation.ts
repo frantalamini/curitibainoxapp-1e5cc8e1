@@ -76,7 +76,7 @@ export const useOFXReconciliation = () => {
         .from("financial_transactions")
         .select("id, description, amount, direction, due_date, paid_at, status")
         .eq("financial_account_id", accountId)
-        .in("status", ["OPEN", "PENDING"] as any[]);
+        .in("status", ["OPEN"] as any[]);
 
       // Build date filter based on flags
       if (!includeOverdue && !includeFuture) {
