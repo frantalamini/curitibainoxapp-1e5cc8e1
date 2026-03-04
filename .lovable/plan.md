@@ -1,49 +1,72 @@
 
 
-## Análise do Problema
+## Plano: Conciliação Inline nos Painéis + Cliente + Confirmação + Desfazer
 
-### Por que "Nenhum lançamento" nos painéis laterais
+### Resumo dos pedidos
 
-Confirmei no banco: existem **34 contas a receber em aberto** e **2 contas a pagar em aberto**, porém **todas as 34 receivables não têm `financial_account_id` definido**. A query atual filtra por `.eq("financial_account_id", accountId)`, então retorna zero resultados.
-
-Isso acontece porque quando a OS é faturada e gera parcelas no `financial_transactions`, o campo `financial_account_id` não é preenchido (a conta bancária só é definida quando o pagamento é efetivamente conciliado/liquidado). Logo, o filtro por conta está errado para buscar transações em aberto.
-
-### Melhorias solicitadas (referência Tela 2 - Time Olist)
-
-O usuário quer que ao clicar num item OFX, os painéis laterais mostrem transações filtráveis por **período (De/Até)** com campos de data, em vez de apenas checkboxes "Vencidos/Futuros".
+1. **Selecionar para conciliar direto no painel lateral** — ao clicar no ícone circular (reassign) de um item OFX, em vez de abrir popover separado, habilitar radio/checkbox de seleção nos itens do painel Contas a Receber/Pagar correspondente, permitindo marcar ali mesmo
+2. **Mostrar nome do cliente** nas transações dos painéis laterais (hoje mostra apenas "Sem descrição" e valor)
+3. **Botão "Incluir" com confirmação** — ao clicar em "Incluir", abrir modal de lançamento e antes de salvar perguntar "Tem certeza que deseja fazer inclusão manual?"
+4. **Botão "Desfazer"** — tanto para conciliações salvas quanto para inclusões manuais, permitir reverter
 
 ---
 
-## Plano de Correções
+### Alterações por arquivo
 
-### 1. Remover filtro por `financial_account_id` nas transações OPEN (`useOFXReconciliation.ts`)
+#### 1. `src/hooks/useOFXReconciliation.ts`
+- **Incluir `client_id` e join com `clients`** na query `fetchOpenTransactions`:
+  ```sql
+  .select("id, description, amount, direction, due_date, status, client_id, clients(full_name, secondary_name)")
+  ```
+- **Adicionar função `undoReconciliation(transactionId)`**: faz update `is_reconciled=false, reconciled_at=null, bank_statement_ref=null` e atualiza estado local
+- **Adicionar função `undoManualInclusion(fitId)`**: busca transação pelo `bank_statement_ref=fitId` e deleta, depois atualiza status da suggestion de volta para "manual"
+- Na edge function query também incluir client join para que o AI matching retorne o nome do cliente
 
-Transações em aberto (não pagas) não têm conta bancária definida. O filtro correto é buscar **todas as transações OPEN**, independente da conta, filtrando apenas por direção e período.
+#### 2. `src/pages/financas/ConciliacaoBancaria.tsx`
 
-Manter o filtro por conta apenas para transações PAID (já conciliadas/liquidadas).
+**SystemTransactionsPanel — modo seleção inline:**
+- Adicionar props: `selectionMode: boolean`, `selectedIds: string[]`, `onToggleSelect: (id: string) => void`
+- Quando `selectionMode=true`, cada item do painel mostra um Checkbox ao lado
+- No header do painel, quando em modo seleção, mostrar um botão "Confirmar (N)" para aplicar a seleção
+- Estado de "qual OFX está sendo conciliado" gerenciado no componente pai
 
-### 2. Substituir checkboxes por date pickers nos painéis laterais (`ConciliacaoBancaria.tsx`)
+**Exibir nome do cliente:**
+- No render de cada transação, mostrar `t.clients?.full_name` acima ou ao lado da descrição
 
-Trocar os checkboxes "Vencidos" e "Futuros" por dois campos de data **"De" e "Até"**, inicializados com o período do extrato OFX mas editáveis pelo usuário. Assim o usuário controla exatamente o intervalo de busca, como na referência do Time Olist.
+**ConciliationPanel — botão conciliar inline:**
+- O ícone circular (RefreshCw do MultiSelectReassignPopover) passa a ativar o modo seleção no painel lateral correspondente (Receber ou Pagar) em vez de abrir popover
+- Manter o popover como fallback caso haja transações de ambas direções
 
-- Painel Contas a Receber: campos `De` / `Até` próprios
-- Painel Contas a Pagar: campos `De` / `Até` próprios
+**Botão Incluir com confirmação:**
+- Após preencher o `ManualIncludeModal`, ao clicar "Incluir", exibir AlertDialog: "Tem certeza que deseja fazer inclusão manual deste lançamento?" com botões Cancelar/Confirmar
 
-### 3. Atualizar `fetchOpenTransactions` para aceitar datas customizadas
+**Botão Desfazer:**
+- Em itens com status "approved" ou "included", mostrar botão "Desfazer" que:
+  - Para "approved": reverte status para "pending"
+  - Para "included" (já salvo no banco): chama `undoManualInclusion` para deletar a transação criada
 
-A função passa a receber `startDate` e `endDate` diretamente (sem flags booleanas), e remove o filtro por `financial_account_id` para transações OPEN.
+#### 3. `supabase/functions/reconcile-bank-statement/index.ts`
+- Incluir join com `clients(full_name)` na query de system transactions para que o nome do cliente venha junto nas sugestões da IA
 
-### 4. Edge function: também buscar transações sem conta
-
-No `reconcile-bank-statement/index.ts`, a query de system transactions também filtra por `financial_account_id`. Precisa incluir transações OPEN sem conta para que a IA consiga sugerir matches.
+#### 4. `src/components/conciliacao/ManualIncludeModal.tsx`
+- Adicionar AlertDialog de confirmação antes de executar o `onConfirm`
 
 ---
 
-## Arquivos alterados
+### Fluxo do usuário (resultado final)
 
+1. Importa OFX → painéis laterais mostram contas a receber/pagar com **nome do cliente** e valor
+2. No painel central, clica no ícone de conciliar de um item OFX crédito → painel "Contas a Receber" entra em **modo seleção** com checkboxes
+3. Marca um ou mais itens no painel → clica "Confirmar" → match é aplicado como "pending"
+4. Aprova → status vira "approved" → aparece botão **"Desfazer"** caso mude de ideia
+5. Clica "Incluir" em item sem correspondência → preenche categoria → **confirmação** "Tem certeza?" → salva
+6. Item incluído mostra botão **"Desfazer"** que deleta a transação criada
+
+### Arquivos alterados
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/hooks/useOFXReconciliation.ts` | Remover filtro `financial_account_id` para OPEN; simplificar params de data |
-| `src/pages/financas/ConciliacaoBancaria.tsx` | Trocar checkboxes por date pickers De/Até nos painéis; state de datas separado por painel |
-| `supabase/functions/reconcile-bank-statement/index.ts` | Incluir transações OPEN sem conta no pool de matching da IA |
+| `src/hooks/useOFXReconciliation.ts` | Join com clients, undo functions |
+| `src/pages/financas/ConciliacaoBancaria.tsx` | Modo seleção inline, cliente nos itens, desfazer |
+| `src/components/conciliacao/ManualIncludeModal.tsx` | AlertDialog de confirmação |
+| `supabase/functions/reconcile-bank-statement/index.ts` | Join com clients na query |
 
