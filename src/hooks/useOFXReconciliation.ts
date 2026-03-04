@@ -87,8 +87,9 @@ export const useOFXReconciliation = () => {
     }
   }, []);
 
-  const runAIMatching = useCallback(async (accountId: string) => {
-    if (!ofxStatement) {
+  const runAIMatching = useCallback(async (accountId: string, passedStatement?: OFXStatement) => {
+    const statementToUse = passedStatement || ofxStatement;
+    if (!statementToUse) {
       toast.error("Nenhum extrato carregado.");
       return;
     }
@@ -96,10 +97,10 @@ export const useOFXReconciliation = () => {
     try {
       const response = await supabase.functions.invoke("reconcile-bank-statement", {
         body: {
-          ofxTransactions: ofxStatement.transactions,
+          ofxTransactions: statementToUse.transactions,
           accountId,
-          startDate: ofxStatement.startDate,
-          endDate: ofxStatement.endDate,
+          startDate: statementToUse.startDate,
+          endDate: statementToUse.endDate,
         },
       });
       if (response.error) throw new Error(response.error.message);
