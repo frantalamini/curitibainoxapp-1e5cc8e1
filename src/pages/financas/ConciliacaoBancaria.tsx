@@ -196,21 +196,27 @@ function SystemTransactionsPanel({
 interface ConciliationPanelProps {
   suggestions: MatchSuggestion[];
   allUnmatchedTransactions: any[];
+  ofxTransactions?: OFXTransaction[];
   onUpdateStatus: (fitId: string, status: MatchSuggestion["status"]) => void;
   onReassignMulti: (fitId: string, ids: string[]) => void;
   onApproveAllReceive: () => void;
   onApproveAllPay: () => void;
   onInclude: (ofxTx: OFXTransaction) => void;
+  onRetryAI?: () => void;
+  isRetrying?: boolean;
 }
 
 function ConciliationPanel({
   suggestions,
   allUnmatchedTransactions,
+  ofxTransactions,
   onUpdateStatus,
   onReassignMulti,
   onApproveAllReceive,
   onApproveAllPay,
   onInclude,
+  onRetryAI,
+  isRetrying,
 }: ConciliationPanelProps) {
   const approvedCount = suggestions.filter(s => s.status === "approved").length;
   const highConfidenceCount = suggestions.filter(s => s.systemTransaction && s.confidence >= 80 && s.status === "pending").length;
@@ -243,9 +249,38 @@ function ConciliationPanel({
 
       <div className="flex-1 overflow-y-auto">
         {suggestions.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-6">
-            Nenhuma sugestão de conciliação
-          </p>
+          <div className="p-4 space-y-3">
+            {onRetryAI && (
+              <div className="text-center space-y-2 pb-3 border-b">
+                <p className="text-sm text-muted-foreground">Nenhuma sugestão automática encontrada.</p>
+                <Button variant="outline" size="sm" onClick={onRetryAI} disabled={isRetrying}>
+                  {isRetrying ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                  Conciliar com IA
+                </Button>
+              </div>
+            )}
+            {ofxTransactions && ofxTransactions.length > 0 && (
+              <div className="divide-y">
+                {ofxTransactions.map((tx) => (
+                  <div key={tx.fitId} className="py-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{tx.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {tx.date} •{" "}
+                        <span className={tx.amount < 0 ? "text-red-600" : "text-green-600"}>
+                          {formatCurrency(Math.abs(tx.amount))}
+                        </span>
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" className="h-7 text-xs shrink-0" onClick={() => onInclude(tx)}>
+                      <Plus className="h-3 w-3 mr-1" />
+                      Incluir
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <div className="divide-y">
             {suggestions.map((match) => {
@@ -411,7 +446,7 @@ export default function ConciliacaoBancaria() {
     if (file && selectedAccountId) {
       const statement = await parseOFXFile(file);
       if (statement) {
-        await runAIMatching(selectedAccountId);
+        await runAIMatching(selectedAccountId, statement);
       }
     }
     // Reset file input so same file can be re-selected
@@ -683,7 +718,7 @@ export default function ConciliacaoBancaria() {
             )}
 
             {/* 3-Panel Layout */}
-            {matchSuggestions.length > 0 && (
+            {ofxStatement && (
               <div className="space-y-4">
                 {isMobile ? (
                   /* Mobile: stacked layout */
@@ -703,11 +738,14 @@ export default function ConciliacaoBancaria() {
                         <ConciliationPanel
                           suggestions={matchSuggestions}
                           allUnmatchedTransactions={unmatchedSystemTransactions}
+                          ofxTransactions={ofxStatement?.transactions}
                           onUpdateStatus={updateSuggestionStatus}
                           onReassignMulti={reassignMultiMatch}
                           onApproveAllReceive={() => approveAllByDirection("RECEIVE")}
                           onApproveAllPay={() => approveAllByDirection("PAY")}
                           onInclude={handleIncludeClick}
+                          onRetryAI={() => runAIMatching(selectedAccountId)}
+                          isRetrying={isOFXLoading}
                         />
                       </div>
                     </Card>
@@ -739,11 +777,14 @@ export default function ConciliacaoBancaria() {
                         <ConciliationPanel
                           suggestions={matchSuggestions}
                           allUnmatchedTransactions={unmatchedSystemTransactions}
+                          ofxTransactions={ofxStatement?.transactions}
                           onUpdateStatus={updateSuggestionStatus}
                           onReassignMulti={reassignMultiMatch}
                           onApproveAllReceive={() => approveAllByDirection("RECEIVE")}
                           onApproveAllPay={() => approveAllByDirection("PAY")}
                           onInclude={handleIncludeClick}
+                          onRetryAI={() => runAIMatching(selectedAccountId)}
+                          isRetrying={isOFXLoading}
                         />
                       </ResizablePanel>
                       <ResizableHandle withHandle />
