@@ -65,31 +65,16 @@ export const useOFXReconciliation = () => {
   );
 
   const fetchOpenTransactions = useCallback(async (
-    accountId: string,
     startDate: string,
     endDate: string,
-    includeOverdue: boolean,
-    includeFuture: boolean,
   ) => {
     try {
       let query = supabase
         .from("financial_transactions")
         .select("id, description, amount, direction, due_date, paid_at, status")
-        .eq("financial_account_id", accountId)
-        .in("status", ["OPEN"] as any[]);
-
-      // Build date filter based on flags
-      if (!includeOverdue && !includeFuture) {
-        // Only within OFX period
-        query = query.gte("due_date", startDate).lte("due_date", endDate);
-      } else if (includeOverdue && !includeFuture) {
-        // Up to end of OFX period (includes overdue)
-        query = query.lte("due_date", endDate);
-      } else if (!includeOverdue && includeFuture) {
-        // From start of OFX period onward (includes future)
-        query = query.gte("due_date", startDate);
-      }
-      // If both true, no date filter — show all open
+        .in("status", ["OPEN"] as any[])
+        .gte("due_date", startDate)
+        .lte("due_date", endDate);
 
       const { data, error } = await query.order("due_date", { ascending: true });
       if (error) {
