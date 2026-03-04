@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -36,7 +37,6 @@ import { useBankReconciliation } from "@/hooks/useBankReconciliation";
 import { useOFXReconciliation, MatchSuggestion } from "@/hooks/useOFXReconciliation";
 import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
 import { ManualIncludeModal } from "@/components/conciliacao/ManualIncludeModal";
-import { MultiSelectReassignPopover } from "@/components/conciliacao/MultiSelectReassignPopover";
 import { OFXTransaction } from "@/lib/ofxParser";
 import {
   Landmark,
@@ -57,6 +57,8 @@ import {
   XCircle,
   AlertCircle,
   Plus,
+  Undo2,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -158,6 +160,11 @@ function SystemTransactionsPanel({
   onStartDateChange,
   onEndDateChange,
   onSearch,
+  selectionMode,
+  selectedIds,
+  onToggleSelect,
+  onConfirmSelection,
+  onCancelSelection,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -169,11 +176,16 @@ function SystemTransactionsPanel({
   onStartDateChange: (v: string) => void;
   onEndDateChange: (v: string) => void;
   onSearch: () => void;
+  selectionMode?: boolean;
+  selectedIds?: string[];
+  onToggleSelect?: (id: string) => void;
+  onConfirmSelection?: () => void;
+  onCancelSelection?: () => void;
 }) {
   const allTransactions = [...transactions, ...openTransactions];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className={cn("h-full flex flex-col", selectionMode && "ring-2 ring-primary/50 rounded-lg")}>
       <div className="flex items-center gap-2 p-3 border-b bg-muted/30">
         {icon}
         <span className="font-medium text-sm">{title}</span>
@@ -181,6 +193,24 @@ function SystemTransactionsPanel({
           {allTransactions.length}
         </Badge>
       </div>
+
+      {/* Selection mode header */}
+      {selectionMode && (
+        <div className="flex items-center gap-2 p-2 border-b bg-primary/5">
+          <span className="text-xs font-medium text-primary flex-1">
+            Selecione para conciliar ({selectedIds?.length || 0})
+          </span>
+          <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={onCancelSelection}>
+            <X className="h-3 w-3 mr-1" />
+            Cancelar
+          </Button>
+          <Button size="sm" className="h-6 text-xs" onClick={onConfirmSelection} disabled={!selectedIds?.length}>
+            <Check className="h-3 w-3 mr-1" />
+            Confirmar ({selectedIds?.length || 0})
+          </Button>
+        </div>
+      )}
+
       {/* Period date filters */}
       <div className="flex flex-col gap-1.5 px-3 py-2 border-b bg-muted/10">
         <div className="flex items-center gap-2">
@@ -211,30 +241,57 @@ function SystemTransactionsPanel({
           <p className="text-center text-sm text-muted-foreground py-6">Nenhum lançamento</p>
         ) : (
           <div className="divide-y">
-            {allTransactions.map((t) => (
-              <div key={t.id} className="px-3 py-2 text-sm">
-                <div className="flex items-center gap-1">
-                  <p className="font-medium truncate flex-1">{t.description || "Sem descrição"}</p>
-                  {t.status && t.status !== "PAID" && (
-                    <Badge variant="outline" className="text-[10px] h-4 px-1">
-                      {t.status === "OPEN" ? "Em aberto" : t.status}
-                    </Badge>
+            {allTransactions.map((t) => {
+              const clientName = t.clients?.full_name || t.clients?.secondary_name;
+              const isSelected = selectionMode && selectedIds?.includes(t.id);
+
+              return (
+                <div
+                  key={t.id}
+                  className={cn(
+                    "px-3 py-2 text-sm",
+                    selectionMode && "cursor-pointer hover:bg-primary/5",
+                    isSelected && "bg-primary/10"
                   )}
+                  onClick={selectionMode ? () => onToggleSelect?.(t.id) : undefined}
+                >
+                  <div className="flex items-start gap-2">
+                    {selectionMode && (
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => onToggleSelect?.(t.id)}
+                        className="mt-0.5 shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      {clientName && (
+                        <p className="text-xs font-semibold text-primary truncate">{clientName}</p>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <p className="font-medium truncate flex-1">{t.description || "Sem descrição"}</p>
+                        {t.status && t.status !== "PAID" && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1">
+                            {t.status === "OPEN" ? "Em aberto" : t.status}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-xs text-muted-foreground">
+                          {t.paid_at
+                            ? format(new Date(t.paid_at), "dd/MM/yy", { locale: ptBR })
+                            : t.due_date
+                              ? format(new Date(t.due_date + "T12:00:00"), "dd/MM/yy", { locale: ptBR })
+                              : "-"}
+                        </span>
+                        <span className={cn("text-xs font-medium", colorClass)}>
+                          {formatCurrency(t.amount)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-xs text-muted-foreground">
-                    {t.paid_at
-                      ? format(new Date(t.paid_at), "dd/MM/yy", { locale: ptBR })
-                      : t.due_date
-                        ? format(new Date(t.due_date + "T12:00:00"), "dd/MM/yy", { locale: ptBR })
-                        : "-"}
-                  </span>
-                  <span className={cn("text-xs font-medium", colorClass)}>
-                    {formatCurrency(t.amount)}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -254,6 +311,9 @@ interface ConciliationPanelProps {
   onInclude: (ofxTx: OFXTransaction) => void;
   onRetryAI?: () => void;
   isRetrying?: boolean;
+  onStartInlineSelection: (ofxFitId: string, direction: "RECEIVE" | "PAY") => void;
+  onUndoReconciliation: (ofxFitId: string) => void;
+  onUndoManualInclusion: (ofxFitId: string) => void;
 }
 
 function ConciliationPanel({
@@ -267,6 +327,9 @@ function ConciliationPanel({
   onInclude,
   onRetryAI,
   isRetrying,
+  onStartInlineSelection,
+  onUndoReconciliation,
+  onUndoManualInclusion,
 }: ConciliationPanelProps) {
   const approvedCount = suggestions.filter(s => s.status === "approved").length;
   const highConfidenceCount = suggestions.filter(s => s.systemTransaction && s.confidence >= 80 && s.status === "pending").length;
@@ -334,8 +397,7 @@ function ConciliationPanel({
         ) : (
           <div className="divide-y">
             {suggestions.map((match) => {
-              const currentSelectedIds = match.systemTransactions?.map(t => t.id) ||
-                (match.systemTransaction ? [match.systemTransaction.id] : []);
+              const direction = match.ofxTransaction.amount > 0 ? "RECEIVE" : "PAY";
 
               return (
                 <div key={match.ofxTransaction.fitId} className="p-3 space-y-2">
@@ -364,6 +426,9 @@ function ConciliationPanel({
                         : [match.systemTransaction]
                       ).map(tx => (
                         <div key={tx.id} className="text-sm">
+                          {tx.clients?.full_name && (
+                            <p className="text-xs font-semibold text-primary">{tx.clients.full_name}</p>
+                          )}
                           <p className="truncate text-muted-foreground">{tx.description || "-"}</p>
                           <p className="text-xs text-muted-foreground">
                             {tx.paid_at
@@ -381,7 +446,7 @@ function ConciliationPanel({
                   )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 ml-4">
+                  <div className="flex items-center gap-1 ml-4 flex-wrap">
                     {match.status === "pending" && match.systemTransaction && (
                       <>
                         <Button
@@ -403,14 +468,15 @@ function ConciliationPanel({
                       </>
                     )}
 
-                    {match.status !== "included" && (
-                      <MultiSelectReassignPopover
-                        ofxFitId={match.ofxTransaction.fitId}
-                        ofxAmount={match.ofxTransaction.amount}
-                        availableTransactions={allUnmatchedTransactions}
-                        currentSelectedIds={currentSelectedIds}
-                        onConfirm={onReassignMulti}
-                      />
+                    {match.status !== "included" && match.status !== "approved" && (
+                      <Button
+                        variant="ghost" size="icon"
+                        className="h-8 w-8"
+                        title="Selecionar no painel lateral"
+                        onClick={() => onStartInlineSelection(match.ofxTransaction.fitId, direction as "RECEIVE" | "PAY")}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
                     )}
 
                     {match.status === "manual" && (
@@ -421,6 +487,29 @@ function ConciliationPanel({
                       >
                         <Plus className="h-3 w-3 mr-1" />
                         Incluir
+                      </Button>
+                    )}
+
+                    {/* Undo buttons */}
+                    {match.status === "approved" && (
+                      <Button
+                        variant="ghost" size="sm"
+                        className="h-7 text-xs text-amber-600"
+                        onClick={() => onUndoReconciliation(match.ofxTransaction.fitId)}
+                      >
+                        <Undo2 className="h-3 w-3 mr-1" />
+                        Desfazer
+                      </Button>
+                    )}
+
+                    {match.status === "included" && (
+                      <Button
+                        variant="ghost" size="sm"
+                        className="h-7 text-xs text-amber-600"
+                        onClick={() => onUndoManualInclusion(match.ofxTransaction.fitId)}
+                      >
+                        <Undo2 className="h-3 w-3 mr-1" />
+                        Desfazer
                       </Button>
                     )}
                   </div>
@@ -456,6 +545,11 @@ export default function ConciliacaoBancaria() {
   const [payStartDate, setPayStartDate] = useState("");
   const [payEndDate, setPayEndDate] = useState("");
 
+  // Inline selection mode state
+  const [inlineSelectionFitId, setInlineSelectionFitId] = useState<string | null>(null);
+  const [inlineSelectionDirection, setInlineSelectionDirection] = useState<"RECEIVE" | "PAY" | null>(null);
+  const [inlineSelectedIds, setInlineSelectedIds] = useState<string[]>([]);
+
   const month = selectedMonth === "all" ? undefined : parseInt(selectedMonth);
   const {
     reconciliations,
@@ -489,6 +583,8 @@ export default function ConciliacaoBancaria() {
     approveAllByDirection,
     saveReconciliation,
     createManualTransaction,
+    undoReconciliation,
+    undoManualInclusion,
     reset,
   } = useOFXReconciliation();
 
@@ -570,8 +666,40 @@ export default function ConciliacaoBancaria() {
     return createManualTransaction(includeOFXTx, selectedAccountId, categoryId, costCenterId, description);
   };
 
+  // Inline selection handlers
+  const handleStartInlineSelection = (ofxFitId: string, direction: "RECEIVE" | "PAY") => {
+    setInlineSelectionFitId(ofxFitId);
+    setInlineSelectionDirection(direction);
+    setInlineSelectedIds([]);
+  };
+
+  const handleToggleInlineSelect = (id: string) => {
+    setInlineSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmInlineSelection = () => {
+    if (inlineSelectionFitId && inlineSelectedIds.length > 0) {
+      reassignMultiMatch(inlineSelectionFitId, inlineSelectedIds);
+    }
+    setInlineSelectionFitId(null);
+    setInlineSelectionDirection(null);
+    setInlineSelectedIds([]);
+  };
+
+  const handleCancelInlineSelection = () => {
+    setInlineSelectionFitId(null);
+    setInlineSelectionDirection(null);
+    setInlineSelectedIds([]);
+  };
+
   const approvedCount = matchSuggestions.filter((s) => s.status === "approved").length;
   const showReconciliation = isParsing || isOFXLoading || ofxStatement;
+
+  // Props for selection mode on each panel
+  const receiveSelectionMode = inlineSelectionDirection === "RECEIVE";
+  const paySelectionMode = inlineSelectionDirection === "PAY";
 
   return (
     <PageContainer>
@@ -837,6 +965,11 @@ export default function ConciliacaoBancaria() {
                           onStartDateChange={setReceiveStartDate}
                           onEndDateChange={setReceiveEndDate}
                           onSearch={triggerFetchOpenTransactions}
+                          selectionMode={receiveSelectionMode}
+                          selectedIds={inlineSelectedIds}
+                          onToggleSelect={handleToggleInlineSelect}
+                          onConfirmSelection={handleConfirmInlineSelection}
+                          onCancelSelection={handleCancelInlineSelection}
                         />
                       </div>
                     </Card>
@@ -853,6 +986,9 @@ export default function ConciliacaoBancaria() {
                           onInclude={handleIncludeClick}
                           onRetryAI={() => runAIMatching(selectedAccountId)}
                           isRetrying={isOFXLoading}
+                          onStartInlineSelection={handleStartInlineSelection}
+                          onUndoReconciliation={undoReconciliation}
+                          onUndoManualInclusion={undoManualInclusion}
                         />
                       </div>
                     </Card>
@@ -869,6 +1005,11 @@ export default function ConciliacaoBancaria() {
                           onStartDateChange={setPayStartDate}
                           onEndDateChange={setPayEndDate}
                           onSearch={triggerFetchOpenTransactions}
+                          selectionMode={paySelectionMode}
+                          selectedIds={inlineSelectedIds}
+                          onToggleSelect={handleToggleInlineSelect}
+                          onConfirmSelection={handleConfirmInlineSelection}
+                          onCancelSelection={handleCancelInlineSelection}
                         />
                       </div>
                     </Card>
@@ -889,6 +1030,11 @@ export default function ConciliacaoBancaria() {
                           onStartDateChange={setReceiveStartDate}
                           onEndDateChange={setReceiveEndDate}
                           onSearch={triggerFetchOpenTransactions}
+                          selectionMode={receiveSelectionMode}
+                          selectedIds={inlineSelectedIds}
+                          onToggleSelect={handleToggleInlineSelect}
+                          onConfirmSelection={handleConfirmInlineSelection}
+                          onCancelSelection={handleCancelInlineSelection}
                         />
                       </ResizablePanel>
                       <ResizableHandle withHandle />
@@ -904,6 +1050,9 @@ export default function ConciliacaoBancaria() {
                           onInclude={handleIncludeClick}
                           onRetryAI={() => runAIMatching(selectedAccountId)}
                           isRetrying={isOFXLoading}
+                          onStartInlineSelection={handleStartInlineSelection}
+                          onUndoReconciliation={undoReconciliation}
+                          onUndoManualInclusion={undoManualInclusion}
                         />
                       </ResizablePanel>
                       <ResizableHandle withHandle />
@@ -919,6 +1068,11 @@ export default function ConciliacaoBancaria() {
                           onStartDateChange={setPayStartDate}
                           onEndDateChange={setPayEndDate}
                           onSearch={triggerFetchOpenTransactions}
+                          selectionMode={paySelectionMode}
+                          selectedIds={inlineSelectedIds}
+                          onToggleSelect={handleToggleInlineSelect}
+                          onConfirmSelection={handleConfirmInlineSelection}
+                          onCancelSelection={handleCancelInlineSelection}
                         />
                       </ResizablePanel>
                     </ResizablePanelGroup>
