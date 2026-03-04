@@ -1,10 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageContainer } from "@/components/ui/page-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -149,35 +151,77 @@ function SystemTransactionsPanel({
   title,
   icon,
   transactions,
+  openTransactions,
   colorClass,
+  includeOverdue,
+  includeFuture,
+  onToggleOverdue,
+  onToggleFuture,
 }: {
   title: string;
   icon: React.ReactNode;
   transactions: any[];
+  openTransactions: any[];
   colorClass: string;
+  includeOverdue: boolean;
+  includeFuture: boolean;
+  onToggleOverdue: (v: boolean) => void;
+  onToggleFuture: (v: boolean) => void;
 }) {
+  const allTransactions = [...transactions, ...openTransactions];
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-2 p-3 border-b bg-muted/30">
         {icon}
         <span className="font-medium text-sm">{title}</span>
         <Badge variant="secondary" className="ml-auto text-xs">
-          {transactions.length}
+          {allTransactions.length}
         </Badge>
       </div>
+      {/* Period filters */}
+      <div className="flex items-center gap-3 px-3 py-2 border-b bg-muted/10 text-xs">
+        <div className="flex items-center gap-1.5">
+          <Checkbox
+            id={`overdue-${title}`}
+            checked={includeOverdue}
+            onCheckedChange={(v) => onToggleOverdue(!!v)}
+            className="h-3.5 w-3.5"
+          />
+          <Label htmlFor={`overdue-${title}`} className="text-xs cursor-pointer">Vencidos</Label>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Checkbox
+            id={`future-${title}`}
+            checked={includeFuture}
+            onCheckedChange={(v) => onToggleFuture(!!v)}
+            className="h-3.5 w-3.5"
+          />
+          <Label htmlFor={`future-${title}`} className="text-xs cursor-pointer">Futuros</Label>
+        </div>
+      </div>
       <div className="flex-1 overflow-y-auto">
-        {transactions.length === 0 ? (
+        {allTransactions.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-6">Nenhum lançamento</p>
         ) : (
           <div className="divide-y">
-            {transactions.map((t) => (
+            {allTransactions.map((t) => (
               <div key={t.id} className="px-3 py-2 text-sm">
-                <p className="font-medium truncate">{t.description || "Sem descrição"}</p>
+                <div className="flex items-center gap-1">
+                  <p className="font-medium truncate flex-1">{t.description || "Sem descrição"}</p>
+                  {t.status && t.status !== "PAID" && (
+                    <Badge variant="outline" className="text-[10px] h-4 px-1">
+                      {t.status === "OPEN" ? "Em aberto" : t.status}
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex items-center justify-between mt-0.5">
                   <span className="text-xs text-muted-foreground">
                     {t.paid_at
                       ? format(new Date(t.paid_at), "dd/MM/yy", { locale: ptBR })
-                      : t.due_date}
+                      : t.due_date
+                        ? format(new Date(t.due_date + "T12:00:00"), "dd/MM/yy", { locale: ptBR })
+                        : "-"}
                   </span>
                   <span className={cn("text-xs font-medium", colorClass)}>
                     {formatCurrency(t.amount)}
@@ -400,6 +444,12 @@ export default function ConciliacaoBancaria() {
   const [includeModalOpen, setIncludeModalOpen] = useState(false);
   const [includeOFXTx, setIncludeOFXTx] = useState<OFXTransaction | null>(null);
 
+  // Period filters for side panels
+  const [includeOverdueReceive, setIncludeOverdueReceive] = useState(true);
+  const [includeFutureReceive, setIncludeFutureReceive] = useState(true);
+  const [includeOverduePay, setIncludeOverduePay] = useState(true);
+  const [includeFuturePay, setIncludeFuturePay] = useState(true);
+
   const month = selectedMonth === "all" ? undefined : parseInt(selectedMonth);
   const {
     reconciliations,
@@ -423,8 +473,11 @@ export default function ConciliacaoBancaria() {
     unmatchedSystemTransactions,
     unmatchedReceiveTransactions,
     unmatchedPayTransactions,
+    openReceivables,
+    openPayables,
     parseOFXFile,
     runAIMatching,
+    fetchOpenTransactions,
     updateSuggestionStatus,
     reassignMultiMatch,
     approveAllByDirection,
@@ -432,6 +485,19 @@ export default function ConciliacaoBancaria() {
     createManualTransaction,
     reset,
   } = useOFXReconciliation();
+
+  // Fetch open transactions when OFX is loaded or filters change
+  useEffect(() => {
+    if (ofxStatement && selectedAccountId) {
+      fetchOpenTransactions(
+        selectedAccountId,
+        ofxStatement.startDate,
+        ofxStatement.endDate,
+        includeOverdueReceive || includeOverduePay,
+        includeFutureReceive || includeFuturePay,
+      );
+    }
+  }, [ofxStatement, selectedAccountId, includeOverdueReceive, includeFutureReceive, includeOverduePay, includeFuturePay, fetchOpenTransactions]);
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
@@ -729,7 +795,12 @@ export default function ConciliacaoBancaria() {
                           title="Contas a Receber"
                           icon={<ArrowUpRight className="h-4 w-4 text-green-600" />}
                           transactions={unmatchedReceiveTransactions}
+                          openTransactions={openReceivables}
                           colorClass="text-green-600"
+                          includeOverdue={includeOverdueReceive}
+                          includeFuture={includeFutureReceive}
+                          onToggleOverdue={setIncludeOverdueReceive}
+                          onToggleFuture={setIncludeFutureReceive}
                         />
                       </div>
                     </Card>
@@ -755,7 +826,12 @@ export default function ConciliacaoBancaria() {
                           title="Contas a Pagar"
                           icon={<ArrowDownRight className="h-4 w-4 text-red-600" />}
                           transactions={unmatchedPayTransactions}
+                          openTransactions={openPayables}
                           colorClass="text-red-600"
+                          includeOverdue={includeOverduePay}
+                          includeFuture={includeFuturePay}
+                          onToggleOverdue={setIncludeOverduePay}
+                          onToggleFuture={setIncludeFuturePay}
                         />
                       </div>
                     </Card>
@@ -769,7 +845,12 @@ export default function ConciliacaoBancaria() {
                           title="Contas a Receber"
                           icon={<ArrowUpRight className="h-4 w-4 text-green-600" />}
                           transactions={unmatchedReceiveTransactions}
+                          openTransactions={openReceivables}
                           colorClass="text-green-600"
+                          includeOverdue={includeOverdueReceive}
+                          includeFuture={includeFutureReceive}
+                          onToggleOverdue={setIncludeOverdueReceive}
+                          onToggleFuture={setIncludeFutureReceive}
                         />
                       </ResizablePanel>
                       <ResizableHandle withHandle />
@@ -793,7 +874,12 @@ export default function ConciliacaoBancaria() {
                           title="Contas a Pagar"
                           icon={<ArrowDownRight className="h-4 w-4 text-red-600" />}
                           transactions={unmatchedPayTransactions}
+                          openTransactions={openPayables}
                           colorClass="text-red-600"
+                          includeOverdue={includeOverduePay}
+                          includeFuture={includeFuturePay}
+                          onToggleOverdue={setIncludeOverduePay}
+                          onToggleFuture={setIncludeFuturePay}
                         />
                       </ResizablePanel>
                     </ResizablePanelGroup>
