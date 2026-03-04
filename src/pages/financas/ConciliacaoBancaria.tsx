@@ -157,6 +157,7 @@ function SystemTransactionsPanel({
   endDate,
   onStartDateChange,
   onEndDateChange,
+  onSearch,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -167,6 +168,7 @@ function SystemTransactionsPanel({
   endDate: string;
   onStartDateChange: (v: string) => void;
   onEndDateChange: (v: string) => void;
+  onSearch: () => void;
 }) {
   const allTransactions = [...transactions, ...openTransactions];
 
@@ -199,6 +201,10 @@ function SystemTransactionsPanel({
             className="h-7 text-xs"
           />
         </div>
+        <Button variant="outline" size="sm" className="h-7 text-xs w-full" onClick={onSearch}>
+          <Sparkles className="h-3 w-3 mr-1" />
+          Buscar
+        </Button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {allTransactions.length === 0 ? (
@@ -486,25 +492,30 @@ export default function ConciliacaoBancaria() {
     reset,
   } = useOFXReconciliation();
 
-  // Initialize date filters from OFX statement period
+  // Initialize date filters from OFX statement period and fetch
   useEffect(() => {
     if (ofxStatement) {
       setReceiveStartDate(ofxStatement.startDate);
       setReceiveEndDate(ofxStatement.endDate);
       setPayStartDate(ofxStatement.startDate);
       setPayEndDate(ofxStatement.endDate);
+      // Fetch immediately with OFX dates
+      fetchOpenTransactions(ofxStatement.startDate, ofxStatement.endDate);
     }
-  }, [ofxStatement]);
+  }, [ofxStatement, fetchOpenTransactions]);
 
-  // Fetch open transactions when dates change
-  useEffect(() => {
-    if (receiveStartDate && receiveEndDate && payStartDate && payEndDate) {
-      // Use the widest range from both panels
-      const minDate = receiveStartDate < payStartDate ? receiveStartDate : payStartDate;
-      const maxDate = receiveEndDate > payEndDate ? receiveEndDate : payEndDate;
+  // Manual search trigger for when user changes dates
+  const triggerFetchOpenTransactions = () => {
+    const startA = receiveStartDate || payStartDate;
+    const startB = payStartDate || receiveStartDate;
+    const endA = receiveEndDate || payEndDate;
+    const endB = payEndDate || receiveEndDate;
+    if (startA && endA) {
+      const minDate = startA < startB ? startA : startB;
+      const maxDate = endA > endB ? endA : endB;
       fetchOpenTransactions(minDate, maxDate);
     }
-  }, [receiveStartDate, receiveEndDate, payStartDate, payEndDate, fetchOpenTransactions]);
+  };
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
@@ -825,6 +836,7 @@ export default function ConciliacaoBancaria() {
                           endDate={receiveEndDate}
                           onStartDateChange={setReceiveStartDate}
                           onEndDateChange={setReceiveEndDate}
+                          onSearch={triggerFetchOpenTransactions}
                         />
                       </div>
                     </Card>
@@ -856,6 +868,7 @@ export default function ConciliacaoBancaria() {
                           endDate={payEndDate}
                           onStartDateChange={setPayStartDate}
                           onEndDateChange={setPayEndDate}
+                          onSearch={triggerFetchOpenTransactions}
                         />
                       </div>
                     </Card>
@@ -875,6 +888,7 @@ export default function ConciliacaoBancaria() {
                           endDate={receiveEndDate}
                           onStartDateChange={setReceiveStartDate}
                           onEndDateChange={setReceiveEndDate}
+                          onSearch={triggerFetchOpenTransactions}
                         />
                       </ResizablePanel>
                       <ResizableHandle withHandle />
@@ -904,6 +918,7 @@ export default function ConciliacaoBancaria() {
                           endDate={payEndDate}
                           onStartDateChange={setPayStartDate}
                           onEndDateChange={setPayEndDate}
+                          onSearch={triggerFetchOpenTransactions}
                         />
                       </ResizablePanel>
                     </ResizablePanelGroup>
