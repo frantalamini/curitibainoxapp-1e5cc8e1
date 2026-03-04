@@ -100,16 +100,15 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch system transactions for the period (include direction for frontend separation)
+    // Fetch system transactions for the period - include PAID (unreconciled) AND OPEN/PENDING
     const { data: systemTransactions, error } = await supabaseAdmin
       .from("financial_transactions")
-      .select("id, description, amount, direction, due_date, paid_at, is_reconciled")
+      .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status")
       .eq("financial_account_id", accountId)
-      .eq("status", "PAID")
-      .eq("is_reconciled", false)
-      .gte("paid_at", startDate)
-      .lte("paid_at", endDate + "T23:59:59")
-      .order("paid_at", { ascending: true });
+      .or("and(status.eq.PAID,is_reconciled.eq.false),status.in.(OPEN,PENDING)")
+      .gte("due_date", startDate)
+      .lte("due_date", endDate + "T23:59:59")
+      .order("due_date", { ascending: true });
 
     if (error) throw error;
 

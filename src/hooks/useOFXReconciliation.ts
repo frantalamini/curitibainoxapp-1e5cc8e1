@@ -32,6 +32,8 @@ export const useOFXReconciliation = () => {
   const [ofxStatement, setOfxStatement] = useState<OFXStatement | null>(null);
   const [matchSuggestions, setMatchSuggestions] = useState<MatchSuggestion[]>([]);
   const [unmatchedSystemTransactions, setUnmatchedSystemTransactions] = useState<any[]>([]);
+  const [openReceivables, setOpenReceivables] = useState<any[]>([]);
+  const [openPayables, setOpenPayables] = useState<any[]>([]);
 
   // Computed: suggestions separated by direction
   const receiveSuggestions = useMemo(
@@ -61,6 +63,46 @@ export const useOFXReconciliation = () => {
     () => unmatchedSystemTransactions.filter((t) => t.direction === "PAY"),
     [unmatchedSystemTransactions]
   );
+
+  const fetchOpenTransactions = useCallback(async (
+    accountId: string,
+    startDate: string,
+    endDate: string,
+    includeOverdue: boolean,
+    includeFuture: boolean,
+  ) => {
+    try {
+      let query = supabase
+        .from("financial_transactions")
+        .select("id, description, amount, direction, due_date, paid_at, status")
+        .eq("financial_account_id", accountId)
+        .in("status", ["OPEN", "PENDING"] as any[]);
+
+      // Build date filter based on flags
+      if (!includeOverdue && !includeFuture) {
+        // Only within OFX period
+        query = query.gte("due_date", startDate).lte("due_date", endDate);
+      } else if (includeOverdue && !includeFuture) {
+        // Up to end of OFX period (includes overdue)
+        query = query.lte("due_date", endDate);
+      } else if (!includeOverdue && includeFuture) {
+        // From start of OFX period onward (includes future)
+        query = query.gte("due_date", startDate);
+      }
+      // If both true, no date filter — show all open
+
+      const { data, error } = await query.order("due_date", { ascending: true });
+      if (error) {
+        console.error("Error fetching open transactions:", error);
+        return;
+      }
+
+      setOpenReceivables((data || []).filter(t => t.direction === "RECEIVE"));
+      setOpenPayables((data || []).filter(t => t.direction === "PAY"));
+    } catch (e) {
+      console.error("fetchOpenTransactions error:", e);
+    }
+  }, []);
 
   const parseOFXFile = useCallback(async (file: File): Promise<OFXStatement | null> => {
     setIsParsing(true);
@@ -348,6 +390,8 @@ export const useOFXReconciliation = () => {
     setOfxStatement(null);
     setMatchSuggestions([]);
     setUnmatchedSystemTransactions([]);
+    setOpenReceivables([]);
+    setOpenPayables([]);
   }, []);
 
   return {
@@ -360,8 +404,11 @@ export const useOFXReconciliation = () => {
     unmatchedSystemTransactions,
     unmatchedReceiveTransactions,
     unmatchedPayTransactions,
+    openReceivables,
+    openPayables,
     parseOFXFile,
     runAIMatching,
+    fetchOpenTransactions,
     updateSuggestionStatus,
     reassignMatch,
     reassignMultiMatch,
