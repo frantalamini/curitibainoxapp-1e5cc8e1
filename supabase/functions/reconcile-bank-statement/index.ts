@@ -100,15 +100,41 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch system transactions for the period - include PAID (unreconciled) AND OPEN/PENDING
-    const { data: systemTransactions, error } = await supabaseAdmin
+    // Fetch system transactions for the period:
+    // 1. PAID+unreconciled for the selected account
+    // 2. ALL OPEN transactions (they may not have an account assigned yet)
+    const { data: paidTransactions, error: paidError } = await supabaseAdmin
       .from("financial_transactions")
       .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status")
       .eq("financial_account_id", accountId)
-      .or("and(status.eq.PAID,is_reconciled.eq.false),status.eq.OPEN")
+      .eq("status", "PAID")
+      .eq("is_reconciled", false)
       .gte("due_date", startDate)
       .lte("due_date", endDate + "T23:59:59")
       .order("due_date", { ascending: true });
+
+    if (paidError) throw paidError;
+
+    const { data: openTransactions, error: openError } = await supabaseAdmin
+      .from("financial_transactions")
+      .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status")
+      .eq("status", "OPEN")
+      .gte("due_date", startDate)
+      .lte("due_date", endDate + "T23:59:59")
+      .order("due_date", { ascending: true });
+
+    if (openError) throw openError;
+
+    // Merge and deduplicate
+    const seenIds = new Set<string>();
+    const systemTransactions: any[] = [];
+    for (const tx of [...(paidTransactions || []), ...(openTransactions || [])]) {
+      if (!seenIds.has(tx.id)) {
+        seenIds.add(tx.id);
+        systemTransactions.push(tx);
+      }
+    }
+    const error = null;
 
     if (error) throw error;
 

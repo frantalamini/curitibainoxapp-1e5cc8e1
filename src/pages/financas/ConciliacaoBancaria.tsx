@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageContainer } from "@/components/ui/page-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -153,20 +153,20 @@ function SystemTransactionsPanel({
   transactions,
   openTransactions,
   colorClass,
-  includeOverdue,
-  includeFuture,
-  onToggleOverdue,
-  onToggleFuture,
+  startDate,
+  endDate,
+  onStartDateChange,
+  onEndDateChange,
 }: {
   title: string;
   icon: React.ReactNode;
   transactions: any[];
   openTransactions: any[];
   colorClass: string;
-  includeOverdue: boolean;
-  includeFuture: boolean;
-  onToggleOverdue: (v: boolean) => void;
-  onToggleFuture: (v: boolean) => void;
+  startDate: string;
+  endDate: string;
+  onStartDateChange: (v: string) => void;
+  onEndDateChange: (v: string) => void;
 }) {
   const allTransactions = [...transactions, ...openTransactions];
 
@@ -179,25 +179,25 @@ function SystemTransactionsPanel({
           {allTransactions.length}
         </Badge>
       </div>
-      {/* Period filters */}
-      <div className="flex items-center gap-3 px-3 py-2 border-b bg-muted/10 text-xs">
-        <div className="flex items-center gap-1.5">
-          <Checkbox
-            id={`overdue-${title}`}
-            checked={includeOverdue}
-            onCheckedChange={(v) => onToggleOverdue(!!v)}
-            className="h-3.5 w-3.5"
+      {/* Period date filters */}
+      <div className="flex flex-col gap-1.5 px-3 py-2 border-b bg-muted/10">
+        <div className="flex items-center gap-2">
+          <Label className="text-xs w-7 shrink-0">De</Label>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => onStartDateChange(e.target.value)}
+            className="h-7 text-xs"
           />
-          <Label htmlFor={`overdue-${title}`} className="text-xs cursor-pointer">Vencidos</Label>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Checkbox
-            id={`future-${title}`}
-            checked={includeFuture}
-            onCheckedChange={(v) => onToggleFuture(!!v)}
-            className="h-3.5 w-3.5"
+        <div className="flex items-center gap-2">
+          <Label className="text-xs w-7 shrink-0">Até</Label>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => onEndDateChange(e.target.value)}
+            className="h-7 text-xs"
           />
-          <Label htmlFor={`future-${title}`} className="text-xs cursor-pointer">Futuros</Label>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -444,11 +444,11 @@ export default function ConciliacaoBancaria() {
   const [includeModalOpen, setIncludeModalOpen] = useState(false);
   const [includeOFXTx, setIncludeOFXTx] = useState<OFXTransaction | null>(null);
 
-  // Period filters for side panels
-  const [includeOverdueReceive, setIncludeOverdueReceive] = useState(true);
-  const [includeFutureReceive, setIncludeFutureReceive] = useState(true);
-  const [includeOverduePay, setIncludeOverduePay] = useState(true);
-  const [includeFuturePay, setIncludeFuturePay] = useState(true);
+  // Period date filters for side panels (De/Até)
+  const [receiveStartDate, setReceiveStartDate] = useState("");
+  const [receiveEndDate, setReceiveEndDate] = useState("");
+  const [payStartDate, setPayStartDate] = useState("");
+  const [payEndDate, setPayEndDate] = useState("");
 
   const month = selectedMonth === "all" ? undefined : parseInt(selectedMonth);
   const {
@@ -486,20 +486,44 @@ export default function ConciliacaoBancaria() {
     reset,
   } = useOFXReconciliation();
 
-  // Fetch open transactions when OFX is loaded or filters change
+  // Initialize date filters from OFX statement period
   useEffect(() => {
-    if (ofxStatement && selectedAccountId) {
-      fetchOpenTransactions(
-        selectedAccountId,
-        ofxStatement.startDate,
-        ofxStatement.endDate,
-        includeOverdueReceive || includeOverduePay,
-        includeFutureReceive || includeFuturePay,
-      );
+    if (ofxStatement) {
+      setReceiveStartDate(ofxStatement.startDate);
+      setReceiveEndDate(ofxStatement.endDate);
+      setPayStartDate(ofxStatement.startDate);
+      setPayEndDate(ofxStatement.endDate);
     }
-  }, [ofxStatement, selectedAccountId, includeOverdueReceive, includeFutureReceive, includeOverduePay, includeFuturePay, fetchOpenTransactions]);
+  }, [ofxStatement]);
+
+  // Fetch open transactions when dates change
+  useEffect(() => {
+    if (receiveStartDate && receiveEndDate && payStartDate && payEndDate) {
+      // Use the widest range from both panels
+      const minDate = receiveStartDate < payStartDate ? receiveStartDate : payStartDate;
+      const maxDate = receiveEndDate > payEndDate ? receiveEndDate : payEndDate;
+      fetchOpenTransactions(minDate, maxDate);
+    }
+  }, [receiveStartDate, receiveEndDate, payStartDate, payEndDate, fetchOpenTransactions]);
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
+  // Filter open transactions by each panel's date range (client-side)
+  const filteredReceivables = useMemo(() =>
+    openReceivables.filter((t: any) => {
+      const d = t.due_date;
+      return (!receiveStartDate || d >= receiveStartDate) && (!receiveEndDate || d <= receiveEndDate);
+    }),
+    [openReceivables, receiveStartDate, receiveEndDate]
+  );
+
+  const filteredPayables = useMemo(() =>
+    openPayables.filter((t: any) => {
+      const d = t.due_date;
+      return (!payStartDate || d >= payStartDate) && (!payEndDate || d <= payEndDate);
+    }),
+    [openPayables, payStartDate, payEndDate]
+  );
 
   const toggleExpanded = (id: string) => {
     setExpandedAccounts((prev) =>
@@ -795,12 +819,12 @@ export default function ConciliacaoBancaria() {
                           title="Contas a Receber"
                           icon={<ArrowUpRight className="h-4 w-4 text-green-600" />}
                           transactions={unmatchedReceiveTransactions}
-                          openTransactions={openReceivables}
+                          openTransactions={filteredReceivables}
                           colorClass="text-green-600"
-                          includeOverdue={includeOverdueReceive}
-                          includeFuture={includeFutureReceive}
-                          onToggleOverdue={setIncludeOverdueReceive}
-                          onToggleFuture={setIncludeFutureReceive}
+                          startDate={receiveStartDate}
+                          endDate={receiveEndDate}
+                          onStartDateChange={setReceiveStartDate}
+                          onEndDateChange={setReceiveEndDate}
                         />
                       </div>
                     </Card>
@@ -826,12 +850,12 @@ export default function ConciliacaoBancaria() {
                           title="Contas a Pagar"
                           icon={<ArrowDownRight className="h-4 w-4 text-red-600" />}
                           transactions={unmatchedPayTransactions}
-                          openTransactions={openPayables}
+                          openTransactions={filteredPayables}
                           colorClass="text-red-600"
-                          includeOverdue={includeOverduePay}
-                          includeFuture={includeFuturePay}
-                          onToggleOverdue={setIncludeOverduePay}
-                          onToggleFuture={setIncludeFuturePay}
+                          startDate={payStartDate}
+                          endDate={payEndDate}
+                          onStartDateChange={setPayStartDate}
+                          onEndDateChange={setPayEndDate}
                         />
                       </div>
                     </Card>
@@ -845,12 +869,12 @@ export default function ConciliacaoBancaria() {
                           title="Contas a Receber"
                           icon={<ArrowUpRight className="h-4 w-4 text-green-600" />}
                           transactions={unmatchedReceiveTransactions}
-                          openTransactions={openReceivables}
+                          openTransactions={filteredReceivables}
                           colorClass="text-green-600"
-                          includeOverdue={includeOverdueReceive}
-                          includeFuture={includeFutureReceive}
-                          onToggleOverdue={setIncludeOverdueReceive}
-                          onToggleFuture={setIncludeFutureReceive}
+                          startDate={receiveStartDate}
+                          endDate={receiveEndDate}
+                          onStartDateChange={setReceiveStartDate}
+                          onEndDateChange={setReceiveEndDate}
                         />
                       </ResizablePanel>
                       <ResizableHandle withHandle />
@@ -874,12 +898,12 @@ export default function ConciliacaoBancaria() {
                           title="Contas a Pagar"
                           icon={<ArrowDownRight className="h-4 w-4 text-red-600" />}
                           transactions={unmatchedPayTransactions}
-                          openTransactions={openPayables}
+                          openTransactions={filteredPayables}
                           colorClass="text-red-600"
-                          includeOverdue={includeOverduePay}
-                          includeFuture={includeFuturePay}
-                          onToggleOverdue={setIncludeOverduePay}
-                          onToggleFuture={setIncludeFuturePay}
+                          startDate={payStartDate}
+                          endDate={payEndDate}
+                          onStartDateChange={setPayStartDate}
+                          onEndDateChange={setPayEndDate}
                         />
                       </ResizablePanel>
                     </ResizablePanelGroup>
