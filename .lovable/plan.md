@@ -1,31 +1,39 @@
 
 
-## Plano: Corrigir Conciliação Bancária Travada Após Importação OFX
+## Plano: Carregar Contas a Receber e a Pagar nos Painéis Laterais
 
-### Problema Raiz
-Bug de **race condition** no React: `parseOFXFile` salva o extrato via `setState` e em seguida `runAIMatching` tenta ler esse estado — mas o state ainda não atualizou. Resultado: matching nunca executa, e como a UI só mostra os 3 painéis quando há sugestões, o usuário fica numa tela vazia.
+### Problema
+Os painéis "Contas a Receber" e "Contas a Pagar" mostram apenas transações PAGAS não conciliadas retornadas pela edge function. Mas o usuário precisa ver as transações **em aberto** (OPEN/PENDING) do sistema — incluindo vencidas e futuras — para poder vinculá-las manualmente aos itens do extrato OFX.
 
-### Correções
+### Solução
 
-**1. Passar o statement diretamente para `runAIMatching`** (`useOFXReconciliation.ts`)
-- Alterar `runAIMatching` para aceitar um parâmetro opcional `statement?: OFXStatement` e usá-lo em vez de ler do state
-- Assim elimina a race condition
+**1. Buscar transações abertas no client-side** (`useOFXReconciliation.ts`)
+- Adicionar uma função `fetchOpenTransactions(accountId, startDate, endDate, includeOverdue, includeFuture)` que busca `financial_transactions` com `status != 'PAID'` (ou seja, OPEN/PENDING)
+- Separar em `openReceivables` (direction=RECEIVE) e `openPayables` (direction=PAY)
+- Parâmetros de filtro: período do OFX + flags para incluir vencidos e futuros
 
-**2. Adicionar botão "Conciliar com IA"** (`ConciliacaoBancaria.tsx`)
-- Quando o OFX foi importado mas não há sugestões, mostrar as transações OFX em uma lista simples com um botão "Conciliar com IA" para (re)executar o matching manualmente
-- Também mostrar cada transação OFX com botão "Incluir" para inclusão manual direta (sem depender do matching)
+**2. Adicionar filtros de período nos painéis** (`ConciliacaoBancaria.tsx`)
+- Cada painel lateral ganha dois toggles/checkboxes: "Incluir vencidos" e "Incluir futuros"
+- Por padrão ambos ativados (pois pagamentos podem ser adiantados ou atrasados)
+- Ao alterar, refaz a query
 
-**3. Mostrar transações OFX mesmo sem matching** (`ConciliacaoBancaria.tsx`)
-- Alterar a condição de exibição: em vez de `matchSuggestions.length > 0`, mostrar a seção sempre que `ofxStatement` existir
-- Quando não há sugestões, listar as transações do OFX com opções de ação (Incluir, Retry IA)
+**3. Tornar transações dos painéis laterais "arrastáveis" para o matching**
+- Cada item nos painéis laterais terá um botão de ação para vincular ao item OFX selecionado
+- Reutilizar o `MultiSelectReassignPopover` já existente, alimentando-o com as transações abertas em vez de apenas as unmatched do AI
+
+**4. Atualizar edge function** (`reconcile-bank-statement/index.ts`)
+- Além de PAID+não conciliadas, também buscar transações OPEN/PENDING para o matching da IA
+- Isso permite que a IA sugira matches com transações que ainda não foram pagas
 
 ### Arquivos alterados
+
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/hooks/useOFXReconciliation.ts` | `runAIMatching` aceita statement como parâmetro |
-| `src/pages/financas/ConciliacaoBancaria.tsx` | Passa statement, mostra fallback com transações OFX + botão retry |
+| `src/hooks/useOFXReconciliation.ts` | Nova query `fetchOpenTransactions`, novos states `openReceivables`/`openPayables` |
+| `src/pages/financas/ConciliacaoBancaria.tsx` | Painéis laterais usam transações abertas, filtros vencido/futuro, alimentar reassign popover |
+| `supabase/functions/reconcile-bank-statement/index.ts` | Incluir transações OPEN no matching da IA |
 
 ### Impacto
 - Nenhum outro arquivo alterado
-- Fluxo de caixa, contas a pagar/receber, permissões inalterados
+- Fluxo de caixa, DRE, permissões inalterados
 
