@@ -14,13 +14,20 @@ export interface FinancialCategory {
   updated_at: string;
 }
 
-export type FinancialCategoryInsert = Omit<FinancialCategory, "id" | "created_at" | "updated_at">;
+export type FinancialCategoryInsert = Omit<
+  FinancialCategory,
+  "id" | "created_at" | "updated_at"
+>;
 export type FinancialCategoryUpdate = Partial<FinancialCategoryInsert>;
 
 export const useFinancialCategories = () => {
   const queryClient = useQueryClient();
 
-  const { data: categories = [], isLoading, error } = useQuery({
+  const {
+    data: categories = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["financial-categories"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -55,7 +62,10 @@ export const useFinancialCategories = () => {
   });
 
   const updateCategory = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & FinancialCategoryUpdate) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & FinancialCategoryUpdate) => {
       const { data, error } = await supabase
         .from("financial_categories")
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -94,7 +104,13 @@ export const useFinancialCategories = () => {
   });
 
   const toggleActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
       const { error } = await supabase
         .from("financial_categories")
         .update({ is_active, updated_at: new Date().toISOString() })
@@ -111,8 +127,12 @@ export const useFinancialCategories = () => {
   });
 
   // Helper to get categories by type
-  const incomeCategories = categories.filter((c) => c.type === "income" && c.is_active);
-  const expenseCategories = categories.filter((c) => c.type === "expense" && c.is_active);
+  const incomeCategories = categories.filter(
+    (c) => c.type === "income" && c.is_active,
+  );
+  const expenseCategories = categories.filter(
+    (c) => c.type === "expense" && c.is_active,
+  );
 
   return {
     categories,

@@ -25,51 +25,60 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useVehicles, VehicleInsert, VehicleStatus } from "@/hooks/useVehicles";
-import { useVehicleMaintenances, MaintenanceType } from "@/hooks/useVehicleMaintenances";
+import {
+  useVehicleMaintenances,
+  MaintenanceType,
+} from "@/hooks/useVehicleMaintenances";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toTitleCase } from "@/lib/utils";
 import { Upload, FileText, X } from "lucide-react";
 
-const formSchema = z.object({
-  // Aba Geral
-  name: z.string().min(1, "Nome é obrigatório"),
-  color: z.string().optional(),
-  brand: z.string().optional(),
-  plate: z.string().min(1, "Placa é obrigatória"),
-  status: z.enum(['ativo', 'inativo', 'em_manutencao']).default('ativo'),
-  // Aba Dados Gerais
-  renavam: z.string().optional(),
-  current_odometer_km: z.coerce.number().min(0, "Quilometragem deve ser maior ou igual a 0").default(0),
-  owner_name: z.string().optional(),
-  owner_document: z.string().optional(),
-  insurance_company: z.string().optional(),
-  insurance_phone: z.string().optional(),
-  insurance_broker: z.string().optional(),
-  insurance_broker_phone: z.string().optional(),
-  insurance_policy_url: z.string().optional(),
-  // Campos de manutenção (condicionais)
-  maintenance_started_at: z.string().optional(),
-  maintenance_type: z.enum(['preventiva', 'corretiva', 'colisao']).optional(),
-  maintenance_finished_at: z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.status === 'em_manutencao') {
-    if (!data.maintenance_started_at) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Data/hora de início é obrigatória quando em manutenção",
-        path: ["maintenance_started_at"],
-      });
+const formSchema = z
+  .object({
+    // Aba Geral
+    name: z.string().min(1, "Nome é obrigatório"),
+    color: z.string().optional(),
+    brand: z.string().optional(),
+    plate: z.string().min(1, "Placa é obrigatória"),
+    status: z.enum(["ativo", "inativo", "em_manutencao"]).default("ativo"),
+    // Aba Dados Gerais
+    renavam: z.string().optional(),
+    current_odometer_km: z.coerce
+      .number()
+      .min(0, "Quilometragem deve ser maior ou igual a 0")
+      .default(0),
+    owner_name: z.string().optional(),
+    owner_document: z.string().optional(),
+    insurance_company: z.string().optional(),
+    insurance_phone: z.string().optional(),
+    insurance_broker: z.string().optional(),
+    insurance_broker_phone: z.string().optional(),
+    insurance_policy_url: z.string().optional(),
+    // Campos de manutenção (condicionais)
+    maintenance_started_at: z.string().optional(),
+    maintenance_type: z.enum(["preventiva", "corretiva", "colisao"]).optional(),
+    maintenance_finished_at: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.status === "em_manutencao") {
+      if (!data.maintenance_started_at) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Data/hora de início é obrigatória quando em manutenção",
+          path: ["maintenance_started_at"],
+        });
+      }
+      if (!data.maintenance_type) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Tipo de manutenção é obrigatório quando em manutenção",
+          path: ["maintenance_type"],
+        });
+      }
     }
-    if (!data.maintenance_type) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Tipo de manutenção é obrigatório quando em manutenção",
-        path: ["maintenance_type"],
-      });
-    }
-  }
-});
+  });
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -77,9 +86,13 @@ const VehicleForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { canCreate, canEdit } = useModulePermissions("vehicles");
   const { createVehicle, updateVehicle } = useVehicles();
-  const { createMaintenance, updateMaintenance, getOpenMaintenance } = useVehicleMaintenances();
-  const [previousStatus, setPreviousStatus] = useState<VehicleStatus | null>(null);
+  const { createMaintenance, updateMaintenance, getOpenMaintenance } =
+    useVehicleMaintenances();
+  const [previousStatus, setPreviousStatus] = useState<VehicleStatus | null>(
+    null,
+  );
   const [uploading, setUploading] = useState(false);
   const [policyFileName, setPolicyFileName] = useState<string | null>(null);
 
@@ -90,7 +103,7 @@ const VehicleForm = () => {
       color: "",
       brand: "",
       plate: "",
-      status: 'ativo',
+      status: "ativo",
       renavam: "",
       current_odometer_km: 0,
       owner_name: "",
@@ -148,10 +161,10 @@ const VehicleForm = () => {
             maintenance_type: undefined,
             maintenance_finished_at: "",
           });
-          
+
           // Extract filename from URL if exists
           if (data.insurance_policy_url) {
-            const urlParts = data.insurance_policy_url.split('/');
+            const urlParts = data.insurance_policy_url.split("/");
             setPolicyFileName(urlParts[urlParts.length - 1]);
           }
         }
@@ -161,32 +174,34 @@ const VehicleForm = () => {
     }
   }, [id, form, toast]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `vehicle-policies/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('service-call-attachments')
+        .from("service-call-attachments")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       // Bucket é privado - usar signed URL com validade de 1 ano
       const { data: signedData, error: signedError } = await supabase.storage
-        .from('service-call-attachments')
+        .from("service-call-attachments")
         .createSignedUrl(filePath, 31536000); // 1 ano
 
       if (signedError || !signedData) throw signedError;
 
       form.setValue("insurance_policy_url", signedData.signedUrl);
       setPolicyFileName(file.name);
-      
+
       toast({
         title: "Sucesso",
         description: "Arquivo enviado com sucesso",
@@ -209,6 +224,22 @@ const VehicleForm = () => {
   };
 
   const onSubmit = async (formData: FormData) => {
+    if (id && !canEdit) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para editar veículos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!id && !canCreate) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para criar veículos.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       const vehicleData = {
         name: toTitleCase(formData.name),
@@ -228,7 +259,10 @@ const VehicleForm = () => {
       };
 
       // Cenário 1: Status mudou para "em_manutencao"
-      if (formData.status === 'em_manutencao' && previousStatus !== 'em_manutencao') {
+      if (
+        formData.status === "em_manutencao" &&
+        previousStatus !== "em_manutencao"
+      ) {
         const maintenanceData = {
           vehicle_id: id || "",
           maintenance_type: formData.maintenance_type as MaintenanceType,
@@ -245,14 +279,20 @@ const VehicleForm = () => {
             .insert(vehicleData)
             .select()
             .single();
-          
+
           if (newVehicle) {
-            createMaintenance({ ...maintenanceData, vehicle_id: newVehicle.id });
+            createMaintenance({
+              ...maintenanceData,
+              vehicle_id: newVehicle.id,
+            });
           }
         }
       }
       // Cenário 2: Status mudou de "em_manutencao" para "ativo"
-      else if (previousStatus === 'em_manutencao' && formData.status === 'ativo') {
+      else if (
+        previousStatus === "em_manutencao" &&
+        formData.status === "ativo"
+      ) {
         if (!formData.maintenance_finished_at) {
           toast({
             title: "Erro",
@@ -267,7 +307,9 @@ const VehicleForm = () => {
           if (openMaintenance) {
             updateMaintenance({
               id: openMaintenance.id,
-              finished_at: new Date(formData.maintenance_finished_at).toISOString(),
+              finished_at: new Date(
+                formData.maintenance_finished_at,
+              ).toISOString(),
             });
           }
           updateVehicle({ id, ...vehicleData });
@@ -307,7 +349,7 @@ const VehicleForm = () => {
                 <TabsTrigger value="geral">Geral</TabsTrigger>
                 <TabsTrigger value="dados-gerais">Dados Gerais</TabsTrigger>
               </TabsList>
-              
+
               {/* Aba Geral */}
               <TabsContent value="geral" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -364,7 +406,9 @@ const VehicleForm = () => {
                         <Input
                           {...field}
                           placeholder="Ex: ABC1234"
-                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          onChange={(e) =>
+                            field.onChange(e.target.value.toUpperCase())
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -380,16 +424,32 @@ const VehicleForm = () => {
                       <div className="flex items-center justify-between">
                         <Label>Status</Label>
                         <div className="flex items-center gap-2">
-                          <span className={field.value === 'inativo' ? 'text-destructive font-medium' : 'text-muted-foreground'}>
+                          <span
+                            className={
+                              field.value === "inativo"
+                                ? "text-destructive font-medium"
+                                : "text-muted-foreground"
+                            }
+                          >
                             Inativo
                           </span>
                           <Switch
-                            checked={field.value === 'ativo' || field.value === 'em_manutencao'}
+                            checked={
+                              field.value === "ativo" ||
+                              field.value === "em_manutencao"
+                            }
                             onCheckedChange={(checked) => {
-                              field.onChange(checked ? 'ativo' : 'inativo');
+                              field.onChange(checked ? "ativo" : "inativo");
                             }}
                           />
-                          <span className={field.value === 'ativo' || field.value === 'em_manutencao' ? 'text-success font-medium' : 'text-muted-foreground'}>
+                          <span
+                            className={
+                              field.value === "ativo" ||
+                              field.value === "em_manutencao"
+                                ? "text-success font-medium"
+                                : "text-muted-foreground"
+                            }
+                          >
                             Ativo
                           </span>
                         </div>
@@ -400,14 +460,16 @@ const VehicleForm = () => {
                 />
 
                 {/* Campos condicionais quando status = "em_manutencao" */}
-                {watchStatus === 'em_manutencao' && (
+                {watchStatus === "em_manutencao" && (
                   <>
                     <FormField
                       control={form.control}
                       name="maintenance_started_at"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Data e Hora de Início da Manutenção</FormLabel>
+                          <FormLabel>
+                            Data e Hora de Início da Manutenção
+                          </FormLabel>
                           <FormControl>
                             <Input {...field} type="datetime-local" />
                           </FormControl>
@@ -422,15 +484,22 @@ const VehicleForm = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Tipo de Manutenção</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Selecione o tipo" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="preventiva">Manutenção Preventiva</SelectItem>
-                              <SelectItem value="corretiva">Manutenção Corretiva</SelectItem>
+                              <SelectItem value="preventiva">
+                                Manutenção Preventiva
+                              </SelectItem>
+                              <SelectItem value="corretiva">
+                                Manutenção Corretiva
+                              </SelectItem>
                               <SelectItem value="colisao">Colisão</SelectItem>
                             </SelectContent>
                           </Select>
@@ -442,29 +511,34 @@ const VehicleForm = () => {
                 )}
 
                 {/* Campo condicional quando status anterior era "em_manutencao" e atual é "ativo" */}
-                {previousStatus === 'em_manutencao' && watchStatus === 'ativo' && (
-                  <FormField
-                    control={form.control}
-                    name="maintenance_finished_at"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data e Hora de Fim da Manutenção</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="datetime-local" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+                {previousStatus === "em_manutencao" &&
+                  watchStatus === "ativo" && (
+                    <FormField
+                      control={form.control}
+                      name="maintenance_finished_at"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Data e Hora de Fim da Manutenção
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} type="datetime-local" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
               </TabsContent>
 
               {/* Aba Dados Gerais */}
               <TabsContent value="dados-gerais" className="space-y-6 mt-4">
                 {/* Dados do Veículo */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg border-b pb-2">Dados do Veículo</h3>
-                  
+                  <h3 className="font-semibold text-lg border-b pb-2">
+                    Dados do Veículo
+                  </h3>
+
                   <FormField
                     control={form.control}
                     name="renavam"
@@ -501,8 +575,10 @@ const VehicleForm = () => {
 
                 {/* Dados do Proprietário */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg border-b pb-2">Dados do Proprietário</h3>
-                  
+                  <h3 className="font-semibold text-lg border-b pb-2">
+                    Dados do Proprietário
+                  </h3>
+
                   <FormField
                     control={form.control}
                     name="owner_name"
@@ -510,7 +586,10 @@ const VehicleForm = () => {
                       <FormItem>
                         <FormLabel>Razão Social / Nome</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Nome do proprietário ou empresa" />
+                          <Input
+                            {...field}
+                            placeholder="Nome do proprietário ou empresa"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -524,7 +603,10 @@ const VehicleForm = () => {
                       <FormItem>
                         <FormLabel>CNPJ / CPF</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="00.000.000/0000-00 ou 000.000.000-00" />
+                          <Input
+                            {...field}
+                            placeholder="00.000.000/0000-00 ou 000.000.000-00"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -534,8 +616,10 @@ const VehicleForm = () => {
 
                 {/* Dados do Seguro */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg border-b pb-2">Dados do Seguro</h3>
-                  
+                  <h3 className="font-semibold text-lg border-b pb-2">
+                    Dados do Seguro
+                  </h3>
+
                   <FormField
                     control={form.control}
                     name="insurance_company"
@@ -598,7 +682,9 @@ const VehicleForm = () => {
                     {watchPolicyUrl ? (
                       <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
                         <FileText className="h-5 w-5 text-primary" />
-                        <span className="flex-1 text-sm truncate">{policyFileName || "Arquivo enviado"}</span>
+                        <span className="flex-1 text-sm truncate">
+                          {policyFileName || "Arquivo enviado"}
+                        </span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -633,7 +719,9 @@ const VehicleForm = () => {
                         >
                           <Upload className="h-4 w-4" />
                           <span className="text-sm">
-                            {uploading ? "Enviando..." : "Fazer upload da apólice"}
+                            {uploading
+                              ? "Enviando..."
+                              : "Fazer upload da apólice"}
                           </span>
                         </label>
                       </div>
@@ -647,9 +735,7 @@ const VehicleForm = () => {
             </Tabs>
 
             <div className="flex gap-4 pt-4">
-              <Button type="submit">
-                {id ? "Atualizar" : "Criar"}
-              </Button>
+              <Button type="submit">{id ? "Atualizar" : "Criar"}</Button>
               <Button
                 type="button"
                 variant="outline"

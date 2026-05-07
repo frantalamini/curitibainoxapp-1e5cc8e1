@@ -40,7 +40,7 @@ export function TodayCallsPreview({
 
   if (isLoading) {
     return (
-      <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl p-4">
+      <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-lg p-4">
         <div className="animate-pulse space-y-3">
           <div className="h-4 bg-muted rounded w-1/3" />
           <div className="h-16 bg-muted rounded" />
@@ -55,7 +55,7 @@ export function TodayCallsPreview({
   // No calls at all
   if (!hasTodayCalls && !hasUpcomingCalls) {
     return (
-      <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl p-4 text-center">
+      <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-lg p-4 text-center">
         <Calendar className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
         <p className="text-sm text-muted-foreground">Nenhum chamado agendado</p>
       </div>
@@ -66,7 +66,7 @@ export function TodayCallsPreview({
     <div className="space-y-3">
       {/* Today's Calls Section */}
       {hasTodayCalls && (
-        <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl overflow-hidden">
+        <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-lg overflow-hidden">
           <div className="flex items-center justify-between p-3 border-b border-border/50">
             <h3 className="font-semibold text-sm flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary" />
@@ -86,7 +86,7 @@ export function TodayCallsPreview({
           <div className="divide-y divide-border/50">
             {calls.slice(0, 5).map((call) => {
               const hasOpenTrip = openTripsMap[call.id] || false;
-              
+
               return (
                 <div
                   key={call.id}
@@ -95,13 +95,19 @@ export function TodayCallsPreview({
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">OS #{call.os_number}</span>
+                        <span className="font-semibold text-sm">
+                          OS #{call.os_number}
+                        </span>
                         <span className="text-xs text-muted-foreground">
                           {call.scheduled_time}
                         </span>
                       </div>
-                      <p className="text-sm text-foreground/80 break-words whitespace-normal">{call.client_name}</p>
-                      <p className="text-xs text-muted-foreground break-words whitespace-normal">{call.equipment_description}</p>
+                      <p className="text-sm text-foreground/80 break-words whitespace-normal">
+                        {call.client_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground break-words whitespace-normal">
+                        {call.equipment_description}
+                      </p>
                     </div>
                     {call.status_color && (
                       <span
@@ -143,7 +149,7 @@ export function TodayCallsPreview({
 
       {/* Upcoming Calls Section (next days) */}
       {hasUpcomingCalls && (
-        <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl overflow-hidden">
+        <div className="bg-card/95 backdrop-blur-sm border border-border/50 rounded-lg overflow-hidden">
           <div className="flex items-center justify-between p-3 border-b border-border/50">
             <h3 className="font-semibold text-sm flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
@@ -153,8 +159,12 @@ export function TodayCallsPreview({
 
           <div className="divide-y divide-border/50">
             {upcomingCalls.slice(0, 5).map((call) => {
-              const formattedDate = format(parseLocalDate(call.scheduled_date), "dd/MM", { locale: ptBR });
-              
+              const formattedDate = format(
+                parseLocalDate(call.scheduled_date),
+                "dd/MM",
+                { locale: ptBR },
+              );
+
               return (
                 <button
                   key={call.id}
@@ -166,13 +176,19 @@ export function TodayCallsPreview({
                       <span className="text-xs font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                         {formattedDate}
                       </span>
-                      <span className="font-semibold text-sm">OS #{call.os_number}</span>
+                      <span className="font-semibold text-sm">
+                        OS #{call.os_number}
+                      </span>
                       <span className="text-xs text-muted-foreground">
                         {call.scheduled_time}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground/80 break-words whitespace-normal mt-0.5">{call.client_name}</p>
-                    <p className="text-xs text-muted-foreground break-words whitespace-normal">{call.equipment_description}</p>
+                    <p className="text-sm text-foreground/80 break-words whitespace-normal mt-0.5">
+                      {call.client_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground break-words whitespace-normal">
+                      {call.equipment_description}
+                    </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </button>

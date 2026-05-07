@@ -2,11 +2,30 @@ import { MainLayout } from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
-import { Loader2, TrendingUp, TrendingDown, Wallet, AlertTriangle, Calendar as CalendarIcon } from "lucide-react";
+import {
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  AlertTriangle,
+  Calendar as CalendarIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { useCashFlow } from "@/hooks/useCashFlow";
 import { useCashFlowProjection } from "@/hooks/useCashFlowProjection";
-import { format, startOfMonth, endOfMonth, parseISO, startOfWeek, endOfWeek, startOfYear, endOfYear, getWeek, getMonth, getYear } from "date-fns";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  parseISO,
+  startOfWeek,
+  endOfWeek,
+  startOfYear,
+  endOfYear,
+  getWeek,
+  getMonth,
+  getYear,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Select,
@@ -31,7 +50,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CashFlowChart } from "@/components/financas/CashFlowChart";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -58,13 +83,23 @@ interface GroupedBalance {
 }
 
 const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 export default function FluxoDeCaixa() {
   const { isAdmin, loading } = useUserRole();
-  
+
   const [mainTab, setMainTab] = useState<"historico" | "projecao">("projecao");
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
@@ -100,19 +135,19 @@ export default function FluxoDeCaixa() {
   const { dailyBalances, summary, accounts, isLoading } = useCashFlow(
     selectedAccount,
     adjustedDates.start,
-    adjustedDates.end
+    adjustedDates.end,
   );
 
-  const { 
-    projectedBalances, 
-    summary: projectionSummary, 
-    isLoading: projectionLoading 
+  const {
+    projectedBalances,
+    summary: projectionSummary,
+    isLoading: projectionLoading,
   } = useCashFlowProjection(selectedAccount, projectionMonths);
 
   // Group daily balances based on view type
   const getGroupedBalances = (): GroupedBalance[] => {
     if (viewType === "daily") {
-      return dailyBalances.map(day => ({
+      return dailyBalances.map((day) => ({
         label: format(parseISO(day.date), "dd/MM", { locale: ptBR }),
         period: format(parseISO(day.date), "EEE", { locale: ptBR }),
         ...day,
@@ -183,7 +218,7 @@ export default function FluxoDeCaixa() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6">
+        <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
@@ -198,11 +233,15 @@ export default function FluxoDeCaixa() {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
         <PageHeader title="Fluxo de Caixa" />
 
         {/* Main Tabs */}
-        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "historico" | "projecao")} className="w-full">
+        <Tabs
+          value={mainTab}
+          onValueChange={(v) => setMainTab(v as "historico" | "projecao")}
+          className="w-full"
+        >
           <TabsList className="grid w-full max-w-sm grid-cols-2">
             <TabsTrigger value="projecao" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
@@ -222,17 +261,23 @@ export default function FluxoDeCaixa() {
                 <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
                   Conta Bancária
                 </label>
-                <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                <Select
+                  value={selectedAccount}
+                  onValueChange={setSelectedAccount}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione uma conta" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas as contas</SelectItem>
-                    {accounts.filter(a => a.is_active).map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name} {account.bank_name ? `(${account.bank_name})` : ""}
-                      </SelectItem>
-                    ))}
+                    {accounts
+                      .filter((a) => a.is_active)
+                      .map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}{" "}
+                          {account.bank_name ? `(${account.bank_name})` : ""}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -241,7 +286,10 @@ export default function FluxoDeCaixa() {
                 <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
                   Período de Projeção
                 </label>
-                <Select value={projectionMonths.toString()} onValueChange={(v) => setProjectionMonths(parseInt(v))}>
+                <Select
+                  value={projectionMonths.toString()}
+                  onValueChange={(v) => setProjectionMonths(parseInt(v))}
+                >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -265,10 +313,16 @@ export default function FluxoDeCaixa() {
                   A projeção indica saldo negativo a partir de{" "}
                   <strong>
                     {projectionSummary.firstNegativeDate
-                      ? format(parseISO(projectionSummary.firstNegativeDate), "dd/MM/yyyy")
+                      ? format(
+                          parseISO(projectionSummary.firstNegativeDate),
+                          "dd/MM/yyyy",
+                        )
                       : "data indeterminada"}
                   </strong>
-                  . Saldo mínimo projetado: <strong>{formatCurrency(projectionSummary.lowestBalance)}</strong>
+                  . Saldo mínimo projetado:{" "}
+                  <strong>
+                    {formatCurrency(projectionSummary.lowestBalance)}
+                  </strong>
                 </AlertDescription>
               </Alert>
             )}
@@ -277,14 +331,20 @@ export default function FluxoDeCaixa() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Saldo Atual
+                  </CardTitle>
                   <Wallet className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className={cn(
-                    "text-2xl font-bold",
-                    projectionSummary.currentBalance >= 0 ? "text-green-600" : "text-destructive"
-                  )}>
+                  <div
+                    className={cn(
+                      "text-2xl font-bold",
+                      projectionSummary.currentBalance >= 0
+                        ? "text-green-600"
+                        : "text-destructive",
+                    )}
+                  >
                     {formatCurrency(projectionSummary.currentBalance)}
                   </div>
                   <p className="text-xs text-muted-foreground">Hoje</p>
@@ -293,40 +353,54 @@ export default function FluxoDeCaixa() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Entradas Projetadas</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Entradas Projetadas
+                  </CardTitle>
                   <TrendingUp className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-600">
                     {formatCurrency(projectionSummary.totalProjectedIncome)}
                   </div>
-                  <p className="text-xs text-muted-foreground">Próximos {projectionMonths} meses</p>
+                  <p className="text-xs text-muted-foreground">
+                    Próximos {projectionMonths} meses
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Saídas Projetadas</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Saídas Projetadas
+                  </CardTitle>
                   <TrendingDown className="h-4 w-4 text-destructive" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-destructive">
                     {formatCurrency(projectionSummary.totalProjectedExpense)}
                   </div>
-                  <p className="text-xs text-muted-foreground">Próximos {projectionMonths} meses</p>
+                  <p className="text-xs text-muted-foreground">
+                    Próximos {projectionMonths} meses
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Saldo Final Projetado</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Saldo Final Projetado
+                  </CardTitle>
                   <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className={cn(
-                    "text-2xl font-bold",
-                    projectionSummary.projectedEndBalance >= 0 ? "text-blue-600" : "text-destructive"
-                  )}>
+                  <div
+                    className={cn(
+                      "text-2xl font-bold",
+                      projectionSummary.projectedEndBalance >= 0
+                        ? "text-blue-600"
+                        : "text-destructive",
+                    )}
+                  >
                     {formatCurrency(projectionSummary.projectedEndBalance)}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -346,7 +420,8 @@ export default function FluxoDeCaixa() {
                 <CardHeader>
                   <CardTitle>Tendência de Saldo</CardTitle>
                   <CardDescription>
-                    Evolução do saldo considerando transações pendentes e despesas recorrentes
+                    Evolução do saldo considerando transações pendentes e
+                    despesas recorrentes
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -360,7 +435,8 @@ export default function FluxoDeCaixa() {
                   Nenhum dado para projeção
                 </h3>
                 <p className="text-sm text-muted-foreground max-w-md">
-                  Configure uma conta bancária em Configurações Financeiras para visualizar projeções.
+                  Configure uma conta bancária em Configurações Financeiras para
+                  visualizar projeções.
                 </p>
               </div>
             )}
@@ -369,7 +445,11 @@ export default function FluxoDeCaixa() {
           {/* Histórico Tab */}
           <TabsContent value="historico" className="space-y-6 mt-6">
             {/* View Selector */}
-            <Tabs value={viewType} onValueChange={(v) => setViewType(v as ViewType)} className="w-full">
+            <Tabs
+              value={viewType}
+              onValueChange={(v) => setViewType(v as ViewType)}
+              className="w-full"
+            >
               <TabsList className="grid w-full max-w-md grid-cols-4">
                 <TabsTrigger value="daily">Diário</TabsTrigger>
                 <TabsTrigger value="weekly">Semanal</TabsTrigger>
@@ -384,17 +464,23 @@ export default function FluxoDeCaixa() {
                 <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
                   Conta Bancária
                 </label>
-                <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                <Select
+                  value={selectedAccount}
+                  onValueChange={setSelectedAccount}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione uma conta" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas as contas</SelectItem>
-                    {accounts.filter(a => a.is_active).map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name} {account.bank_name ? `(${account.bank_name})` : ""}
-                      </SelectItem>
-                    ))}
+                    {accounts
+                      .filter((a) => a.is_active)
+                      .map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}{" "}
+                          {account.bank_name ? `(${account.bank_name})` : ""}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -411,11 +497,13 @@ export default function FluxoDeCaixa() {
                           variant="outline"
                           className={cn(
                             "w-[140px] justify-start text-left font-normal",
-                            !startDate && "text-muted-foreground"
+                            !startDate && "text-muted-foreground",
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {startDate ? format(startDate, "dd/MM/yyyy") : "Selecione"}
+                          {startDate
+                            ? format(startDate, "dd/MM/yyyy")
+                            : "Selecione"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -440,11 +528,13 @@ export default function FluxoDeCaixa() {
                           variant="outline"
                           className={cn(
                             "w-[140px] justify-start text-left font-normal",
-                            !endDate && "text-muted-foreground"
+                            !endDate && "text-muted-foreground",
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {endDate ? format(endDate, "dd/MM/yyyy") : "Selecione"}
+                          {endDate
+                            ? format(endDate, "dd/MM/yyyy")
+                            : "Selecione"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -466,9 +556,11 @@ export default function FluxoDeCaixa() {
                   <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
                     Ano
                   </label>
-                  <Select 
-                    value={getYear(startDate).toString()} 
-                    onValueChange={(v) => setStartDate(new Date(parseInt(v), 0, 1))}
+                  <Select
+                    value={getYear(startDate).toString()}
+                    onValueChange={(v) =>
+                      setStartDate(new Date(parseInt(v), 0, 1))
+                    }
                   >
                     <SelectTrigger className="w-[120px]">
                       <SelectValue />
@@ -476,7 +568,11 @@ export default function FluxoDeCaixa() {
                     <SelectContent>
                       {[...Array(5)].map((_, i) => {
                         const year = new Date().getFullYear() - 2 + i;
-                        return <SelectItem key={year} value={year.toString()}>{year}</SelectItem>;
+                        return (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        );
                       })}
                     </SelectContent>
                   </Select>
@@ -488,7 +584,9 @@ export default function FluxoDeCaixa() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Saldo Inicial</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Saldo Inicial
+                  </CardTitle>
                   <Wallet className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -503,18 +601,24 @@ export default function FluxoDeCaixa() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Saldo Previsto</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Saldo Previsto
+                  </CardTitle>
                   <TrendingUp className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className={cn(
-                    "text-2xl font-bold",
-                    summary.finalExpectedBalance >= 0 ? "text-blue-600" : "text-destructive"
-                  )}>
+                  <div
+                    className={cn(
+                      "text-2xl font-bold",
+                      summary.finalExpectedBalance >= 0
+                        ? "text-blue-600"
+                        : "text-destructive",
+                    )}
+                  >
                     {formatCurrency(summary.finalExpectedBalance)}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Entradas: {formatCurrency(summary.totalExpectedIncome)} | 
+                    Entradas: {formatCurrency(summary.totalExpectedIncome)} |
                     Saídas: {formatCurrency(summary.totalExpectedExpense)}
                   </p>
                 </CardContent>
@@ -522,18 +626,24 @@ export default function FluxoDeCaixa() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Saldo Realizado</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Saldo Realizado
+                  </CardTitle>
                   <TrendingDown className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className={cn(
-                    "text-2xl font-bold",
-                    summary.finalRealizedBalance >= 0 ? "text-green-600" : "text-destructive"
-                  )}>
+                  <div
+                    className={cn(
+                      "text-2xl font-bold",
+                      summary.finalRealizedBalance >= 0
+                        ? "text-green-600"
+                        : "text-destructive",
+                    )}
+                  >
                     {formatCurrency(summary.finalRealizedBalance)}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Entradas: {formatCurrency(summary.totalRealizedIncome)} | 
+                    Entradas: {formatCurrency(summary.totalRealizedIncome)} |
                     Saídas: {formatCurrency(summary.totalRealizedExpense)}
                   </p>
                 </CardContent>
@@ -552,7 +662,8 @@ export default function FluxoDeCaixa() {
                   Nenhum dado encontrado
                 </h3>
                 <p className="text-sm text-muted-foreground max-w-md">
-                  Configure uma conta bancária em Configurações Financeiras para visualizar o fluxo de caixa.
+                  Configure uma conta bancária em Configurações Financeiras para
+                  visualizar o fluxo de caixa.
                 </p>
               </div>
             ) : (
@@ -561,23 +672,39 @@ export default function FluxoDeCaixa() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="sticky left-0 bg-background min-w-[120px]">
-                        {viewType === "daily" ? "Data" : viewType === "weekly" ? "Semana" : viewType === "monthly" ? "Mês" : "Ano"}
+                        {viewType === "daily"
+                          ? "Data"
+                          : viewType === "weekly"
+                            ? "Semana"
+                            : viewType === "monthly"
+                              ? "Mês"
+                              : "Ano"}
                       </TableHead>
-                      <TableHead className="text-right min-w-[120px]">Saldo Inicial</TableHead>
+                      <TableHead className="text-right min-w-[120px]">
+                        Saldo Inicial
+                      </TableHead>
                       <TableHead className="text-right min-w-[120px]">
                         <span className="text-blue-600">Entr. Previstas</span>
                       </TableHead>
                       <TableHead className="text-right min-w-[120px]">
-                        <span className="text-destructive">Saídas Previstas</span>
+                        <span className="text-destructive">
+                          Saídas Previstas
+                        </span>
                       </TableHead>
                       <TableHead className="text-right min-w-[120px]">
                         <span className="text-green-600">Entr. Realizadas</span>
                       </TableHead>
                       <TableHead className="text-right min-w-[120px]">
-                        <span className="text-orange-600">Saídas Realizadas</span>
+                        <span className="text-orange-600">
+                          Saídas Realizadas
+                        </span>
                       </TableHead>
-                      <TableHead className="text-right min-w-[120px]">Saldo Previsto</TableHead>
-                      <TableHead className="text-right min-w-[120px]">Saldo Realizado</TableHead>
+                      <TableHead className="text-right min-w-[120px]">
+                        Saldo Previsto
+                      </TableHead>
+                      <TableHead className="text-right min-w-[120px]">
+                        Saldo Realizado
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -595,27 +722,43 @@ export default function FluxoDeCaixa() {
                           {formatCurrency(row.openingBalance)}
                         </TableCell>
                         <TableCell className="text-right text-blue-600">
-                          {row.expectedIncome > 0 ? formatCurrency(row.expectedIncome) : "-"}
+                          {row.expectedIncome > 0
+                            ? formatCurrency(row.expectedIncome)
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right text-destructive">
-                          {row.expectedExpense > 0 ? formatCurrency(row.expectedExpense) : "-"}
+                          {row.expectedExpense > 0
+                            ? formatCurrency(row.expectedExpense)
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right text-green-600">
-                          {row.realizedIncome > 0 ? formatCurrency(row.realizedIncome) : "-"}
+                          {row.realizedIncome > 0
+                            ? formatCurrency(row.realizedIncome)
+                            : "-"}
                         </TableCell>
                         <TableCell className="text-right text-orange-600">
-                          {row.realizedExpense > 0 ? formatCurrency(row.realizedExpense) : "-"}
+                          {row.realizedExpense > 0
+                            ? formatCurrency(row.realizedExpense)
+                            : "-"}
                         </TableCell>
-                        <TableCell className={cn(
-                          "text-right font-medium",
-                          row.expectedClosing >= 0 ? "text-blue-600" : "text-destructive"
-                        )}>
+                        <TableCell
+                          className={cn(
+                            "text-right font-medium",
+                            row.expectedClosing >= 0
+                              ? "text-blue-600"
+                              : "text-destructive",
+                          )}
+                        >
                           {formatCurrency(row.expectedClosing)}
                         </TableCell>
-                        <TableCell className={cn(
-                          "text-right font-medium",
-                          row.realizedClosing >= 0 ? "text-green-600" : "text-destructive"
-                        )}>
+                        <TableCell
+                          className={cn(
+                            "text-right font-medium",
+                            row.realizedClosing >= 0
+                              ? "text-green-600"
+                              : "text-destructive",
+                          )}
+                        >
                           {formatCurrency(row.realizedClosing)}
                         </TableCell>
                       </TableRow>

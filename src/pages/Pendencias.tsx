@@ -53,45 +53,67 @@ import { useTechnicians } from "@/hooks/useTechnicians";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ResolveMessageModal } from "@/components/service-calls/ResolveMessageModal";
 
-const SLA_FILTERS: { value: SLAStatus | 'all'; label: string; icon: React.ReactNode }[] = [
-  { value: 'all', label: 'Todas', icon: null },
-  { value: 'overdue', label: 'Atrasadas', icon: <AlertCircle className="h-4 w-4 text-destructive" /> },
-  { value: 'due_today', label: 'Vence Hoje', icon: <Clock className="h-4 w-4 text-orange-500" /> },
-  { value: 'on_track', label: 'No Prazo', icon: <CheckCircle2 className="h-4 w-4 text-green-500" /> },
+const SLA_FILTERS: {
+  value: SLAStatus | "all";
+  label: string;
+  icon: React.ReactNode;
+}[] = [
+  { value: "all", label: "Todas", icon: null },
+  {
+    value: "overdue",
+    label: "Atrasadas",
+    icon: <AlertCircle className="h-4 w-4 text-destructive" />,
+  },
+  {
+    value: "due_today",
+    label: "Vence Hoje",
+    icon: <Clock className="h-4 w-4 text-orange-500" />,
+  },
+  {
+    value: "on_track",
+    label: "No Prazo",
+    icon: <CheckCircle2 className="h-4 w-4 text-green-500" />,
+  },
 ];
 
 const Pendencias = () => {
   const navigate = useNavigate();
   const { isAdmin } = useUserRole();
-  
+
   // Filters
-  const [categoryFilter, setCategoryFilter] = useState<MessageCategory | 'all'>('all');
-  const [priorityFilter, setPriorityFilter] = useState<MessagePriority | 'all'>('all');
-  const [technicianFilter, setTechnicianFilter] = useState<string | 'all'>('all');
-  const [slaFilter, setSlaFilter] = useState<SLAStatus | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<MessageCategory | "all">(
+    "all",
+  );
+  const [priorityFilter, setPriorityFilter] = useState<MessagePriority | "all">(
+    "all",
+  );
+  const [technicianFilter, setTechnicianFilter] = useState<string | "all">(
+    "all",
+  );
+  const [slaFilter, setSlaFilter] = useState<SLAStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Collapsible sections
   const [overdueOpen, setOverdueOpen] = useState(true);
   const [dueTodayOpen, setDueTodayOpen] = useState(true);
   const [onTrackOpen, setOnTrackOpen] = useState(true);
-  
+
   // Modal
   const [resolveModalOpen, setResolveModalOpen] = useState(false);
   const [selectedPending, setSelectedPending] = useState<any>(null);
-  
+
   // Data
   const { technicians } = useTechnicians();
   const { data: allPending = [], isLoading } = usePendingActions({
-    category: categoryFilter !== 'all' ? categoryFilter : null,
-    priority: priorityFilter !== 'all' ? priorityFilter : null,
-    technicianId: technicianFilter !== 'all' ? technicianFilter : null,
-    slaStatus: slaFilter !== 'all' ? slaFilter : null,
+    category: categoryFilter !== "all" ? categoryFilter : null,
+    priority: priorityFilter !== "all" ? priorityFilter : null,
+    technicianId: technicianFilter !== "all" ? technicianFilter : null,
+    slaStatus: slaFilter !== "all" ? slaFilter : null,
   });
   const resolveMessage = useResolveMessage();
 
   // Filter by search query
-  const filteredPending = allPending.filter(p => {
+  const filteredPending = allPending.filter((p) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -103,9 +125,15 @@ const Pendencias = () => {
   });
 
   // Group by SLA status
-  const overdue = filteredPending.filter(p => getSLAStatus(p.due_date) === 'overdue');
-  const dueToday = filteredPending.filter(p => getSLAStatus(p.due_date) === 'due_today');
-  const onTrack = filteredPending.filter(p => getSLAStatus(p.due_date) === 'on_track' || !p.due_date);
+  const overdue = filteredPending.filter(
+    (p) => getSLAStatus(p.due_date) === "overdue",
+  );
+  const dueToday = filteredPending.filter(
+    (p) => getSLAStatus(p.due_date) === "due_today",
+  );
+  const onTrack = filteredPending.filter(
+    (p) => getSLAStatus(p.due_date) === "on_track" || !p.due_date,
+  );
 
   const handleResolve = (pending: any) => {
     setSelectedPending(pending);
@@ -120,20 +148,20 @@ const Pendencias = () => {
           setResolveModalOpen(false);
           setSelectedPending(null);
         },
-      }
+      },
     );
   };
 
   const renderPendingCard = (pending: any) => {
     const slaStatus = getSLAStatus(pending.due_date);
-    
+
     return (
       <div
         key={pending.id}
         className={cn(
           "p-4 rounded-lg border bg-card",
-          slaStatus === 'overdue' && "border-destructive/50 bg-destructive/5",
-          slaStatus === 'due_today' && "border-orange-300 bg-orange-50/50",
+          slaStatus === "overdue" && "border-destructive/50 bg-destructive/5",
+          slaStatus === "due_today" && "border-orange-300 bg-orange-50/50",
         )}
       >
         <div className="flex flex-col sm:flex-row sm:items-start gap-3">
@@ -146,33 +174,41 @@ const Pendencias = () => {
               </Badge>
               {pending.category && (
                 <Badge variant="secondary" className="text-xs">
-                  {CATEGORY_ICONS[pending.category as MessageCategory]} {CATEGORY_LABELS[pending.category as MessageCategory]}
+                  {CATEGORY_ICONS[pending.category as MessageCategory]}{" "}
+                  {CATEGORY_LABELS[pending.category as MessageCategory]}
                 </Badge>
               )}
-              <span className={cn(
-                "text-xs px-2 py-0.5 rounded",
-                getSLAColorClass(slaStatus)
-              )}>
+              <span
+                className={cn(
+                  "text-xs px-2 py-0.5 rounded",
+                  getSLAColorClass(slaStatus),
+                )}
+              >
                 {getSLALabel(slaStatus, pending.due_date)}
               </span>
             </div>
 
             {/* Content */}
-            <p className="text-sm line-clamp-2">{renderContentWithMentions(pending.content)}</p>
+            <p className="text-sm line-clamp-2">
+              {renderContentWithMentions(pending.content)}
+            </p>
 
             {/* Meta */}
             <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
               <span>👤 {pending.client_name}</span>
               <span>🔧 {pending.technician_name}</span>
               <span>
-                {formatDistanceToNow(new Date(pending.created_at), { 
-                  addSuffix: true, 
-                  locale: ptBR 
+                {formatDistanceToNow(new Date(pending.created_at), {
+                  addSuffix: true,
+                  locale: ptBR,
                 })}
               </span>
               {pending.mentions && pending.mentions.length > 0 && (
                 <span className="text-primary">
-                  @{pending.mentions.map((m: any) => m.user?.full_name).join(', @')}
+                  @
+                  {pending.mentions
+                    .map((m: any) => m.user?.full_name)
+                    .join(", @")}
                 </span>
               )}
             </div>
@@ -183,7 +219,9 @@ const Pendencias = () => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => navigate(`/service-calls/view/${pending.service_call_id}`)}
+              onClick={() =>
+                navigate(`/service-calls/view/${pending.service_call_id}`)
+              }
             >
               <ExternalLink className="h-4 w-4 mr-1" />
               Abrir OS
@@ -294,13 +332,16 @@ const Pendencias = () => {
                 >
                   {filter.icon}
                   {filter.label}
-                  {filter.value === 'overdue' && overdue.length > 0 && (
+                  {filter.value === "overdue" && overdue.length > 0 && (
                     <Badge variant="destructive" className="ml-1 h-5 px-1.5">
                       {overdue.length}
                     </Badge>
                   )}
-                  {filter.value === 'due_today' && dueToday.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 bg-orange-100 text-orange-700">
+                  {filter.value === "due_today" && dueToday.length > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-1 h-5 px-1.5 bg-orange-100 text-orange-700"
+                    >
                       {dueToday.length}
                     </Badge>
                   )}
@@ -321,83 +362,111 @@ const Pendencias = () => {
               <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
               <h3 className="text-lg font-medium">Nenhuma pendência</h3>
               <p className="text-muted-foreground text-sm">
-                Todas as pendências foram resolvidas ou não há itens correspondentes aos filtros.
+                Todas as pendências foram resolvidas ou não há itens
+                correspondentes aos filtros.
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
             {/* Overdue Section */}
-            {(slaFilter === 'all' || slaFilter === 'overdue') && overdue.length > 0 && (
-              <Card className="border-destructive/50">
-                <Collapsible open={overdueOpen} onOpenChange={setOverdueOpen}>
-                  <CardHeader className="p-4 pb-2">
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                        <CardTitle className="text-base flex items-center gap-2 text-destructive">
-                          <AlertCircle className="h-5 w-5" />
-                          Atrasadas ({overdue.length})
-                        </CardTitle>
-                        {overdueOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </Button>
-                    </CollapsibleTrigger>
-                  </CardHeader>
-                  <CollapsibleContent>
-                    <CardContent className="p-4 pt-2 space-y-3">
-                      {overdue.map(renderPendingCard)}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
+            {(slaFilter === "all" || slaFilter === "overdue") &&
+              overdue.length > 0 && (
+                <Card className="border-destructive/50">
+                  <Collapsible open={overdueOpen} onOpenChange={setOverdueOpen}>
+                    <CardHeader className="p-4 pb-2">
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between p-0 h-auto"
+                        >
+                          <CardTitle className="text-base flex items-center gap-2 text-destructive">
+                            <AlertCircle className="h-5 w-5" />
+                            Atrasadas ({overdue.length})
+                          </CardTitle>
+                          {overdueOpen ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="p-4 pt-2 space-y-3">
+                        {overdue.map(renderPendingCard)}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )}
 
             {/* Due Today Section */}
-            {(slaFilter === 'all' || slaFilter === 'due_today') && dueToday.length > 0 && (
-              <Card className="border-orange-300">
-                <Collapsible open={dueTodayOpen} onOpenChange={setDueTodayOpen}>
-                  <CardHeader className="p-4 pb-2">
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                        <CardTitle className="text-base flex items-center gap-2 text-orange-600">
-                          <Clock className="h-5 w-5" />
-                          Vence Hoje ({dueToday.length})
-                        </CardTitle>
-                        {dueTodayOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </Button>
-                    </CollapsibleTrigger>
-                  </CardHeader>
-                  <CollapsibleContent>
-                    <CardContent className="p-4 pt-2 space-y-3">
-                      {dueToday.map(renderPendingCard)}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
+            {(slaFilter === "all" || slaFilter === "due_today") &&
+              dueToday.length > 0 && (
+                <Card className="border-orange-300">
+                  <Collapsible
+                    open={dueTodayOpen}
+                    onOpenChange={setDueTodayOpen}
+                  >
+                    <CardHeader className="p-4 pb-2">
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between p-0 h-auto"
+                        >
+                          <CardTitle className="text-base flex items-center gap-2 text-orange-600">
+                            <Clock className="h-5 w-5" />
+                            Vence Hoje ({dueToday.length})
+                          </CardTitle>
+                          {dueTodayOpen ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="p-4 pt-2 space-y-3">
+                        {dueToday.map(renderPendingCard)}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )}
 
             {/* On Track Section */}
-            {(slaFilter === 'all' || slaFilter === 'on_track') && onTrack.length > 0 && (
-              <Card>
-                <Collapsible open={onTrackOpen} onOpenChange={setOnTrackOpen}>
-                  <CardHeader className="p-4 pb-2">
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                        <CardTitle className="text-base flex items-center gap-2 text-green-600">
-                          <CheckCircle2 className="h-5 w-5" />
-                          No Prazo ({onTrack.length})
-                        </CardTitle>
-                        {onTrackOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </Button>
-                    </CollapsibleTrigger>
-                  </CardHeader>
-                  <CollapsibleContent>
-                    <CardContent className="p-4 pt-2 space-y-3">
-                      {onTrack.map(renderPendingCard)}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
+            {(slaFilter === "all" || slaFilter === "on_track") &&
+              onTrack.length > 0 && (
+                <Card>
+                  <Collapsible open={onTrackOpen} onOpenChange={setOnTrackOpen}>
+                    <CardHeader className="p-4 pb-2">
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between p-0 h-auto"
+                        >
+                          <CardTitle className="text-base flex items-center gap-2 text-green-600">
+                            <CheckCircle2 className="h-5 w-5" />
+                            No Prazo ({onTrack.length})
+                          </CardTitle>
+                          {onTrackOpen ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="p-4 pt-2 space-y-3">
+                        {onTrack.map(renderPendingCard)}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )}
           </div>
         )}
 

@@ -1,8 +1,8 @@
 // Types for financial management in service calls
 
-export type DiscountType = 'percent' | 'value';
+export type DiscountType = "percent" | "value";
 
-export type PaymentMode = 'single' | 'multiple';
+export type PaymentMode = "single" | "multiple";
 
 export interface DiscountCategory {
   type: DiscountType;
@@ -16,14 +16,14 @@ export interface DiscountConfig {
   total: DiscountCategory;
 }
 
-export type PaymentMethodType = 
-  | 'dinheiro' 
-  | 'pix' 
-  | 'cartao_credito' 
-  | 'cartao_debito' 
-  | 'boleto' 
-  | 'transferencia' 
-  | 'outros';
+export type PaymentMethodType =
+  | "dinheiro"
+  | "pix"
+  | "cartao_credito"
+  | "cartao_debito"
+  | "boleto"
+  | "transferencia"
+  | "outros";
 
 // Renamed to avoid conflict with PaymentMethod from usePaymentMethods.ts
 export interface OSPaymentEntry {
@@ -39,7 +39,7 @@ export interface Installment {
   days: number;
   dueDate: Date;
   amount: number;
-  status: 'OPEN' | 'PAID' | 'CANCELED';
+  status: "OPEN" | "PAID" | "CANCELED";
   isEdited?: boolean;
   paymentMethod?: string;
 }

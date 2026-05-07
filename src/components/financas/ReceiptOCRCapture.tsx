@@ -18,7 +18,11 @@ interface ReceiptOCRCaptureProps {
   disabled?: boolean;
 }
 
-export function ReceiptOCRCapture({ onExtracted, onPhotoChange, disabled }: ReceiptOCRCaptureProps) {
+export function ReceiptOCRCapture({
+  onExtracted,
+  onPhotoChange,
+  disabled,
+}: ReceiptOCRCaptureProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -33,7 +37,7 @@ export function ReceiptOCRCapture({ onExtracted, onPhotoChange, disabled }: Rece
       const base64 = reader.result as string;
       setPhotoPreview(base64);
       onPhotoChange?.(base64);
-      
+
       // Extract data via OCR
       await extractFromPhoto(base64);
     };
@@ -43,9 +47,12 @@ export function ReceiptOCRCapture({ onExtracted, onPhotoChange, disabled }: Rece
   const extractFromPhoto = async (base64: string) => {
     setIsExtracting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("extract-receipt-amount", {
-        body: { imageBase64: base64 }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "extract-receipt-amount",
+        {
+          body: { imageBase64: base64 },
+        },
+      );
 
       if (error) {
         console.error("OCR error:", error);
@@ -62,19 +69,25 @@ export function ReceiptOCRCapture({ onExtracted, onPhotoChange, disabled }: Rece
           confidence: data.data.confidence || "medium",
           notes: data.data.notes,
         };
-        
+
         onExtracted(result);
-        
+
         if (result.amount) {
-          toast.success(`Valor detectado: R$ ${result.amount.toFixed(2).replace(".", ",")}`, {
-            description: result.confidence === "high" 
-              ? "Alta confiança" 
-              : result.confidence === "medium" 
-                ? "Confiança média - verifique os dados" 
-                : "Baixa confiança - revise com atenção"
-          });
+          toast.success(
+            `Valor detectado: R$ ${result.amount.toFixed(2).replace(".", ",")}`,
+            {
+              description:
+                result.confidence === "high"
+                  ? "Alta confiança"
+                  : result.confidence === "medium"
+                    ? "Confiança média - verifique os dados"
+                    : "Baixa confiança - revise com atenção",
+            },
+          );
         } else {
-          toast.info("Não foi possível detectar o valor. Preencha manualmente.");
+          toast.info(
+            "Não foi possível detectar o valor. Preencha manualmente.",
+          );
         }
       } else {
         toast.info("Não foi possível extrair dados. Preencha manualmente.");

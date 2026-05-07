@@ -20,18 +20,28 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } {
 
 // RGB → HEX
 export function rgbToHex(r: number, g: number, b: number): string {
-  return "#" + [r, g, b].map((x) => {
-    const hex = Math.round(Math.max(0, Math.min(255, x))).toString(16);
-    return hex.length === 1 ? "0" + hex : hex;
-  }).join("").toUpperCase();
+  return (
+    "#" +
+    [r, g, b]
+      .map((x) => {
+        const hex = Math.round(Math.max(0, Math.min(255, x))).toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+      })
+      .join("")
+      .toUpperCase()
+  );
 }
 
 // RGB → HSL
-export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+export function rgbToHsl(
+  r: number,
+  g: number,
+  b: number,
+): { h: number; s: number; l: number } {
   r /= 255;
   g /= 255;
   b /= 255;
-  
+
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   let h = 0;
@@ -41,7 +51,7 @@ export function rgbToHsl(r: number, g: number, b: number): { h: number; s: numbe
   if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    
+
     switch (max) {
       case r:
         h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
@@ -63,7 +73,11 @@ export function rgbToHsl(r: number, g: number, b: number): { h: number; s: numbe
 }
 
 // HSL → RGB
-export function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+export function hslToRgb(
+  h: number,
+  s: number,
+  l: number,
+): { r: number; g: number; b: number } {
   h /= 360;
   s /= 100;
   l /= 100;
@@ -76,17 +90,17 @@ export function hslToRgb(h: number, s: number, l: number): { r: number; g: numbe
     const hue2rgb = (p: number, q: number, t: number) => {
       if (t < 0) t += 1;
       if (t > 1) t -= 1;
-      if (t < 1/6) return p + (q - p) * 6 * t;
-      if (t < 1/2) return q;
-      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
       return p;
     };
 
     const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
     const p = 2 * l - q;
-    r = hue2rgb(p, q, h + 1/3);
+    r = hue2rgb(p, q, h + 1 / 3);
     g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1/3);
+    b = hue2rgb(p, q, h - 1 / 3);
   }
 
   return {
@@ -97,13 +111,17 @@ export function hslToRgb(h: number, s: number, l: number): { r: number; g: numbe
 }
 
 // RGB → CMYK
-export function rgbToCmyk(r: number, g: number, b: number): { c: number; m: number; y: number; k: number } {
+export function rgbToCmyk(
+  r: number,
+  g: number,
+  b: number,
+): { c: number; m: number; y: number; k: number } {
   r /= 255;
   g /= 255;
   b /= 255;
 
   const k = 1 - Math.max(r, g, b);
-  
+
   if (k === 1) {
     return { c: 0, m: 0, y: 0, k: 100 };
   }
@@ -121,7 +139,12 @@ export function rgbToCmyk(r: number, g: number, b: number): { c: number; m: numb
 }
 
 // CMYK → RGB
-export function cmykToRgb(c: number, m: number, y: number, k: number): { r: number; g: number; b: number } {
+export function cmykToRgb(
+  c: number,
+  m: number,
+  y: number,
+  k: number,
+): { r: number; g: number; b: number } {
   c /= 100;
   m /= 100;
   y /= 100;
@@ -139,9 +162,11 @@ export function convertFromHex(hex: string): ColorFormats {
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
   const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
-  
+
   return {
-    hex: hex.toUpperCase().startsWith("#") ? hex.toUpperCase() : `#${hex.toUpperCase()}`,
+    hex: hex.toUpperCase().startsWith("#")
+      ? hex.toUpperCase()
+      : `#${hex.toUpperCase()}`,
     rgb,
     hsl,
     cmyk,
@@ -153,7 +178,7 @@ export function convertFromRgb(r: number, g: number, b: number): ColorFormats {
   const hex = rgbToHex(r, g, b);
   const hsl = rgbToHsl(r, g, b);
   const cmyk = rgbToCmyk(r, g, b);
-  
+
   return {
     hex,
     rgb: { r, g, b },
@@ -167,7 +192,7 @@ export function convertFromHsl(h: number, s: number, l: number): ColorFormats {
   const rgb = hslToRgb(h, s, l);
   const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
   const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
-  
+
   return {
     hex,
     rgb,
@@ -177,11 +202,16 @@ export function convertFromHsl(h: number, s: number, l: number): ColorFormats {
 }
 
 // Complete conversion from CMYK
-export function convertFromCmyk(c: number, m: number, y: number, k: number): ColorFormats {
+export function convertFromCmyk(
+  c: number,
+  m: number,
+  y: number,
+  k: number,
+): ColorFormats {
   const rgb = cmykToRgb(c, m, y, k);
   const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-  
+
   return {
     hex,
     rgb,

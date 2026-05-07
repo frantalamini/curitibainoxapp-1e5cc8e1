@@ -4,20 +4,47 @@ import { useServiceCalls, type ServiceCall } from "@/hooks/useServiceCalls";
 import { useTechnicians } from "@/hooks/useTechnicians";
 import { useCurrentTechnician } from "@/hooks/useCurrentTechnician";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ChevronLeft, ChevronRight, Plus, CalendarIcon } from "lucide-react";
-import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, startOfWeek, endOfWeek, isToday, startOfMonth } from "date-fns";
+import {
+  format,
+  addMonths,
+  subMonths,
+  addWeeks,
+  subWeeks,
+  addDays,
+  subDays,
+  startOfWeek,
+  endOfWeek,
+  isToday,
+  startOfMonth,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import ScheduleViewSelector, { ViewMode } from "@/components/schedule/ScheduleViewSelector";
+import ScheduleViewSelector, {
+  ViewMode,
+} from "@/components/schedule/ScheduleViewSelector";
 import MonthlyView from "@/components/schedule/MonthlyView";
 import WeeklyView from "@/components/schedule/WeeklyView";
 import DailyView from "@/components/schedule/DailyView";
 
-const ServiceCallViewDialog = lazy(() => import("@/components/ServiceCallViewDialog"));
+const ServiceCallViewDialog = lazy(
+  () => import("@/components/ServiceCallViewDialog"),
+);
 
 const Schedule = () => {
   const navigate = useNavigate();
@@ -25,16 +52,19 @@ const Schedule = () => {
   const { technicians, isLoading: isLoadingTechs } = useTechnicians();
   const { technicianId: currentTechnicianId } = useCurrentTechnician();
   const { isTechnician } = useUserRole();
+  const { canCreate: canCreateServiceCall } =
+    useModulePermissions("service_calls");
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("all");
+  const [selectedTechnicianId, setSelectedTechnicianId] =
+    useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  
+
   // Dialog state for viewing service calls
   const [selectedCall, setSelectedCall] = useState<ServiceCall | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  
+
   // Estado para seletor de mês/ano no modo mensal
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -151,7 +181,7 @@ const Schedule = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -159,10 +189,15 @@ const Schedule = () => {
               <h1 className="text-2xl sm:text-3xl font-bold">Agenda Técnica</h1>
               <p className="text-sm text-muted-foreground">{getSubtitle()}</p>
             </div>
-            <Button onClick={() => navigate("/service-calls/new")} className="w-full sm:w-auto shrink-0">
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Chamado
-            </Button>
+            {canCreateServiceCall && (
+              <Button
+                onClick={() => navigate("/service-calls/new")}
+                className="w-full sm:w-auto shrink-0"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Chamado
+              </Button>
+            )}
           </div>
 
           {/* View Selector */}
@@ -211,8 +246,8 @@ const Schedule = () => {
                     <CalendarIcon className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent 
-                  className="w-auto p-0 z-50" 
+                <PopoverContent
+                  className="w-auto p-0 z-50"
                   align="center"
                   side="bottom"
                   sideOffset={8}
@@ -225,8 +260,8 @@ const Schedule = () => {
                         Selecionar Mês e Ano
                       </p>
                       <div className="grid grid-cols-2 gap-2">
-                        <Select 
-                          value={selectedMonth.toString()} 
+                        <Select
+                          value={selectedMonth.toString()}
                           onValueChange={(v) => setSelectedMonth(parseInt(v))}
                         >
                           <SelectTrigger>
@@ -235,14 +270,16 @@ const Schedule = () => {
                           <SelectContent className="z-[60]">
                             {Array.from({ length: 12 }, (_, i) => (
                               <SelectItem key={i} value={i.toString()}>
-                                {format(new Date(2000, i, 1), "MMMM", { locale: ptBR })}
+                                {format(new Date(2000, i, 1), "MMMM", {
+                                  locale: ptBR,
+                                })}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        
-                        <Select 
-                          value={selectedYear.toString()} 
+
+                        <Select
+                          value={selectedYear.toString()}
                           onValueChange={(v) => setSelectedYear(parseInt(v))}
                         >
                           <SelectTrigger>
@@ -260,9 +297,17 @@ const Schedule = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      
-                      <Button onClick={handleMonthYearConfirm} className="w-full">
-                        Ir para {format(new Date(selectedYear, selectedMonth, 1), "MMMM 'de' yyyy", { locale: ptBR })}
+
+                      <Button
+                        onClick={handleMonthYearConfirm}
+                        className="w-full"
+                      >
+                        Ir para{" "}
+                        {format(
+                          new Date(selectedYear, selectedMonth, 1),
+                          "MMMM 'de' yyyy",
+                          { locale: ptBR },
+                        )}
                       </Button>
                     </div>
                   ) : (
@@ -299,7 +344,10 @@ const Schedule = () => {
           </div>
 
           {/* Filter Row */}
-          <Select value={selectedTechnicianId} onValueChange={setSelectedTechnicianId}>
+          <Select
+            value={selectedTechnicianId}
+            onValueChange={setSelectedTechnicianId}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Filtrar por técnico" />
             </SelectTrigger>
@@ -322,7 +370,7 @@ const Schedule = () => {
             technicians={technicians || []}
             selectedTechnicianId={selectedTechnicianId}
             onCallClick={(callId) => {
-              const call = serviceCalls?.find(c => c.id === callId);
+              const call = serviceCalls?.find((c) => c.id === callId);
               if (call) {
                 setSelectedCall(call);
                 setViewDialogOpen(true);
@@ -337,7 +385,7 @@ const Schedule = () => {
             technicians={technicians || []}
             selectedTechnicianId={selectedTechnicianId}
             onCallClick={(callId) => {
-              const call = serviceCalls?.find(c => c.id === callId);
+              const call = serviceCalls?.find((c) => c.id === callId);
               if (call) {
                 setSelectedCall(call);
                 setViewDialogOpen(true);
@@ -352,7 +400,7 @@ const Schedule = () => {
             technicians={technicians || []}
             selectedTechnicianId={selectedTechnicianId}
             onCallClick={(callId) => {
-              const call = serviceCalls?.find(c => c.id === callId);
+              const call = serviceCalls?.find((c) => c.id === callId);
               if (call) {
                 setSelectedCall(call);
                 setViewDialogOpen(true);

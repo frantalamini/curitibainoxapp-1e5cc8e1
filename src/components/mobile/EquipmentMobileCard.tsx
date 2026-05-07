@@ -1,4 +1,9 @@
-import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
+import {
+  MobileCard,
+  MobileCardHeader,
+  MobileCardRow,
+  MobileCardFooter,
+} from "@/components/ui/mobile-card";
 import { User, Hash, FileText, Cpu } from "lucide-react";
 
 interface Equipment {
@@ -18,13 +23,17 @@ interface EquipmentMobileCardProps {
   onDelete: () => void;
 }
 
-export function EquipmentMobileCard({ equipment, clientName, onView, onEdit, onDelete }: EquipmentMobileCardProps) {
+export function EquipmentMobileCard({
+  equipment,
+  clientName,
+  onView,
+  onEdit,
+  onDelete,
+}: EquipmentMobileCardProps) {
   return (
     <MobileCard onClick={onView}>
-      <MobileCardHeader
-        title={`${equipment.brand} ${equipment.model}`}
-      />
-      
+      <MobileCardHeader title={`${equipment.brand} ${equipment.model}`} />
+
       <div className="space-y-1">
         {clientName && (
           <MobileCardRow
@@ -33,7 +42,7 @@ export function EquipmentMobileCard({ equipment, clientName, onView, onEdit, onD
             value={clientName}
           />
         )}
-        
+
         {equipment.serial_number && (
           <MobileCardRow
             icon={<Hash className="h-4 w-4" />}
@@ -41,7 +50,7 @@ export function EquipmentMobileCard({ equipment, clientName, onView, onEdit, onD
             value={equipment.serial_number}
           />
         )}
-        
+
         {equipment.imei && (
           <MobileCardRow
             icon={<Cpu className="h-4 w-4" />}
@@ -49,7 +58,7 @@ export function EquipmentMobileCard({ equipment, clientName, onView, onEdit, onD
             value={equipment.imei}
           />
         )}
-        
+
         {equipment.notes && (
           <MobileCardRow
             icon={<FileText className="h-4 w-4" />}
@@ -58,12 +67,8 @@ export function EquipmentMobileCard({ equipment, clientName, onView, onEdit, onD
           />
         )}
       </div>
-      
-      <MobileCardFooter
-        onView={onView}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
+
+      <MobileCardFooter onView={onView} onEdit={onEdit} onDelete={onDelete} />
     </MobileCard>
   );
 }

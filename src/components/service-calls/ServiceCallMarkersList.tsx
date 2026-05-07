@@ -6,7 +6,10 @@ interface ServiceCallMarkersListProps {
   maxVisible?: number;
 }
 
-export function ServiceCallMarkersList({ markers, maxVisible = 2 }: ServiceCallMarkersListProps) {
+export function ServiceCallMarkersList({
+  markers,
+  maxVisible = 2,
+}: ServiceCallMarkersListProps) {
   if (!markers || markers.length === 0) return null;
 
   const visibleMarkers = markers.slice(0, maxVisible);

@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useVehicleMaintenances, MaintenanceType } from "@/hooks/useVehicleMaintenances";
+import {
+  useVehicleMaintenances,
+  MaintenanceType,
+} from "@/hooks/useVehicleMaintenances";
 import { useVehicles } from "@/hooks/useVehicles";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
@@ -72,10 +75,12 @@ const VehicleMaintenances = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
         <div className="flex items-center gap-3">
           <Wrench className="h-8 w-8 flex-shrink-0" />
-          <h1 className="text-2xl sm:text-3xl font-bold">Manutenções de Veículos</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            Manutenções de Veículos
+          </h1>
         </div>
 
         <Card className="w-full max-w-full min-w-0">
@@ -102,8 +107,15 @@ const VehicleMaintenances = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium block">Tipo de Manutenção</label>
-                <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as MaintenanceType | "")}>
+                <label className="text-sm font-medium block">
+                  Tipo de Manutenção
+                </label>
+                <Select
+                  value={typeFilter}
+                  onValueChange={(value) =>
+                    setTypeFilter(value as MaintenanceType | "")
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
@@ -117,7 +129,9 @@ const VehicleMaintenances = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium block">Data Início (De)</label>
+                <label className="text-sm font-medium block">
+                  Data Início (De)
+                </label>
                 <Input
                   type="date"
                   value={dateFrom}
@@ -126,7 +140,9 @@ const VehicleMaintenances = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium block">Data Início (Até)</label>
+                <label className="text-sm font-medium block">
+                  Data Início (Até)
+                </label>
                 <Input
                   type="date"
                   value={dateTo}
@@ -177,7 +193,9 @@ const VehicleMaintenances = () => {
                       <TableCell>
                         {maintenance.vehicles ? (
                           <div>
-                            <div className="font-medium text-sm">{maintenance.vehicles.name}</div>
+                            <div className="font-medium text-sm">
+                              {maintenance.vehicles.name}
+                            </div>
                             <div className="text-xs text-muted-foreground">
                               {maintenance.vehicles.plate}
                             </div>
@@ -186,16 +204,26 @@ const VehicleMaintenances = () => {
                           "-"
                         )}
                       </TableCell>
-                      <TableCell>{getMaintenanceTypeBadge(maintenance.maintenance_type)}</TableCell>
+                      <TableCell>
+                        {getMaintenanceTypeBadge(maintenance.maintenance_type)}
+                      </TableCell>
                       <TableCell className="text-sm">
-                        {format(new Date(maintenance.started_at), "dd/MM/yy HH:mm")}
+                        {format(
+                          new Date(maintenance.started_at),
+                          "dd/MM/yy HH:mm",
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">
                         {maintenance.finished_at
-                          ? format(new Date(maintenance.finished_at), "dd/MM/yy HH:mm")
+                          ? format(
+                              new Date(maintenance.finished_at),
+                              "dd/MM/yy HH:mm",
+                            )
                           : "-"}
                       </TableCell>
-                      <TableCell>{getStatusBadge(maintenance.finished_at)}</TableCell>
+                      <TableCell>
+                        {getStatusBadge(maintenance.finished_at)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

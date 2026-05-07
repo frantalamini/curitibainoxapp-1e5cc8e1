@@ -40,9 +40,13 @@ const DailyView = ({
   // Filter service calls for the current day
   const dayCalls = useMemo(() => {
     const filtered = serviceCalls.filter((call) => {
-      if (!isSameDay(parseLocalDate(call.scheduled_date), currentDate)) return false;
+      if (!isSameDay(parseLocalDate(call.scheduled_date), currentDate))
+        return false;
 
-      if (selectedTechnicianId !== "all" && call.technician_id !== selectedTechnicianId) {
+      if (
+        selectedTechnicianId !== "all" &&
+        call.technician_id !== selectedTechnicianId
+      ) {
         return false;
       }
 
@@ -68,7 +72,9 @@ const DailyView = ({
             Sem agendamentos para este dia
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            {format(currentDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            {format(currentDate, "EEEE, dd 'de' MMMM 'de' yyyy", {
+              locale: ptBR,
+            })}
           </p>
         </div>
       </div>
@@ -86,7 +92,8 @@ const DailyView = ({
           {format(currentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </p>
         <p className="text-sm text-primary mt-1">
-          {dayCalls.length} chamado{dayCalls.length !== 1 ? "s" : ""} agendado{dayCalls.length !== 1 ? "s" : ""}
+          {dayCalls.length} chamado{dayCalls.length !== 1 ? "s" : ""} agendado
+          {dayCalls.length !== 1 ? "s" : ""}
         </p>
       </div>
 

@@ -19,13 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useVehicleCostsReport } from "@/hooks/useVehicleCostsReport";
-import { 
-  Car, 
-  Fuel,
-  Route,
-  Wrench,
-  TrendingDown,
-} from "lucide-react";
+import { Car, Fuel, Route, Wrench, TrendingDown } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -131,7 +125,9 @@ export default function CustosPorVeiculo() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Custo Total</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Custo Total
+              </p>
               <TrendingDown className="h-5 w-5 text-red-500" />
             </div>
             {isLoading ? (
@@ -147,7 +143,9 @@ export default function CustosPorVeiculo() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Km Rodados</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Km Rodados
+              </p>
               <Route className="h-5 w-5 text-blue-500" />
             </div>
             {isLoading ? (
@@ -163,7 +161,9 @@ export default function CustosPorVeiculo() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Viagens</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Viagens
+              </p>
               <Car className="h-5 w-5 text-green-500" />
             </div>
             {isLoading ? (
@@ -177,7 +177,9 @@ export default function CustosPorVeiculo() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Manutenções</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Manutenções
+              </p>
               <Wrench className="h-5 w-5 text-amber-500" />
             </div>
             {isLoading ? (
@@ -208,7 +210,9 @@ export default function CustosPorVeiculo() {
                 <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
                   formatter={(value: number, name: string) =>
-                    name === "km" ? `${formatNumber(value)} km` : formatCurrency(value)
+                    name === "km"
+                      ? `${formatNumber(value)} km`
+                      : formatCurrency(value)
                   }
                 />
                 <Bar
@@ -256,7 +260,9 @@ export default function CustosPorVeiculo() {
                     <TableHead className="text-center">Viagens</TableHead>
                     <TableHead className="text-right">Km</TableHead>
                     <TableHead className="text-center">Manutenções</TableHead>
-                    <TableHead className="text-right">Combustível (Est.)</TableHead>
+                    <TableHead className="text-right">
+                      Combustível (Est.)
+                    </TableHead>
                     <TableHead className="text-right">Custo/Km</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -267,7 +273,9 @@ export default function CustosPorVeiculo() {
                       <TableCell className="text-muted-foreground">
                         {veh.plate}
                       </TableCell>
-                      <TableCell className="text-center">{veh.tripsCount}</TableCell>
+                      <TableCell className="text-center">
+                        {veh.tripsCount}
+                      </TableCell>
                       <TableCell className="text-right">
                         {formatNumber(veh.totalKm)}
                       </TableCell>

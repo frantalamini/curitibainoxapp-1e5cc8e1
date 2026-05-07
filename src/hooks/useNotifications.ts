@@ -24,14 +24,14 @@ const getReadIds = (): string[] => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return [];
     const parsed = JSON.parse(stored);
-    
+
     // Limpar IDs antigos (mais de 7 dias)
     const now = Date.now();
     const maxAge = MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
     const filtered = Object.entries(parsed)
       .filter(([_, timestamp]) => now - (timestamp as number) < maxAge)
       .reduce((acc, [id, ts]) => ({ ...acc, [id]: ts }), {});
-    
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
     return Object.keys(filtered);
   } catch {
@@ -61,7 +61,8 @@ const saveAllReadIds = (ids: string[]) => {
 };
 
 export const useNotifications = () => {
-  const { technicianId, isLoading: isTechnicianLoading } = useCurrentTechnician();
+  const { technicianId, isLoading: isTechnicianLoading } =
+    useCurrentTechnician();
   const queryClient = useQueryClient();
   const [readIds, setReadIds] = useState<string[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -83,22 +84,22 @@ export const useNotifications = () => {
     const channel = supabase
       .channel(`notifications-${technicianId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'service_calls',
-          filter: `technician_id=eq.${technicianId}`
+          event: "*",
+          schema: "public",
+          table: "service_calls",
+          filter: `technician_id=eq.${technicianId}`,
         },
         () => {
           // Invalidar cache para forçar refetch imediato
           queryClient.invalidateQueries({
-            queryKey: ['technician-notifications', technicianId]
+            queryKey: ["technician-notifications", technicianId],
           });
           queryClient.invalidateQueries({
-            queryKey: ['new-service-calls-count', technicianId]
+            queryKey: ["new-service-calls-count", technicianId],
           });
-        }
+        },
       )
       .subscribe();
 
@@ -123,7 +124,8 @@ export const useNotifications = () => {
 
       const { data, error } = await supabase
         .from("service_calls")
-        .select(`
+        .select(
+          `
           id,
           os_number,
           scheduled_date,
@@ -132,9 +134,12 @@ export const useNotifications = () => {
           seen_by_tech_at,
           clients (full_name),
           service_call_statuses (name, color)
-        `)
+        `,
+        )
         .eq("technician_id", technicianId)
-        .or(`seen_by_tech_at.is.null,created_at.gte.${twoDaysAgo.toISOString()}`)
+        .or(
+          `seen_by_tech_at.is.null,created_at.gte.${twoDaysAgo.toISOString()}`,
+        )
         .order("created_at", { ascending: false })
         .limit(20);
 
@@ -162,7 +167,7 @@ export const useNotifications = () => {
 
   // Filtrar apenas não lidas (não vistas pelo técnico E não marcadas como lidas localmente)
   const unreadNotifications = notifications.filter(
-    (n) => !n.seen_by_tech_at && !readIds.includes(n.id)
+    (n) => !n.seen_by_tech_at && !readIds.includes(n.id),
   );
 
   const unreadCount = unreadNotifications.length;
@@ -178,10 +183,13 @@ export const useNotifications = () => {
     setReadIds(allIds);
   }, [notifications]);
 
-  const isRead = useCallback((id: string) => {
-    const notification = notifications.find((n) => n.id === id);
-    return notification?.seen_by_tech_at || readIds.includes(id);
-  }, [notifications, readIds]);
+  const isRead = useCallback(
+    (id: string) => {
+      const notification = notifications.find((n) => n.id === id);
+      return notification?.seen_by_tech_at || readIds.includes(id);
+    },
+    [notifications, readIds],
+  );
 
   return {
     notifications,

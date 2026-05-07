@@ -14,49 +14,33 @@ export const useCommercialStatusCounts = () => {
   return useQuery({
     queryKey: ["commercial-status-counts"],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error("AUTH_SESSION_NOT_READY");
 
-      // Total count
-      const { count: totalCount, error: totalError } = await supabase
+      // Uma única query buscando só o campo commercial_status_id
+      const { data, error } = await supabase
         .from("service_calls")
-        .select("*", { count: "exact", head: true });
+        .select("commercial_status_id");
 
-      if (totalError) throw totalError;
+      if (error) throw error;
 
-      // Count per commercial_status_id using RPC isn't available,
-      // so we fetch all distinct commercial_status_ids and count each
-      const { data: statuses, error: statusError } = await supabase
-        .from("service_call_statuses")
-        .select("id")
-        .eq("status_type", "comercial")
-        .eq("active", true);
-
-      if (statusError) throw statusError;
-
-      const counts: Record<string, number> = { all: totalCount || 0 };
-
-      // Parallel count queries
-      const countPromises = (statuses || []).map(async (s) => {
-        const { count, error } = await supabase
-          .from("service_calls")
-          .select("*", { count: "exact", head: true })
-          .eq("commercial_status_id", s.id);
-
-        if (error) throw error;
-        return { id: s.id, count: count || 0 };
-      });
-
-      const results = await Promise.all(countPromises);
-      results.forEach((r) => {
-        counts[r.id] = r.count;
+      // Contagem em memória — O(n) sobre o array, sem queries extras
+      const counts: Record<string, number> = { all: data?.length || 0 };
+      (data || []).forEach((sc) => {
+        const id = sc.commercial_status_id;
+        if (id) counts[id] = (counts[id] || 0) + 1;
       });
 
       return counts;
     },
-    staleTime: 60 * 1000,
+    staleTime: 3 * 60 * 1000,
     retry: (failureCount, error) => {
-      if (error instanceof Error && error.message === "AUTH_SESSION_NOT_READY") {
+      if (
+        error instanceof Error &&
+        error.message === "AUTH_SESSION_NOT_READY"
+      ) {
         return failureCount < 5;
       }
       return failureCount < 2;

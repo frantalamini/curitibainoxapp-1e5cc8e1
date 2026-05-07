@@ -10,13 +10,20 @@ export interface CostCenter {
   updated_at: string;
 }
 
-export type CostCenterInsert = Omit<CostCenter, "id" | "created_at" | "updated_at">;
+export type CostCenterInsert = Omit<
+  CostCenter,
+  "id" | "created_at" | "updated_at"
+>;
 export type CostCenterUpdate = Partial<CostCenterInsert>;
 
 export const useCostCenters = () => {
   const queryClient = useQueryClient();
 
-  const { data: costCenters = [], isLoading, error } = useQuery({
+  const {
+    data: costCenters = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["cost-centers"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -50,7 +57,10 @@ export const useCostCenters = () => {
   });
 
   const updateCostCenter = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & CostCenterUpdate) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & CostCenterUpdate) => {
       const { data, error } = await supabase
         .from("cost_centers")
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -89,7 +99,13 @@ export const useCostCenters = () => {
   });
 
   const toggleActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
       const { error } = await supabase
         .from("cost_centers")
         .update({ is_active, updated_at: new Date().toISOString() })

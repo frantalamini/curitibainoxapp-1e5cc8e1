@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req: Request) => {
@@ -25,9 +26,12 @@ serve(async (req: Request) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    
+
     // Validar o token e obter o usuário
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
       console.error("Erro de autenticação:", authError);
@@ -68,7 +72,7 @@ serve(async (req: Request) => {
     // Alterar a senha usando Admin API
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
-      { password: newPassword }
+      { password: newPassword },
     );
 
     if (error) {
@@ -80,14 +84,16 @@ serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ success: true, message: "Senha alterada com sucesso" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      },
     );
-
   } catch (error: any) {
     console.error("Erro ao resetar senha:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400,
+    });
   }
 });

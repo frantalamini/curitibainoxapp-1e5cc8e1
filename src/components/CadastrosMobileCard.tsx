@@ -1,6 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MoreVertical, Eye, Pencil, Trash2 } from "lucide-react";
 import { Cadastro } from "@/hooks/useCadastros";
@@ -32,7 +37,7 @@ export const CadastrosMobileCard = ({
             aria-label={`Selecionar ${cadastro.full_name}`}
             className="mt-1"
           />
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex-1 min-w-0">
@@ -42,16 +47,24 @@ export const CadastrosMobileCard = ({
                       #{cadastro.client_number}
                     </span>
                   )}
-                  <h3 className="font-semibold text-sm truncate">{cadastro.full_name}</h3>
+                  <h3 className="font-semibold text-sm truncate">
+                    {cadastro.full_name}
+                  </h3>
                 </div>
                 {cadastro.nome_fantasia && (
-                  <p className="text-xs text-muted-foreground truncate">{cadastro.nome_fantasia}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {cadastro.nome_fantasia}
+                  </p>
                 )}
               </div>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 flex-shrink-0"
+                  >
                     <MoreVertical className="h-4 w-4" />
                     <span className="sr-only">Abrir menu</span>
                   </Button>
@@ -65,7 +78,7 @@ export const CadastrosMobileCard = ({
                     <Pencil className="mr-2 h-4 w-4" />
                     Editar
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => onDelete(cadastro.id)}
                     className="text-destructive focus:text-destructive"
                   >
@@ -79,12 +92,14 @@ export const CadastrosMobileCard = ({
             <div className="space-y-1 text-sm">
               {cadastro.cpf_cnpj && (
                 <p className="text-muted-foreground">
-                  <span className="font-medium">CPF/CNPJ:</span> {cadastro.cpf_cnpj}
+                  <span className="font-medium">CPF/CNPJ:</span>{" "}
+                  {cadastro.cpf_cnpj}
                 </p>
               )}
               {cadastro.city && (
                 <p className="text-muted-foreground">
-                  <span className="font-medium">Cidade:</span> {cadastro.city}{cadastro.state ? `/${cadastro.state}` : ''}
+                  <span className="font-medium">Cidade:</span> {cadastro.city}
+                  {cadastro.state ? `/${cadastro.state}` : ""}
                 </p>
               )}
               <p className="text-muted-foreground">
@@ -96,7 +111,8 @@ export const CadastrosMobileCard = ({
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-2">
-                Cadastrado em: {new Date(cadastro.created_at).toLocaleDateString('pt-BR')}
+                Cadastrado em:{" "}
+                {new Date(cadastro.created_at).toLocaleDateString("pt-BR")}
               </p>
             </div>
           </div>

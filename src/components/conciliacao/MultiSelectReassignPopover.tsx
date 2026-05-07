@@ -1,5 +1,9 @@
 import { useState, useMemo } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RefreshCw, Check } from "lucide-react";
@@ -7,7 +11,10 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 }
 
 interface MultiSelectReassignPopoverProps {
@@ -34,18 +41,20 @@ export function MultiSelectReassignPopover({
   };
 
   const toggleSelection = (id: string) => {
-    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   };
 
   const selectedTotal = useMemo(() => {
     return availableTransactions
-      .filter(t => selected.includes(t.id))
+      .filter((t) => selected.includes(t.id))
       .reduce((sum, t) => sum + t.amount, 0);
   }, [selected, availableTransactions]);
 
   // Combine current selected + available unmatched
   const allOptions = useMemo(() => {
-    const ids = new Set(availableTransactions.map(t => t.id));
+    const ids = new Set(availableTransactions.map((t) => t.id));
     return availableTransactions;
   }, [availableTransactions]);
 
@@ -59,7 +68,12 @@ export function MultiSelectReassignPopover({
   return (
     <Popover open={open} onOpenChange={handleOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8" title="Alterar match">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          title="Alterar match"
+        >
           <RefreshCw className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
@@ -69,8 +83,12 @@ export function MultiSelectReassignPopover({
             Selecione transações do sistema (múltipla seleção)
           </p>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-xs">Valor OFX: {formatCurrency(Math.abs(ofxAmount))}</span>
-            <span className={`text-xs font-medium ${Math.abs(selectedTotal - Math.abs(ofxAmount)) < 0.01 ? 'text-green-600' : 'text-amber-600'}`}>
+            <span className="text-xs">
+              Valor OFX: {formatCurrency(Math.abs(ofxAmount))}
+            </span>
+            <span
+              className={`text-xs font-medium ${Math.abs(selectedTotal - Math.abs(ofxAmount)) < 0.01 ? "text-green-600" : "text-amber-600"}`}
+            >
               Selecionado: {formatCurrency(selectedTotal)}
             </span>
           </div>
@@ -87,12 +105,19 @@ export function MultiSelectReassignPopover({
                 className="mt-0.5"
               />
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{tx.description || "Sem descrição"}</p>
+                <p className="font-medium truncate">
+                  {tx.description || "Sem descrição"}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {tx.paid_at
                     ? format(new Date(tx.paid_at), "dd/MM/yy", { locale: ptBR })
-                    : tx.due_date} •{" "}
-                  <span className={tx.direction === "PAY" ? "text-red-600" : "text-green-600"}>
+                    : tx.due_date}{" "}
+                  •{" "}
+                  <span
+                    className={
+                      tx.direction === "PAY" ? "text-red-600" : "text-green-600"
+                    }
+                  >
                     {formatCurrency(tx.amount)}
                   </span>
                 </p>
@@ -101,7 +126,11 @@ export function MultiSelectReassignPopover({
           ))}
         </div>
         <div className="p-2 border-t flex justify-end">
-          <Button size="sm" onClick={handleConfirm} disabled={selected.length === 0}>
+          <Button
+            size="sm"
+            onClick={handleConfirm}
+            disabled={selected.length === 0}
+          >
             <Check className="h-4 w-4 mr-1" />
             Confirmar ({selected.length})
           </Button>

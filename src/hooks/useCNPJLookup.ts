@@ -41,7 +41,7 @@ export const useCNPJLookup = () => {
         "fetch-cnpj-data",
         {
           body: { cnpj },
-        }
+        },
       );
 
       if (functionError) {
@@ -122,7 +122,7 @@ export const useCNPJLookup = () => {
       }
 
       const response = await fetch(
-        `https://brasilapi.com.br/api/cep/v1/${cleanCEP}`
+        `https://brasilapi.com.br/api/cep/v1/${cleanCEP}`,
       );
 
       if (!response.ok) {

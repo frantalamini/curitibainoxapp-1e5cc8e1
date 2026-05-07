@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,8 +12,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserWithRole } from "@/hooks/useUsers";
 import { useUpdateUser, useResetUserPassword } from "@/hooks/useUsers";
 import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
-import { UserPermissionsMatrix } from "@/components/UserPermissionsMatrix";
-import { Eye, EyeOff, User, Shield } from "lucide-react";
+import {
+  useAccessProfiles,
+  useAssignUserProfile,
+  useUserProfileAssignment,
+} from "@/hooks/useAccessProfiles";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  Eye,
+  EyeOff,
+  User,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
+  ExternalLink,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 interface EditUserDialogProps {
@@ -17,7 +44,20 @@ interface EditUserDialogProps {
   user: UserWithRole | null;
 }
 
-export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps) {
+const PROFILE_ICONS: Record<string, React.ReactNode> = {
+  Gerencial: <ShieldCheck className="h-4 w-4 text-green-500" />,
+  Administrativo: <Shield className="h-4 w-4 text-blue-500" />,
+  Técnico: <ShieldAlert className="h-4 w-4 text-amber-500" />,
+};
+const getIcon = (name: string) =>
+  PROFILE_ICONS[name] ?? <ShieldX className="h-4 w-4 text-muted-foreground" />;
+
+export function EditUserDialog({
+  open,
+  onOpenChange,
+  user,
+}: EditUserDialogProps) {
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,9 +65,15 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("dados");
-  
+
   const updateUser = useUpdateUser();
   const resetPassword = useResetUserPassword();
+
+  const { data: profiles } = useAccessProfiles();
+  const { data: currentProfileId } = useUserProfileAssignment(
+    user?.user_id ?? null,
+  );
+  const assignProfile = useAssignUserProfile();
 
   useEffect(() => {
     if (user) {
@@ -43,24 +89,24 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) return;
 
     // Validar senha se fornecida
     if (newPassword) {
       if (newPassword !== confirmPassword) {
-        toast({ 
-          title: "Erro", 
-          description: "As senhas não coincidem", 
-          variant: "destructive" 
+        toast({
+          title: "Erro",
+          description: "As senhas não coincidem",
+          variant: "destructive",
         });
         return;
       }
-      
+
       // Resetar senha
-      await resetPassword.mutateAsync({ 
-        userId: user.user_id, 
-        newPassword 
+      await resetPassword.mutateAsync({
+        userId: user.user_id,
+        newPassword,
       });
     }
 
@@ -82,7 +128,7 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
         <DialogHeader>
           <DialogTitle>Editar Usuário: {user.full_name}</DialogTitle>
         </DialogHeader>
-        
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dados" className="flex items-center gap-2">
@@ -94,7 +140,7 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
               Permissões
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="dados" className="mt-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -155,12 +201,16 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
                     )}
                   </Button>
                 </div>
-                {newPassword && <PasswordStrengthIndicator password={newPassword} />}
+                {newPassword && (
+                  <PasswordStrengthIndicator password={newPassword} />
+                )}
               </div>
 
               {newPassword && (
                 <div className="space-y-2">
-                  <Label htmlFor="edit-confirm-password">Confirmar Nova Senha</Label>
+                  <Label htmlFor="edit-confirm-password">
+                    Confirmar Nova Senha
+                  </Label>
                   <Input
                     id="edit-confirm-password"
                     type="password"
@@ -173,7 +223,9 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
 
               <div className="bg-muted/50 p-3 rounded-lg space-y-1">
                 <p className="text-sm font-medium">Email (não editável)</p>
-                <p className="text-sm text-muted-foreground">{user.email || "Não disponível"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {user.email || "Não disponível"}
+                </p>
               </div>
 
               <div className="flex gap-2 justify-end pt-4">
@@ -184,18 +236,76 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={updateUser.isPending || resetPassword.isPending}>
-                  {(updateUser.isPending || resetPassword.isPending) ? "Salvando..." : "Salvar Dados"}
+                <Button
+                  type="submit"
+                  disabled={updateUser.isPending || resetPassword.isPending}
+                >
+                  {updateUser.isPending || resetPassword.isPending
+                    ? "Salvando..."
+                    : "Salvar Dados"}
                 </Button>
               </div>
             </form>
           </TabsContent>
-          
-          <TabsContent value="permissoes" className="mt-4">
-            <UserPermissionsMatrix 
-              userId={user.user_id} 
-              onSaved={() => onOpenChange(false)} 
-            />
+
+          <TabsContent value="permissoes" className="mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione o perfil de acesso deste usuário. As permissões são
+              herdadas do perfil.
+            </p>
+
+            <div className="space-y-2">
+              <Label>Perfil de Acesso</Label>
+              <Select
+                value={currentProfileId ?? ""}
+                onValueChange={(profileId) => {
+                  if (!user || !profileId) return;
+                  assignProfile.mutate({ userId: user.user_id, profileId });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um perfil..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles
+                    ?.filter((p) => p.is_active)
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        <div className="flex items-center gap-2">
+                          {getIcon(p.name)}
+                          <span>{p.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+
+              {currentProfileId && profiles && (
+                <div className="flex items-center gap-2 mt-2">
+                  {getIcon(
+                    profiles.find((p) => p.id === currentProfileId)?.name ?? "",
+                  )}
+                  <Badge variant="outline">
+                    {profiles.find((p) => p.id === currentProfileId)?.name ??
+                      "—"}
+                  </Badge>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t">
+              <Button
+                variant="link"
+                className="p-0 h-auto text-sm"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate("/settings/permissoes");
+                }}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Gerenciar matriz de permissões por perfil
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
       </DialogContent>

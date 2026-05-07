@@ -16,7 +16,10 @@ Deno.serve(async (req) => {
     if (!imageBase64 && !imageUrl) {
       return new Response(
         JSON.stringify({ error: "imageBase64 or imageUrl is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -26,7 +29,7 @@ Deno.serve(async (req) => {
       // Extract MIME type if provided as data URL
       let mimeType = "image/jpeg";
       let base64Data = imageBase64;
-      
+
       if (imageBase64.startsWith("data:")) {
         const matches = imageBase64.match(/data:([^;]+);base64,(.+)/);
         if (matches) {
@@ -34,19 +37,19 @@ Deno.serve(async (req) => {
           base64Data = matches[2];
         }
       }
-      
+
       imageContent = {
         type: "image_url",
         image_url: {
-          url: `data:${mimeType};base64,${base64Data}`
-        }
+          url: `data:${mimeType};base64,${base64Data}`,
+        },
       };
     } else {
       imageContent = {
         type: "image_url",
         image_url: {
-          url: imageUrl
-        }
+          url: imageUrl,
+        },
       };
     }
 
@@ -55,7 +58,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
@@ -82,22 +85,28 @@ Responda APENAS em JSON no seguinte formato, sem markdown:
 
 Se não conseguir identificar o valor, retorne amount como null.
 Se não conseguir identificar a data, retorne date como null.
-Priorize extrair o valor total corretamente. Valores em R$ (reais brasileiros).`
-              }
-            ]
-          }
+Priorize extrair o valor total corretamente. Valores em R$ (reais brasileiros).`,
+              },
+            ],
+          },
         ],
         max_tokens: 500,
-        temperature: 0.1
-      })
+        temperature: 0.1,
+      }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Lovable AI error:", errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to process image", details: errorText }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Failed to process image",
+          details: errorText,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -105,18 +114,21 @@ Priorize extrair o valor total corretamente. Valores em R$ (reais brasileiros).`
     const content = aiResponse.choices?.[0]?.message?.content;
 
     if (!content) {
-      return new Response(
-        JSON.stringify({ error: "No response from AI" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "No response from AI" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Parse the JSON response from AI
     try {
       // Remove any markdown code blocks if present
-      const cleanedContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const cleanedContent = content
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
       const extractedData = JSON.parse(cleanedContent);
-      
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -125,28 +137,32 @@ Priorize extrair o valor total corretamente. Valores em R$ (reais brasileiros).`
             description: extractedData.description || null,
             date: extractedData.date || null,
             confidence: extractedData.confidence || "medium",
-            notes: extractedData.notes || null
-          }
+            notes: extractedData.notes || null,
+          },
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: "Failed to parse extracted data",
-          rawResponse: content 
+          rawResponse: content,
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
   } catch (error: unknown) {
     console.error("Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

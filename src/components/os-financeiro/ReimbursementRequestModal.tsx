@@ -1,5 +1,11 @@
 import { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +13,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Camera, Loader2, Scan, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useTechnicianReimbursements, CreateReimbursementInput } from "@/hooks/useTechnicianReimbursements";
+import {
+  useTechnicianReimbursements,
+  CreateReimbursementInput,
+} from "@/hooks/useTechnicianReimbursements";
 
 interface ReimbursementRequestModalProps {
   open: boolean;
@@ -24,7 +33,7 @@ export function ReimbursementRequestModal({
 }: ReimbursementRequestModalProps) {
   const { createReimbursement } = useTechnicianReimbursements();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [description, setDescription] = useState("");
@@ -53,10 +62,13 @@ export function ReimbursementRequestModal({
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        
-        const { data, error } = await supabase.functions.invoke("extract-receipt-amount", {
-          body: { imageBase64: base64 }
-        });
+
+        const { data, error } = await supabase.functions.invoke(
+          "extract-receipt-amount",
+          {
+            body: { imageBase64: base64 },
+          },
+        );
 
         if (error) {
           console.error("OCR error:", error);
@@ -70,7 +82,9 @@ export function ReimbursementRequestModal({
           if (data.data.description && !description) {
             setDescription(data.data.description);
           }
-          toast.success(`Valor detectado: R$ ${data.data.amount.toFixed(2).replace(".", ",")}`);
+          toast.success(
+            `Valor detectado: R$ ${data.data.amount.toFixed(2).replace(".", ",")}`,
+          );
         } else {
           toast.info("Não foi possível detectar o valor. Digite manualmente.");
         }
@@ -99,7 +113,9 @@ export function ReimbursementRequestModal({
       return;
     }
 
-    const numericAmount = parseFloat(amount.replace(/\./g, "").replace(",", "."));
+    const numericAmount = parseFloat(
+      amount.replace(/\./g, "").replace(",", "."),
+    );
     if (isNaN(numericAmount) || numericAmount <= 0) {
       toast.error("Valor inválido");
       return;
@@ -132,7 +148,7 @@ export function ReimbursementRequestModal({
       };
 
       await createReimbursement.mutateAsync(input);
-      
+
       // Reset form
       setPhotoFile(null);
       setPhotoPreview(null);
@@ -167,7 +183,7 @@ export function ReimbursementRequestModal({
               onChange={handleFileSelect}
               className="hidden"
             />
-            
+
             {photoPreview ? (
               <div className="relative mt-2">
                 <img
@@ -212,7 +228,10 @@ export function ReimbursementRequestModal({
                     if (fileInputRef.current) {
                       fileInputRef.current.removeAttribute("capture");
                       fileInputRef.current.click();
-                      fileInputRef.current.setAttribute("capture", "environment");
+                      fileInputRef.current.setAttribute(
+                        "capture",
+                        "environment",
+                      );
                     }
                   }}
                 >
@@ -240,9 +259,15 @@ export function ReimbursementRequestModal({
               value={amount}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, "");
-                if (!raw) { setAmount(""); return; }
+                if (!raw) {
+                  setAmount("");
+                  return;
+                }
                 const cents = parseInt(raw, 10);
-                const formatted = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const formatted = (cents / 100).toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                });
                 setAmount(formatted);
               }}
               className="mt-1"
@@ -266,8 +291,8 @@ export function ReimbursementRequestModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={isSubmitting || !photoFile || !amount}
           >
             {isSubmitting ? (

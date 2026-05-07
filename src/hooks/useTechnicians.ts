@@ -15,7 +15,10 @@ export type Technician = {
   updated_at: string;
 };
 
-export type TechnicianInsert = Omit<Technician, "id" | "technician_number" | "created_at" | "updated_at">;
+export type TechnicianInsert = Omit<
+  Technician,
+  "id" | "technician_number" | "created_at" | "updated_at"
+>;
 
 export const useTechnicians = () => {
   const queryClient = useQueryClient();
@@ -61,7 +64,10 @@ export const useTechnicians = () => {
   });
 
   const updateTechnician = useMutation({
-    mutationFn: async ({ id, ...technician }: Partial<Technician> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...technician
+    }: Partial<Technician> & { id: string }) => {
       const { data, error } = await supabase
         .from("technicians")
         .update(technician)

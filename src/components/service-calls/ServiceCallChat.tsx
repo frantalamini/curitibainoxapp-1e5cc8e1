@@ -20,9 +20,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { MessageCircle, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { 
-  useServiceCallMessages, 
-  useCreateMessage, 
+import {
+  useServiceCallMessages,
+  useCreateMessage,
   useResolveMessage,
   useDeleteMessage,
   ServiceCallMessage,
@@ -39,17 +39,22 @@ interface ServiceCallChatProps {
   osNumber: number;
 }
 
-export const ServiceCallChat = ({ serviceCallId, osNumber }: ServiceCallChatProps) => {
+export const ServiceCallChat = ({
+  serviceCallId,
+  osNumber,
+}: ServiceCallChatProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [resolveModalOpen, setResolveModalOpen] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState<ServiceCallMessage | null>(null);
+  const [selectedMessage, setSelectedMessage] =
+    useState<ServiceCallMessage | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
-  
-  const { data: messages = [], isLoading } = useServiceCallMessages(serviceCallId);
+
+  const { data: messages = [], isLoading } =
+    useServiceCallMessages(serviceCallId);
   const createMessage = useCreateMessage();
   const resolveMessage = useResolveMessage();
   const deleteMessage = useDeleteMessage();
@@ -71,13 +76,15 @@ export const ServiceCallChat = ({ serviceCallId, osNumber }: ServiceCallChatProp
   }, [messages.length]);
 
   // Count pending actions
-  const pendingCount = messages.filter(m => m.requires_action && !m.resolved_at).length;
+  const pendingCount = messages.filter(
+    (m) => m.requires_action && !m.resolved_at,
+  ).length;
 
   // Check if user is gerencial (can delete)
-  const isGerencial = userPermissions?.profileType === 'gerencial';
+  const isGerencial = userPermissions?.profileType === "gerencial";
 
   const handleResolve = (messageId: string) => {
-    const msg = messages.find(m => m.id === messageId);
+    const msg = messages.find((m) => m.id === messageId);
     setSelectedMessage(msg || null);
     setResolveModalOpen(true);
   };
@@ -87,7 +94,7 @@ export const ServiceCallChat = ({ serviceCallId, osNumber }: ServiceCallChatProp
       { messageId, resolutionNotes: notes },
       {
         onSuccess: () => setResolveModalOpen(false),
-      }
+      },
     );
   };
 
@@ -112,8 +119,8 @@ export const ServiceCallChat = ({ serviceCallId, osNumber }: ServiceCallChatProp
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="p-4 pb-2">
           <CollapsibleTrigger asChild>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="w-full justify-between p-0 h-auto hover:bg-transparent"
             >
               <CardTitle className="text-base flex items-center gap-2">
@@ -121,7 +128,7 @@ export const ServiceCallChat = ({ serviceCallId, osNumber }: ServiceCallChatProp
                 Chat Interno
                 {pendingCount > 0 && (
                   <Badge variant="destructive" className="h-5 px-1.5 text-xs">
-                    {pendingCount} pendente{pendingCount > 1 ? 's' : ''}
+                    {pendingCount} pendente{pendingCount > 1 ? "s" : ""}
                   </Badge>
                 )}
               </CardTitle>
@@ -137,10 +144,7 @@ export const ServiceCallChat = ({ serviceCallId, osNumber }: ServiceCallChatProp
         <CollapsibleContent>
           <CardContent className="p-4 pt-2 space-y-4">
             {/* Messages list */}
-            <ScrollArea 
-              className="h-[300px] pr-4" 
-              ref={scrollRef}
-            >
+            <ScrollArea className="h-[300px] pr-4" ref={scrollRef}>
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -157,7 +161,7 @@ export const ServiceCallChat = ({ serviceCallId, osNumber }: ServiceCallChatProp
                     <ChatMessage
                       key={msg.id}
                       message={msg}
-                      currentUserId={currentUserId || ''}
+                      currentUserId={currentUserId || ""}
                       isAdmin={isAdmin}
                       isGerencial={isGerencial}
                       onResolve={handleResolve}
@@ -199,7 +203,8 @@ export const ServiceCallChat = ({ serviceCallId, osNumber }: ServiceCallChatProp
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir mensagem?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A mensagem será permanentemente excluída.
+              Esta ação não pode ser desfeita. A mensagem será permanentemente
+              excluída.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -62,7 +62,10 @@ export const useServiceTypes = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<ServiceType> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: Partial<ServiceType> & { id: string }) => {
       const { data, error } = await supabase
         .from("service_types")
         .update(updates)

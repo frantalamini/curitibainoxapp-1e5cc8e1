@@ -1,4 +1,9 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SignaturePad } from "@/components/SignaturePad";
 
 interface SignatureModalProps {
@@ -6,7 +11,10 @@ interface SignatureModalProps {
   title: string;
   showExtraFields?: boolean;
   onCancel: () => void;
-  onSave: (signatureData: string, extraData?: { name?: string; position?: string }) => void;
+  onSave: (
+    signatureData: string,
+    extraData?: { name?: string; position?: string },
+  ) => void;
 }
 
 export const SignatureModal = ({

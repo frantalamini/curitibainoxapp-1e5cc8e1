@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PageHeader } from "@/components/ui/page-header";
 import { ServiceTypeMobileCard } from "@/components/mobile/ServiceTypeMobileCard";
@@ -32,7 +32,8 @@ const ServiceTypes = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { serviceTypes, isLoading, deleteServiceType } = useServiceTypes();
-  const { isAdmin } = useUserRole();
+  const { canCreate, canEdit, canDelete } =
+    useModulePermissions("service_types");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleDelete = () => {
@@ -54,11 +55,13 @@ const ServiceTypes = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
-        <PageHeader 
-          title="Tipos de Serviço" 
-          actionLabel={isAdmin ? "Novo Tipo" : undefined}
-          onAction={isAdmin ? () => navigate("/service-types/new") : undefined}
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
+        <PageHeader
+          title="Tipos de Serviço"
+          actionLabel={canCreate ? "Novo Tipo" : undefined}
+          onAction={
+            canCreate ? () => navigate("/service-types/new") : undefined
+          }
         />
 
         {!serviceTypes || serviceTypes.length === 0 ? (
@@ -71,8 +74,12 @@ const ServiceTypes = () => {
               <ServiceTypeMobileCard
                 key={type.id}
                 serviceType={type}
-                onEdit={() => navigate(`/service-types/${type.id}/edit`)}
-                onDelete={() => setDeleteId(type.id)}
+                onEdit={
+                  canEdit
+                    ? () => navigate(`/service-types/${type.id}/edit`)
+                    : undefined
+                }
+                onDelete={canDelete ? () => setDeleteId(type.id) : undefined}
               />
             ))}
           </div>
@@ -84,7 +91,9 @@ const ServiceTypes = () => {
                   <TableHead>Nome</TableHead>
                   <TableHead>Cor</TableHead>
                   <TableHead>Status</TableHead>
-                  {isAdmin && <TableHead className="text-right">Ações</TableHead>}
+                  {(canEdit || canDelete) && (
+                    <TableHead className="text-right">Ações</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -105,23 +114,29 @@ const ServiceTypes = () => {
                     <TableCell>
                       <ActiveBadge active={type.active} />
                     </TableCell>
-                    {isAdmin && (
+                    {(canEdit || canDelete) && (
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/service-types/${type.id}/edit`)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteId(type.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                navigate(`/service-types/${type.id}/edit`)
+                              }
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(type.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     )}
@@ -138,12 +153,15 @@ const ServiceTypes = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este tipo de serviço? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este tipo de serviço? Esta ação não
+              pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

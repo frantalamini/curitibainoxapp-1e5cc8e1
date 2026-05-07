@@ -6,7 +6,10 @@ interface PasswordStrengthIndicatorProps {
   className?: string;
 }
 
-export const PasswordStrengthIndicator = ({ password, className }: PasswordStrengthIndicatorProps) => {
+export const PasswordStrengthIndicator = ({
+  password,
+  className,
+}: PasswordStrengthIndicatorProps) => {
   const checks = [
     {
       label: "Mínimo 8 caracteres",
@@ -32,7 +35,11 @@ export const PasswordStrengthIndicator = ({ password, className }: PasswordStren
           <div
             className={cn(
               "h-full transition-all duration-300",
-              allValid ? "bg-green-500 w-full" : someValid ? "bg-yellow-500 w-1/2" : "bg-red-500 w-1/4"
+              allValid
+                ? "bg-green-500 w-full"
+                : someValid
+                  ? "bg-yellow-500 w-1/2"
+                  : "bg-red-500 w-1/4",
             )}
           />
         </div>
@@ -48,7 +55,11 @@ export const PasswordStrengthIndicator = ({ password, className }: PasswordStren
             ) : (
               <X className="h-4 w-4 text-muted-foreground" />
             )}
-            <span className={cn(check.valid ? "text-foreground" : "text-muted-foreground")}>
+            <span
+              className={cn(
+                check.valid ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
               {check.label}
             </span>
           </div>

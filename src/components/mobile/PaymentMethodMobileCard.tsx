@@ -1,4 +1,9 @@
-import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
+import {
+  MobileCard,
+  MobileCardHeader,
+  MobileCardRow,
+  MobileCardFooter,
+} from "@/components/ui/mobile-card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import type { PaymentMethod } from "@/hooks/usePaymentMethods";
@@ -38,10 +43,7 @@ export const PaymentMethodMobileCard = ({
           </div>
         }
       />
-      <MobileCardFooter
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
+      <MobileCardFooter onEdit={onEdit} onDelete={onDelete} />
     </MobileCard>
   );
 };

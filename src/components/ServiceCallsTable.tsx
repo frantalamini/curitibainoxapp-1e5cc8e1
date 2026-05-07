@@ -1,4 +1,11 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/dateUtils";
 import type { ServiceCall } from "@/hooks/useServiceCalls";
@@ -20,8 +27,13 @@ export const ServiceCallsTable = ({
   showTotal = false,
   totalsByServiceCallId = {},
 }: ServiceCallsTableProps) => {
-  const serviceCallIds = useMemo(() => calls.map(c => c.id), [calls]);
-  const { markersByServiceCall, isLoading: markersLoading, addMarker, removeMarker } = useServiceCallMarkers(serviceCallIds);
+  const serviceCallIds = useMemo(() => calls.map((c) => c.id), [calls]);
+  const {
+    markersByServiceCall,
+    isLoading: markersLoading,
+    addMarker,
+    removeMarker,
+  } = useServiceCallMarkers(serviceCallIds);
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return "-";
@@ -32,7 +44,10 @@ export const ServiceCallsTable = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, id: string) => {
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLTableRowElement>,
+    id: string,
+  ) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onRowClick(id);
@@ -88,7 +103,10 @@ export const ServiceCallsTable = ({
                     #{call.os_number}
                   </span>
                 </TableCell>
-                <TableCell className="px-1 py-2" onClick={(e) => e.stopPropagation()}>
+                <TableCell
+                  className="px-1 py-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <ServiceCallActionsMenu
                     serviceCallId={call.id}
                     osNumber={call.os_number}
@@ -102,24 +120,36 @@ export const ServiceCallsTable = ({
                   />
                 </TableCell>
                 <TableCell className="py-2">
-                  <div className="flex flex-col max-w-[200px]">
-                    <span className="font-medium text-sm truncate" title={call.clients?.full_name}>
+                  <div className="flex flex-col min-w-[120px]">
+                    <span
+                      className="font-medium text-sm"
+                      title={call.clients?.full_name}
+                    >
                       {call.clients?.full_name || "-"}
                     </span>
                     {call.clients?.nome_fantasia && (
-                      <span className="text-xs text-muted-foreground truncate" title={call.clients.nome_fantasia}>
+                      <span
+                        className="text-xs text-muted-foreground"
+                        title={call.clients.nome_fantasia}
+                      >
                         {call.clients.nome_fantasia}
                       </span>
                     )}
                     {call.clients?.secondary_name && (
-                      <span className="text-xs text-blue-600 truncate" title={call.clients.secondary_name}>
+                      <span
+                        className="text-xs text-blue-600"
+                        title={call.clients.secondary_name}
+                      >
                         {call.clients.secondary_name}
                       </span>
                     )}
                   </div>
                 </TableCell>
                 <TableCell className="py-2">
-                  <span className="text-xs truncate block max-w-[100px]" title={call.equipment_description}>
+                  <span
+                    className="text-xs block min-w-[80px]"
+                    title={call.equipment_description}
+                  >
                     {call.equipment_description || "-"}
                   </span>
                 </TableCell>
@@ -129,8 +159,11 @@ export const ServiceCallsTable = ({
                   </span>
                 </TableCell>
                 <TableCell className="py-2">
-                  <span className="text-sm truncate block max-w-[90px]" title={call.technicians?.full_name}>
-                    {call.technicians?.full_name?.split(' ')[0] || "-"}
+                  <span
+                    className="text-sm block"
+                    title={call.technicians?.full_name}
+                  >
+                    {call.technicians?.full_name?.split(" ")[0] || "-"}
                   </span>
                 </TableCell>
                 <TableCell className="py-2">
@@ -138,9 +171,13 @@ export const ServiceCallsTable = ({
                     <div className="inline-flex items-start gap-1 px-1.5 py-0.5 rounded bg-muted/50">
                       <div
                         className="w-2 h-2 rounded-sm shrink-0 mt-0.5"
-                        style={{ backgroundColor: call.service_call_statuses.color }}
+                        style={{
+                          backgroundColor: call.service_call_statuses.color,
+                        }}
                       />
-                      <span className="text-xs leading-tight">{call.service_call_statuses.name}</span>
+                      <span className="text-xs leading-tight">
+                        {call.service_call_statuses.name}
+                      </span>
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">-</span>
@@ -151,9 +188,13 @@ export const ServiceCallsTable = ({
                     <div className="inline-flex items-start gap-1 px-1.5 py-0.5 rounded bg-muted/50">
                       <div
                         className="w-2 h-2 rounded-sm shrink-0 mt-0.5"
-                        style={{ backgroundColor: call.commercial_status.color }}
+                        style={{
+                          backgroundColor: call.commercial_status.color,
+                        }}
                       />
-                      <span className="text-xs leading-tight">{call.commercial_status.name}</span>
+                      <span className="text-xs leading-tight">
+                        {call.commercial_status.name}
+                      </span>
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">-</span>
@@ -163,12 +204,18 @@ export const ServiceCallsTable = ({
                   <TableCell className="py-2 text-right">
                     <span className="text-sm font-medium text-foreground">
                       {totalsByServiceCallId[call.id] != null
-                        ? totalsByServiceCallId[call.id].toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                        ? totalsByServiceCallId[call.id].toLocaleString(
+                            "pt-BR",
+                            { style: "currency", currency: "BRL" },
+                          )
                         : "-"}
                     </span>
                   </TableCell>
                 )}
-                <TableCell className="py-2" onClick={(e) => e.stopPropagation()}>
+                <TableCell
+                  className="py-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <ServiceCallMarkersList markers={callMarkers} />
                 </TableCell>
               </TableRow>

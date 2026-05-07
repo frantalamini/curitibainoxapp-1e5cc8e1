@@ -1,11 +1,27 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  MapPin,
+  Navigation,
+  ChevronDown,
+  ChevronUp,
+  Building2,
+} from "lucide-react";
 import { formatDistance } from "@/lib/geoUtils";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface EndTripModalProps {
   open: boolean;
@@ -14,15 +30,17 @@ interface EndTripModalProps {
   startOdometer: number;
   estimatedDistanceKm?: number | null;
   isLoading?: boolean;
+  isInternal?: boolean;
 }
 
-export const EndTripModal = ({ 
-  open, 
-  onOpenChange, 
-  onConfirm, 
-  startOdometer, 
+export const EndTripModal = ({
+  open,
+  onOpenChange,
+  onConfirm,
+  startOdometer,
   estimatedDistanceKm,
-  isLoading 
+  isLoading,
+  isInternal = false,
 }: EndTripModalProps) => {
   const [endOdometer, setEndOdometer] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -37,16 +55,18 @@ export const EndTripModal = ({
       resetState();
       return;
     }
-    
+
     const odometerValue = parseFloat(endOdometer);
-    
+
     if (isNaN(odometerValue) || odometerValue < 0) {
       setError("Quilometragem inválida");
       return;
     }
 
     if (odometerValue < startOdometer) {
-      setError(`A quilometragem final deve ser maior ou igual a ${startOdometer} km`);
+      setError(
+        `A quilometragem final deve ser maior ou igual a ${startOdometer} km`,
+      );
       return;
     }
 
@@ -65,93 +85,123 @@ export const EndTripModal = ({
     onOpenChange(false);
   };
 
-  const calculatedDistance = endOdometer && !isNaN(parseFloat(endOdometer))
-    ? Math.max(0, parseFloat(endOdometer) - startOdometer)
-    : null;
+  const calculatedDistance =
+    endOdometer && !isNaN(parseFloat(endOdometer))
+      ? Math.max(0, parseFloat(endOdometer) - startOdometer)
+      : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Cheguei no Cliente
+            {isInternal ? (
+              <Building2 className="h-5 w-5" />
+            ) : (
+              <MapPin className="h-5 w-5" />
+            )}
+            {isInternal ? "Finalizar Serviço Interno" : "Cheguei no Cliente"}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Distância GPS calculada automaticamente */}
-          {estimatedDistanceKm !== null && estimatedDistanceKm !== undefined && (
-            <div className="rounded-lg bg-primary/10 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Navigation className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Distância calculada (GPS)</span>
-              </div>
-              <p className="text-3xl font-bold text-primary">
-                {formatDistance(estimatedDistanceKm)}
+          {isInternal ? (
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950 p-4 text-center">
+              <Building2 className="h-8 w-8 mx-auto text-amber-600 dark:text-amber-400 mb-2" />
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                Serviço Interno — sem deslocamento
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Calculado automaticamente via GPS
+                O serviço será finalizado sem registro de distância ou
+                quilometragem
               </p>
             </div>
-          )}
+          ) : (
+            <>
+              {/* Distância GPS calculada automaticamente */}
+              {estimatedDistanceKm !== null &&
+                estimatedDistanceKm !== undefined && (
+                  <div className="rounded-lg bg-primary/10 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Navigation className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">
+                        Distância calculada (GPS)
+                      </span>
+                    </div>
+                    <p className="text-3xl font-bold text-primary">
+                      {formatDistance(estimatedDistanceKm)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Calculado automaticamente via GPS
+                    </p>
+                  </div>
+                )}
 
-          {/* Entrada manual opcional */}
-          <Collapsible open={showManualEntry} onOpenChange={setShowManualEntry}>
-            <CollapsibleTrigger asChild>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-between text-muted-foreground"
-                type="button"
+              {/* Entrada manual opcional */}
+              <Collapsible
+                open={showManualEntry}
+                onOpenChange={setShowManualEntry}
               >
-                <span className="text-sm">
-                  {showManualEntry ? "Ocultar entrada manual" : "Informar quilometragem manual (opcional)"}
-                </span>
-                {showManualEntry ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label>Quilometragem Inicial</Label>
-                <Input
-                  type="text"
-                  value={`${startOdometer.toLocaleString('pt-BR', { minimumFractionDigits: 1 })} km`}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between text-muted-foreground"
+                    type="button"
+                  >
+                    <span className="text-sm">
+                      {showManualEntry
+                        ? "Ocultar entrada manual"
+                        : "Informar quilometragem manual (opcional)"}
+                    </span>
+                    {showManualEntry ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
 
-              <div className="space-y-2">
-                <Label htmlFor="end-odometer">Quilometragem Final (km)</Label>
-                <Input
-                  id="end-odometer"
-                  type="number"
-                  step="0.1"
-                  min={startOdometer}
-                  value={endOdometer}
-                  onChange={(e) => setEndOdometer(e.target.value)}
-                  placeholder="Ex: 15360.8"
-                />
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
-              </div>
+                <CollapsibleContent className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label>Quilometragem Inicial</Label>
+                    <Input
+                      type="text"
+                      value={`${startOdometer.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} km`}
+                      disabled
+                      className="bg-muted"
+                    />
+                  </div>
 
-              {calculatedDistance !== null && (
-                <div className="rounded-lg bg-muted p-3">
-                  <p className="text-sm font-medium">Distância manual</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {formatDistance(calculatedDistance)}
-                  </p>
-                </div>
-              )}
-            </CollapsibleContent>
-          </Collapsible>
+                  <div className="space-y-2">
+                    <Label htmlFor="end-odometer">
+                      Quilometragem Final (km)
+                    </Label>
+                    <Input
+                      id="end-odometer"
+                      type="number"
+                      step="0.1"
+                      min={startOdometer}
+                      value={endOdometer}
+                      onChange={(e) => setEndOdometer(e.target.value)}
+                      placeholder="Ex: 15360.8"
+                    />
+                    {error && (
+                      <p className="text-sm text-destructive">{error}</p>
+                    )}
+                  </div>
+
+                  {calculatedDistance !== null && (
+                    <div className="rounded-lg bg-muted p-3">
+                      <p className="text-sm font-medium">Distância manual</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {formatDistance(calculatedDistance)}
+                      </p>
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            </>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
@@ -163,12 +213,12 @@ export const EndTripModal = ({
           >
             Cancelar
           </Button>
-          <Button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isLoading}
-          >
-            {isLoading ? "Finalizando..." : "Confirmar Chegada"}
+          <Button type="button" onClick={handleConfirm} disabled={isLoading}>
+            {isLoading
+              ? "Finalizando..."
+              : isInternal
+                ? "Finalizar Serviço"
+                : "Confirmar Chegada"}
           </Button>
         </DialogFooter>
       </DialogContent>

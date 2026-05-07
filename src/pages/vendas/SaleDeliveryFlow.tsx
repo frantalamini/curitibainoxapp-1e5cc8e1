@@ -8,10 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  Loader2, MapPin, Navigation, CheckCircle, Camera, Truck,
-  ChevronRight, ArrowLeft, Pen,
+  Loader2,
+  MapPin,
+  Navigation,
+  CheckCircle,
+  Camera,
+  Truck,
+  ChevronRight,
+  ArrowLeft,
+  Pen,
 } from "lucide-react";
-import { useRouteGroupTrips, useSaleDeliveryTripsMutations, type SaleDeliveryTrip } from "@/hooks/useSaleDeliveryTrips";
+import {
+  useRouteGroupTrips,
+  useSaleDeliveryTripsMutations,
+  type SaleDeliveryTrip,
+} from "@/hooks/useSaleDeliveryTrips";
 import { useSaleDeliveryProofMutations } from "@/hooks/useSaleDeliveryProof";
 import { StartTripModal } from "@/components/StartTripModal";
 import { EndTripModal } from "@/components/EndTripModal";
@@ -46,9 +57,10 @@ export default function SaleDeliveryFlow() {
   const currentTrip = trips?.[currentIndex];
   const totalTrips = trips?.length || 0;
 
-  const completedCount = useMemo(() =>
-    trips?.filter(t => t.status === "concluido").length || 0
-  , [trips]);
+  const completedCount = useMemo(
+    () => trips?.filter((t) => t.status === "concluido").length || 0,
+    [trips],
+  );
 
   const clientAddress = useMemo(() => {
     const client = currentTrip?.sales?.clients;
@@ -67,7 +79,7 @@ export default function SaleDeliveryFlow() {
   useMemo(() => {
     if (!trips?.length) return;
     // Find first non-completed trip
-    const idx = trips.findIndex(t => t.status !== "concluido");
+    const idx = trips.findIndex((t) => t.status !== "concluido");
     if (idx >= 0 && idx !== currentIndex) {
       setCurrentIndex(idx);
     }
@@ -199,21 +211,27 @@ export default function SaleDeliveryFlow() {
   }
 
   const client = currentTrip?.sales?.clients;
-  const address = client ? buildAddressString({
-    street: client.street,
-    number: client.number,
-    neighborhood: client.neighborhood,
-    city: client.city,
-    state: client.state,
-    cep: client.cep,
-  }) : "";
+  const address = client
+    ? buildAddressString({
+        street: client.street,
+        number: client.number,
+        neighborhood: client.neighborhood,
+        city: client.city,
+        state: client.state,
+        cep: client.cep,
+      })
+    : "";
 
   return (
     <MainLayout>
       <div className="container max-w-lg mx-auto p-4 space-y-4">
         {/* Header */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/vendas/entregas")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/vendas/entregas")}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
@@ -236,8 +254,8 @@ export default function SaleDeliveryFlow() {
                 trip.status === "concluido"
                   ? "bg-green-500"
                   : idx === currentIndex
-                  ? "bg-primary"
-                  : "bg-muted"
+                    ? "bg-primary"
+                    : "bg-muted"
               }`}
             />
           ))}
@@ -250,12 +268,20 @@ export default function SaleDeliveryFlow() {
               <CardTitle className="text-base">
                 Entrega {currentIndex + 1} de {totalTrips}
               </CardTitle>
-              <Badge variant={
-                currentTrip?.status === "concluido" ? "default" :
-                currentTrip?.status === "em_deslocamento" ? "secondary" : "outline"
-              }>
-                {currentTrip?.status === "concluido" ? "Concluído" :
-                 currentTrip?.status === "em_deslocamento" ? "Em Deslocamento" : "Pendente"}
+              <Badge
+                variant={
+                  currentTrip?.status === "concluido"
+                    ? "default"
+                    : currentTrip?.status === "em_deslocamento"
+                      ? "secondary"
+                      : "outline"
+                }
+              >
+                {currentTrip?.status === "concluido"
+                  ? "Concluído"
+                  : currentTrip?.status === "em_deslocamento"
+                    ? "Em Deslocamento"
+                    : "Pendente"}
               </Badge>
             </div>
           </CardHeader>
@@ -266,7 +292,10 @@ export default function SaleDeliveryFlow() {
               </span>
               <span className="font-bold text-primary">
                 {currentTrip?.sales?.total
-                  ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(currentTrip.sales.total)
+                  ? new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(currentTrip.sales.total)
                   : ""}
               </span>
             </div>
@@ -282,7 +311,9 @@ export default function SaleDeliveryFlow() {
             {currentTrip?.estimated_distance_km && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Navigation className="h-3.5 w-3.5" />
-                <span>~{formatDistance(currentTrip.estimated_distance_km)}</span>
+                <span>
+                  ~{formatDistance(currentTrip.estimated_distance_km)}
+                </span>
               </div>
             )}
           </CardContent>
@@ -290,14 +321,23 @@ export default function SaleDeliveryFlow() {
 
         {/* Actions based on step */}
         {step === "overview" && currentTrip?.status === "pending" && (
-          <Button className="w-full" size="lg" onClick={() => setShowStartModal(true)}>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => setShowStartModal(true)}
+          >
             <Navigation className="h-5 w-5 mr-2" />
             Iniciar Deslocamento
           </Button>
         )}
 
-        {(step === "delivering" || currentTrip?.status === "em_deslocamento") && (
-          <Button className="w-full" size="lg" onClick={() => setShowEndModal(true)}>
+        {(step === "delivering" ||
+          currentTrip?.status === "em_deslocamento") && (
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => setShowEndModal(true)}
+          >
             <MapPin className="h-5 w-5 mr-2" />
             Cheguei no Cliente
           </Button>
@@ -333,7 +373,7 @@ export default function SaleDeliveryFlow() {
                 <Input
                   id="receiver-name"
                   value={receiverName}
-                  onChange={e => setReceiverName(e.target.value)}
+                  onChange={(e) => setReceiverName(e.target.value)}
                   placeholder="Nome completo"
                 />
               </div>
@@ -343,7 +383,7 @@ export default function SaleDeliveryFlow() {
                 <Input
                   id="receiver-position"
                   value={receiverPosition}
-                  onChange={e => setReceiverPosition(e.target.value)}
+                  onChange={(e) => setReceiverPosition(e.target.value)}
                   placeholder="Ex: Porteiro, Gerente..."
                 />
               </div>
@@ -353,7 +393,7 @@ export default function SaleDeliveryFlow() {
                 <Textarea
                   id="notes"
                   value={notes}
-                  onChange={e => setNotes(e.target.value)}
+                  onChange={(e) => setNotes(e.target.value)}
                   placeholder="Observações da entrega..."
                   rows={2}
                 />
@@ -364,7 +404,11 @@ export default function SaleDeliveryFlow() {
                 <Label>Assinatura do Recebedor *</Label>
                 {signatureData ? (
                   <div className="border rounded-lg p-2 bg-white">
-                    <img src={signatureData} alt="Assinatura" className="max-h-24 mx-auto" />
+                    <img
+                      src={signatureData}
+                      alt="Assinatura"
+                      className="max-h-24 mx-auto"
+                    />
                     <Button
                       type="button"
                       variant="outline"
@@ -401,7 +445,9 @@ export default function SaleDeliveryFlow() {
                 ) : (
                   <CheckCircle className="h-5 w-5 mr-2" />
                 )}
-                {currentIndex + 1 < totalTrips ? "Salvar e Próxima Entrega" : "Finalizar Entrega"}
+                {currentIndex + 1 < totalTrips
+                  ? "Salvar e Próxima Entrega"
+                  : "Finalizar Entrega"}
               </Button>
             </CardContent>
           </Card>
@@ -411,7 +457,9 @@ export default function SaleDeliveryFlow() {
         {totalTrips > 1 && (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Sequência da Rota</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">
+                Sequência da Rota
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1">
               {trips.map((trip, idx) => (
@@ -421,17 +469,20 @@ export default function SaleDeliveryFlow() {
                     idx === currentIndex ? "bg-primary/10 font-medium" : ""
                   }`}
                 >
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    trip.status === "concluido"
-                      ? "bg-green-500 text-white"
-                      : idx === currentIndex
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                      trip.status === "concluido"
+                        ? "bg-green-500 text-white"
+                        : idx === currentIndex
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                    }`}
+                  >
                     {trip.status === "concluido" ? "✓" : idx + 1}
                   </span>
                   <span className="flex-1 truncate">
-                    {trip.sales?.clients?.full_name || `Venda #${trip.sales?.sale_number}`}
+                    {trip.sales?.clients?.full_name ||
+                      `Venda #${trip.sales?.sale_number}`}
                   </span>
                   {trip.estimated_distance_km && (
                     <span className="text-xs text-muted-foreground">

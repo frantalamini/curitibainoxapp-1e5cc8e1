@@ -9,11 +9,18 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SignaturePadProps {
   title: string;
-  onSave: (signatureData: string, extraData?: { name?: string; position?: string }) => void;
+  onSave: (
+    signatureData: string,
+    extraData?: { name?: string; position?: string },
+  ) => void;
   showExtraFields?: boolean;
 }
 
-export const SignaturePad = ({ title, onSave, showExtraFields = false }: SignaturePadProps) => {
+export const SignaturePad = ({
+  title,
+  onSave,
+  showExtraFields = false,
+}: SignaturePadProps) => {
   const sigPadRef = useRef<SignatureCanvas>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPosition, setCustomerPosition] = useState("");
@@ -41,19 +48,19 @@ export const SignaturePad = ({ title, onSave, showExtraFields = false }: Signatu
       toast({
         title: "Atenção",
         description: "Por favor, assine antes de salvar.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     const dataURL = sigPadRef.current?.toDataURL("image/png");
-    
+
     if (showExtraFields) {
       if (!customerName || !customerPosition) {
         toast({
           title: "Campos Obrigatórios",
           description: "Por favor, preencha nome e cargo antes de salvar.",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
@@ -69,7 +76,7 @@ export const SignaturePad = ({ title, onSave, showExtraFields = false }: Signatu
         description: "Assinatura do técnico salva com sucesso!",
       });
     }
-    
+
     setIsSaved(true);
   };
 
@@ -99,21 +106,23 @@ export const SignaturePad = ({ title, onSave, showExtraFields = false }: Signatu
             </div>
           </div>
         )}
-        
+
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            {isMobile ? "Use o dedo para assinar na área abaixo" : "Use o mouse para assinar na área abaixo"}
+            {isMobile
+              ? "Use o dedo para assinar na área abaixo"
+              : "Use o mouse para assinar na área abaixo"}
           </p>
-          
+
           <div className="border-2 border-muted rounded-lg bg-background overflow-hidden">
             <SignatureCanvas
               ref={sigPadRef}
               canvasProps={{
                 className: "w-full h-48 sm:h-56 rounded-lg",
-                style: { 
+                style: {
                   touchAction: "none",
-                  cursor: "crosshair"
-                }
+                  cursor: "crosshair",
+                },
               }}
               backgroundColor="white"
               penColor="black"

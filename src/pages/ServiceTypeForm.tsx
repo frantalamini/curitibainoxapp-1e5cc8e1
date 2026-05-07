@@ -18,11 +18,14 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { useToast } from "@/hooks/use-toast";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { toTitleCase } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor deve estar no formato #RRGGBB"),
+  color: z
+    .string()
+    .regex(/^#[0-9A-F]{6}$/i, "Cor deve estar no formato #RRGGBB"),
   active: z.boolean().default(true),
 });
 
@@ -31,7 +34,9 @@ type FormData = z.infer<typeof formSchema>;
 const ServiceTypeForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { serviceTypes, createServiceType, updateServiceType } = useServiceTypes();
+  const { canCreate, canEdit } = useModulePermissions("service_types");
+  const { serviceTypes, createServiceType, updateServiceType } =
+    useServiceTypes();
   const [previewColor, setPreviewColor] = useState("#3b82f6");
   const { toast } = useToast();
 
@@ -59,6 +64,22 @@ const ServiceTypeForm = () => {
   }, [id, serviceTypes, form]);
 
   const onSubmit = (formData: FormData) => {
+    if (id && !canEdit) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para editar tipos de serviço.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!id && !canCreate) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para criar tipos de serviço.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Normalizar nome para Title Case
     const data = { ...formData, name: toTitleCase(formData.name) };
 
@@ -97,7 +118,10 @@ const ServiceTypeForm = () => {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
                 <FormField
                   control={form.control}
                   name="name"

@@ -15,8 +15,14 @@ interface StatCardProps {
   onClick: () => void;
 }
 
-const StatCard = ({ title, value, icon, colorClass, onClick }: StatCardProps) => (
-  <Card 
+const StatCard = ({
+  title,
+  value,
+  icon,
+  colorClass,
+  onClick,
+}: StatCardProps) => (
+  <Card
     className="cursor-pointer hover:shadow-card-hover transition-all duration-200 group"
     onClick={onClick}
   >
@@ -26,7 +32,9 @@ const StatCard = ({ title, value, icon, colorClass, onClick }: StatCardProps) =>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
           <p className="text-3xl font-bold mt-1">{value}</p>
         </div>
-        <div className={`p-3 rounded-xl ${colorClass} group-hover:scale-110 transition-transform`}>
+        <div
+          className={`p-3 rounded-lg ${colorClass} group-hover:scale-110 transition-transform`}
+        >
           <Icon name={icon} size="lg" color="current" />
         </div>
       </div>
@@ -43,7 +51,7 @@ interface QuickActionProps {
 const QuickAction = ({ icon, label, onClick }: QuickActionProps) => (
   <button
     onClick={onClick}
-    className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
+    className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
   >
     <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
       <Icon name={icon} size="md" color="current" />
@@ -90,12 +98,32 @@ const DesktopHome = () => {
   ];
 
   const quickActions: QuickActionProps[] = [
-    { icon: "chamadosTecnicos", label: "Chamados", onClick: () => navigate("/service-calls") },
-    { icon: "clientesFornecedores", label: "Cadastros", onClick: () => navigate("/cadastros/clientes") },
+    {
+      icon: "chamadosTecnicos",
+      label: "Chamados",
+      onClick: () => navigate("/service-calls"),
+    },
+    {
+      icon: "clientesFornecedores",
+      label: "Cadastros",
+      onClick: () => navigate("/cadastros/clientes"),
+    },
     { icon: "agenda", label: "Agenda", onClick: () => navigate("/schedule") },
-    { icon: "equipamentos", label: "Equipamentos", onClick: () => navigate("/equipment") },
-    { icon: "relatorios", label: "Relatórios", onClick: () => navigate("/dashboard") },
-    { icon: "configuracoes", label: "Configurações", onClick: () => navigate("/settings") },
+    {
+      icon: "equipamentos",
+      label: "Equipamentos",
+      onClick: () => navigate("/equipment"),
+    },
+    {
+      icon: "relatorios",
+      label: "Relatórios",
+      onClick: () => navigate("/dashboard"),
+    },
+    {
+      icon: "configuracoes",
+      label: "Configurações",
+      onClick: () => navigate("/settings"),
+    },
   ];
 
   const formatDate = (dateStr: string) => {
@@ -110,8 +138,8 @@ const DesktopHome = () => {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Visão geral do sistema</p>
         </div>
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           onClick={() => navigate("/service-calls/new")}
           className="gap-2"
         >
@@ -153,7 +181,10 @@ const DesktopHome = () => {
             {isLoading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-16 bg-muted rounded animate-pulse"
+                  />
                 ))}
               </div>
             ) : stats?.upcomingCalls && stats.upcomingCalls.length > 0 ? (

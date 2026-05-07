@@ -22,21 +22,25 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 
 const clientSchema = z.object({
-  full_name: z.string()
+  full_name: z
+    .string()
     .trim()
     .min(3, "Nome deve ter no mínimo 3 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres"),
-  phone: z.string()
+  phone: z
+    .string()
     .trim()
     .min(10, "Telefone deve ter no mínimo 10 dígitos")
     .regex(/^[\d\s()-]+$/, "Telefone deve conter apenas números"),
-  email: z.string()
+  email: z
+    .string()
     .trim()
     .email("Email inválido")
     .max(255, "Email muito longo")
     .optional()
     .or(z.literal("")),
-  cpf_cnpj: z.string()
+  cpf_cnpj: z
+    .string()
     .trim()
     .optional()
     .refine((val) => {
@@ -45,67 +49,89 @@ const clientSchema = z.object({
       return digits.length === 11 || digits.length === 14;
     }, "CPF deve ter 11 dígitos ou CNPJ 14 dígitos")
     .or(z.literal("")),
-  
-  cep: z.string()
+
+  cep: z
+    .string()
     .trim()
     .regex(/^\d{5}-?\d{3}$/, "CEP inválido")
     .optional()
     .or(z.literal("")),
-  street: z.string()
+  street: z
+    .string()
     .trim()
     .max(200, "Rua muito longa")
     .optional()
     .or(z.literal("")),
-  number: z.string()
+  number: z
+    .string()
     .trim()
     .max(20, "Número muito longo")
     .optional()
     .or(z.literal("")),
-  complement: z.string()
+  complement: z
+    .string()
     .trim()
     .max(100, "Complemento muito longo")
     .optional()
     .or(z.literal("")),
-  neighborhood: z.string()
+  neighborhood: z
+    .string()
     .trim()
     .max(100, "Bairro muito longo")
     .optional()
     .or(z.literal("")),
-  city: z.string()
+  city: z
+    .string()
     .trim()
     .max(100, "Cidade muito longa")
     .optional()
     .or(z.literal("")),
-  state: z.string()
+  state: z
+    .string()
     .trim()
     .length(2, "Estado deve ter 2 caracteres")
     .optional()
     .or(z.literal("")),
-  state_registration: z.string()
+  state_registration: z
+    .string()
     .trim()
     .max(50, "Inscrição estadual muito longa")
     .optional()
     .or(z.literal("")),
-  
-  address: z.string()
+
+  address: z
+    .string()
     .trim()
     .max(500, "Endereço muito longo")
     .optional()
     .or(z.literal("")),
-  notes: z.string()
+  notes: z
+    .string()
     .trim()
     .max(1000, "Observações muito longas (máximo 1000 caracteres)")
     .optional()
     .or(z.literal("")),
-  
-  responsible_financial: z.object({
-    name: z.string().trim().max(100, "Nome muito longo").default(""),
-    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
-  }).default({ name: "", phone: "" }),
-  responsible_technical: z.object({
-    name: z.string().trim().max(100, "Nome muito longo").default(""),
-    phone: z.string().trim().regex(/^[\d\s()-]*$/, "Telefone inválido").default(""),
-  }).default({ name: "", phone: "" }),
+
+  responsible_financial: z
+    .object({
+      name: z.string().trim().max(100, "Nome muito longo").default(""),
+      phone: z
+        .string()
+        .trim()
+        .regex(/^[\d\s()-]*$/, "Telefone inválido")
+        .default(""),
+    })
+    .default({ name: "", phone: "" }),
+  responsible_technical: z
+    .object({
+      name: z.string().trim().max(100, "Nome muito longo").default(""),
+      phone: z
+        .string()
+        .trim()
+        .regex(/^[\d\s()-]*$/, "Telefone inválido")
+        .default(""),
+    })
+    .default({ name: "", phone: "" }),
 });
 
 interface ClientFormDialogProps {
@@ -114,7 +140,11 @@ interface ClientFormDialogProps {
   onClientCreated: (clientId: string) => void;
 }
 
-export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: ClientFormDialogProps) => {
+export const ClientFormDialog = ({
+  open,
+  onOpenChange,
+  onClientCreated,
+}: ClientFormDialogProps) => {
   const { createClient } = useClients();
   const { lookupCNPJ, lookupCEP, isLoading } = useCNPJLookup();
   const [documentType, setDocumentType] = useState<"CPF" | "CNPJ">("CPF");
@@ -170,21 +200,25 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
 
   const cleanEmptyObjects = (data: ClientInsert): ClientInsert => {
     const cleaned = { ...data };
-    
+
     if (cleaned.responsible_financial) {
-      const hasFinancialData = cleaned.responsible_financial.name || cleaned.responsible_financial.phone;
+      const hasFinancialData =
+        cleaned.responsible_financial.name ||
+        cleaned.responsible_financial.phone;
       if (!hasFinancialData) {
         cleaned.responsible_financial = null;
       }
     }
-    
+
     if (cleaned.responsible_technical) {
-      const hasTechnicalData = cleaned.responsible_technical.name || cleaned.responsible_technical.phone;
+      const hasTechnicalData =
+        cleaned.responsible_technical.name ||
+        cleaned.responsible_technical.phone;
       if (!hasTechnicalData) {
         cleaned.responsible_technical = null;
       }
     }
-    
+
     return cleaned;
   };
 
@@ -192,27 +226,28 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
     try {
       const data = cleanEmptyObjects(formData);
       const result = await createClient.mutateAsync(data);
-      
+
       // Invalidar cache para atualizar lista
       queryClient.invalidateQueries({ queryKey: ["clients"] });
-      
+
       toast({
         title: "✅ Cliente Criado",
         description: "Novo cliente criado com sucesso!",
       });
-      
+
       // Resetar formulário
       reset();
       setDocumentValue("");
       setDocumentType("CPF");
-      
+
       // Fechar dialog e retornar ID
       onClientCreated(result.id);
       onOpenChange(false);
     } catch (error) {
       toast({
         title: "❌ Erro ao salvar",
-        description: "Não foi possível salvar os dados do cliente. Tente novamente.",
+        description:
+          "Não foi possível salvar os dados do cliente. Tente novamente.",
         variant: "destructive",
       });
       console.error("Erro ao salvar cliente:", error);
@@ -238,7 +273,9 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
               placeholder="Digite o nome completo ou razão social"
             />
             {errors.full_name && (
-              <p className="text-sm text-destructive">{errors.full_name.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.full_name.message}
+              </p>
             )}
           </div>
 
@@ -253,8 +290,8 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
 
           <div className="space-y-2">
             <Label>Tipo de Documento *</Label>
-            <RadioGroup 
-              value={documentType} 
+            <RadioGroup
+              value={documentType}
               onValueChange={(value) => {
                 setDocumentType(value as "CPF" | "CNPJ");
                 setDocumentValue("");
@@ -264,11 +301,21 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="CPF" id="dialog-cpf" />
-                <Label htmlFor="dialog-cpf" className="font-normal cursor-pointer">CPF</Label>
+                <Label
+                  htmlFor="dialog-cpf"
+                  className="font-normal cursor-pointer"
+                >
+                  CPF
+                </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="CNPJ" id="dialog-cnpj" />
-                <Label htmlFor="dialog-cnpj" className="font-normal cursor-pointer">CNPJ</Label>
+                <Label
+                  htmlFor="dialog-cnpj"
+                  className="font-normal cursor-pointer"
+                >
+                  CNPJ
+                </Label>
               </div>
             </RadioGroup>
           </div>
@@ -279,7 +326,11 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
             </Label>
             <div className="flex gap-2">
               <InputMask
-                mask={documentType === "CPF" ? "999.999.999-99" : "99.999.999/9999-99"}
+                mask={
+                  documentType === "CPF"
+                    ? "999.999.999-99"
+                    : "99.999.999/9999-99"
+                }
                 value={documentValue}
                 onChange={(e) => {
                   setDocumentValue(e.target.value);
@@ -291,8 +342,8 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
                     {...inputProps}
                     id="cpf_cnpj"
                     placeholder={
-                      documentType === "CPF" 
-                        ? "000.000.000-00" 
+                      documentType === "CPF"
+                        ? "000.000.000-00"
                         : "00.000.000/0000-00"
                     }
                     className="flex-1"
@@ -303,7 +354,9 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
                 <Button
                   type="button"
                   onClick={handleCNPJSearch}
-                  disabled={isLoading || documentValue.replace(/\D/g, "").length !== 14}
+                  disabled={
+                    isLoading || documentValue.replace(/\D/g, "").length !== 14
+                  }
                   variant="secondary"
                   size="sm"
                 >
@@ -316,7 +369,9 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
               )}
             </div>
             {errors.cpf_cnpj && (
-              <p className="text-sm text-destructive">{errors.cpf_cnpj.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.cpf_cnpj.message}
+              </p>
             )}
           </div>
 
@@ -324,14 +379,13 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone *</Label>
               <InputMask
-                mask={
-                  (() => {
-                    const phoneDigits = (watch("phone") || "").replace(/\D/g, "");
-                    return phoneDigits.length >= 11 || phoneDigits.charAt(2) === '9'
-                      ? "(99) 99999-9999"
-                      : "(99) 9999-9999";
-                  })()
-                }
+                mask={(() => {
+                  const phoneDigits = (watch("phone") || "").replace(/\D/g, "");
+                  return phoneDigits.length >= 11 ||
+                    phoneDigits.charAt(2) === "9"
+                    ? "(99) 99999-9999"
+                    : "(99) 9999-9999";
+                })()}
                 maskChar={null}
                 value={watch("phone") || ""}
                 onChange={(e) => setValue("phone", e.target.value)}
@@ -345,7 +399,9 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
                 )}
               </InputMask>
               {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.phone.message}
+                </p>
               )}
             </div>
 
@@ -358,14 +414,16 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
                 placeholder="email@exemplo.com"
               />
               {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </div>
           </div>
 
           <div className="border-t pt-4">
             <h3 className="font-semibold mb-3">Endereço</h3>
-            
+
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2 space-y-2">
@@ -425,11 +483,7 @@ export const ClientFormDialog = ({ open, onOpenChange, onClientCreated }: Client
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="city">Cidade</Label>
-                  <Input
-                    id="city"
-                    {...register("city")}
-                    placeholder="Cidade"
-                  />
+                  <Input id="city" {...register("city")} placeholder="Cidade" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="state">UF</Label>

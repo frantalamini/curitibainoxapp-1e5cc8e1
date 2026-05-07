@@ -1,4 +1,7 @@
-import { useServiceCallStatuses, StatusType } from "@/hooks/useServiceCallStatuses";
+import {
+  useServiceCallStatuses,
+  StatusType,
+} from "@/hooks/useServiceCallStatuses";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCurrentUserPermissions } from "@/hooks/useUserPermissions";
 import { Label } from "@/components/ui/label";
@@ -23,11 +26,11 @@ interface StatusSelectFieldProps {
 
 /**
  * Campo de seleção de status com controle de permissão integrado.
- * 
+ *
  * Regras de permissão:
  * - Status Técnico: Técnicos, ADM e Gerencial podem alterar
  * - Status Comercial: Apenas ADM e Gerencial podem alterar
- * 
+ *
  * Se o usuário não tiver permissão, exibe um badge estático (somente leitura).
  */
 export function StatusSelectField({
@@ -39,14 +42,14 @@ export function StatusSelectField({
 }: StatusSelectFieldProps) {
   const { statuses, isLoading: statusesLoading } = useServiceCallStatuses();
   const { isAdmin, isTechnician, loading: rolesLoading } = useUserRole();
-  const { data: permissionsData, isLoading: permissionsLoading } = useCurrentUserPermissions();
+  const { data: permissionsData, isLoading: permissionsLoading } =
+    useCurrentUserPermissions();
 
   const isLoading = statusesLoading || rolesLoading || permissionsLoading;
 
   // Filtrar status ativos do tipo correspondente
-  const filteredStatuses = statuses?.filter(
-    (s) => s.active && s.status_type === statusType
-  ) || [];
+  const filteredStatuses =
+    statuses?.filter((s) => s.active && s.status_type === statusType) || [];
 
   // Status selecionado atualmente
   const selectedStatus = statuses?.find((s) => s.id === value);
@@ -59,15 +62,16 @@ export function StatusSelectField({
   // Lógica de permissão:
   // Status Técnico: Técnicos, ADM e Gerencial podem alterar
   // Status Comercial: Apenas ADM e Gerencial podem alterar
-  const canEditTechnicalStatus = isAdmin || isTechnician || isGerencial || isAdm;
+  const canEditTechnicalStatus =
+    isAdmin || isTechnician || isGerencial || isAdm;
   const canEditCommercialStatus = isAdmin || isGerencial || isAdm;
 
-  const canEdit = statusType === "tecnico" 
-    ? canEditTechnicalStatus 
-    : canEditCommercialStatus;
+  const canEdit =
+    statusType === "tecnico" ? canEditTechnicalStatus : canEditCommercialStatus;
 
   // Labels
-  const label = statusType === "tecnico" ? "Status Técnico" : "Status Comercial";
+  const label =
+    statusType === "tecnico" ? "Status Técnico" : "Status Comercial";
 
   if (isLoading) {
     return (
@@ -102,8 +106,8 @@ export function StatusSelectField({
   return (
     <div className={cn("space-y-2", className)}>
       <Label>{label}</Label>
-      <Select 
-        value={value || "__none__"} 
+      <Select
+        value={value || "__none__"}
         onValueChange={(val) => onChange(val === "__none__" ? "" : val)}
       >
         <SelectTrigger className="w-full">

@@ -21,5 +21,7 @@ interface FileSystemWritableFileStream {
 }
 
 interface Window {
-  showSaveFilePicker?: (options?: SaveFilePickerOptions) => Promise<FileSystemFileHandle>;
+  showSaveFilePicker?: (
+    options?: SaveFilePickerOptions,
+  ) => Promise<FileSystemFileHandle>;
 }

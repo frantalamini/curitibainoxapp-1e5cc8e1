@@ -9,14 +9,23 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
+import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 
 export default function PaymentMethodForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
+  const { canCreate, canEdit } = useModulePermissions("payment_methods");
+  const { toast } = useToast();
 
-  const { paymentMethods, createPaymentMethod, updatePaymentMethod, isLoading } = usePaymentMethods();
+  const {
+    paymentMethods,
+    createPaymentMethod,
+    updatePaymentMethod,
+    isLoading,
+  } = usePaymentMethods();
 
   const [form, setForm] = useState({
     name: "",
@@ -42,6 +51,22 @@ export default function PaymentMethodForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isEditing && !canEdit) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para editar formas de pagamento.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!isEditing && !canCreate) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para criar formas de pagamento.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSaving(true);
 
     try {
@@ -74,9 +99,14 @@ export default function PaymentMethodForm() {
     <MainLayout>
       <PageContainer>
         <PageHeader
-          title={isEditing ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}
+          title={
+            isEditing ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"
+          }
         >
-          <Button variant="outline" onClick={() => navigate("/payment-methods")}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/payment-methods")}
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
@@ -90,7 +120,9 @@ export default function PaymentMethodForm() {
                 <Input
                   id="name"
                   value={form.name}
-                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   placeholder="Ex: PIX, Boleto, Cartão de Crédito..."
                   required
                 />
@@ -103,10 +135,16 @@ export default function PaymentMethodForm() {
                   type="number"
                   min="0"
                   value={form.sort_order}
-                  onChange={(e) => setForm((prev) => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      sort_order: parseInt(e.target.value) || 0,
+                    }))
+                  }
                 />
                 <p className="text-xs text-muted-foreground">
-                  Define a ordem de exibição na lista (menor número = aparece primeiro)
+                  Define a ordem de exibição na lista (menor número = aparece
+                  primeiro)
                 </p>
               </div>
 
@@ -120,7 +158,9 @@ export default function PaymentMethodForm() {
                 <Switch
                   id="active"
                   checked={form.active}
-                  onCheckedChange={(checked) => setForm((prev) => ({ ...prev, active: checked }))}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({ ...prev, active: checked }))
+                  }
                 />
               </div>
 

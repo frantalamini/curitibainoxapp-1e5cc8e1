@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +7,13 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -17,6 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { sanitizeRedirectPath } from "@/lib/authStorage";
+import { pixel } from "@/lib/pixel";
 
 // Schema de validação para login (aceita username ou email)
 const loginSchema = z.object({
@@ -29,7 +37,10 @@ const loginSchema = z.object({
     .string()
     .min(8, "Senha deve ter no mínimo 8 caracteres")
     .regex(/[A-Z]/, "Senha deve conter ao menos 1 letra maiúscula")
-    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, "Senha deve conter ao menos 1 caractere especial")
+    .regex(
+      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
+      "Senha deve conter ao menos 1 caractere especial",
+    )
     .max(100, "Senha muito longa"),
 });
 
@@ -44,7 +55,10 @@ const signupSchema = z.object({
     .string()
     .min(8, "Senha deve ter no mínimo 8 caracteres")
     .regex(/[A-Z]/, "Senha deve conter ao menos 1 letra maiúscula")
-    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, "Senha deve conter ao menos 1 caractere especial")
+    .regex(
+      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
+      "Senha deve conter ao menos 1 caractere especial",
+    )
     .max(100, "Senha muito longa"),
   fullName: z
     .string()
@@ -54,7 +68,10 @@ const signupSchema = z.object({
     .regex(/^[A-Za-zÀ-ÿ\s]+$/, "Nome deve conter apenas letras"),
   phone: z
     .string()
-    .regex(/^\(\d{2}\) \d{4,5}-\d{4}$/, "Telefone inválido. Use: (11) 99999-9999")
+    .regex(
+      /^\(\d{2}\) \d{4,5}-\d{4}$/,
+      "Telefone inválido. Use: (11) 99999-9999",
+    )
     .optional()
     .or(z.literal("")),
 });
@@ -75,6 +92,7 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -86,18 +104,24 @@ const Auth = () => {
     return sanitizeRedirectPath(redirect);
   }, [location.search]);
 
-  const form = useForm<LoginFormData | SignupFormData | ForgotPasswordFormData>({
-    resolver: zodResolver(
-      isForgotPassword ? forgotPasswordSchema : isLogin ? loginSchema : signupSchema
-    ),
-    defaultValues: {
-      usernameOrEmail: "",
-      email: "",
-      password: "",
-      fullName: "",
-      phone: "",
+  const form = useForm<LoginFormData | SignupFormData | ForgotPasswordFormData>(
+    {
+      resolver: zodResolver(
+        isForgotPassword
+          ? forgotPasswordSchema
+          : isLogin
+            ? loginSchema
+            : signupSchema,
+      ),
+      defaultValues: {
+        usernameOrEmail: "",
+        email: "",
+        password: "",
+        fullName: "",
+        phone: "",
+      },
     },
-  });
+  );
 
   useEffect(() => {
     // Check if user is already logged in
@@ -108,19 +132,25 @@ const Auth = () => {
     });
   }, [navigate, redirectTarget]);
 
-  const handleAuth = async (values: LoginFormData | SignupFormData | ForgotPasswordFormData) => {
+  const handleAuth = async (
+    values: LoginFormData | SignupFormData | ForgotPasswordFormData,
+  ) => {
     try {
       if (isForgotPassword) {
         const forgotValues = values as ForgotPasswordFormData;
-        const { error } = await supabase.auth.resetPasswordForEmail(forgotValues.email, {
-          redirectTo: `${window.location.origin}/auth/reset-password`,
-        });
+        const { error } = await supabase.auth.resetPasswordForEmail(
+          forgotValues.email,
+          {
+            redirectTo: `${window.location.origin}/auth/reset-password`,
+          },
+        );
 
         if (error) throw error;
 
         toast({
           title: "Email enviado!",
-          description: "Verifique sua caixa de entrada para redefinir sua senha.",
+          description:
+            "Verifique sua caixa de entrada para redefinir sua senha.",
         });
 
         setIsForgotPassword(false);
@@ -128,23 +158,26 @@ const Auth = () => {
         form.reset();
       } else if (isLogin) {
         const loginValues = values as LoginFormData;
-        
+
         // Call the login-with-username edge function
-        const { data, error } = await supabase.functions.invoke('login-with-username', {
-          body: {
-            username_or_email: loginValues.usernameOrEmail,
-            password: loginValues.password,
+        const { data, error } = await supabase.functions.invoke(
+          "login-with-username",
+          {
+            body: {
+              username_or_email: loginValues.usernameOrEmail,
+              password: loginValues.password,
+            },
           },
-        });
+        );
 
         // Network/transport errors
         if (error) {
-          throw new Error(error.message || 'Falha ao realizar login');
+          throw new Error(error.message || "Falha ao realizar login");
         }
 
         // Function-level errors (we return 200 with success=false to avoid hard-fail overlays)
         if (data?.success === false || data?.error) {
-          throw new Error(data?.error || 'Credenciais inválidas');
+          throw new Error(data?.error || "Credenciais inválidas");
         }
 
         // Set the session manually
@@ -157,6 +190,7 @@ const Auth = () => {
           if (sessionError) throw sessionError;
         }
 
+        pixel.loginApp();
         toast({
           title: "Login realizado com sucesso!",
           description: "Redirecionando...",
@@ -179,6 +213,7 @@ const Auth = () => {
 
         if (error) throw error;
 
+        pixel.completeRegistration();
         toast({
           title: "Cadastro realizado!",
           description: "Você já pode fazer login.",
@@ -201,19 +236,26 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>
-            {isForgotPassword ? "Recuperar Senha" : isLogin ? "Login" : "Cadastro"}
+            {isForgotPassword
+              ? "Recuperar Senha"
+              : isLogin
+                ? "Login"
+                : "Cadastro"}
           </CardTitle>
           <CardDescription>
             {isForgotPassword
               ? "Digite seu email para receber instruções"
               : isLogin
-              ? "Entre com suas credenciais"
-              : "Crie sua conta para começar"}
+                ? "Entre com suas credenciais"
+                : "Crie sua conta para começar"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleAuth)} className="space-y-4">
+            <form
+              onSubmit={form.handleSubmit(handleAuth)}
+              className="space-y-4"
+            >
               {!isLogin && !isForgotPassword && (
                 <>
                   <FormField
@@ -244,7 +286,7 @@ const Auth = () => {
                   />
                 </>
               )}
-              
+
               {isLogin ? (
                 <FormField
                   control={form.control}
@@ -253,7 +295,10 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Usuário ou Email</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Digite seu username ou email" />
+                        <Input
+                          {...field}
+                          placeholder="Digite seu username ou email"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -274,7 +319,7 @@ const Auth = () => {
                   )}
                 />
               )}
-              
+
               {!isForgotPassword && (
                 <FormField
                   control={form.control}
@@ -283,33 +328,57 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Senha</FormLabel>
                       <FormControl>
-                        <Input {...field} type="password" />
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            type={showPassword ? "text" : "password"}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((v) => !v)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            tabIndex={-1}
+                            aria-label={
+                              showPassword ? "Ocultar senha" : "Mostrar senha"
+                            }
+                          >
+                            {showPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                       {!isLogin && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial
+                          Mínimo 8 caracteres, com maiúscula, minúscula, número
+                          e caractere especial
                         </p>
                       )}
                     </FormItem>
                   )}
                 />
               )}
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
+
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={form.formState.isSubmitting}
               >
-                {form.formState.isSubmitting 
-                  ? "Carregando..." 
-                  : isForgotPassword 
-                  ? "Enviar link de recuperação"
-                  : isLogin ? "Entrar" : "Cadastrar"}
+                {form.formState.isSubmitting
+                  ? "Carregando..."
+                  : isForgotPassword
+                    ? "Enviar link de recuperação"
+                    : isLogin
+                      ? "Entrar"
+                      : "Cadastrar"}
               </Button>
             </form>
           </Form>
-          
+
           <div className="mt-4 text-center text-sm space-y-2">
             {!isForgotPassword && (
               <>

@@ -5,7 +5,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, FileText, ShoppingCart, CheckCircle, XCircle } from "lucide-react";
+import {
+  Search,
+  FileText,
+  ShoppingCart,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSales, SaleStatus } from "@/hooks/useSales";
 import { SalesTable } from "@/components/vendas/SalesTable";
@@ -35,7 +41,17 @@ export default function Sales() {
   } | null>(null);
 
   const filters = activeTab !== "ALL" ? { status: activeTab } : undefined;
-  const { sales, quotes, approved, completed, cancelled, isLoading, approveSale, cancelSale, finalizeSale } = useSales(filters);
+  const {
+    sales,
+    quotes,
+    approved,
+    completed,
+    cancelled,
+    isLoading,
+    approveSale,
+    cancelSale,
+    finalizeSale,
+  } = useSales(filters);
 
   // Filter by search term
   const filteredSales = sales.filter((sale) => {
@@ -92,12 +108,14 @@ export default function Sales() {
       case "approve":
         return {
           title: "Aprovar Orçamento",
-          description: "Tem certeza que deseja aprovar este orçamento? O cliente poderá prosseguir com a compra.",
+          description:
+            "Tem certeza que deseja aprovar este orçamento? O cliente poderá prosseguir com a compra.",
         };
       case "cancel":
         return {
           title: "Cancelar Venda",
-          description: "Tem certeza que deseja cancelar esta venda? Esta ação não pode ser desfeita.",
+          description:
+            "Tem certeza que deseja cancelar esta venda? Esta ação não pode ser desfeita.",
         };
       case "finalize":
         return {
@@ -133,38 +151,53 @@ export default function Sales() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SaleStatus | "ALL")}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as SaleStatus | "ALL")}
+        >
           <TabsList className="grid grid-cols-5 w-full max-w-2xl">
             <TabsTrigger value="ALL" className="gap-1">
               Todos
-              <span className="text-xs text-muted-foreground">({sales.length})</span>
+              <span className="text-xs text-muted-foreground">
+                ({sales.length})
+              </span>
             </TabsTrigger>
             <TabsTrigger value="QUOTE" className="gap-1">
               <FileText className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Orçamentos</span>
-              <span className="text-xs text-muted-foreground">({quotes.length})</span>
+              <span className="text-xs text-muted-foreground">
+                ({quotes.length})
+              </span>
             </TabsTrigger>
             <TabsTrigger value="APPROVED" className="gap-1">
               <CheckCircle className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Aprovados</span>
-              <span className="text-xs text-muted-foreground">({approved.length})</span>
+              <span className="text-xs text-muted-foreground">
+                ({approved.length})
+              </span>
             </TabsTrigger>
             <TabsTrigger value="SALE" className="gap-1">
               <ShoppingCart className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Vendas</span>
-              <span className="text-xs text-muted-foreground">({completed.length})</span>
+              <span className="text-xs text-muted-foreground">
+                ({completed.length})
+              </span>
             </TabsTrigger>
             <TabsTrigger value="CANCELLED" className="gap-1">
               <XCircle className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Cancelados</span>
-              <span className="text-xs text-muted-foreground">({cancelled.length})</span>
+              <span className="text-xs text-muted-foreground">
+                ({cancelled.length})
+              </span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-4">
             {isLoading ? (
               <div className="flex items-center justify-center h-32">
-                <div className="animate-pulse text-muted-foreground">Carregando...</div>
+                <div className="animate-pulse text-muted-foreground">
+                  Carregando...
+                </div>
               </div>
             ) : isMobile ? (
               <div className="space-y-3">
@@ -197,15 +230,22 @@ export default function Sales() {
         </Tabs>
 
         {/* Confirm Dialog */}
-        <AlertDialog open={confirmDialog?.open} onOpenChange={(open) => !open && setConfirmDialog(null)}>
+        <AlertDialog
+          open={confirmDialog?.open}
+          onOpenChange={(open) => !open && setConfirmDialog(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>{dialogContent.title}</AlertDialogTitle>
-              <AlertDialogDescription>{dialogContent.description}</AlertDialogDescription>
+              <AlertDialogDescription>
+                {dialogContent.description}
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmAction}>Confirmar</AlertDialogAction>
+              <AlertDialogAction onClick={confirmAction}>
+                Confirmar
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

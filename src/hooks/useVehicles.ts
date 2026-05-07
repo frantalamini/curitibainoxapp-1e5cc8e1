@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type VehicleStatus = 'ativo' | 'inativo' | 'em_manutencao';
+export type VehicleStatus = "ativo" | "inativo" | "em_manutencao";
 
 export interface Vehicle {
   id: string;
@@ -89,7 +89,10 @@ export const useVehicles = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...vehicle }: Partial<Vehicle> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...vehicle
+    }: Partial<Vehicle> & { id: string }) => {
       const { data, error } = await supabase
         .from("vehicles")
         .update(vehicle)

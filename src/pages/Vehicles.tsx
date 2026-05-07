@@ -23,7 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2 } from "lucide-react";
 import { useVehicles, VehicleStatus } from "@/hooks/useVehicles";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PageHeader } from "@/components/ui/page-header";
 import { VehicleMobileCard } from "@/components/mobile/VehicleMobileCard";
@@ -32,7 +32,7 @@ const Vehicles = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { vehicles, isLoading, deleteVehicle } = useVehicles();
-  const { isAdmin } = useUserRole();
+  const { canCreate, canEdit, canDelete } = useModulePermissions("vehicles");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleDelete = () => {
@@ -44,14 +44,26 @@ const Vehicles = () => {
 
   const formatOdometer = (km: number | null) => {
     if (!km) return "-";
-    return new Intl.NumberFormat('pt-BR').format(km) + " km";
+    return new Intl.NumberFormat("pt-BR").format(km) + " km";
   };
 
   const getStatusBadge = (status: VehicleStatus) => {
-    const variants: Record<VehicleStatus, { label: string; className: string }> = {
-      ativo: { label: "Ativo", className: "bg-success text-success-foreground" },
-      inativo: { label: "Inativo", className: "bg-destructive text-destructive-foreground" },
-      em_manutencao: { label: "Em Manutenção", className: "bg-warning text-warning-foreground" },
+    const variants: Record<
+      VehicleStatus,
+      { label: string; className: string }
+    > = {
+      ativo: {
+        label: "Ativo",
+        className: "bg-success text-success-foreground",
+      },
+      inativo: {
+        label: "Inativo",
+        className: "bg-destructive text-destructive-foreground",
+      },
+      em_manutencao: {
+        label: "Em Manutenção",
+        className: "bg-warning text-warning-foreground",
+      },
     };
     const config = variants[status];
     return <Badge className={config.className}>{config.label}</Badge>;
@@ -69,11 +81,11 @@ const Vehicles = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
-        <PageHeader 
-          title="Veículos" 
-          actionLabel={isAdmin ? "Novo Veículo" : undefined}
-          onAction={isAdmin ? () => navigate("/vehicles/new") : undefined}
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
+        <PageHeader
+          title="Veículos"
+          actionLabel={canCreate ? "Novo Veículo" : undefined}
+          onAction={canCreate ? () => navigate("/vehicles/new") : undefined}
         />
 
         {!vehicles || vehicles.length === 0 ? (
@@ -86,8 +98,12 @@ const Vehicles = () => {
               <VehicleMobileCard
                 key={vehicle.id}
                 vehicle={vehicle}
-                onEdit={() => navigate(`/vehicles/${vehicle.id}/edit`)}
-                onDelete={() => setDeleteId(vehicle.id)}
+                onEdit={
+                  canEdit
+                    ? () => navigate(`/vehicles/${vehicle.id}/edit`)
+                    : undefined
+                }
+                onDelete={canDelete ? () => setDeleteId(vehicle.id) : undefined}
               />
             ))}
           </div>
@@ -96,45 +112,65 @@ const Vehicles = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[120px] max-w-[120px]">Nome</TableHead>
+                  <TableHead className="w-[120px] max-w-[120px]">
+                    Nome
+                  </TableHead>
                   <TableHead className="w-16">Cor</TableHead>
                   <TableHead className="w-20">Marca</TableHead>
                   <TableHead className="w-20">Placa</TableHead>
                   <TableHead className="w-28">RENAVAM</TableHead>
                   <TableHead className="w-24">Km</TableHead>
                   <TableHead className="w-24">Status</TableHead>
-                  {isAdmin && <TableHead className="text-right w-20">Ações</TableHead>}
+                  {(canEdit || canDelete) && (
+                    <TableHead className="text-right w-20">Ações</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {vehicles.map((vehicle) => (
                   <TableRow key={vehicle.id}>
-                    <TableCell className="font-medium text-sm">{vehicle.name}</TableCell>
-                    <TableCell className="text-sm truncate max-w-[80px]">{vehicle.color || "-"}</TableCell>
-                    <TableCell className="text-sm">{vehicle.brand || "-"}</TableCell>
+                    <TableCell className="font-medium text-sm">
+                      {vehicle.name}
+                    </TableCell>
+                    <TableCell className="text-sm truncate max-w-[80px]">
+                      {vehicle.color || "-"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {vehicle.brand || "-"}
+                    </TableCell>
                     <TableCell className="text-sm">{vehicle.plate}</TableCell>
-                    <TableCell className="text-sm">{vehicle.renavam || "-"}</TableCell>
-                    <TableCell className="text-sm">{formatOdometer(vehicle.current_odometer_km)}</TableCell>
+                    <TableCell className="text-sm">
+                      {vehicle.renavam || "-"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {formatOdometer(vehicle.current_odometer_km)}
+                    </TableCell>
                     <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
-                    {isAdmin && (
+                    {(canEdit || canDelete) && (
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => setDeleteId(vehicle.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() =>
+                                navigate(`/vehicles/${vehicle.id}/edit`)
+                              }
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setDeleteId(vehicle.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     )}
@@ -151,12 +187,15 @@ const Vehicles = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este veículo? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este veículo? Esta ação não pode
+              ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -40,10 +40,10 @@ serve(async (req) => {
     // 1. Verify authentication
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Não autorizado" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -55,13 +55,16 @@ serve(async (req) => {
     });
 
     // 3. Verify user is authenticated
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseClient.auth.getUser();
     if (authError || !user) {
       console.error("[reconcile-bank-statement] Auth error:", authError);
-      return new Response(
-        JSON.stringify({ error: "Sessão inválida" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Sessão inválida" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // 4. Check if user has admin role
@@ -71,19 +74,31 @@ serve(async (req) => {
       .eq("user_id", user.id);
 
     if (rolesError) {
-      console.error("[reconcile-bank-statement] Roles query error:", rolesError);
+      console.error(
+        "[reconcile-bank-statement] Roles query error:",
+        rolesError,
+      );
       return new Response(
         JSON.stringify({ error: "Erro ao verificar permissões" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const isAdmin = roles?.some((r) => r.role === "admin");
     if (!isAdmin) {
-      console.log("[reconcile-bank-statement] Access denied for user:", user.id);
+      console.log(
+        "[reconcile-bank-statement] Access denied for user:",
+        user.id,
+      );
       return new Response(
         JSON.stringify({ error: "Acesso negado - apenas administradores" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -105,7 +120,9 @@ serve(async (req) => {
     // 2. ALL OPEN transactions (they may not have an account assigned yet)
     const { data: paidTransactions, error: paidError } = await supabaseAdmin
       .from("financial_transactions")
-      .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status, client_id, clients(full_name)")
+      .select(
+        "id, description, amount, direction, due_date, paid_at, is_reconciled, status, client_id, clients(full_name)",
+      )
       .eq("financial_account_id", accountId)
       .eq("status", "PAID")
       .eq("is_reconciled", false)
@@ -117,7 +134,9 @@ serve(async (req) => {
 
     const { data: openTransactions, error: openError } = await supabaseAdmin
       .from("financial_transactions")
-      .select("id, description, amount, direction, due_date, paid_at, is_reconciled, status, client_id, clients(full_name)")
+      .select(
+        "id, description, amount, direction, due_date, paid_at, is_reconciled, status, client_id, clients(full_name)",
+      )
       .eq("status", "OPEN")
       .gte("due_date", startDate)
       .lte("due_date", endDate + "T23:59:59")
@@ -128,7 +147,10 @@ serve(async (req) => {
     // Merge and deduplicate
     const seenIds = new Set<string>();
     const systemTransactions: any[] = [];
-    for (const tx of [...(paidTransactions || []), ...(openTransactions || [])]) {
+    for (const tx of [
+      ...(paidTransactions || []),
+      ...(openTransactions || []),
+    ]) {
       if (!seenIds.has(tx.id)) {
         seenIds.add(tx.id);
         systemTransactions.push(tx);
@@ -179,25 +201,36 @@ IMPORTANTE:
           messages: [
             {
               role: "system",
-              content: "Você é um assistente especializado em conciliação bancária. Sempre retorne respostas em formato JSON válido.",
+              content:
+                "Você é um assistente especializado em conciliação bancária. Sempre retorne respostas em formato JSON válido.",
             },
             { role: "user", content: prompt },
           ],
         }),
-      }
+      },
     );
 
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Rate limit exceeded. Please try again later.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
       if (aiResponse.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Payment required. Please add credits to your workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Payment required. Please add credits to your workspace.",
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
       const errorText = await aiResponse.text();
@@ -222,29 +255,37 @@ IMPORTANTE:
     }
 
     // Build full match suggestions with transaction details
-    const suggestions: MatchSuggestion[] = ofxTransactions.map((ofx: OFXTransaction) => {
-      const match = matches.find((m: any) => m.ofxFitId === ofx.fitId);
-      const systemTx = match?.systemTransactionId
-        ? systemTransactions?.find((t) => t.id === match.systemTransactionId) || null
-        : null;
+    const suggestions: MatchSuggestion[] = ofxTransactions.map(
+      (ofx: OFXTransaction) => {
+        const match = matches.find((m: any) => m.ofxFitId === ofx.fitId);
+        const systemTx = match?.systemTransactionId
+          ? systemTransactions?.find(
+              (t) => t.id === match.systemTransactionId,
+            ) || null
+          : null;
 
-      return {
-        ofxTransaction: ofx,
-        systemTransaction: systemTx,
-        confidence: match?.confidence || 0,
-        reason: match?.reason || "Nenhuma correspondência encontrada pela IA",
-      };
-    });
-
-    return new Response(
-      JSON.stringify({ suggestions, systemTransactions }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        return {
+          ofxTransaction: ofx,
+          systemTransaction: systemTx,
+          confidence: match?.confidence || 0,
+          reason: match?.reason || "Nenhuma correspondência encontrada pela IA",
+        };
+      },
     );
+
+    return new Response(JSON.stringify({ suggestions, systemTransactions }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("reconcile-bank-statement error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

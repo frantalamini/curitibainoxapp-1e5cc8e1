@@ -11,10 +11,10 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function toTitleCase(text: string | null | undefined): string {
   if (!text) return "";
-  
+
   return text
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, ' ')  // Normaliza múltiplos espaços
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replace(/\s+/g, " ") // Normaliza múltiplos espaços
+    .replace(/(^|\s)\S/g, (char) => char.toUpperCase());
 }

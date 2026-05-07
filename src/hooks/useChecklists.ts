@@ -39,9 +39,9 @@ export const useChecklists = () => {
         .order("name");
 
       if (error) throw error;
-      return (data || []).map(item => ({
+      return (data || []).map((item) => ({
         ...item,
-        items: item.items as unknown as ChecklistItem[]
+        items: item.items as unknown as ChecklistItem[],
       })) as Checklist[];
     },
   });
@@ -50,10 +50,12 @@ export const useChecklists = () => {
     mutationFn: async (newChecklist: ChecklistInsert) => {
       const { data, error } = await supabase
         .from("checklists")
-        .insert([{
-          ...newChecklist,
-          items: newChecklist.items as any
-        }])
+        .insert([
+          {
+            ...newChecklist,
+            items: newChecklist.items as any,
+          },
+        ])
         .select()
         .single();
 
@@ -77,12 +79,15 @@ export const useChecklists = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Checklist> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: Partial<Checklist> & { id: string }) => {
       const updateData: any = { ...updates };
       if (updates.items) {
         updateData.items = updates.items;
       }
-        
+
       const { data, error } = await supabase
         .from("checklists")
         .update(updateData)
@@ -111,10 +116,7 @@ export const useChecklists = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("checklists")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("checklists").delete().eq("id", id);
 
       if (error) throw error;
     },

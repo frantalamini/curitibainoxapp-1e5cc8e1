@@ -80,8 +80,12 @@ export const LeafletTripsMap = ({ trips, className }: LeafletTripsMapProps) => {
           const lng = t.current_lng ?? t.origin_lng;
           return lat && lng ? { trip: t, lat, lng } : null;
         })
-        .filter(Boolean) as Array<{ trip: ServiceCallTrip; lat: number; lng: number }>,
-    [trips]
+        .filter(Boolean) as Array<{
+        trip: ServiceCallTrip;
+        lat: number;
+        lng: number;
+      }>,
+    [trips],
   );
 
   // init
@@ -142,7 +146,7 @@ export const LeafletTripsMap = ({ trips, className }: LeafletTripsMapProps) => {
                 ? `<div style="opacity:.8;">Distância: ${trip.estimated_distance_km.toFixed(1)} km</div>`
                 : ""
             }
-            <div style="opacity:.7;font-size:12px;margin-top:6px;">Atualizado ${formatTimeAgo(updateTime)}</div>
+            <div style="color:#6B7280;font-size:12px;margin-top:6px;">Atualizado ${formatTimeAgo(updateTime)}</div>
           </div>
         </div>
       `;
@@ -155,7 +159,9 @@ export const LeafletTripsMap = ({ trips, className }: LeafletTripsMapProps) => {
     });
 
     if (!hasFitBoundsRef.current && validTrips.length > 0) {
-      const bounds = L.latLngBounds(validTrips.map((t) => [t.lat, t.lng] as [number, number]));
+      const bounds = L.latLngBounds(
+        validTrips.map((t) => [t.lat, t.lng] as [number, number]),
+      );
       map.fitBounds(bounds, { padding: [50, 50] });
       hasFitBoundsRef.current = true;
     }

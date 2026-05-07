@@ -49,7 +49,9 @@ const getStatusBadge = (finishedAt: string | null) => {
   return <Badge className="bg-yellow-500 text-white">Em manutenção</Badge>;
 };
 
-export function MaintenanceMobileCard({ maintenance }: MaintenanceMobileCardProps) {
+export function MaintenanceMobileCard({
+  maintenance,
+}: MaintenanceMobileCardProps) {
   return (
     <Card className="w-full max-w-full min-w-0">
       <CardContent className="p-4 space-y-3">
@@ -65,7 +67,8 @@ export function MaintenanceMobileCard({ maintenance }: MaintenanceMobileCardProp
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {maintenance.vehicles.plate}
-                    {maintenance.vehicles.brand && ` - ${maintenance.vehicles.brand}`}
+                    {maintenance.vehicles.brand &&
+                      ` - ${maintenance.vehicles.brand}`}
                   </p>
                 </>
               ) : (
@@ -93,7 +96,10 @@ export function MaintenanceMobileCard({ maintenance }: MaintenanceMobileCardProp
               {maintenance.finished_at && (
                 <p>
                   <span className="font-medium">Fim:</span>{" "}
-                  {format(new Date(maintenance.finished_at), "dd/MM/yyyy HH:mm")}
+                  {format(
+                    new Date(maintenance.finished_at),
+                    "dd/MM/yyyy HH:mm",
+                  )}
                 </p>
               )}
             </div>

@@ -44,18 +44,24 @@ export interface RecurringTransactionInput {
 export const useRecurringTransactions = () => {
   const queryClient = useQueryClient();
 
-  const { data: transactions = [], isLoading, refetch } = useQuery({
+  const {
+    data: transactions = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["recurring-transactions"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("recurring_transactions")
-        .select(`
+        .select(
+          `
           *,
           category:financial_categories(name),
           cost_center:cost_centers(name),
           financial_account:financial_accounts(name),
           client:clients(full_name)
-        `)
+        `,
+        )
         .order("description", { ascending: true });
 
       if (error) throw error;
@@ -85,7 +91,10 @@ export const useRecurringTransactions = () => {
   });
 
   const updateTransaction = useMutation({
-    mutationFn: async ({ id, ...input }: RecurringTransactionInput & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...input
+    }: RecurringTransactionInput & { id: string }) => {
       const { data, error } = await supabase
         .from("recurring_transactions")
         .update(input)
@@ -126,7 +135,13 @@ export const useRecurringTransactions = () => {
   });
 
   const toggleActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
       const { error } = await supabase
         .from("recurring_transactions")
         .update({ is_active })
@@ -147,8 +162,16 @@ export const useRecurringTransactions = () => {
   // Generate transactions for a specific month
   const generateForMonth = useMutation({
     mutationFn: async (targetMonth: Date) => {
-      const monthStart = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
-      const monthEnd = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0);
+      const monthStart = new Date(
+        targetMonth.getFullYear(),
+        targetMonth.getMonth(),
+        1,
+      );
+      const monthEnd = new Date(
+        targetMonth.getFullYear(),
+        targetMonth.getMonth() + 1,
+        0,
+      );
       const monthStr = monthStart.toISOString().substring(0, 10);
 
       // Get active recurring transactions that should be generated for this month
@@ -161,17 +184,20 @@ export const useRecurringTransactions = () => {
 
       if (fetchError) throw fetchError;
 
-      const toGenerate = activeRecurring?.filter(r => {
-        // Check if already generated for this month
-        if (r.last_generated_month) {
-          const lastGen = new Date(r.last_generated_month);
-          if (lastGen.getFullYear() === monthStart.getFullYear() && 
-              lastGen.getMonth() === monthStart.getMonth()) {
-            return false;
+      const toGenerate =
+        activeRecurring?.filter((r) => {
+          // Check if already generated for this month
+          if (r.last_generated_month) {
+            const lastGen = new Date(r.last_generated_month);
+            if (
+              lastGen.getFullYear() === monthStart.getFullYear() &&
+              lastGen.getMonth() === monthStart.getMonth()
+            ) {
+              return false;
+            }
           }
-        }
-        return true;
-      }) || [];
+          return true;
+        }) || [];
 
       if (toGenerate.length === 0) {
         toast.info("Nenhum lançamento pendente para gerar neste mês");
@@ -179,10 +205,14 @@ export const useRecurringTransactions = () => {
       }
 
       // Generate transactions
-      const transactionsToInsert = toGenerate.map(r => {
+      const transactionsToInsert = toGenerate.map((r) => {
         const dueDay = Math.min(r.day_of_month, monthEnd.getDate());
-        const dueDate = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), dueDay);
-        
+        const dueDate = new Date(
+          targetMonth.getFullYear(),
+          targetMonth.getMonth(),
+          dueDay,
+        );
+
         return {
           description: r.description,
           amount: r.amount,
@@ -205,11 +235,11 @@ export const useRecurringTransactions = () => {
       if (insertError) throw insertError;
 
       // Update last_generated_month for all generated recurring transactions
-      const updatePromises = toGenerate.map(r =>
+      const updatePromises = toGenerate.map((r) =>
         supabase
           .from("recurring_transactions")
           .update({ last_generated_month: monthStr })
-          .eq("id", r.id)
+          .eq("id", r.id),
       );
 
       await Promise.all(updatePromises);

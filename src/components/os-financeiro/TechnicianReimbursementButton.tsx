@@ -12,7 +12,9 @@ interface TechnicianReimbursementButtonProps {
  * Button for technicians to request reimbursement for expenses
  * This button is only visible to technicians, not admins
  */
-export function TechnicianReimbursementButton({ serviceCallId }: TechnicianReimbursementButtonProps) {
+export function TechnicianReimbursementButton({
+  serviceCallId,
+}: TechnicianReimbursementButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { technicianId, isLoading } = useCurrentTechnician();
 

@@ -18,12 +18,13 @@ const DynamicFavicon = () => {
     // Atualiza favicon padrão
     updateFavicon('link[rel="icon"][sizes="32x32"]', settings.logo_url);
     updateFavicon('link[rel="icon"][sizes="16x16"]', settings.logo_url);
-    
-    // Atualiza Apple Touch Icons
-    document.querySelectorAll('link[rel="apple-touch-icon"]').forEach((link) => {
-      (link as HTMLLinkElement).href = settings.logo_url!;
-    });
 
+    // Atualiza Apple Touch Icons
+    document
+      .querySelectorAll('link[rel="apple-touch-icon"]')
+      .forEach((link) => {
+        (link as HTMLLinkElement).href = settings.logo_url!;
+      });
   }, [settings?.logo_url]);
 
   return null;

@@ -2,8 +2,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserWithRole } from "@/hooks/useUsers";
-import { PROFILE_LABELS, ProfileType } from "@/hooks/useUserPermissions";
-import { Pencil, Trash2, Shield, ShieldCheck, ShieldAlert } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
+} from "lucide-react";
 
 interface UserMobileCardProps {
   user: UserWithRole;
@@ -12,35 +18,52 @@ interface UserMobileCardProps {
   onDelete: (userId: string, userName: string) => void;
 }
 
-const getProfileBadge = (profileType: ProfileType | null | undefined) => {
-  if (!profileType) {
-    return <Badge variant="outline" className="text-muted-foreground text-xs">Não configurado</Badge>;
+const getProfileBadge = (profileName: string | null | undefined) => {
+  if (!profileName) {
+    return (
+      <Badge variant="outline" className="text-muted-foreground text-xs">
+        Não configurado
+      </Badge>
+    );
   }
-  
-  switch (profileType) {
-    case "gerencial":
+  switch (profileName) {
+    case "Gerencial":
       return (
-        <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs">
+        <Badge
+          variant="default"
+          className="bg-green-600 hover:bg-green-700 text-xs"
+        >
           <ShieldCheck className="h-3 w-3 mr-1" />
-          {PROFILE_LABELS.gerencial}
+          {profileName}
         </Badge>
       );
-    case "adm":
+    case "Administrativo":
       return (
-        <Badge variant="secondary" className="bg-blue-600 text-white hover:bg-blue-700 text-xs">
+        <Badge
+          variant="secondary"
+          className="bg-blue-600 text-white hover:bg-blue-700 text-xs"
+        >
           <Shield className="h-3 w-3 mr-1" />
-          {PROFILE_LABELS.adm}
+          {profileName}
         </Badge>
       );
-    case "tecnico":
+    case "Técnico":
       return (
-        <Badge variant="outline" className="border-amber-500 text-amber-600 text-xs">
+        <Badge
+          variant="outline"
+          className="border-amber-500 text-amber-600 text-xs"
+        >
           <ShieldAlert className="h-3 w-3 mr-1" />
-          {PROFILE_LABELS.tecnico}
+          {profileName}
         </Badge>
       );
     default:
-      return <Badge variant="outline" className="text-xs">-</Badge>;
+      return (
+        <Badge variant="outline" className="text-xs">
+          <ShieldX className="h-3 w-3 mr-1" />
+          {profileName}
+        </Badge>
+      );
   }
 };
 
@@ -58,7 +81,9 @@ export function UserMobileCard({
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Shield className="h-5 w-5 text-primary flex-shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="font-medium text-foreground truncate">{user.full_name}</p>
+              <p className="font-medium text-foreground truncate">
+                {user.full_name}
+              </p>
               {user.username && (
                 <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
                   @{user.username}

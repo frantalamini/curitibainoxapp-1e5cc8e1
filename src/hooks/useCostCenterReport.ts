@@ -33,7 +33,8 @@ export const useCostCenterReport = (year: number, month?: number) => {
     queryFn: async () => {
       let query = supabase
         .from("financial_transactions")
-        .select(`
+        .select(
+          `
           id,
           description,
           amount,
@@ -44,7 +45,8 @@ export const useCostCenterReport = (year: number, month?: number) => {
           cost_center_id,
           category_id,
           category:financial_categories(name)
-        `)
+        `,
+        )
         .eq("direction", "PAY");
 
       // Filter by year
@@ -57,7 +59,9 @@ export const useCostCenterReport = (year: number, month?: number) => {
 
       query = query.gte("due_date", startDate).lte("due_date", endDate);
 
-      const { data, error } = await query.order("due_date", { ascending: false });
+      const { data, error } = await query.order("due_date", {
+        ascending: false,
+      });
 
       if (error) throw error;
       return data as CostCenterTransaction[];
@@ -66,7 +70,9 @@ export const useCostCenterReport = (year: number, month?: number) => {
 
   // Calculate summary by cost center
   const costCenterSummaries: CostCenterSummary[] = costCenters.map((cc) => {
-    const ccTransactions = transactions.filter((t) => t.cost_center_id === cc.id);
+    const ccTransactions = transactions.filter(
+      (t) => t.cost_center_id === cc.id,
+    );
     const totalExpenses = ccTransactions.reduce((sum, t) => sum + t.amount, 0);
     const totalPaid = ccTransactions
       .filter((t) => t.status === "PAID")
@@ -89,7 +95,10 @@ export const useCostCenterReport = (year: number, month?: number) => {
   // Add "Sem Centro de Custo" for transactions without cost_center_id
   const unassignedTransactions = transactions.filter((t) => !t.cost_center_id);
   if (unassignedTransactions.length > 0) {
-    const totalExpenses = unassignedTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = unassignedTransactions.reduce(
+      (sum, t) => sum + t.amount,
+      0,
+    );
     const totalPaid = unassignedTransactions
       .filter((t) => t.status === "PAID")
       .reduce((sum, t) => sum + t.amount, 0);
@@ -109,9 +118,13 @@ export const useCostCenterReport = (year: number, month?: number) => {
   }
 
   // Calculate percentages
-  const grandTotal = costCenterSummaries.reduce((sum, cc) => sum + cc.totalExpenses, 0);
+  const grandTotal = costCenterSummaries.reduce(
+    (sum, cc) => sum + cc.totalExpenses,
+    0,
+  );
   costCenterSummaries.forEach((cc) => {
-    cc.percentOfTotal = grandTotal > 0 ? (cc.totalExpenses / grandTotal) * 100 : 0;
+    cc.percentOfTotal =
+      grandTotal > 0 ? (cc.totalExpenses / grandTotal) * 100 : 0;
   });
 
   // Sort by total expenses descending

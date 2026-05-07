@@ -59,9 +59,21 @@ export interface ServiceCall {
     secondary_name?: string;
     cpf_cnpj?: string;
     state_registration?: string;
-    responsible_financial?: { name?: string; phone?: string; email?: string } | null;
-    responsible_technical?: { name?: string; phone?: string; email?: string } | null;
-    responsible_legal?: { name?: string; phone?: string; email?: string } | null;
+    responsible_financial?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+    } | null;
+    responsible_technical?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+    } | null;
+    responsible_legal?: {
+      name?: string;
+      phone?: string;
+      email?: string;
+    } | null;
   };
   technicians?: {
     full_name: string;
@@ -102,18 +114,18 @@ export interface ServiceCallInsert {
 
 // Helper para sanitizar campos UUID (converte "" para null)
 const UUID_FIELDS = [
-  'service_type_id',
-  'status_id',
-  'commercial_status_id',
-  'checklist_id',
-  'client_id',
-  'technician_id',
+  "service_type_id",
+  "status_id",
+  "commercial_status_id",
+  "checklist_id",
+  "client_id",
+  "technician_id",
 ] as const;
 
 const sanitizeUuidFields = <T extends object>(data: T): T => {
   const sanitized = { ...data } as Record<string, unknown>;
-  UUID_FIELDS.forEach(field => {
-    if (field in sanitized && sanitized[field] === '') {
+  UUID_FIELDS.forEach((field) => {
+    if (field in sanitized && sanitized[field] === "") {
       sanitized[field] = null;
     }
   });
@@ -199,7 +211,7 @@ export const useServiceCall = (id?: string) => {
     queryKey: ["service-call", id],
     queryFn: async () => {
       if (!id) return null;
-      
+
       const { data, error } = await supabase
         .from("service_calls")
         .select(SERVICE_CALL_SELECT_FULL)
@@ -220,22 +232,44 @@ type UseServiceCallsFilters = {
   statusId?: string;
   commercialStatusId?: string;
   onlyNewForTechnicianId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 export const useServiceCalls = (
   page: number = 1,
   pageSize: number = 30,
-  filters: UseServiceCallsFilters = {}
+  filters: UseServiceCallsFilters = {},
 ) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { searchTerm, statusId, commercialStatusId, onlyNewForTechnicianId } = filters;
+  const {
+    searchTerm,
+    statusId,
+    commercialStatusId,
+    onlyNewForTechnicianId,
+    dateFrom,
+    dateTo,
+  } = filters;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["service-calls", page, pageSize, searchTerm, statusId, commercialStatusId, onlyNewForTechnicianId],
+    queryKey: [
+      "service-calls",
+      page,
+      pageSize,
+      searchTerm,
+      statusId,
+      commercialStatusId,
+      onlyNewForTechnicianId,
+      dateFrom,
+      dateTo,
+    ],
     queryFn: async () => {
       // Evita executar com token anônimo (quando a sessão ainda não foi carregada)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
       if (!session) {
         throw new Error("AUTH_SESSION_NOT_READY");
@@ -251,7 +285,7 @@ export const useServiceCalls = (
           .select(SERVICE_CALL_SELECT)
           .eq("os_number", osNumber)
           .maybeSingle();
-        
+
         if (!exactError && exactMatch) {
           return { serviceCalls: [exactMatch] as ServiceCall[], totalCount: 1 };
         }
@@ -264,7 +298,7 @@ export const useServiceCalls = (
       // Query com count
       let query = supabase
         .from("service_calls")
-        .select(SERVICE_CALL_SELECT, { count: 'exact' })
+        .select(SERVICE_CALL_SELECT, { count: "exact" })
         // Importante: ordenar por número da OS para paginação consistente
         .order("os_number", { ascending: false })
         .order("created_at", { ascending: false })
@@ -280,35 +314,43 @@ export const useServiceCalls = (
       }
 
       if (onlyNewForTechnicianId) {
-        query = query.eq("technician_id", onlyNewForTechnicianId).is("seen_by_tech_at", null);
+        query = query
+          .eq("technician_id", onlyNewForTechnicianId)
+          .is("seen_by_tech_at", null);
+      }
+
+      if (dateFrom) {
+        query = query.gte("scheduled_date", dateFrom);
+      }
+      if (dateTo) {
+        query = query.lte("scheduled_date", dateTo);
       }
 
       if (normalizedSearch && !/^\d+$/.test(normalizedSearch)) {
         const like = `%${normalizedSearch}%`;
-        
+
         // Buscar IDs de clientes e técnicos que correspondem à busca
         // (Supabase não suporta .or() com colunas de tabelas relacionadas)
         const [clientsResult, techniciansResult] = await Promise.all([
           supabase
             .from("clients")
             .select("id")
-            .or(`full_name.ilike.${like},nome_fantasia.ilike.${like},secondary_name.ilike.${like}`),
-          supabase
-            .from("technicians")
-            .select("id")
-            .ilike("full_name", like)
+            .or(
+              `full_name.ilike.${like},nome_fantasia.ilike.${like},secondary_name.ilike.${like}`,
+            ),
+          supabase.from("technicians").select("id").ilike("full_name", like),
         ]);
 
-        const clientIds = clientsResult.data?.map(c => c.id) || [];
-        const technicianIds = techniciansResult.data?.map(t => t.id) || [];
+        const clientIds = clientsResult.data?.map((c) => c.id) || [];
+        const technicianIds = techniciansResult.data?.map((t) => t.id) || [];
 
         // Construir filtros OR com os IDs encontrados
         const orFilters = [`equipment_description.ilike.${like}`];
         if (clientIds.length > 0) {
-          orFilters.push(`client_id.in.(${clientIds.join(',')})`);
+          orFilters.push(`client_id.in.(${clientIds.join(",")})`);
         }
         if (technicianIds.length > 0) {
-          orFilters.push(`technician_id.in.(${technicianIds.join(',')})`);
+          orFilters.push(`technician_id.in.(${technicianIds.join(",")})`);
         }
 
         query = query.or(orFilters.join(","));
@@ -322,7 +364,10 @@ export const useServiceCalls = (
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: (failureCount, error) => {
-      if (error instanceof Error && error.message === "AUTH_SESSION_NOT_READY") {
+      if (
+        error instanceof Error &&
+        error.message === "AUTH_SESSION_NOT_READY"
+      ) {
         return failureCount < 5;
       }
       return failureCount < 2;
@@ -335,7 +380,9 @@ export const useServiceCalls = (
 
   const createMutation = useMutation({
     mutationFn: async (newServiceCall: ServiceCallInsert) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       const sanitized = sanitizeUuidFields(newServiceCall);
@@ -366,7 +413,10 @@ export const useServiceCalls = (
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<ServiceCall> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: Partial<ServiceCall> & { id: string }) => {
       const sanitized = sanitizeUuidFields(updates);
 
       const { data, error } = await supabase

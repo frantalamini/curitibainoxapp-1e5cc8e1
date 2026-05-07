@@ -86,14 +86,17 @@ export const TimePickerPopover = ({
   };
 
   const hours = Array.from({ length: 24 }, (_, i) =>
-    i.toString().padStart(2, "0")
+    i.toString().padStart(2, "0"),
   );
   const minutes = Array.from({ length: 60 }, (_, i) =>
-    i.toString().padStart(2, "0")
+    i.toString().padStart(2, "0"),
   );
 
   return (
-    <Popover open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
+    <Popover
+      open={disabled ? false : open}
+      onOpenChange={disabled ? undefined : setOpen}
+    >
       <PopoverTrigger asChild>
         {trigger || (
           <Button
@@ -102,7 +105,7 @@ export const TimePickerPopover = ({
             className={cn(
               "w-[150px] justify-start text-left font-normal",
               !value && "text-muted-foreground",
-              disabled && "bg-muted cursor-not-allowed opacity-70"
+              disabled && "bg-muted cursor-not-allowed opacity-70",
             )}
           >
             <Clock className="mr-2 h-4 w-4" />

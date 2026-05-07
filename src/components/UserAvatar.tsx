@@ -1,5 +1,9 @@
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface UserAvatarProps {
   initial: string;
@@ -31,7 +35,7 @@ export const UserAvatar = ({
       className={cn(
         "flex items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold",
         sizeClasses[size],
-        className
+        className,
       )}
     >
       {initial}
@@ -44,9 +48,7 @@ export const UserAvatar = ({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        {avatar}
-      </TooltipTrigger>
+      <TooltipTrigger asChild>{avatar}</TooltipTrigger>
       <TooltipContent side="right">
         <p>{name}</p>
       </TooltipContent>

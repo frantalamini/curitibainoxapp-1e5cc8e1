@@ -40,7 +40,9 @@ export const useBankReconciliation = (year: number, month?: number) => {
       // Fetch paid transactions with financial_account_id
       const { data: transactions, error } = await supabase
         .from("financial_transactions")
-        .select("id, description, amount, direction, due_date, paid_at, status, financial_account_id")
+        .select(
+          "id, description, amount, direction, due_date, paid_at, status, financial_account_id",
+        )
         .eq("status", "PAID")
         .not("financial_account_id", "is", null)
         .gte("paid_at", startDate)
@@ -61,7 +63,7 @@ export const useBankReconciliation = (year: number, month?: number) => {
     .filter((acc) => acc.is_active)
     .map((acc) => {
       const accTransactions = transactions.filter(
-        (t) => t.financial_account_id === acc.id
+        (t) => t.financial_account_id === acc.id,
       );
 
       const totalReceived = accTransactions
@@ -88,7 +90,9 @@ export const useBankReconciliation = (year: number, month?: number) => {
     });
 
   // Get transactions for a specific account
-  const getTransactionsByAccount = (accountId: string): ReconciliationTransaction[] => {
+  const getTransactionsByAccount = (
+    accountId: string,
+  ): ReconciliationTransaction[] => {
     return transactions
       .filter((t) => t.financial_account_id === accountId)
       .map((t) => ({
@@ -105,16 +109,16 @@ export const useBankReconciliation = (year: number, month?: number) => {
   // Calculate totals
   const totalOpeningBalance = reconciliations.reduce(
     (sum, r) => sum + r.openingBalance,
-    0
+    0,
   );
   const totalReceived = reconciliations.reduce(
     (sum, r) => sum + r.totalReceived,
-    0
+    0,
   );
   const totalPaid = reconciliations.reduce((sum, r) => sum + r.totalPaid, 0);
   const totalCalculatedBalance = reconciliations.reduce(
     (sum, r) => sum + r.calculatedBalance,
-    0
+    0,
   );
 
   return {

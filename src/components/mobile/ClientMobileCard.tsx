@@ -1,4 +1,9 @@
-import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
+import {
+  MobileCard,
+  MobileCardHeader,
+  MobileCardRow,
+  MobileCardFooter,
+} from "@/components/ui/mobile-card";
 import { Phone, Mail, MapPin, Building2, FileText } from "lucide-react";
 
 interface Client {
@@ -24,7 +29,12 @@ interface ClientMobileCardProps {
   onDelete: () => void;
 }
 
-export function ClientMobileCard({ client, onView, onEdit, onDelete }: ClientMobileCardProps) {
+export function ClientMobileCard({
+  client,
+  onView,
+  onEdit,
+  onDelete,
+}: ClientMobileCardProps) {
   const formatAddress = () => {
     if (client.street && client.city) {
       const parts = [client.street];
@@ -42,7 +52,7 @@ export function ClientMobileCard({ client, onView, onEdit, onDelete }: ClientMob
         subtitle={client.nome_fantasia || undefined}
         badge={client.client_number ? `#${client.client_number}` : undefined}
       />
-      
+
       <div className="space-y-1">
         <MobileCardRow
           icon={<Phone className="h-4 w-4" />}
@@ -50,11 +60,16 @@ export function ClientMobileCard({ client, onView, onEdit, onDelete }: ClientMob
           value={
             <div>
               <span>{client.phone}</span>
-              {client.phone_2 && <span className="text-muted-foreground"> / {client.phone_2}</span>}
+              {client.phone_2 && (
+                <span className="text-muted-foreground">
+                  {" "}
+                  / {client.phone_2}
+                </span>
+              )}
             </div>
           }
         />
-        
+
         {client.email && (
           <MobileCardRow
             icon={<Mail className="h-4 w-4" />}
@@ -62,7 +77,7 @@ export function ClientMobileCard({ client, onView, onEdit, onDelete }: ClientMob
             value={client.email}
           />
         )}
-        
+
         {formatAddress() && (
           <MobileCardRow
             icon={<MapPin className="h-4 w-4" />}
@@ -70,7 +85,7 @@ export function ClientMobileCard({ client, onView, onEdit, onDelete }: ClientMob
             value={formatAddress()}
           />
         )}
-        
+
         {client.cpf_cnpj && (
           <MobileCardRow
             icon={<FileText className="h-4 w-4" />}
@@ -79,12 +94,8 @@ export function ClientMobileCard({ client, onView, onEdit, onDelete }: ClientMob
           />
         )}
       </div>
-      
-      <MobileCardFooter
-        onView={onView}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
+
+      <MobileCardFooter onView={onView} onEdit={onEdit} onDelete={onDelete} />
     </MobileCard>
   );
 }

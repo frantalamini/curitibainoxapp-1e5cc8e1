@@ -4,6 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useTechnicians, type TechnicianInsert } from "@/hooks/useTechnicians";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,17 +18,23 @@ import { useToast } from "@/hooks/use-toast";
 import { toTitleCase } from "@/lib/utils";
 
 const technicianSchema = z.object({
-  full_name: z.string()
+  full_name: z
+    .string()
     .trim()
     .min(3, "Nome deve ter no mínimo 3 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres"),
-  phone: z.string()
+  phone: z
+    .string()
     .trim()
-    .transform((val) => val.replace(/\D/g, ''))
-    .refine((val) => val.length === 11, "Telefone deve ter 11 dígitos (DDD + 9 dígitos)"),
+    .transform((val) => val.replace(/\D/g, ""))
+    .refine(
+      (val) => val.length === 11,
+      "Telefone deve ter 11 dígitos (DDD + 9 dígitos)",
+    ),
   specialty_refrigeration: z.boolean().default(false),
   specialty_cooking: z.boolean().default(false),
-  additional_notes: z.string()
+  additional_notes: z
+    .string()
     .max(300, "Notas devem ter no máximo 300 caracteres")
     .optional()
     .transform((val) => val || undefined),
@@ -37,8 +44,9 @@ const technicianSchema = z.object({
 const TechnicianForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { technicians, createTechnician, updateTechnician } = useTechnicians();
   const isEdit = !!id;
+  const { canCreate, canEdit } = useModulePermissions("technicians");
+  const { technicians, createTechnician, updateTechnician } = useTechnicians();
 
   const [charCount, setCharCount] = useState(0);
   const { toast } = useToast();
@@ -88,6 +96,22 @@ const TechnicianForm = () => {
   }, [additionalNotes]);
 
   const onSubmit = async (formData: TechnicianInsert) => {
+    if (isEdit && !canEdit) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para editar técnicos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!isEdit && !canCreate) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para criar técnicos.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Normalizar nome para Title Case
     const data = { ...formData, full_name: toTitleCase(formData.full_name) };
 
@@ -111,7 +135,11 @@ const TechnicianForm = () => {
     <MainLayout>
       <div className="container mx-auto px-4 py-6 max-w-2xl space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/technicians")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/technicians")}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-3xl font-bold">
@@ -119,7 +147,10 @@ const TechnicianForm = () => {
           </h1>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card p-6 rounded-lg border">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-6 bg-card p-6 rounded-lg border"
+        >
           {isEdit && currentTechnician && (
             <div className="space-y-2">
               <Label>ID Técnico</Label>
@@ -139,7 +170,9 @@ const TechnicianForm = () => {
               placeholder="Digite o nome completo"
             />
             {errors.full_name && (
-              <p className="text-sm text-destructive">{errors.full_name.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.full_name.message}
+              </p>
             )}
           </div>
 
@@ -172,17 +205,17 @@ const TechnicianForm = () => {
 
           <div className="space-y-4">
             <Label>Especialidades</Label>
-            
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="specialty_refrigeration"
                 checked={specialtyRefrigeration}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setValue("specialty_refrigeration", checked as boolean)
                 }
               />
-              <Label 
-                htmlFor="specialty_refrigeration" 
+              <Label
+                htmlFor="specialty_refrigeration"
                 className="font-normal cursor-pointer"
               >
                 Refrigeração Comercial
@@ -193,12 +226,12 @@ const TechnicianForm = () => {
               <Checkbox
                 id="specialty_cooking"
                 checked={specialtyCooking}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   setValue("specialty_cooking", checked as boolean)
                 }
               />
-              <Label 
-                htmlFor="specialty_cooking" 
+              <Label
+                htmlFor="specialty_cooking"
                 className="font-normal cursor-pointer"
               >
                 Cocção
@@ -221,7 +254,9 @@ const TechnicianForm = () => {
               rows={4}
             />
             {errors.additional_notes && (
-              <p className="text-sm text-destructive">{errors.additional_notes.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.additional_notes.message}
+              </p>
             )}
           </div>
 

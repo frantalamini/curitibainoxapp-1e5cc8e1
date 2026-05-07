@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, format } from "date-fns";
+import { FUEL_COST_PER_KM } from "@/lib/constants";
 
 interface ServiceCallProfitability {
   id: string;
@@ -38,14 +39,16 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_calls")
-        .select(`
+        .select(
+          `
           id,
           os_number,
           scheduled_date,
           status,
           client:clients(full_name),
           technician:technicians(full_name)
-        `)
+        `,
+        )
         .gte("scheduled_date", startDate)
         .lte("scheduled_date", endDate)
         .order("scheduled_date", { ascending: false });
@@ -60,11 +63,11 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
     queryKey: ["os-profitability-items", startDate, endDate],
     queryFn: async () => {
       if (serviceCalls.length === 0) return [];
-      
+
       const osIds = serviceCalls.map((sc) => sc.id);
       const { data, error } = await supabase
         .from("service_call_items")
-        .select("service_call_id, type, total, qty, unit_price")
+        .select("service_call_id, type, total, qty, unit_price, product_id")
         .in("service_call_id", osIds);
 
       if (error) throw error;
@@ -74,30 +77,31 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
   });
 
   // Fetch reimbursements
-  const { data: reimbursements = [], isLoading: reimbursementsLoading } = useQuery({
-    queryKey: ["os-profitability-reimbursements", startDate, endDate],
-    queryFn: async () => {
-      if (serviceCalls.length === 0) return [];
-      
-      const osIds = serviceCalls.map((sc) => sc.id);
-      const { data, error } = await supabase
-        .from("technician_reimbursements")
-        .select("service_call_id, amount, status")
-        .in("service_call_id", osIds)
-        .in("status", ["APPROVED", "PAID"]);
+  const { data: reimbursements = [], isLoading: reimbursementsLoading } =
+    useQuery({
+      queryKey: ["os-profitability-reimbursements", startDate, endDate],
+      queryFn: async () => {
+        if (serviceCalls.length === 0) return [];
 
-      if (error) throw error;
-      return data;
-    },
-    enabled: serviceCalls.length > 0,
-  });
+        const osIds = serviceCalls.map((sc) => sc.id);
+        const { data, error } = await supabase
+          .from("technician_reimbursements")
+          .select("service_call_id, amount, status")
+          .in("service_call_id", osIds)
+          .in("status", ["APPROVED", "PAID"]);
+
+        if (error) throw error;
+        return data;
+      },
+      enabled: serviceCalls.length > 0,
+    });
 
   // Fetch trips (for fuel cost estimation)
   const { data: trips = [], isLoading: tripsLoading } = useQuery({
     queryKey: ["os-profitability-trips", startDate, endDate],
     queryFn: async () => {
       if (serviceCalls.length === 0) return [];
-      
+
       const osIds = serviceCalls.map((sc) => sc.id);
       const { data, error } = await supabase
         .from("service_call_trips")
@@ -124,38 +128,56 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
     },
   });
 
-  const isLoading = callsLoading || itemsLoading || reimbursementsLoading || tripsLoading || productsLoading;
+  const isLoading =
+    callsLoading ||
+    itemsLoading ||
+    reimbursementsLoading ||
+    tripsLoading ||
+    productsLoading;
 
-  // Calculate profitability per OS
-  const FUEL_COST_PER_KM = 1.2; // Estimativa R$ por km
+  // Mapa product_id -> cost_price para lookup O(1)
+  const productCostMap = new Map<string, number>(
+    products.map((p) => [p.id, p.cost_price ?? 0]),
+  );
 
   const osProfitability: ServiceCallProfitability[] = serviceCalls.map((sc) => {
     const osItems = items.filter((i) => i.service_call_id === sc.id);
-    const osReimbursements = reimbursements.filter((r) => r.service_call_id === sc.id);
+    const osReimbursements = reimbursements.filter(
+      (r) => r.service_call_id === sc.id,
+    );
     const osTrips = trips.filter((t) => t.service_call_id === sc.id);
 
     // Revenue
     const totalProducts = osItems
       .filter((i) => i.type === "PRODUCT")
       .reduce((sum, i) => sum + i.total, 0);
-    
+
     const totalServices = osItems
       .filter((i) => i.type === "SERVICE")
       .reduce((sum, i) => sum + i.total, 0);
-    
+
     const totalRevenue = totalProducts + totalServices;
 
     // Costs
-    // Product costs: estimate based on cost_price if available
+    // Product costs: usa cost_price real do produto; fallback 60% se não cadastrado
     const productCosts = osItems
       .filter((i) => i.type === "PRODUCT")
       .reduce((sum, i) => {
-        // Estimate cost as 60% of sale price if no cost data
-        return sum + (i.total * 0.6);
+        const costPrice = i.product_id
+          ? productCostMap.get(i.product_id)
+          : undefined;
+        if (costPrice !== undefined && costPrice > 0 && i.qty) {
+          return sum + costPrice * i.qty;
+        }
+        // Fallback: estima 60% do total quando cost_price não está disponível
+        return sum + i.total * 0.6;
       }, 0);
 
-    const reimbursementsCost = osReimbursements.reduce((sum, r) => sum + r.amount, 0);
-    
+    const reimbursementsCost = osReimbursements.reduce(
+      (sum, r) => sum + r.amount,
+      0,
+    );
+
     const totalKm = osTrips.reduce((sum, t) => sum + (t.distance_km || 0), 0);
     const tripCosts = totalKm * FUEL_COST_PER_KM;
 
@@ -163,13 +185,19 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
 
     // Profit
     const grossProfit = totalRevenue - totalCosts;
-    const profitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    const profitMargin =
+      totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
 
     return {
       id: sc.id,
       osNumber: sc.os_number,
-      clientName: (sc.client as any)?.full_name || "N/A",
-      technicianName: (sc.technician as any)?.full_name || "N/A",
+      clientName: Array.isArray(sc.client)
+        ? (sc.client[0]?.full_name ?? "N/A")
+        : ((sc.client as { full_name?: string } | null)?.full_name ?? "N/A"),
+      technicianName: Array.isArray(sc.technician)
+        ? (sc.technician[0]?.full_name ?? "N/A")
+        : ((sc.technician as { full_name?: string } | null)?.full_name ??
+          "N/A"),
       scheduledDate: sc.scheduled_date,
       status: sc.status,
       totalProducts,
@@ -189,14 +217,18 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
     totalRevenue: osProfitability.reduce((sum, os) => sum + os.totalRevenue, 0),
     totalCosts: osProfitability.reduce((sum, os) => sum + os.totalCosts, 0),
     totalProfit: osProfitability.reduce((sum, os) => sum + os.grossProfit, 0),
-    averageMargin: osProfitability.length > 0
-      ? osProfitability.reduce((sum, os) => sum + os.profitMargin, 0) / osProfitability.length
-      : 0,
+    averageMargin:
+      osProfitability.length > 0
+        ? osProfitability.reduce((sum, os) => sum + os.profitMargin, 0) /
+          osProfitability.length
+        : 0,
     osCount: osProfitability.length,
   };
 
   // Sort by profit (most profitable first)
-  const sortedByProfit = [...osProfitability].sort((a, b) => b.grossProfit - a.grossProfit);
+  const sortedByProfit = [...osProfitability].sort(
+    (a, b) => b.grossProfit - a.grossProfit,
+  );
   const topProfitable = sortedByProfit.slice(0, 10);
   const leastProfitable = sortedByProfit.slice(-10).reverse();
 

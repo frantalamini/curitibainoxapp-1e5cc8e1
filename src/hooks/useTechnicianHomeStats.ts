@@ -20,7 +20,8 @@ interface TechnicianHomeStats {
 }
 
 export const useTechnicianHomeStats = () => {
-  const { technicianId, isLoading: isTechnicianLoading } = useCurrentTechnician();
+  const { technicianId, isLoading: isTechnicianLoading } =
+    useCurrentTechnician();
 
   return useQuery({
     queryKey: ["technician-home-stats", technicianId],
@@ -44,13 +45,15 @@ export const useTechnicianHomeStats = () => {
         .eq("active", true);
 
       const finishedStatusNames = ["Finalizado", "Cancelado"];
-      const openStatusIds = statuses
-        ?.filter((s) => !finishedStatusNames.includes(s.name))
-        .map((s) => s.id) || [];
-      
-      const finishedStatusIds = statuses
-        ?.filter((s) => finishedStatusNames.includes(s.name))
-        .map((s) => s.id) || [];
+      const openStatusIds =
+        statuses
+          ?.filter((s) => !finishedStatusNames.includes(s.name))
+          .map((s) => s.id) || [];
+
+      const finishedStatusIds =
+        statuses
+          ?.filter((s) => finishedStatusNames.includes(s.name))
+          .map((s) => s.id) || [];
 
       // Queries em paralelo - filtradas por técnico
       const [
@@ -84,14 +87,16 @@ export const useTechnicianHomeStats = () => {
         // Próximos compromissos do técnico (5 próximos)
         supabase
           .from("service_calls")
-          .select(`
+          .select(
+            `
             id,
             os_number,
             scheduled_date,
             scheduled_time,
             equipment_description,
             clients (full_name)
-          `)
+          `,
+          )
           .eq("technician_id", technicianId)
           .gte("scheduled_date", today)
           .not("status_id", "in", `(${finishedStatusIds.join(",")})`)
@@ -99,7 +104,9 @@ export const useTechnicianHomeStats = () => {
           .limit(15),
       ]);
 
-      const upcomingCalls: UpcomingCall[] = (upcomingCallsResult.data || []).map((call: any) => ({
+      const upcomingCalls: UpcomingCall[] = (
+        upcomingCallsResult.data || []
+      ).map((call: any) => ({
         id: call.id,
         os_number: call.os_number,
         scheduled_date: call.scheduled_date,

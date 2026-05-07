@@ -17,7 +17,7 @@ export function useServiceCallMarkers(serviceCallIds?: string[]) {
     queryKey: ["service-call-markers", serviceCallIds],
     queryFn: async () => {
       if (!serviceCallIds || serviceCallIds.length === 0) return [];
-      
+
       const { data, error } = await supabase
         .from("service_call_markers")
         .select("*")
@@ -31,18 +31,29 @@ export function useServiceCallMarkers(serviceCallIds?: string[]) {
   });
 
   // Agrupa marcadores por service_call_id
-  const markersByServiceCall = markers.reduce((acc, marker) => {
-    if (!acc[marker.service_call_id]) {
-      acc[marker.service_call_id] = [];
-    }
-    acc[marker.service_call_id].push(marker);
-    return acc;
-  }, {} as Record<string, ServiceCallMarker[]>);
+  const markersByServiceCall = markers.reduce(
+    (acc, marker) => {
+      if (!acc[marker.service_call_id]) {
+        acc[marker.service_call_id] = [];
+      }
+      acc[marker.service_call_id].push(marker);
+      return acc;
+    },
+    {} as Record<string, ServiceCallMarker[]>,
+  );
 
   // Adicionar marcador
   const addMarker = useMutation({
-    mutationFn: async ({ serviceCallId, text }: { serviceCallId: string; text: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+    mutationFn: async ({
+      serviceCallId,
+      text,
+    }: {
+      serviceCallId: string;
+      text: string;
+    }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       const { data, error } = await supabase

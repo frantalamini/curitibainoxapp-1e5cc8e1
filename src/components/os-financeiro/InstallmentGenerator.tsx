@@ -4,11 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Plus, X, Receipt, AlertCircle } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Plus,
+  X,
+  Receipt,
+  AlertCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Installment } from "./types";
 
@@ -41,7 +51,9 @@ export const InstallmentGenerator = ({
   isGenerating = false,
 }: InstallmentGeneratorProps) => {
   const [daysInput, setDaysInput] = useState("");
-  const [quickDaysMode, setQuickDaysMode] = useState<'custom' | 'preset'>('preset');
+  const [quickDaysMode, setQuickDaysMode] = useState<"custom" | "preset">(
+    "preset",
+  );
 
   // Quick presets
   const presets = [
@@ -71,11 +83,11 @@ export const InstallmentGenerator = ({
   };
 
   const handleDaysInputKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleAddDay();
     }
-    if (e.key === '+') {
+    if (e.key === "+") {
       e.preventDefault();
       handleAddDay();
     }
@@ -85,9 +97,9 @@ export const InstallmentGenerator = ({
   const handleTextInput = (text: string) => {
     const parsed = text
       .split(/[+,;/\s]+/)
-      .map(s => parseInt(s.trim()))
-      .filter(n => !isNaN(n) && n > 0);
-    
+      .map((s) => parseInt(s.trim()))
+      .filter((n) => !isNaN(n) && n > 0);
+
     if (parsed.length > 0) {
       onInstallmentDaysChange(parsed);
     }
@@ -96,10 +108,10 @@ export const InstallmentGenerator = ({
   // Preview: calculate cumulative dates
   const previewInstallments = () => {
     if (installmentDays.length === 0) return [];
-    
+
     const valuePerInstallment = total / installmentDays.length;
     let currentDate = new Date(startDate);
-    
+
     return installmentDays.map((days, index) => {
       currentDate = addDays(currentDate, days);
       return {
@@ -142,11 +154,13 @@ export const InstallmentGenerator = ({
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal mt-1",
-                    !startDate && "text-muted-foreground"
+                    !startDate && "text-muted-foreground",
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
+                  {startDate
+                    ? format(startDate, "dd/MM/yyyy", { locale: ptBR })
+                    : "Selecionar data"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -170,8 +184,9 @@ export const InstallmentGenerator = ({
                   variant="outline"
                   className={cn(
                     "cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors",
-                    JSON.stringify(installmentDays) === JSON.stringify(preset.days) && 
-                    "bg-primary text-primary-foreground"
+                    JSON.stringify(installmentDays) ===
+                      JSON.stringify(preset.days) &&
+                      "bg-primary text-primary-foreground",
                   )}
                   onClick={() => handlePresetSelect(preset.days)}
                 >
@@ -184,7 +199,9 @@ export const InstallmentGenerator = ({
 
         {/* Custom Days Input */}
         <div>
-          <Label className="text-xs">Dias das Parcelas (intervalo entre cada parcela)</Label>
+          <Label className="text-xs">
+            Dias das Parcelas (intervalo entre cada parcela)
+          </Label>
           <div className="flex gap-2 mt-1">
             <Input
               placeholder="Ex: 7+14+21 ou digite um número"
@@ -192,7 +209,7 @@ export const InstallmentGenerator = ({
               onChange={(e) => setDaysInput(e.target.value)}
               onKeyDown={handleDaysInputKeyDown}
               onBlur={() => {
-                if (daysInput.includes('+') || daysInput.includes(',')) {
+                if (daysInput.includes("+") || daysInput.includes(",")) {
                   handleTextInput(daysInput);
                   setDaysInput("");
                 }
@@ -202,7 +219,7 @@ export const InstallmentGenerator = ({
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          
+
           {/* Days badges */}
           {installmentDays.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
@@ -230,10 +247,17 @@ export const InstallmentGenerator = ({
             </Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {preview.map((inst) => (
-                <div key={inst.number} className="flex justify-between text-sm p-2 bg-background rounded border">
-                  <span className="font-medium">{inst.number}/{preview.length}</span>
+                <div
+                  key={inst.number}
+                  className="flex justify-between text-sm p-2 bg-background rounded border"
+                >
+                  <span className="font-medium">
+                    {inst.number}/{preview.length}
+                  </span>
                   <span>{format(inst.dueDate, "dd/MM/yyyy")}</span>
-                  <span className="font-semibold">{formatCurrency(inst.amount)}</span>
+                  <span className="font-semibold">
+                    {formatCurrency(inst.amount)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -244,11 +268,18 @@ export const InstallmentGenerator = ({
         <Button
           type="button"
           onClick={onGenerate}
-          disabled={installmentDays.length === 0 || total <= 0 || hasExistingInstallments || isGenerating}
+          disabled={
+            installmentDays.length === 0 ||
+            total <= 0 ||
+            hasExistingInstallments ||
+            isGenerating
+          }
           className="w-full"
         >
           <Receipt className="h-4 w-4 mr-2" />
-          {isGenerating ? "Gerando..." : `Gerar ${installmentDays.length} Parcela(s)`}
+          {isGenerating
+            ? "Gerando..."
+            : `Gerar ${installmentDays.length} Parcela(s)`}
         </Button>
       </CardContent>
     </Card>

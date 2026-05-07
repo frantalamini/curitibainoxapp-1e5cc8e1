@@ -35,8 +35,10 @@ export const useSystemSettings = () => {
 
   const updateSettings = useMutation({
     mutationFn: async (updates: Partial<SystemSettings>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const { data, error } = await supabase
         .from("system_settings")
         .update({

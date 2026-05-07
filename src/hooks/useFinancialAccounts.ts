@@ -17,13 +17,20 @@ export interface FinancialAccount {
   updated_at: string;
 }
 
-export type FinancialAccountInsert = Omit<FinancialAccount, "id" | "created_at" | "updated_at">;
+export type FinancialAccountInsert = Omit<
+  FinancialAccount,
+  "id" | "created_at" | "updated_at"
+>;
 export type FinancialAccountUpdate = Partial<FinancialAccountInsert>;
 
 export const useFinancialAccounts = () => {
   const queryClient = useQueryClient();
 
-  const { data: accounts = [], isLoading, error } = useQuery({
+  const {
+    data: accounts = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["financial-accounts"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -57,7 +64,10 @@ export const useFinancialAccounts = () => {
   });
 
   const updateAccount = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & FinancialAccountUpdate) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & FinancialAccountUpdate) => {
       const { data, error } = await supabase
         .from("financial_accounts")
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -96,7 +106,13 @@ export const useFinancialAccounts = () => {
   });
 
   const toggleActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
       const { error } = await supabase
         .from("financial_accounts")
         .update({ is_active, updated_at: new Date().toISOString() })

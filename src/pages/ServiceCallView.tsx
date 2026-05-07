@@ -33,10 +33,16 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { generateOSPdf, markOSWithFinancialReport } from "@/lib/generateOSPdf";
 import { uploadPdfToStorage } from "@/lib/pdfUploadHelper";
-import { useServiceCall, useMarkServiceCallSeen } from "@/hooks/useServiceCalls";
+import {
+  useServiceCall,
+  useMarkServiceCallSeen,
+} from "@/hooks/useServiceCalls";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useCurrentUserPermissions } from "@/hooks/useUserPermissions";
+import {
+  useCurrentUserPermissions,
+  checkPermission,
+} from "@/hooks/useUserPermissions";
 import { useChecklists } from "@/hooks/useChecklists";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { SendReportModal } from "@/components/SendReportModal";
@@ -44,12 +50,16 @@ import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
 import { supabase } from "@/integrations/supabase/client";
 import MainLayout from "@/components/MainLayout";
 
-const getLatestSignature = (signatures: any[] | undefined, role: 'tech' | 'client') => {
+const getLatestSignature = (
+  signatures: any[] | undefined,
+  role: "tech" | "client",
+) => {
   if (!signatures || !Array.isArray(signatures)) return null;
   const filtered = signatures.filter((s: any) => s.role === role);
   if (filtered.length === 0) return null;
-  return filtered.sort((a: any, b: any) => 
-    new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime()
+  return filtered.sort(
+    (a: any, b: any) =>
+      new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime(),
   )[0];
 };
 
@@ -57,36 +67,36 @@ const getLatestSignature = (signatures: any[] | undefined, role: 'tech' | 'clien
  * Resolve URL da assinatura - suporta paths de storage e URLs
  */
 const resolveSignatureForDisplay = async (
-  imageUrlOrPath: string | undefined | null
+  imageUrlOrPath: string | undefined | null,
 ): Promise<string | null> => {
   if (!imageUrlOrPath) return null;
-  
+
   // Se já é data URL ou URL completa válida, retorna direto
-  if (imageUrlOrPath.startsWith('data:')) {
+  if (imageUrlOrPath.startsWith("data:")) {
     return imageUrlOrPath;
   }
-  
+
   // Se é URL completa (https://...), verifica se é Supabase storage
-  if (imageUrlOrPath.startsWith('http')) {
+  if (imageUrlOrPath.startsWith("http")) {
     // Se parece ser URL assinada do Supabase storage, extrair path e gerar nova
-    if (imageUrlOrPath.includes('/storage/v1/object/')) {
+    if (imageUrlOrPath.includes("/storage/v1/object/")) {
       const match = imageUrlOrPath.match(/\/service-call-attachments\/([^?]+)/);
       if (match) {
         const storagePath = match[1];
         const { data: signedData } = await supabase.storage
-          .from('service-call-attachments')
+          .from("service-call-attachments")
           .createSignedUrl(storagePath, 3600);
         return signedData?.signedUrl || imageUrlOrPath;
       }
     }
     return imageUrlOrPath;
   }
-  
+
   // É um caminho relativo no storage
   const { data: signedData } = await supabase.storage
-    .from('service-call-attachments')
+    .from("service-call-attachments")
     .createSignedUrl(imageUrlOrPath, 3600);
-  
+
   return signedData?.signedUrl || null;
 };
 
@@ -102,22 +112,27 @@ const ServiceCallView = () => {
   const [sendEmailModalOpen, setSendEmailModalOpen] = useState(false);
   const { isAdmin, isTechnician } = useUserRole();
   const { data: permissionsData } = useCurrentUserPermissions();
+  const canViewFinancial = checkPermission(
+    permissionsData?.permissions ?? [],
+    "finances",
+    "view",
+  );
   const { checklists } = useChecklists();
   const { settings: systemSettings } = useSystemSettings();
-  
+
   // Estado para assinaturas resolvidas (com URLs válidas)
   const [resolvedSignatures, setResolvedSignatures] = useState<{
     tech: string | null;
     client: string | null;
   }>({ tech: null, client: null });
-  
+
   // Ref para rastrear se o componente está montado
   const isMountedRef = useRef(true);
-  
+
   // Marcar como visto ao abrir a página
   const markSeen = useMarkServiceCallSeen();
   const hasMarkedRef = useRef(false);
-  
+
   // Cleanup ao desmontar componente
   useEffect(() => {
     isMountedRef.current = true;
@@ -132,22 +147,25 @@ const ServiceCallView = () => {
     isMountedRef.current = false;
     navigate("/service-calls");
   };
-  
+
   useEffect(() => {
     if (call?.id && !hasMarkedRef.current && !call.seen_by_tech_at) {
       hasMarkedRef.current = true;
       markSeen.mutate(call.id);
     }
   }, [call?.id, call?.seen_by_tech_at]);
-  
+
   // Resolver assinaturas ao carregar a OS
   useEffect(() => {
     const resolveSignatures = async () => {
       if (!call) return;
-      
-      const latestTech = getLatestSignature((call as any).signatures, 'tech');
-      const latestClient = getLatestSignature((call as any).signatures, 'client');
-      
+
+      const latestTech = getLatestSignature((call as any).signatures, "tech");
+      const latestClient = getLatestSignature(
+        (call as any).signatures,
+        "client",
+      );
+
       // Resolver técnico
       let techUrl: string | null = null;
       if (latestTech?.storage_path) {
@@ -157,9 +175,11 @@ const ServiceCallView = () => {
       } else if (call.technician_signature_data) {
         techUrl = call.technician_signature_data;
       } else if (call.technician_signature_url) {
-        techUrl = await resolveSignatureForDisplay(call.technician_signature_url);
+        techUrl = await resolveSignatureForDisplay(
+          call.technician_signature_url,
+        );
       }
-      
+
       // Resolver cliente
       let clientUrl: string | null = null;
       if (latestClient?.storage_path) {
@@ -169,12 +189,14 @@ const ServiceCallView = () => {
       } else if (call.customer_signature_data) {
         clientUrl = call.customer_signature_data;
       } else if (call.customer_signature_url) {
-        clientUrl = await resolveSignatureForDisplay(call.customer_signature_url);
+        clientUrl = await resolveSignatureForDisplay(
+          call.customer_signature_url,
+        );
       }
-      
+
       setResolvedSignatures({ tech: techUrl, client: clientUrl });
     };
-    
+
     resolveSignatures();
   }, [call]);
 
@@ -191,62 +213,71 @@ const ServiceCallView = () => {
 
   // Verificar se técnico está bloqueado de gerar PDF (usa casting para nova coluna)
   const callWithFinancialFlag = call as any;
-  const isTechnicianBlockedFromPdf = isTechnician && !isAdmin && callWithFinancialFlag?.has_financial_report;
+  const isTechnicianBlockedFromPdf =
+    !canViewFinancial && callWithFinancialFlag?.has_financial_report;
 
   // Bloquear edição quando status comercial é "Concluído" ou "Faturado" (apenas Gerencial pode editar)
-  const commercialStatusName = (call as any)?.commercial_status?.name?.toLowerCase() || '';
-  const isGerencial = permissionsData?.profileType === 'gerencial';
-  const isEditBlocked = (commercialStatusName === 'concluído' || commercialStatusName === 'faturado') && !isGerencial;
+  const commercialStatusName =
+    (call as any)?.commercial_status?.name?.toLowerCase() || "";
+  const isGerencial = permissionsData?.profileType === "gerencial";
+  const isEditBlocked =
+    (commercialStatusName === "concluído" ||
+      commercialStatusName === "faturado") &&
+    !isGerencial;
 
   const handleGeneratePDF = async (includeFinancial = false) => {
     if (!call) return;
-    
-    // HARD BLOCK: Técnicos NUNCA podem gerar PDF com dados financeiros
-    if (includeFinancial && isTechnician && !isAdmin) {
+
+    // HARD BLOCK: apenas quem tem permissão de finances pode gerar PDF com dados financeiros
+    if (includeFinancial && !canViewFinancial) {
       toast({
         title: "Acesso Negado",
-        description: "Técnicos não têm permissão para gerar relatórios com dados financeiros.",
+        description:
+          "Técnicos não têm permissão para gerar relatórios com dados financeiros.",
         variant: "destructive",
       });
       return;
     }
-    
-    // Bloquear técnico se já tem relatório financeiro gerado
-    if (isTechnician && !isAdmin && callWithFinancialFlag?.has_financial_report) {
+
+    // Bloquear usuário sem permissão se já tem relatório financeiro gerado
+    if (!canViewFinancial && callWithFinancialFlag?.has_financial_report) {
       toast({
         title: "Acesso Bloqueado",
-        description: "O relatório financeiro já foi gerado pelo administrador. Técnicos não podem mais acessar relatórios desta OS.",
+        description:
+          "O relatório financeiro já foi gerado pelo administrador. Técnicos não podem mais acessar relatórios desta OS.",
         variant: "destructive",
       });
       return;
     }
-    
+
     try {
       setIsGeneratingPDF(true);
-      
-      const { blob, fileName, blobUrl } = await generateOSPdf(call.id, { includeFinancial });
+
+      const { blob, fileName, blobUrl } = await generateOSPdf(call.id, {
+        includeFinancial,
+      });
       setPdfBlob(blob);
-      
+
       // Download automático local
-      const autoLink = document.createElement('a');
+      const autoLink = document.createElement("a");
       autoLink.href = blobUrl;
       autoLink.download = fileName;
-      autoLink.style.display = 'none';
+      autoLink.style.display = "none";
       document.body.appendChild(autoLink);
       autoLink.click();
       document.body.removeChild(autoLink);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      
+
       // Upload para storage
       const uploadResult = await uploadPdfToStorage(blob, call.id, fileName);
       setPdfUrl(uploadResult.signedUrl);
-      
+
       // Salvar caminho do PDF no banco
       const { error: updateError } = await supabase
-        .from('service_calls')
+        .from("service_calls")
         .update({ report_pdf_path: uploadResult.filePath })
-        .eq('id', call.id);
-      
+        .eq("id", call.id);
+
       if (updateError) {
         console.error("Erro ao salvar caminho do PDF:", updateError);
       }
@@ -256,7 +287,8 @@ const ServiceCallView = () => {
         await markOSWithFinancialReport(call.id);
         toast({
           title: "✅ PDF Completo gerado!",
-          description: "Relatório com dados financeiros. Técnicos não poderão mais acessar relatórios desta OS.",
+          description:
+            "Relatório com dados financeiros. Técnicos não poderão mais acessar relatórios desta OS.",
           duration: 5000,
         });
       } else {
@@ -299,14 +331,14 @@ const ServiceCallView = () => {
 
       const fileName = `relatorio-os-${call.os_number}.pdf`;
 
-      if ('showSaveFilePicker' in window) {
+      if ("showSaveFilePicker" in window) {
         try {
           const handle = await window.showSaveFilePicker!({
             suggestedName: fileName,
             types: [
               {
-                description: 'Documento PDF',
-                accept: { 'application/pdf': ['.pdf'] },
+                description: "Documento PDF",
+                accept: { "application/pdf": [".pdf"] },
               },
             ],
           });
@@ -321,23 +353,23 @@ const ServiceCallView = () => {
           });
           return;
         } catch (err: any) {
-          if (err.name === 'AbortError') {
+          if (err.name === "AbortError") {
             toast({
               title: "Salvamento cancelado",
               description: "Você cancelou o salvamento do arquivo",
             });
             return;
           }
-          console.warn('showSaveFilePicker falhou, usando fallback:', err);
+          console.warn("showSaveFilePicker falhou, usando fallback:", err);
         }
       }
 
       // Fallback
       const blobUrl = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = blobUrl;
       link.download = fileName;
-      link.style.display = 'none';
+      link.style.display = "none";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -347,7 +379,6 @@ const ServiceCallView = () => {
         title: "Download iniciado",
         description: `Salvando: ${fileName}`,
       });
-
     } catch (error) {
       console.error("Erro ao salvar PDF:", error);
       toast({
@@ -362,7 +393,9 @@ const ServiceCallView = () => {
     return (
       <MainLayout>
         <div className="flex min-h-[50vh] items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Carregando...</div>
+          <div className="animate-pulse text-muted-foreground">
+            Carregando...
+          </div>
         </div>
       </MainLayout>
     );
@@ -384,14 +417,14 @@ const ServiceCallView = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
         {/* Header estilo Tiny - Breadcrumb + Ações */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Lado esquerdo: Voltar + Breadcrumb */}
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleBack}
               className="gap-2"
             >
@@ -403,7 +436,7 @@ const ServiceCallView = () => {
             <span className="text-muted-foreground">›</span>
             <span className="font-semibold text-sm">OS #{call.os_number}</span>
           </div>
-          
+
           {/* Lado direito: Botões de Ação - condicionais por perfil */}
           <div className="flex items-center gap-2 shrink-0">
             {!isEditBlocked ? (
@@ -415,62 +448,40 @@ const ServiceCallView = () => {
                 Editar
               </Button>
             ) : (
-              <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
-                {commercialStatusName === 'faturado' ? 'OS Faturada' : 'OS Concluída'} — Edição bloqueada
+              <Badge
+                variant="outline"
+                className="text-muted-foreground border-muted-foreground/30"
+              >
+                {commercialStatusName === "faturado"
+                  ? "OS Faturada"
+                  : "OS Concluída"}{" "}
+                — Edição bloqueada
               </Badge>
             )}
-            
-            {/* Técnico bloqueado: não pode gerar PDF */}
-            {isTechnicianBlockedFromPdf ? (
+
+            {/* PDF Técnico: sempre disponível */}
+            <Button
+              variant="outline"
+              size="default"
+              onClick={handleGenerateTechnicalPDF}
+              disabled={isGeneratingPDF}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              {isGeneratingPDF ? "Gerando..." : "PDF Técnico"}
+            </Button>
+
+            {/* PDF Completo: apenas para quem tem acesso financeiro */}
+            {canViewFinancial && (
               <Button
-                variant="outline"
+                variant="default"
                 size="default"
-                disabled
-                title="Relatório financeiro já gerado. Técnicos não podem mais acessar."
+                onClick={handleGenerateCompletePDF}
+                disabled={isGeneratingPDF}
+                className="bg-green-600 hover:bg-green-700"
               >
-                <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
-                PDF Bloqueado
+                <FileDown className="mr-2 h-4 w-4" />
+                {isGeneratingPDF ? "Gerando..." : "PDF Completo"}
               </Button>
-            ) : (
-              <>
-                {/* Técnico: apenas PDF técnico */}
-                {isTechnician && !isAdmin && (
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={handleGenerateTechnicalPDF}
-                    disabled={isGeneratingPDF}
-                  >
-                    <FileDown className="mr-2 h-4 w-4" />
-                    {isGeneratingPDF ? "Gerando..." : "PDF Técnico"}
-                  </Button>
-                )}
-                
-                {/* Admin: ambas opções */}
-                {isAdmin && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="default"
-                      onClick={handleGenerateTechnicalPDF}
-                      disabled={isGeneratingPDF}
-                    >
-                      <FileDown className="mr-2 h-4 w-4" />
-                      {isGeneratingPDF ? "Gerando..." : "PDF Técnico"}
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="default"
-                      onClick={handleGenerateCompletePDF}
-                      disabled={isGeneratingPDF}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <FileDown className="mr-2 h-4 w-4" />
-                      {isGeneratingPDF ? "Gerando..." : "PDF Completo"}
-                    </Button>
-                  </>
-                )}
-              </>
             )}
           </div>
         </div>
@@ -499,7 +510,7 @@ const ServiceCallView = () => {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 O relatório foi gerado com sucesso. Escolha uma ação:
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={handleSavePdf}
@@ -509,7 +520,7 @@ const ServiceCallView = () => {
                   <FileDown className="mr-2 h-4 w-4" />
                   💾 Salvar PDF
                 </Button>
-                
+
                 <Button
                   onClick={() => setSendWhatsAppModalOpen(true)}
                   className="flex-1 h-10 px-4 text-sm bg-green-600 hover:bg-green-700"
@@ -517,7 +528,7 @@ const ServiceCallView = () => {
                   <MessageCircle className="mr-2 h-4 w-4" />
                   WhatsApp
                 </Button>
-                
+
                 <Button
                   onClick={() => setSendEmailModalOpen(true)}
                   className="flex-1 h-10 px-4 text-sm bg-blue-600 hover:bg-blue-700"
@@ -526,9 +537,10 @@ const ServiceCallView = () => {
                   E-mail
                 </Button>
               </div>
-              
+
               <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded leading-relaxed">
-                <strong>Nota:</strong> Use "Salvar PDF" para escolher onde armazenar o arquivo localmente
+                <strong>Nota:</strong> Use "Salvar PDF" para escolher onde
+                armazenar o arquivo localmente
               </div>
             </CardContent>
           </Card>
@@ -540,7 +552,10 @@ const ServiceCallView = () => {
             <TabsTrigger value="geral">Geral</TabsTrigger>
             <TabsTrigger value="midia">Mídia</TabsTrigger>
             <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-            <TabsTrigger value="chat" className="flex items-center justify-center gap-1.5">
+            <TabsTrigger
+              value="chat"
+              className="flex items-center justify-center gap-1.5"
+            >
               <MessageCircle className="w-4 h-4" />
               <span className="hidden sm:inline">Chat</span>
             </TabsTrigger>
@@ -560,15 +575,21 @@ const ServiceCallView = () => {
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
                   <div>
-                    <Label className="text-sm text-muted-foreground">Nome Completo</Label>
-                    <p className="text-base font-medium leading-relaxed break-words">{call.clients?.full_name}</p>
+                    <Label className="text-sm text-muted-foreground">
+                      Nome Completo
+                    </Label>
+                    <p className="text-base font-medium leading-relaxed break-words">
+                      {call.clients?.full_name}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground flex items-center gap-1">
                       <Phone className="w-3 h-3" />
                       Telefone
                     </Label>
-                    <p className="font-medium whitespace-nowrap">{call.clients?.phone}</p>
+                    <p className="font-medium whitespace-nowrap">
+                      {call.clients?.phone}
+                    </p>
                   </div>
                   {call.clients?.address && (
                     <div>
@@ -576,7 +597,9 @@ const ServiceCallView = () => {
                         <MapPin className="w-3 h-3" />
                         Endereço
                       </Label>
-                      <p className="text-sm font-medium leading-relaxed break-words">{call.clients.address}</p>
+                      <p className="text-sm font-medium leading-relaxed break-words">
+                        {call.clients.address}
+                      </p>
                     </div>
                   )}
                 </CardContent>
@@ -592,15 +615,21 @@ const ServiceCallView = () => {
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
                   <div>
-                    <Label className="text-sm text-muted-foreground">Nome</Label>
-                    <p className="text-base font-medium leading-relaxed break-words">{call.technicians?.full_name}</p>
+                    <Label className="text-sm text-muted-foreground">
+                      Nome
+                    </Label>
+                    <p className="text-base font-medium leading-relaxed break-words">
+                      {call.technicians?.full_name}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground flex items-center gap-1">
                       <Phone className="w-3 h-3" />
                       Telefone
                     </Label>
-                    <p className="font-medium whitespace-nowrap">{call.technicians?.phone}</p>
+                    <p className="font-medium whitespace-nowrap">
+                      {call.technicians?.phone}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -615,11 +644,17 @@ const ServiceCallView = () => {
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
                   <div>
-                    <Label className="text-sm text-muted-foreground">Data</Label>
+                    <Label className="text-sm text-muted-foreground">
+                      Data
+                    </Label>
                     <p className="text-base font-medium leading-relaxed">
-                      {format(parseLocalDate(call.scheduled_date), "dd 'de' MMMM 'de' yyyy", {
-                        locale: ptBR,
-                      })}
+                      {format(
+                        parseLocalDate(call.scheduled_date),
+                        "dd 'de' MMMM 'de' yyyy",
+                        {
+                          locale: ptBR,
+                        },
+                      )}
                     </p>
                   </div>
                   <div>
@@ -627,15 +662,23 @@ const ServiceCallView = () => {
                       <Clock className="w-3 h-3" />
                       Horário
                     </Label>
-                    <p className="font-medium whitespace-nowrap">{call.scheduled_time}</p>
+                    <p className="font-medium whitespace-nowrap">
+                      {call.scheduled_time}
+                    </p>
                   </div>
                   {call.started_at && (
                     <div>
-                      <Label className="text-sm text-muted-foreground">Iniciado em</Label>
+                      <Label className="text-sm text-muted-foreground">
+                        Iniciado em
+                      </Label>
                       <p className="text-sm font-medium whitespace-nowrap">
-                        {format(new Date(call.started_at), "dd/MM/yyyy 'às' HH:mm", {
-                          locale: ptBR,
-                        })}
+                        {format(
+                          new Date(call.started_at),
+                          "dd/MM/yyyy 'às' HH:mm",
+                          {
+                            locale: ptBR,
+                          },
+                        )}
                       </p>
                     </div>
                   )}
@@ -671,16 +714,24 @@ const ServiceCallView = () => {
             <div className="grid grid-cols-1 gap-4">
               <Card>
                 <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-                  <CardTitle className="text-base sm:text-lg">Equipamento</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">
+                    Equipamento
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
                   <div>
-                    <Label className="text-sm text-muted-foreground">Descrição</Label>
-                    <p className="text-sm leading-relaxed break-words mt-1">{call.equipment_description}</p>
+                    <Label className="text-sm text-muted-foreground">
+                      Descrição
+                    </Label>
+                    <p className="text-sm leading-relaxed break-words mt-1">
+                      {call.equipment_description}
+                    </p>
                   </div>
                   {call.equipment_serial_number && (
                     <div>
-                      <Label className="text-sm text-muted-foreground">Número de Série</Label>
+                      <Label className="text-sm text-muted-foreground">
+                        Número de Série
+                      </Label>
                       <p className="text-sm font-mono bg-muted px-2 py-1 rounded inline-block mt-1 whitespace-nowrap">
                         {call.equipment_serial_number}
                       </p>
@@ -714,7 +765,9 @@ const ServiceCallView = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 sm:p-5 pt-2">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{call.notes}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                      {call.notes}
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -731,8 +784,12 @@ const ServiceCallView = () => {
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5 pt-2 space-y-3">
                   <div>
-                    <Label className="text-sm text-muted-foreground">Diagnóstico</Label>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">{call.technical_diagnosis}</p>
+                    <Label className="text-sm text-muted-foreground">
+                      Diagnóstico
+                    </Label>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">
+                      {call.technical_diagnosis}
+                    </p>
                   </div>
                   {call.technical_diagnosis_audio_url && (
                     <div>
@@ -741,7 +798,11 @@ const ServiceCallView = () => {
                         Áudio do Diagnóstico
                       </Label>
                       <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
-                        <audio controls className="w-full" src={call.technical_diagnosis_audio_url}>
+                        <audio
+                          controls
+                          className="w-full"
+                          src={call.technical_diagnosis_audio_url}
+                        >
                           Seu navegador não suporta o elemento de áudio.
                         </audio>
                       </div>
@@ -833,7 +894,8 @@ const ServiceCallView = () => {
             )}
 
             {/* Fotos Antes */}
-            {((call.photos_before_urls && call.photos_before_urls.length > 0) || call.video_before_url) && (
+            {((call.photos_before_urls && call.photos_before_urls.length > 0) ||
+              call.video_before_url) && (
               <Card>
                 <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
                   <CardTitle className="text-base sm:text-lg flex items-center gap-2">
@@ -842,29 +904,32 @@ const ServiceCallView = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
-                  {call.photos_before_urls && call.photos_before_urls.length > 0 && (
-                    <div>
-                      <Label className="text-sm text-muted-foreground mb-2 block">Fotos ({call.photos_before_urls.length})</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                        {call.photos_before_urls.map((url, index) => (
-                          <a
-                            key={index}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="relative aspect-square rounded-lg overflow-hidden border bg-muted group block"
-                          >
-                            <img
-                              src={url}
-                              alt={`Foto antes ${index + 1}`}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                          </a>
-                        ))}
+                  {call.photos_before_urls &&
+                    call.photos_before_urls.length > 0 && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground mb-2 block">
+                          Fotos ({call.photos_before_urls.length})
+                        </Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                          {call.photos_before_urls.map((url, index) => (
+                            <a
+                              key={index}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative aspect-square rounded-lg overflow-hidden border bg-muted group block"
+                            >
+                              <img
+                                src={url}
+                                alt={`Foto antes ${index + 1}`}
+                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                            </a>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                   {call.video_before_url && (
                     <div>
                       <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-1">
@@ -872,7 +937,11 @@ const ServiceCallView = () => {
                         Vídeo
                       </Label>
                       <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
-                        <video src={call.video_before_url} controls className="w-full h-full">
+                        <video
+                          src={call.video_before_url}
+                          controls
+                          className="w-full h-full"
+                        >
                           Seu navegador não suporta vídeos.
                         </video>
                       </div>
@@ -883,7 +952,8 @@ const ServiceCallView = () => {
             )}
 
             {/* Fotos Depois */}
-            {((call.photos_after_urls && call.photos_after_urls.length > 0) || call.video_after_url) && (
+            {((call.photos_after_urls && call.photos_after_urls.length > 0) ||
+              call.video_after_url) && (
               <Card>
                 <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
                   <CardTitle className="text-base sm:text-lg flex items-center gap-2">
@@ -892,29 +962,32 @@ const ServiceCallView = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
-                  {call.photos_after_urls && call.photos_after_urls.length > 0 && (
-                    <div>
-                      <Label className="text-sm text-muted-foreground mb-2 block">Fotos ({call.photos_after_urls.length})</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                        {call.photos_after_urls.map((url, index) => (
-                          <a
-                            key={index}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="relative aspect-square rounded-lg overflow-hidden border bg-muted group block"
-                          >
-                            <img
-                              src={url}
-                              alt={`Foto depois ${index + 1}`}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                          </a>
-                        ))}
+                  {call.photos_after_urls &&
+                    call.photos_after_urls.length > 0 && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground mb-2 block">
+                          Fotos ({call.photos_after_urls.length})
+                        </Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                          {call.photos_after_urls.map((url, index) => (
+                            <a
+                              key={index}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative aspect-square rounded-lg overflow-hidden border bg-muted group block"
+                            >
+                              <img
+                                src={url}
+                                alt={`Foto depois ${index + 1}`}
+                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                            </a>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                   {call.video_after_url && (
                     <div>
                       <Label className="text-sm text-muted-foreground mb-2 block flex items-center gap-1">
@@ -922,7 +995,11 @@ const ServiceCallView = () => {
                         Vídeo
                       </Label>
                       <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
-                        <video src={call.video_after_url} controls className="w-full h-full">
+                        <video
+                          src={call.video_after_url}
+                          controls
+                          className="w-full h-full"
+                        >
                           Seu navegador não suporta vídeos.
                         </video>
                       </div>
@@ -933,165 +1010,230 @@ const ServiceCallView = () => {
             )}
 
             {/* Empty state para mídia */}
-            {!call.audio_url && 
-             (!call.media_urls || call.media_urls.length === 0) && 
-             (!call.photos_before_urls || call.photos_before_urls.length === 0) && 
-             !call.video_before_url &&
-             (!call.photos_after_urls || call.photos_after_urls.length === 0) && 
-             !call.video_after_url && (
-              <div className="text-center py-12 text-muted-foreground">
-                <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhuma mídia anexada a esta OS</p>
-              </div>
-            )}
+            {!call.audio_url &&
+              (!call.media_urls || call.media_urls.length === 0) &&
+              (!call.photos_before_urls ||
+                call.photos_before_urls.length === 0) &&
+              !call.video_before_url &&
+              (!call.photos_after_urls ||
+                call.photos_after_urls.length === 0) &&
+              !call.video_after_url && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhuma mídia anexada a esta OS</p>
+                </div>
+              )}
           </TabsContent>
 
           {/* Aba 3: Detalhes */}
           <TabsContent value="detalhes" className="space-y-6">
             {/* Checklist */}
-            {call.checklist_responses && Object.keys(call.checklist_responses).length > 0 && (
-              <Card>
-                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Checklist de Verificação
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-5 pt-2">
-                  <div className="space-y-2">
-                    {Object.entries(call.checklist_responses as Record<string, boolean>).map(([item, checked]) => (
-                      <div key={item} className="flex items-start gap-2">
-                        {checked ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                        )}
-                        <span className={cn("text-sm leading-relaxed break-words", !checked && "text-muted-foreground")}>
-                          {item}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {call.checklist_responses &&
+              Object.keys(call.checklist_responses).length > 0 && (
+                <Card>
+                  <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Checklist de Verificação
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5 pt-2">
+                    <div className="space-y-2">
+                      {Object.entries(
+                        call.checklist_responses as Record<string, boolean>,
+                      ).map(([item, checked]) => (
+                        <div key={item} className="flex items-start gap-2">
+                          {checked ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          )}
+                          <span
+                            className={cn(
+                              "text-sm leading-relaxed break-words",
+                              !checked && "text-muted-foreground",
+                            )}
+                          >
+                            {item}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             {/* Assinaturas */}
             {(() => {
-              const latestTech = getLatestSignature((call as any).signatures, 'tech');
-              const latestClient = getLatestSignature((call as any).signatures, 'client');
-              const hasTech = resolvedSignatures.tech || latestTech || call.technician_signature_url || call.technician_signature_data;
-              const hasClient = resolvedSignatures.client || latestClient || call.customer_signature_url || call.customer_signature_data;
-              
-              return (hasTech || hasClient) && (
-              <Card>
-                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                    <PenTool className="w-5 h-5" />
-                    Assinaturas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  {/* Técnico */}
-                  {(() => {
-                    // Usar URL resolvida (com signed URL válida) ou fallback
-                    const imgUrl = resolvedSignatures.tech;
-                    const signedAt = latestTech?.signed_at || call.technician_signature_date;
-                    const signedBy = latestTech?.signed_by || call.technicians?.full_name;
-                    
-                    return imgUrl && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-semibold">Assinatura do Técnico</Label>
-                        <img
-                          src={imgUrl}
-                          alt="Assinatura do Técnico"
-                          className="h-20 border rounded p-2 bg-white w-full object-contain"
-                        />
-                        <p className="text-sm font-medium break-words">{signedBy}</p>
-                        {signedAt && (
-                          <p className="text-xs text-muted-foreground whitespace-nowrap">
-                            {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })()}
+              const latestTech = getLatestSignature(
+                (call as any).signatures,
+                "tech",
+              );
+              const latestClient = getLatestSignature(
+                (call as any).signatures,
+                "client",
+              );
+              const hasTech =
+                resolvedSignatures.tech ||
+                latestTech ||
+                call.technician_signature_url ||
+                call.technician_signature_data;
+              const hasClient =
+                resolvedSignatures.client ||
+                latestClient ||
+                call.customer_signature_url ||
+                call.customer_signature_data;
 
-                  {/* Cliente */}
-                  {(() => {
-                    // Usar URL resolvida (com signed URL válida) ou fallback
-                    const imgUrl = resolvedSignatures.client;
-                    const signedAt = latestClient?.signed_at || call.customer_signature_date;
-                    const signedBy = latestClient?.signed_by || call.customer_name;
-                    const position = latestClient?.position || call.customer_position;
-                    
-                    return imgUrl && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-semibold">Assinatura do Responsável (Cliente)</Label>
-                        <img
-                          src={imgUrl}
-                          alt="Assinatura do Cliente"
-                          className="h-20 border rounded p-2 bg-white w-full object-contain"
-                        />
-                        {signedBy && <p className="text-sm font-medium break-words">{signedBy}</p>}
-                        {position && (
-                          <p className="text-xs text-muted-foreground">Cargo: {position}</p>
-                        )}
-                        {signedAt && (
-                          <p className="text-xs text-muted-foreground whitespace-nowrap">
-                            {format(new Date(signedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
-            );
+              return (
+                (hasTech || hasClient) && (
+                  <Card>
+                    <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                      <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                        <PenTool className="w-5 h-5" />
+                        Assinaturas
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                      {/* Técnico */}
+                      {(() => {
+                        // Usar URL resolvida (com signed URL válida) ou fallback
+                        const imgUrl = resolvedSignatures.tech;
+                        const signedAt =
+                          latestTech?.signed_at ||
+                          call.technician_signature_date;
+                        const signedBy =
+                          latestTech?.signed_by || call.technicians?.full_name;
+
+                        return (
+                          imgUrl && (
+                            <div className="space-y-2">
+                              <Label className="text-sm font-semibold">
+                                Assinatura do Técnico
+                              </Label>
+                              <img
+                                src={imgUrl}
+                                alt="Assinatura do Técnico"
+                                className="h-20 border rounded p-2 bg-white w-full object-contain"
+                              />
+                              <p className="text-sm font-medium break-words">
+                                {signedBy}
+                              </p>
+                              {signedAt && (
+                                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {format(
+                                    new Date(signedAt),
+                                    "dd/MM/yyyy 'às' HH:mm",
+                                    { locale: ptBR },
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        );
+                      })()}
+
+                      {/* Cliente */}
+                      {(() => {
+                        // Usar URL resolvida (com signed URL válida) ou fallback
+                        const imgUrl = resolvedSignatures.client;
+                        const signedAt =
+                          latestClient?.signed_at ||
+                          call.customer_signature_date;
+                        const signedBy =
+                          latestClient?.signed_by || call.customer_name;
+                        const position =
+                          latestClient?.position || call.customer_position;
+
+                        return (
+                          imgUrl && (
+                            <div className="space-y-2">
+                              <Label className="text-sm font-semibold">
+                                Assinatura do Responsável (Cliente)
+                              </Label>
+                              <img
+                                src={imgUrl}
+                                alt="Assinatura do Cliente"
+                                className="h-20 border rounded p-2 bg-white w-full object-contain"
+                              />
+                              {signedBy && (
+                                <p className="text-sm font-medium break-words">
+                                  {signedBy}
+                                </p>
+                              )}
+                              {position && (
+                                <p className="text-xs text-muted-foreground">
+                                  Cargo: {position}
+                                </p>
+                              )}
+                              {signedAt && (
+                                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {format(
+                                    new Date(signedAt),
+                                    "dd/MM/yyyy 'às' HH:mm",
+                                    { locale: ptBR },
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                )
+              );
             })()}
 
             {/* Observações Internas */}
-            {(isAdmin || isTechnician) && (call.internal_notes_text || call.internal_notes_audio_url) && (
-              <Card className="border-2 border-dashed border-orange-300 dark:border-orange-800">
-                <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5 text-orange-500" />
-                      Observações Internas
-                    </CardTitle>
-                    <Badge variant="secondary" className="text-xs w-fit">
-                      Privado • Não enviado ao cliente
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Estas informações são visíveis apenas para administradores e técnicos.
-                  </p>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
-                  {call.internal_notes_text && (
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Anotações</Label>
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1 bg-muted/50 p-3 rounded">
-                        {call.internal_notes_text}
-                      </p>
+            {(isAdmin || isTechnician) &&
+              (call.internal_notes_text || call.internal_notes_audio_url) && (
+                <Card className="border-2 border-dashed border-orange-300 dark:border-orange-800">
+                  <CardHeader className="p-4 sm:p-5 pb-2 sm:pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-orange-500" />
+                        Observações Internas
+                      </CardTitle>
+                      <Badge variant="secondary" className="text-xs w-fit">
+                        Privado • Não enviado ao cliente
+                      </Badge>
                     </div>
-                  )}
-                  {call.internal_notes_audio_url && (
-                    <div>
-                      <Label className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
-                        <Volume2 className="w-3 h-3" />
-                        Áudio das Observações
-                      </Label>
-                      <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
-                        <audio controls className="w-full" src={call.internal_notes_audio_url}>
-                          Seu navegador não suporta o elemento de áudio.
-                        </audio>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Estas informações são visíveis apenas para administradores
+                      e técnicos.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5 pt-2 space-y-4">
+                    {call.internal_notes_text && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground">
+                          Anotações
+                        </Label>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1 bg-muted/50 p-3 rounded">
+                          {call.internal_notes_text}
+                        </p>
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                    )}
+                    {call.internal_notes_audio_url && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
+                          <Volume2 className="w-3 h-3" />
+                          Áudio das Observações
+                        </Label>
+                        <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
+                          <audio
+                            controls
+                            className="w-full"
+                            src={call.internal_notes_audio_url}
+                          >
+                            Seu navegador não suporta o elemento de áudio.
+                          </audio>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
             {/* Informações Adicionais */}
             <Card>
@@ -1102,19 +1244,31 @@ const ServiceCallView = () => {
               </CardHeader>
               <CardContent className="p-4 sm:p-5 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <Label className="text-sm text-muted-foreground">Criado em</Label>
+                  <Label className="text-sm text-muted-foreground">
+                    Criado em
+                  </Label>
                   <p className="whitespace-nowrap">
-                    {format(new Date(call.created_at), "dd/MM/yyyy 'às' HH:mm", {
-                      locale: ptBR,
-                    })}
+                    {format(
+                      new Date(call.created_at),
+                      "dd/MM/yyyy 'às' HH:mm",
+                      {
+                        locale: ptBR,
+                      },
+                    )}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-sm text-muted-foreground">Última atualização</Label>
+                  <Label className="text-sm text-muted-foreground">
+                    Última atualização
+                  </Label>
                   <p className="whitespace-nowrap">
-                    {format(new Date(call.updated_at), "dd/MM/yyyy 'às' HH:mm", {
-                      locale: ptBR,
-                    })}
+                    {format(
+                      new Date(call.updated_at),
+                      "dd/MM/yyyy 'às' HH:mm",
+                      {
+                        locale: ptBR,
+                      },
+                    )}
                   </p>
                 </div>
               </CardContent>
@@ -1123,7 +1277,10 @@ const ServiceCallView = () => {
 
           {/* Aba 4: Chat Interno */}
           <TabsContent value="chat">
-            <ServiceCallChat serviceCallId={call.id} osNumber={call.os_number} />
+            <ServiceCallChat
+              serviceCallId={call.id}
+              osNumber={call.os_number}
+            />
           </TabsContent>
         </Tabs>
       </div>
@@ -1138,7 +1295,7 @@ const ServiceCallView = () => {
             osNumber={call.os_number.toString()}
             pdfUrl={pdfUrl}
             clientData={call.clients}
-            companyName={systemSettings?.company_name || 'Curitiba Inox'}
+            companyName={systemSettings?.company_name || "Curitiba Inox"}
             reportAccessToken={call.report_access_token}
           />
 
@@ -1149,7 +1306,7 @@ const ServiceCallView = () => {
             osNumber={call.os_number.toString()}
             pdfUrl={pdfUrl}
             clientData={call.clients}
-            companyName={systemSettings?.company_name || 'Curitiba Inox'}
+            companyName={systemSettings?.company_name || "Curitiba Inox"}
             reportAccessToken={call.report_access_token}
           />
         </>

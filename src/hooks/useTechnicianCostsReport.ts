@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { FUEL_COST_PER_KM } from "@/lib/constants";
 
 interface TechnicianCostSummary {
   id: string;
@@ -14,8 +15,6 @@ interface TechnicianCostSummary {
   serviceCallsCount: number;
   costPerServiceCall: number;
 }
-
-const FUEL_COST_PER_KM = 1.2; // R$ 1.20 por km (estimativa)
 
 export const useTechnicianCostsReport = (year: number, month?: number) => {
   const { data, isLoading } = useQuery({
@@ -66,28 +65,30 @@ export const useTechnicianCostsReport = (year: number, month?: number) => {
 
       // Calculate costs per technician
       const summaries: TechnicianCostSummary[] = technicians.map((tech) => {
-        // Reimbursements (approved only)
+        // Reimbursements (aprovados ou já pagos)
         const techReimbursements = reimbursements.filter(
-          (r) => r.technician_id === tech.id && r.status === "APPROVED"
+          (r) =>
+            r.technician_id === tech.id &&
+            (r.status === "APPROVED" || r.status === "PAID"),
         );
         const reimbursementsTotal = techReimbursements.reduce(
           (sum, r) => sum + r.amount,
-          0
+          0,
         );
 
         // Trips
         const techTrips = trips.filter(
-          (t) => t.technician_id === tech.id && t.status === "concluido"
+          (t) => t.technician_id === tech.id && t.status === "concluido",
         );
         const totalKm = techTrips.reduce(
           (sum, t) => sum + (t.distance_km || 0),
-          0
+          0,
         );
         const fuelCostEstimate = totalKm * FUEL_COST_PER_KM;
 
         // Service calls
         const techServiceCalls = serviceCalls.filter(
-          (sc) => sc.technician_id === tech.id
+          (sc) => sc.technician_id === tech.id,
         );
 
         const totalCost = reimbursementsTotal + fuelCostEstimate;
@@ -116,9 +117,12 @@ export const useTechnicianCostsReport = (year: number, month?: number) => {
       const grandTotal = summaries.reduce((sum, s) => sum + s.totalCost, 0);
       const totalReimbursements = summaries.reduce(
         (sum, s) => sum + s.reimbursementsTotal,
-        0
+        0,
       );
-      const totalFuel = summaries.reduce((sum, s) => sum + s.fuelCostEstimate, 0);
+      const totalFuel = summaries.reduce(
+        (sum, s) => sum + s.fuelCostEstimate,
+        0,
+      );
       const totalKm = summaries.reduce((sum, s) => sum + s.totalKm, 0);
 
       return {

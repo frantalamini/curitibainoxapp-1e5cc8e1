@@ -17,7 +17,7 @@ export const CadastrosPagination = ({
   // Gerar array de páginas a mostrar
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
-    
+
     if (totalPages <= 7) {
       // Se tem 7 ou menos páginas, mostra todas
       for (let i = 1; i <= totalPages; i++) {
@@ -26,27 +26,27 @@ export const CadastrosPagination = ({
     } else {
       // Sempre mostra primeira página
       pages.push(1);
-      
+
       if (currentPage > 3) {
-        pages.push('...');
+        pages.push("...");
       }
-      
+
       // Páginas ao redor da atual
       const start = Math.max(2, currentPage - 1);
       const end = Math.min(totalPages - 1, currentPage + 1);
-      
+
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-      
+
       if (currentPage < totalPages - 2) {
-        pages.push('...');
+        pages.push("...");
       }
-      
+
       // Sempre mostra última página
       pages.push(totalPages);
     }
-    
+
     return pages;
   };
 
@@ -55,9 +55,9 @@ export const CadastrosPagination = ({
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2">
       <div className="text-sm text-muted-foreground">
-        {totalCount} {totalCount === 1 ? 'registro' : 'registros'}
+        {totalCount} {totalCount === 1 ? "registro" : "registros"}
       </div>
-      
+
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
@@ -69,16 +69,19 @@ export const CadastrosPagination = ({
           <ChevronLeft className="h-4 w-4" />
           <span className="sr-only">Página anterior</span>
         </Button>
-        
+
         {pages.map((page, index) => {
-          if (page === '...') {
+          if (page === "...") {
             return (
-              <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">
+              <span
+                key={`ellipsis-${index}`}
+                className="px-2 text-muted-foreground"
+              >
                 ...
               </span>
             );
           }
-          
+
           return (
             <Button
               key={page}
@@ -87,11 +90,11 @@ export const CadastrosPagination = ({
               className="h-8 w-8"
               onClick={() => onPageChange(page as number)}
             >
-              {String(page).padStart(2, '0')}
+              {String(page).padStart(2, "0")}
             </Button>
           );
         })}
-        
+
         <Button
           variant="outline"
           size="icon"

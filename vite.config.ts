@@ -13,85 +13,90 @@ export default defineConfig(({ mode }) => ({
   preview: {
     port: 8080,
   },
-  appType: 'spa',
+  appType: "spa",
   plugins: [
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'pwa-192x192.png', 'pwa-512x512.png'],
+      registerType: "autoUpdate",
+      includeAssets: [
+        "favicon.ico",
+        "robots.txt",
+        "pwa-192x192.png",
+        "pwa-512x512.png",
+      ],
       manifest: {
-        id: '/',
-        name: 'Curitiba Inox App',
-        short_name: 'Curitiba Inox App',
-        description: 'Sistema de Ordens de Serviço - Curitiba Inox',
-        start_url: '/',
-        scope: '/',
-        display: 'standalone',
-        background_color: '#FFFFFF',
-        theme_color: '#18487A',
-        orientation: 'portrait',
+        id: "/",
+        name: "Curitiba Inox App",
+        short_name: "Curitiba Inox App",
+        description: "Sistema de Ordens de Serviço - Curitiba Inox",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        background_color: "#FFFFFF",
+        theme_color: "#18487A",
+        orientation: "portrait",
         icons: [
           {
-            src: '/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any'
+            src: "/pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
           },
           {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any'
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any",
           },
           {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable'
-          }
-        ]
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallback: '/index.html',
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/, /^\/supabase/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
+            handler: "CacheFirst",
             options: {
-              cacheName: 'google-fonts-cache',
+              cacheName: "google-fonts-cache",
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365
+                maxAgeSeconds: 60 * 60 * 24 * 365,
               },
               cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+                statuses: [0, 200],
+              },
+            },
           },
           {
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
+            handler: "CacheFirst",
             options: {
-              cacheName: 'google-fonts-webfonts',
+              cacheName: "google-fonts-webfonts",
               expiration: {
                 maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 365
+                maxAgeSeconds: 60 * 60 * 24 * 365,
               },
               cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+                statuses: [0, 200],
+              },
+            },
           },
           {
             urlPattern: /^https:\/\/kovspviddxhhlsekqlxa\.supabase\.co\/.*/i,
-            handler: 'NetworkOnly'
-          }
-        ]
-      }
-    })
+            handler: "NetworkOnly",
+          },
+        ],
+      },
+    }),
   ].filter(Boolean),
   resolve: {
     alias: {

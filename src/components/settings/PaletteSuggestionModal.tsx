@@ -4,10 +4,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ExtractedColor } from '@/lib/colorExtractor';
-import { Check, Edit, X } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ExtractedColor } from "@/lib/colorExtractor";
+import { Check, Edit, X } from "lucide-react";
 
 interface PaletteSuggestionModalProps {
   open: boolean;
@@ -55,7 +55,8 @@ export function PaletteSuggestionModal({
 
         <div className="border-t pt-4">
           <p className="text-sm text-center mb-4">
-            Deseja utilizar a paleta de cores gerada automaticamente a partir da logo?
+            Deseja utilizar a paleta de cores gerada automaticamente a partir da
+            logo?
           </p>
 
           <div className="space-y-2">

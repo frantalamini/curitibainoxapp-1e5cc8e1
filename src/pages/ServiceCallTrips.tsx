@@ -3,8 +3,21 @@ import { MainLayout } from "@/components/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useServiceCallTrips } from "@/hooks/useServiceCallTrips";
 import { useVehicles } from "@/hooks/useVehicles";
@@ -34,12 +47,33 @@ const ServiceCallTrips = () => {
     if (status === "concluido") {
       return <Badge className="bg-green-500">Concluído</Badge>;
     }
-    return <Badge className="bg-yellow-500">Em deslocamento</Badge>;
+    return <Badge className="bg-yellow-500">Em andamento</Badge>;
+  };
+
+  const getTripTypeBadge = (tripType?: string) => {
+    if (tripType === "interno") {
+      return (
+        <Badge
+          variant="outline"
+          className="border-purple-300 text-purple-700 bg-purple-50"
+        >
+          Interno
+        </Badge>
+      );
+    }
+    return (
+      <Badge
+        variant="outline"
+        className="border-blue-300 text-blue-700 bg-blue-50"
+      >
+        Deslocamento
+      </Badge>
+    );
   };
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Route className="h-8 w-8 flex-shrink-0" />
@@ -59,7 +93,9 @@ const ServiceCallTrips = () => {
                   id="start-date"
                   type="date"
                   value={filters.startDate}
-                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, startDate: e.target.value })
+                  }
                 />
               </div>
 
@@ -69,7 +105,9 @@ const ServiceCallTrips = () => {
                   id="end-date"
                   type="date"
                   value={filters.endDate}
-                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, endDate: e.target.value })
+                  }
                 />
               </div>
 
@@ -77,7 +115,9 @@ const ServiceCallTrips = () => {
                 <Label htmlFor="vehicle">Veículo</Label>
                 <Select
                   value={filters.vehicleId}
-                  onValueChange={(value) => setFilters({ ...filters, vehicleId: value })}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, vehicleId: value })
+                  }
                 >
                   <SelectTrigger id="vehicle">
                     <SelectValue placeholder="Todos os veículos" />
@@ -97,7 +137,9 @@ const ServiceCallTrips = () => {
                 <Label htmlFor="technician">Técnico</Label>
                 <Select
                   value={filters.technicianId}
-                  onValueChange={(value) => setFilters({ ...filters, technicianId: value })}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, technicianId: value })
+                  }
                 >
                   <SelectTrigger id="technician">
                     <SelectValue placeholder="Todos os técnicos" />
@@ -130,7 +172,9 @@ const ServiceCallTrips = () => {
                     <TripMobileCard
                       key={trip.id}
                       trip={trip}
-                      onViewServiceCall={(id) => navigate(`/service-calls/${id}`)}
+                      onViewServiceCall={(id) =>
+                        navigate(`/service-calls/${id}`)
+                      }
                     />
                   ))}
                 </div>
@@ -140,11 +184,14 @@ const ServiceCallTrips = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data/Hora Início</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Técnico</TableHead>
                       <TableHead>Veículo</TableHead>
                       <TableHead>OS</TableHead>
                       <TableHead>Cliente</TableHead>
-                      <TableHead className="text-right">Distância GPS</TableHead>
+                      <TableHead className="text-right">
+                        Distância GPS
+                      </TableHead>
                       <TableHead>Situação</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -152,35 +199,51 @@ const ServiceCallTrips = () => {
                     {trips.map((trip) => (
                       <TableRow key={trip.id}>
                         <TableCell>
-                          {format(new Date(trip.started_at), "dd/MM/yyyy HH:mm")}
+                          {format(
+                            new Date(trip.started_at),
+                            "dd/MM/yyyy HH:mm",
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {getTripTypeBadge(trip.trip_type)}
                         </TableCell>
                         <TableCell>{trip.technicians?.full_name}</TableCell>
                         <TableCell>
-                          <div className="space-y-1">
-                            <div>{trip.vehicles?.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {trip.vehicles?.plate}
-                              {trip.vehicles?.brand && ` • ${trip.vehicles.brand}`}
+                          {trip.vehicle_id ? (
+                            <div className="space-y-1">
+                              <div>{trip.vehicles?.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {trip.vehicles?.plate}
+                                {trip.vehicles?.brand &&
+                                  ` • ${trip.vehicles.brand}`}
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              —
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button
                             variant="link"
                             className="p-0 h-auto"
-                            onClick={() => navigate(`/service-calls/${trip.service_call_id}`)}
+                            onClick={() =>
+                              navigate(`/service-calls/${trip.service_call_id}`)
+                            }
                           >
                             #{trip.service_calls?.os_number}
                           </Button>
                         </TableCell>
-                        <TableCell>{trip.service_calls?.clients?.full_name}</TableCell>
+                        <TableCell>
+                          {trip.service_calls?.clients?.full_name}
+                        </TableCell>
                         <TableCell className="text-right font-medium">
-                          {trip.estimated_distance_km 
-                            ? `${trip.estimated_distance_km.toLocaleString('pt-BR', { minimumFractionDigits: 1 })} km`
-                            : trip.distance_km 
-                              ? `${trip.distance_km.toLocaleString('pt-BR', { minimumFractionDigits: 1 })} km`
-                              : "-"
-                          }
+                          {trip.estimated_distance_km
+                            ? `${trip.estimated_distance_km.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} km`
+                            : trip.distance_km
+                              ? `${trip.distance_km.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} km`
+                              : "-"}
                         </TableCell>
                         <TableCell>{getStatusBadge(trip.status)}</TableCell>
                       </TableRow>

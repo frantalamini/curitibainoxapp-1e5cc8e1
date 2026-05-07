@@ -74,7 +74,9 @@ export function SaleMobileCard({
               </DropdownMenuItem>
 
               {(sale.status === "QUOTE" || sale.status === "APPROVED") && (
-                <DropdownMenuItem onClick={() => navigate(`/vendas/${sale.id}/editar`)}>
+                <DropdownMenuItem
+                  onClick={() => navigate(`/vendas/${sale.id}/editar`)}
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   Editar
                 </DropdownMenuItem>
@@ -110,18 +112,19 @@ export function SaleMobileCard({
                 </DropdownMenuItem>
               )}
 
-              {(sale.status === "QUOTE" || sale.status === "APPROVED") && onCancel && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => onCancel(sale.id)}
-                    className="text-destructive"
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Cancelar
-                  </DropdownMenuItem>
-                </>
-              )}
+              {(sale.status === "QUOTE" || sale.status === "APPROVED") &&
+                onCancel && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => onCancel(sale.id)}
+                      className="text-destructive"
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Cancelar
+                    </DropdownMenuItem>
+                  </>
+                )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -141,7 +144,8 @@ export function SaleMobileCard({
 
           {sale.profiles?.full_name && (
             <div className="text-muted-foreground">
-              Vendedor: <span className="text-foreground">{sale.profiles.full_name}</span>
+              Vendedor:{" "}
+              <span className="text-foreground">{sale.profiles.full_name}</span>
             </div>
           )}
         </div>

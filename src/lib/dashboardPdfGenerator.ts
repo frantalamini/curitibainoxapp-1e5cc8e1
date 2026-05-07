@@ -18,26 +18,37 @@ interface DashboardData {
 async function loadSystemLogoForPdf(): Promise<string> {
   try {
     const { data: settings } = await supabase
-      .from('system_settings')
-      .select('logo_url')
+      .from("system_settings")
+      .select("logo_url")
       .single();
-    
+
     if (settings?.logo_url) {
       return settings.logo_url;
     }
   } catch (error) {
-    console.error('Error loading logo:', error);
+    console.error("Error loading logo:", error);
   }
-  return '';
+  return "";
 }
 
 // Helper function to add logo to PDF
-function addLogoToPdf(pdf: jsPDF, logoUrl: string, options: { x: number; y: number; maxWidth: number; maxHeight: number }) {
+function addLogoToPdf(
+  pdf: jsPDF,
+  logoUrl: string,
+  options: { x: number; y: number; maxWidth: number; maxHeight: number },
+) {
   if (logoUrl) {
     try {
-      pdf.addImage(logoUrl, 'PNG', options.x, options.y, options.maxWidth, options.maxHeight);
+      pdf.addImage(
+        logoUrl,
+        "PNG",
+        options.x,
+        options.y,
+        options.maxWidth,
+        options.maxHeight,
+      );
     } catch (error) {
-      console.error('Error adding logo to PDF:', error);
+      console.error("Error adding logo to PDF:", error);
     }
   }
 }
@@ -50,10 +61,10 @@ export const generateDashboardReport = async (
     serviceTypeChart: HTMLElement;
     equipmentChart: HTMLElement;
     topClientsChart: HTMLElement;
-  }
+  },
 ): Promise<jsPDF> => {
   const logoBase64 = await loadSystemLogoForPdf();
-  
+
   const pdf = new jsPDF();
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -72,7 +83,9 @@ export const generateDashboardReport = async (
   yPos = 32;
   pdf.setFontSize(14);
   pdf.setFont("helvetica", "bold");
-  pdf.text("RELATÓRIO ANALÍTICO - DASHBOARD", pageWidth / 2, yPos, { align: "center" });
+  pdf.text("RELATÓRIO ANALÍTICO - DASHBOARD", pageWidth / 2, yPos, {
+    align: "center",
+  });
   yPos += 7;
 
   pdf.setFontSize(9);
@@ -88,13 +101,13 @@ export const generateDashboardReport = async (
   // Filtros em linha única
   pdf.setFontSize(8);
   let filterText = "Filtros: ";
-  
+
   if (data.startDate || data.endDate) {
-    const startText = data.startDate 
-      ? format(data.startDate, "dd/MM/yyyy", { locale: ptBR }) 
+    const startText = data.startDate
+      ? format(data.startDate, "dd/MM/yyyy", { locale: ptBR })
       : "Sem início";
-    const endText = data.endDate 
-      ? format(data.endDate, "dd/MM/yyyy", { locale: ptBR }) 
+    const endText = data.endDate
+      ? format(data.endDate, "dd/MM/yyyy", { locale: ptBR })
       : "Sem fim";
     filterText += `${startText} até ${endText}`;
   } else {
@@ -114,24 +127,40 @@ export const generateDashboardReport = async (
   const metricWidth = (pageWidth - 2 * margin - 9) / 4;
   const metricHeight = 15;
   const metrics = [
-    { label: "Clientes", value: String(data.totalClients), color: [59, 130, 246] },
+    {
+      label: "Clientes",
+      value: String(data.totalClients),
+      color: [59, 130, 246],
+    },
     { label: "Chamados", value: String(data.totalCalls), color: [34, 197, 94] },
-    { label: "Equipamentos", value: String(data.totalEquipment), color: [249, 115, 22] },
-    { label: "Conclusão", value: `${data.completionRate.toFixed(0)}%`, color: [168, 85, 247] },
+    {
+      label: "Equipamentos",
+      value: String(data.totalEquipment),
+      color: [249, 115, 22],
+    },
+    {
+      label: "Conclusão",
+      value: `${data.completionRate.toFixed(0)}%`,
+      color: [168, 85, 247],
+    },
   ];
 
   metrics.forEach((metric, index) => {
     const xPos = margin + index * (metricWidth + 3);
     pdf.setFillColor(metric.color[0], metric.color[1], metric.color[2]);
-    pdf.roundedRect(xPos, yPos, metricWidth, metricHeight, 2, 2, 'F');
-    
+    pdf.roundedRect(xPos, yPos, metricWidth, metricHeight, 2, 2, "F");
+
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(7);
-    pdf.text(metric.label, xPos + metricWidth / 2, yPos + 5, { align: "center" });
-    
+    pdf.text(metric.label, xPos + metricWidth / 2, yPos + 5, {
+      align: "center",
+    });
+
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "bold");
-    pdf.text(metric.value, xPos + metricWidth / 2, yPos + 12, { align: "center" });
+    pdf.text(metric.value, xPos + metricWidth / 2, yPos + 12, {
+      align: "center",
+    });
     pdf.setFont("helvetica", "normal");
   });
 
@@ -147,11 +176,26 @@ export const generateDashboardReport = async (
     // Primeira linha (3 gráficos)
     { element: chartElements.statusChart, title: "Status", x: 0, y: 0 },
     { element: chartElements.technicianChart, title: "Técnicos", x: 1, y: 0 },
-    { element: chartElements.serviceTypeChart, title: "Tipos de Serviço", x: 2, y: 0 },
-    
+    {
+      element: chartElements.serviceTypeChart,
+      title: "Tipos de Serviço",
+      x: 2,
+      y: 0,
+    },
+
     // Segunda linha (2 gráficos - centralizados)
-    { element: chartElements.equipmentChart, title: "Top 5 Equipamentos", x: 0.5, y: 1 },
-    { element: chartElements.topClientsChart, title: "Top 5 Clientes", x: 1.5, y: 1 },
+    {
+      element: chartElements.equipmentChart,
+      title: "Top 5 Equipamentos",
+      x: 0.5,
+      y: 1,
+    },
+    {
+      element: chartElements.topClientsChart,
+      title: "Top 5 Clientes",
+      x: 1.5,
+      y: 1,
+    },
   ];
 
   // Capturar todos os gráficos em paralelo
@@ -168,7 +212,7 @@ export const generateDashboardReport = async (
           imgData: canvas.toDataURL("image/png"),
           canvas,
         };
-      })
+      }),
     );
 
     // Renderizar gráficos no grid
@@ -179,7 +223,9 @@ export const generateDashboardReport = async (
       // Título do gráfico
       pdf.setFontSize(8);
       pdf.setFont("helvetica", "bold");
-      pdf.text(chart.title, xPos + chartWidth / 2, yPosChart, { align: "center" });
+      pdf.text(chart.title, xPos + chartWidth / 2, yPosChart, {
+        align: "center",
+      });
 
       // Imagem do gráfico
       const imgWidth = chartWidth;
@@ -197,13 +243,15 @@ export const generateDashboardReport = async (
         xPos,
         yPosChart + 3,
         imgWidth,
-        finalHeight
+        finalHeight,
       );
     });
   } catch (error) {
     console.error("Erro ao capturar gráficos:", error);
     pdf.setFontSize(10);
-    pdf.text("Erro ao gerar gráficos", pageWidth / 2, yPos + 30, { align: "center" });
+    pdf.text("Erro ao gerar gráficos", pageWidth / 2, yPos + 30, {
+      align: "center",
+    });
   }
 
   // ========== RODAPÉ ==========
@@ -212,7 +260,7 @@ export const generateDashboardReport = async (
   pdf.text(
     `Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
     margin,
-    pageHeight - 8
+    pageHeight - 8,
   );
 
   return pdf;

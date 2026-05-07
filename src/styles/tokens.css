@@ -1,0 +1,82 @@
+/* ============================================
+   DESIGN TOKENS — Curitiba Inox Design System
+   Fonte unica de verdade para cores, tipografia,
+   espacamentos, bordas, sombras e componentes.
+   ============================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  /* ---- CORES ---- */
+  --color-primary: #1a3a6b;
+  --color-primary-hover: #152e55;
+  --color-primary-light: #e8eff8;
+  --color-secondary: #2e87cc;
+  --color-accent: #4a4a4a;
+  --color-bg-page: #f1f5f9;
+  --color-bg-card: #ffffff;
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+  --color-text-dark: #0f172a;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-text-label: #1a3a6b;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+
+  /* ---- TIPOGRAFIA ---- */
+  --font-family:
+    "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+    Roboto, sans-serif;
+  --font-size-page-title: 26px;
+  --font-weight-page-title: 600;
+  --font-size-section-title: 17px;
+  --font-weight-section-title: 600;
+  --font-size-label: 13px;
+  --font-weight-label: 600;
+  --font-size-body: 15px;
+  --font-weight-body: 400;
+  --font-size-value: 15px;
+  --font-weight-value: 400;
+  --font-size-table: 14px;
+  --font-weight-table: 400;
+  --font-size-small: 13px;
+
+  /* ---- ESPACAMENTOS ---- */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* ---- BORDAS ---- */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-btn: 6px;
+
+  /* ---- SOMBRAS ---- */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+  /* ---- COMPONENTES ---- */
+  /* Sidebar: estrutura atual = 2 colunas (90px icones + 256px submenu)
+     Nao usar --sidebar-width flat — manter arquitetura de navegacao */
+  --sidebar-icon-col: 90px;
+  --sidebar-submenu-col: 256px;
+  --topbar-height: 56px;
+  --btn-height: 38px;
+  --input-height: 38px;
+  --content-max-width: 1400px;
+  --content-padding-x: 32px;
+
+  /* ---- VARIANTES DE BOTAO OFICIAIS ---- */
+  /* default (primary), secondary, destructive (danger), outline, ghost */
+  /* outline e ghost sao variantes aceitas para filtros, tabelas e acoes por icone */
+
+  /* ---- BREAKPOINTS (referencia — usar via media query) ---- */
+  --breakpoint-mobile: 768px;
+  --breakpoint-tablet: 1024px;
+}

@@ -32,14 +32,22 @@ export const useHomeStats = () => {
         .eq("status_type", "tecnico")
         .eq("active", true);
 
-      const finishedStatusNames = ["Finalizado", "Cancelado"];
-      const openStatusIds = statuses
-        ?.filter((s) => !finishedStatusNames.includes(s.name))
-        .map((s) => s.id) || [];
-      
-      const finishedStatusIds = statuses
-        ?.filter((s) => finishedStatusNames.includes(s.name))
-        .map((s) => s.id) || [];
+      const finishedStatusNames = [
+        "Finalizado",
+        "Cancelado",
+        "ConcluíDo",
+        "Concluído",
+        "Faturado",
+      ];
+      const openStatusIds =
+        statuses
+          ?.filter((s) => !finishedStatusNames.includes(s.name))
+          .map((s) => s.id) || [];
+
+      const finishedStatusIds =
+        statuses
+          ?.filter((s) => finishedStatusNames.includes(s.name))
+          .map((s) => s.id) || [];
 
       // Queries em paralelo
       const [
@@ -69,14 +77,13 @@ export const useHomeStats = () => {
           .eq("scheduled_date", today),
 
         // Total de clientes
-        supabase
-          .from("clients")
-          .select("id", { count: "exact", head: true }),
+        supabase.from("clients").select("id", { count: "exact", head: true }),
 
         // Próximos compromissos (5 próximos a partir de hoje)
         supabase
           .from("service_calls")
-          .select(`
+          .select(
+            `
             id,
             os_number,
             scheduled_date,
@@ -84,14 +91,17 @@ export const useHomeStats = () => {
             equipment_description,
             clients (full_name),
             technicians (full_name)
-          `)
+          `,
+          )
           .gte("scheduled_date", today)
           .not("status_id", "in", `(${finishedStatusIds.join(",")})`)
           .order("os_number", { ascending: false })
           .limit(5),
       ]);
 
-      const upcomingCalls: UpcomingCall[] = (upcomingCallsResult.data || []).map((call: any) => ({
+      const upcomingCalls: UpcomingCall[] = (
+        upcomingCallsResult.data || []
+      ).map((call: any) => ({
         id: call.id,
         os_number: call.os_number,
         scheduled_date: call.scheduled_date,
@@ -109,7 +119,8 @@ export const useHomeStats = () => {
         upcomingCalls,
       };
     },
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 min — reduz COUNTs no Supabase free tier
+    gcTime: 15 * 60 * 1000,
+    retry: 1, // evita loop de retries em 503
   });
 };

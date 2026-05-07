@@ -10,8 +10,13 @@ interface ChecklistSelectorProps {
   initialResponses?: Record<string, boolean>;
 }
 
-export const ChecklistSelector = ({ items, onChange, initialResponses = {} }: ChecklistSelectorProps) => {
-  const [responses, setResponses] = useState<Record<string, boolean>>(initialResponses);
+export const ChecklistSelector = ({
+  items,
+  onChange,
+  initialResponses = {},
+}: ChecklistSelectorProps) => {
+  const [responses, setResponses] =
+    useState<Record<string, boolean>>(initialResponses);
 
   useEffect(() => {
     setResponses(initialResponses);
@@ -34,11 +39,15 @@ export const ChecklistSelector = ({ items, onChange, initialResponses = {} }: Ch
             <Checkbox
               id={item.id}
               checked={responses[item.id] || false}
-              onCheckedChange={(checked) => handleCheck(item.id, checked as boolean)}
+              onCheckedChange={(checked) =>
+                handleCheck(item.id, checked as boolean)
+              }
             />
             <Label htmlFor={item.id} className="text-sm cursor-pointer">
               {item.text}
-              {item.required && <span className="text-destructive ml-1">*</span>}
+              {item.required && (
+                <span className="text-destructive ml-1">*</span>
+              )}
             </Label>
           </div>
         ))}

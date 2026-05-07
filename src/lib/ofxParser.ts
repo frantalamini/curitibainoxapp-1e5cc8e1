@@ -46,30 +46,36 @@ export function parseOFX(content: string): OFXStatement | null {
     const ofxContent = content.substring(ofxStart);
 
     // Extract statement info
-    const stmtrs = extractTagContent(ofxContent, "STMTRS") || 
-                   extractTagContent(ofxContent, "CCSTMTRS");
-    
+    const stmtrs =
+      extractTagContent(ofxContent, "STMTRS") ||
+      extractTagContent(ofxContent, "CCSTMTRS");
+
     if (!stmtrs) return null;
 
     // Bank account info
-    const bankAcctFrom = extractTagContent(stmtrs, "BANKACCTFROM") ||
-                         extractTagContent(stmtrs, "CCACCTFROM");
-    
-    const bankId = extractTagValue(bankAcctFrom, "BANKID") || 
-                   extractTagValue(bankAcctFrom, "ORG") || "";
+    const bankAcctFrom =
+      extractTagContent(stmtrs, "BANKACCTFROM") ||
+      extractTagContent(stmtrs, "CCACCTFROM");
+
+    const bankId =
+      extractTagValue(bankAcctFrom, "BANKID") ||
+      extractTagValue(bankAcctFrom, "ORG") ||
+      "";
     const accountId = extractTagValue(bankAcctFrom, "ACCTID") || "";
     const accountType = extractTagValue(bankAcctFrom, "ACCTTYPE") || "CHECKING";
 
     // Transaction list
-    const tranList = extractTagContent(stmtrs, "BANKTRANLIST") ||
-                     extractTagContent(stmtrs, "CCSTMTRS");
-    
+    const tranList =
+      extractTagContent(stmtrs, "BANKTRANLIST") ||
+      extractTagContent(stmtrs, "CCSTMTRS");
+
     const startDate = parseOFXDate(extractTagValue(tranList, "DTSTART"));
     const endDate = parseOFXDate(extractTagValue(tranList, "DTEND"));
 
     // Balance
-    const ledgerBal = extractTagContent(stmtrs, "LEDGERBAL") ||
-                      extractTagContent(stmtrs, "AVAILBAL");
+    const ledgerBal =
+      extractTagContent(stmtrs, "LEDGERBAL") ||
+      extractTagContent(stmtrs, "AVAILBAL");
     const balance = parseFloat(extractTagValue(ledgerBal, "BALAMT") || "0");
 
     // Parse transactions

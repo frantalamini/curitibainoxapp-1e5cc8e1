@@ -2,13 +2,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type TripStatus = 'em_deslocamento' | 'concluido';
+export type TripStatus = "em_deslocamento" | "concluido";
+export type TripType = "deslocamento" | "interno";
 
 export interface ServiceCallTrip {
   id: string;
   service_call_id: string;
   technician_id: string;
-  vehicle_id: string;
+  vehicle_id: string | null;
+  trip_type: TripType;
   started_at: string;
   finished_at: string | null;
   start_odometer_km: number;
@@ -25,18 +27,19 @@ export interface ServiceCallTrip {
   current_lat: number | null;
   current_lng: number | null;
   position_updated_at: string | null;
+  auto_arrived: boolean;
   // Joins
-  vehicles?: { 
-    name: string; 
-    plate: string; 
+  vehicles?: {
+    name: string;
+    plate: string;
     brand: string | null;
   };
-  technicians?: { 
+  technicians?: {
     full_name: string;
   };
-  service_calls?: { 
+  service_calls?: {
     os_number: number;
-    clients?: { 
+    clients?: {
       full_name: string;
     };
   };
@@ -45,8 +48,9 @@ export interface ServiceCallTrip {
 export interface ServiceCallTripInsert {
   service_call_id: string;
   technician_id: string;
-  vehicle_id: string;
+  vehicle_id?: string | null;
   start_odometer_km: number;
+  trip_type?: TripType;
   started_at?: string;
   status?: TripStatus;
   // Campos GPS opcionais
@@ -68,6 +72,7 @@ export interface ServiceCallTripUpdate {
   current_lat?: number;
   current_lng?: number;
   position_updated_at?: string;
+  auto_arrived?: boolean;
 }
 
 // Hook para buscar deslocamento em aberto por service_call_id
@@ -76,7 +81,7 @@ export const useOpenTrip = (serviceCallId?: string) => {
     queryKey: ["open-trip", serviceCallId],
     queryFn: async () => {
       if (!serviceCallId) return null;
-      
+
       const { data, error } = await supabase
         .from("service_call_trips")
         .select("*")
@@ -97,7 +102,7 @@ export const useHasCompletedTrip = (serviceCallId?: string) => {
     queryKey: ["completed-trip", serviceCallId],
     queryFn: async () => {
       if (!serviceCallId) return false;
-      
+
       const { data, error } = await supabase
         .from("service_call_trips")
         .select("id")
@@ -124,7 +129,8 @@ export const useServiceCallTrips = (filters?: {
     queryFn: async () => {
       let query = supabase
         .from("service_call_trips")
-        .select(`
+        .select(
+          `
           *,
           vehicles (name, plate, brand),
           technicians (full_name),
@@ -132,7 +138,8 @@ export const useServiceCallTrips = (filters?: {
             os_number,
             clients (full_name)
           )
-        `)
+        `,
+        )
         .order("started_at", { ascending: false });
 
       if (filters?.startDate) {
@@ -162,7 +169,7 @@ export const useOpenTripsMap = (serviceCallIds: string[]) => {
     queryKey: ["open-trips-map", serviceCallIds],
     queryFn: async () => {
       if (!serviceCallIds.length) return {};
-      
+
       const { data, error } = await supabase
         .from("service_call_trips")
         .select("service_call_id")
@@ -170,9 +177,9 @@ export const useOpenTripsMap = (serviceCallIds: string[]) => {
         .eq("status", "em_deslocamento");
 
       if (error) throw error;
-      
+
       const map: Record<string, boolean> = {};
-      data?.forEach(trip => {
+      data?.forEach((trip) => {
         map[trip.service_call_id] = true;
       });
       return map;
@@ -199,8 +206,12 @@ export const useServiceCallTripsMutations = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-call-trips"] });
-      queryClient.invalidateQueries({ queryKey: ["open-trip", data.service_call_id] });
-      queryClient.invalidateQueries({ queryKey: ["completed-trip", data.service_call_id] });
+      queryClient.invalidateQueries({
+        queryKey: ["open-trip", data.service_call_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["completed-trip", data.service_call_id],
+      });
       toast({
         title: "Deslocamento iniciado",
         description: "O deslocamento foi registrado com sucesso.",
@@ -216,7 +227,13 @@ export const useServiceCallTripsMutations = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: ServiceCallTripUpdate }) => {
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: ServiceCallTripUpdate;
+    }) => {
       const { data, error } = await supabase
         .from("service_call_trips")
         .update(updates)
@@ -229,8 +246,12 @@ export const useServiceCallTripsMutations = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["service-call-trips"] });
-      queryClient.invalidateQueries({ queryKey: ["open-trip", data.service_call_id] });
-      queryClient.invalidateQueries({ queryKey: ["completed-trip", data.service_call_id] });
+      queryClient.invalidateQueries({
+        queryKey: ["open-trip", data.service_call_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["completed-trip", data.service_call_id],
+      });
       toast({
         title: "Deslocamento atualizado",
         description: "O deslocamento foi atualizado com sucesso.",

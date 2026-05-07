@@ -34,7 +34,10 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { useBankReconciliation } from "@/hooks/useBankReconciliation";
-import { useOFXReconciliation, MatchSuggestion } from "@/hooks/useOFXReconciliation";
+import {
+  useOFXReconciliation,
+  MatchSuggestion,
+} from "@/hooks/useOFXReconciliation";
 import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
 import { ManualIncludeModal } from "@/components/conciliacao/ManualIncludeModal";
 import { OFXTransaction } from "@/lib/ofxParser";
@@ -185,7 +188,12 @@ function SystemTransactionsPanel({
   const allTransactions = [...transactions, ...openTransactions];
 
   return (
-    <div className={cn("h-full flex flex-col", selectionMode && "ring-2 ring-primary/50 rounded-lg")}>
+    <div
+      className={cn(
+        "h-full flex flex-col",
+        selectionMode && "ring-2 ring-primary/50 rounded-lg",
+      )}
+    >
       <div className="flex items-center gap-2 p-3 border-b bg-muted/30">
         {icon}
         <span className="font-medium text-sm">{title}</span>
@@ -200,11 +208,21 @@ function SystemTransactionsPanel({
           <span className="text-xs font-medium text-primary flex-1">
             Selecione para conciliar ({selectedIds?.length || 0})
           </span>
-          <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={onCancelSelection}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs"
+            onClick={onCancelSelection}
+          >
             <X className="h-3 w-3 mr-1" />
             Cancelar
           </Button>
-          <Button size="sm" className="h-6 text-xs" onClick={onConfirmSelection} disabled={!selectedIds?.length}>
+          <Button
+            size="sm"
+            className="h-6 text-xs"
+            onClick={onConfirmSelection}
+            disabled={!selectedIds?.length}
+          >
             <Check className="h-3 w-3 mr-1" />
             Confirmar ({selectedIds?.length || 0})
           </Button>
@@ -231,18 +249,26 @@ function SystemTransactionsPanel({
             className="h-7 text-xs"
           />
         </div>
-        <Button variant="outline" size="sm" className="h-7 text-xs w-full" onClick={onSearch}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs w-full"
+          onClick={onSearch}
+        >
           <Sparkles className="h-3 w-3 mr-1" />
           Buscar
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {allTransactions.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-6">Nenhum lançamento</p>
+          <p className="text-center text-sm text-muted-foreground py-6">
+            Nenhum lançamento
+          </p>
         ) : (
           <div className="divide-y">
             {allTransactions.map((t) => {
-              const clientName = t.clients?.full_name || t.clients?.secondary_name;
+              const clientName =
+                t.clients?.full_name || t.clients?.secondary_name;
               const isSelected = selectionMode && selectedIds?.includes(t.id);
 
               return (
@@ -251,9 +277,11 @@ function SystemTransactionsPanel({
                   className={cn(
                     "px-3 py-2 text-sm",
                     selectionMode && "cursor-pointer hover:bg-primary/5",
-                    isSelected && "bg-primary/10"
+                    isSelected && "bg-primary/10",
                   )}
-                  onClick={selectionMode ? () => onToggleSelect?.(t.id) : undefined}
+                  onClick={
+                    selectionMode ? () => onToggleSelect?.(t.id) : undefined
+                  }
                 >
                   <div className="flex items-start gap-2">
                     {selectionMode && (
@@ -265,12 +293,16 @@ function SystemTransactionsPanel({
                     )}
                     <div className="flex-1 min-w-0">
                       {clientName && (
-                        <p className="text-xs font-semibold text-primary truncate">{clientName}</p>
+                        <p className="text-xs font-semibold text-primary truncate">
+                          {clientName}
+                        </p>
                       )}
                       <div className="flex items-center gap-1">
-                        <p className="font-medium truncate flex-1">{t.description || "Sem descrição"}</p>
+                        <p className="font-medium truncate flex-1">
+                          {t.description || "Sem descrição"}
+                        </p>
                         {t.status && t.status !== "PAID" && (
-                          <Badge variant="outline" className="text-[10px] h-4 px-1">
+                          <Badge variant="outline" className="text-xs h-4 px-1">
                             {t.status === "OPEN" ? "Em aberto" : t.status}
                           </Badge>
                         )}
@@ -278,9 +310,15 @@ function SystemTransactionsPanel({
                       <div className="flex items-center justify-between mt-0.5">
                         <span className="text-xs text-muted-foreground">
                           {t.paid_at
-                            ? format(new Date(t.paid_at), "dd/MM/yy", { locale: ptBR })
+                            ? format(new Date(t.paid_at), "dd/MM/yy", {
+                                locale: ptBR,
+                              })
                             : t.due_date
-                              ? format(new Date(t.due_date + "T12:00:00"), "dd/MM/yy", { locale: ptBR })
+                              ? format(
+                                  new Date(t.due_date + "T12:00:00"),
+                                  "dd/MM/yy",
+                                  { locale: ptBR },
+                                )
                               : "-"}
                         </span>
                         <span className={cn("text-xs font-medium", colorClass)}>
@@ -311,7 +349,10 @@ interface ConciliationPanelProps {
   onInclude: (ofxTx: OFXTransaction) => void;
   onRetryAI?: () => void;
   isRetrying?: boolean;
-  onStartInlineSelection: (ofxFitId: string, direction: "RECEIVE" | "PAY") => void;
+  onStartInlineSelection: (
+    ofxFitId: string,
+    direction: "RECEIVE" | "PAY",
+  ) => void;
   onUndoReconciliation: (ofxFitId: string) => void;
   onUndoManualInclusion: (ofxFitId: string) => void;
 }
@@ -331,8 +372,12 @@ function ConciliationPanel({
   onUndoReconciliation,
   onUndoManualInclusion,
 }: ConciliationPanelProps) {
-  const approvedCount = suggestions.filter(s => s.status === "approved").length;
-  const highConfidenceCount = suggestions.filter(s => s.systemTransaction && s.confidence >= 80 && s.status === "pending").length;
+  const approvedCount = suggestions.filter(
+    (s) => s.status === "approved",
+  ).length;
+  const highConfidenceCount = suggestions.filter(
+    (s) => s.systemTransaction && s.confidence >= 80 && s.status === "pending",
+  ).length;
 
   return (
     <div className="h-full flex flex-col">
@@ -348,11 +393,21 @@ function ConciliationPanel({
       <div className="flex items-center gap-2 p-2 border-b">
         {highConfidenceCount > 0 && (
           <>
-            <Button variant="outline" size="sm" className="text-xs h-7" onClick={onApproveAllReceive}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={onApproveAllReceive}
+            >
               <Check className="h-3 w-3 mr-1" />
               Aprovar Receb.
             </Button>
-            <Button variant="outline" size="sm" className="text-xs h-7" onClick={onApproveAllPay}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={onApproveAllPay}
+            >
               <Check className="h-3 w-3 mr-1" />
               Aprovar Pgtos.
             </Button>
@@ -365,9 +420,20 @@ function ConciliationPanel({
           <div className="p-4 space-y-3">
             {onRetryAI && (
               <div className="text-center space-y-2 pb-3 border-b">
-                <p className="text-sm text-muted-foreground">Nenhuma sugestão automática encontrada.</p>
-                <Button variant="outline" size="sm" onClick={onRetryAI} disabled={isRetrying}>
-                  {isRetrying ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma sugestão automática encontrada.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRetryAI}
+                  disabled={isRetrying}
+                >
+                  {isRetrying ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-1" />
+                  )}
                   Conciliar com IA
                 </Button>
               </div>
@@ -375,17 +441,31 @@ function ConciliationPanel({
             {ofxTransactions && ofxTransactions.length > 0 && (
               <div className="divide-y">
                 {ofxTransactions.map((tx) => (
-                  <div key={tx.fitId} className="py-2 flex items-center justify-between gap-2">
+                  <div
+                    key={tx.fitId}
+                    className="py-2 flex items-center justify-between gap-2"
+                  >
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{tx.description}</p>
+                      <p className="text-sm font-medium truncate">
+                        {tx.description}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {tx.date} •{" "}
-                        <span className={tx.amount < 0 ? "text-red-600" : "text-green-600"}>
+                        <span
+                          className={
+                            tx.amount < 0 ? "text-red-600" : "text-green-600"
+                          }
+                        >
                           {formatCurrency(Math.abs(tx.amount))}
                         </span>
                       </p>
                     </div>
-                    <Button variant="outline" size="sm" className="h-7 text-xs shrink-0" onClick={() => onInclude(tx)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs shrink-0"
+                      onClick={() => onInclude(tx)}
+                    >
                       <Plus className="h-3 w-3 mr-1" />
                       Incluir
                     </Button>
@@ -397,18 +477,29 @@ function ConciliationPanel({
         ) : (
           <div className="divide-y">
             {suggestions.map((match) => {
-              const direction = match.ofxTransaction.amount > 0 ? "RECEIVE" : "PAY";
+              const direction =
+                match.ofxTransaction.amount > 0 ? "RECEIVE" : "PAY";
 
               return (
                 <div key={match.ofxTransaction.fitId} className="p-3 space-y-2">
                   {/* OFX line */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{match.ofxTransaction.description}</p>
+                      <p className="text-sm font-medium truncate">
+                        {match.ofxTransaction.description}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {match.ofxTransaction.date} •{" "}
-                        <span className={match.ofxTransaction.amount < 0 ? "text-red-600" : "text-green-600"}>
-                          {formatCurrency(Math.abs(match.ofxTransaction.amount))}
+                        <span
+                          className={
+                            match.ofxTransaction.amount < 0
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }
+                        >
+                          {formatCurrency(
+                            Math.abs(match.ofxTransaction.amount),
+                          )}
                         </span>
                       </p>
                     </div>
@@ -421,20 +512,34 @@ function ConciliationPanel({
                   {/* System match */}
                   {match.systemTransaction ? (
                     <div className="ml-4 pl-3 border-l-2 border-primary/30">
-                      {(match.systemTransactions && match.systemTransactions.length > 1
+                      {(match.systemTransactions &&
+                      match.systemTransactions.length > 1
                         ? match.systemTransactions
                         : [match.systemTransaction]
-                      ).map(tx => (
+                      ).map((tx) => (
                         <div key={tx.id} className="text-sm">
                           {tx.clients?.full_name && (
-                            <p className="text-xs font-semibold text-primary">{tx.clients.full_name}</p>
+                            <p className="text-xs font-semibold text-primary">
+                              {tx.clients.full_name}
+                            </p>
                           )}
-                          <p className="truncate text-muted-foreground">{tx.description || "-"}</p>
+                          <p className="truncate text-muted-foreground">
+                            {tx.description || "-"}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {tx.paid_at
-                              ? format(new Date(tx.paid_at), "dd/MM/yy", { locale: ptBR })
-                              : tx.due_date} •{" "}
-                            <span className={tx.direction === "PAY" ? "text-red-600" : "text-green-600"}>
+                              ? format(new Date(tx.paid_at), "dd/MM/yy", {
+                                  locale: ptBR,
+                                })
+                              : tx.due_date}{" "}
+                            •{" "}
+                            <span
+                              className={
+                                tx.direction === "PAY"
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }
+                            >
                               {formatCurrency(tx.amount)}
                             </span>
                           </p>
@@ -442,7 +547,9 @@ function ConciliationPanel({
                       ))}
                     </div>
                   ) : (
-                    <p className="ml-4 text-xs text-muted-foreground italic">Sem correspondência</p>
+                    <p className="ml-4 text-xs text-muted-foreground italic">
+                      Sem correspondência
+                    </p>
                   )}
 
                   {/* Actions */}
@@ -450,17 +557,29 @@ function ConciliationPanel({
                     {match.status === "pending" && match.systemTransaction && (
                       <>
                         <Button
-                          variant="ghost" size="sm"
+                          variant="ghost"
+                          size="sm"
                           className="h-7 text-xs text-green-600"
-                          onClick={() => onUpdateStatus(match.ofxTransaction.fitId, "approved")}
+                          onClick={() =>
+                            onUpdateStatus(
+                              match.ofxTransaction.fitId,
+                              "approved",
+                            )
+                          }
                         >
                           <Check className="h-3 w-3 mr-1" />
                           Aprovar
                         </Button>
                         <Button
-                          variant="ghost" size="sm"
+                          variant="ghost"
+                          size="sm"
                           className="h-7 text-xs text-red-600"
-                          onClick={() => onUpdateStatus(match.ofxTransaction.fitId, "rejected")}
+                          onClick={() =>
+                            onUpdateStatus(
+                              match.ofxTransaction.fitId,
+                              "rejected",
+                            )
+                          }
                         >
                           <X className="h-3 w-3 mr-1" />
                           Rejeitar
@@ -468,20 +587,28 @@ function ConciliationPanel({
                       </>
                     )}
 
-                    {match.status !== "included" && match.status !== "approved" && (
-                      <Button
-                        variant="ghost" size="icon"
-                        className="h-8 w-8"
-                        title="Selecionar no painel lateral"
-                        onClick={() => onStartInlineSelection(match.ofxTransaction.fitId, direction as "RECEIVE" | "PAY")}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                    )}
+                    {match.status !== "included" &&
+                      match.status !== "approved" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Selecionar no painel lateral"
+                          onClick={() =>
+                            onStartInlineSelection(
+                              match.ofxTransaction.fitId,
+                              direction as "RECEIVE" | "PAY",
+                            )
+                          }
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      )}
 
                     {match.status === "manual" && (
                       <Button
-                        variant="outline" size="sm"
+                        variant="outline"
+                        size="sm"
                         className="h-7 text-xs"
                         onClick={() => onInclude(match.ofxTransaction)}
                       >
@@ -493,9 +620,12 @@ function ConciliationPanel({
                     {/* Undo buttons */}
                     {match.status === "approved" && (
                       <Button
-                        variant="ghost" size="sm"
+                        variant="ghost"
+                        size="sm"
                         className="h-7 text-xs text-amber-600"
-                        onClick={() => onUndoReconciliation(match.ofxTransaction.fitId)}
+                        onClick={() =>
+                          onUndoReconciliation(match.ofxTransaction.fitId)
+                        }
                       >
                         <Undo2 className="h-3 w-3 mr-1" />
                         Desfazer
@@ -504,9 +634,12 @@ function ConciliationPanel({
 
                     {match.status === "included" && (
                       <Button
-                        variant="ghost" size="sm"
+                        variant="ghost"
+                        size="sm"
                         className="h-7 text-xs text-amber-600"
-                        onClick={() => onUndoManualInclusion(match.ofxTransaction.fitId)}
+                        onClick={() =>
+                          onUndoManualInclusion(match.ofxTransaction.fitId)
+                        }
                       >
                         <Undo2 className="h-3 w-3 mr-1" />
                         Desfazer
@@ -528,7 +661,7 @@ export default function ConciliacaoBancaria() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<string>(
-    String(new Date().getMonth() + 1)
+    String(new Date().getMonth() + 1),
   );
   const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
@@ -546,8 +679,12 @@ export default function ConciliacaoBancaria() {
   const [payEndDate, setPayEndDate] = useState("");
 
   // Inline selection mode state
-  const [inlineSelectionFitId, setInlineSelectionFitId] = useState<string | null>(null);
-  const [inlineSelectionDirection, setInlineSelectionDirection] = useState<"RECEIVE" | "PAY" | null>(null);
+  const [inlineSelectionFitId, setInlineSelectionFitId] = useState<
+    string | null
+  >(null);
+  const [inlineSelectionDirection, setInlineSelectionDirection] = useState<
+    "RECEIVE" | "PAY" | null
+  >(null);
   const [inlineSelectedIds, setInlineSelectedIds] = useState<string[]>([]);
 
   const month = selectedMonth === "all" ? undefined : parseInt(selectedMonth);
@@ -616,25 +753,33 @@ export default function ConciliacaoBancaria() {
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   // Filter open transactions by each panel's date range (client-side)
-  const filteredReceivables = useMemo(() =>
-    openReceivables.filter((t: any) => {
-      const d = t.due_date;
-      return (!receiveStartDate || d >= receiveStartDate) && (!receiveEndDate || d <= receiveEndDate);
-    }),
-    [openReceivables, receiveStartDate, receiveEndDate]
+  const filteredReceivables = useMemo(
+    () =>
+      openReceivables.filter((t: any) => {
+        const d = t.due_date;
+        return (
+          (!receiveStartDate || d >= receiveStartDate) &&
+          (!receiveEndDate || d <= receiveEndDate)
+        );
+      }),
+    [openReceivables, receiveStartDate, receiveEndDate],
   );
 
-  const filteredPayables = useMemo(() =>
-    openPayables.filter((t: any) => {
-      const d = t.due_date;
-      return (!payStartDate || d >= payStartDate) && (!payEndDate || d <= payEndDate);
-    }),
-    [openPayables, payStartDate, payEndDate]
+  const filteredPayables = useMemo(
+    () =>
+      openPayables.filter((t: any) => {
+        const d = t.due_date;
+        return (
+          (!payStartDate || d >= payStartDate) &&
+          (!payEndDate || d <= payEndDate)
+        );
+      }),
+    [openPayables, payStartDate, payEndDate],
   );
 
   const toggleExpanded = (id: string) => {
     setExpandedAccounts((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
@@ -661,21 +806,34 @@ export default function ConciliacaoBancaria() {
     setIncludeModalOpen(true);
   };
 
-  const handleManualIncludeConfirm = async (categoryId: string, costCenterId?: string, description?: string) => {
+  const handleManualIncludeConfirm = async (
+    categoryId: string,
+    costCenterId?: string,
+    description?: string,
+  ) => {
     if (!includeOFXTx) return false;
-    return createManualTransaction(includeOFXTx, selectedAccountId, categoryId, costCenterId, description);
+    return createManualTransaction(
+      includeOFXTx,
+      selectedAccountId,
+      categoryId,
+      costCenterId,
+      description,
+    );
   };
 
   // Inline selection handlers
-  const handleStartInlineSelection = (ofxFitId: string, direction: "RECEIVE" | "PAY") => {
+  const handleStartInlineSelection = (
+    ofxFitId: string,
+    direction: "RECEIVE" | "PAY",
+  ) => {
     setInlineSelectionFitId(ofxFitId);
     setInlineSelectionDirection(direction);
     setInlineSelectedIds([]);
   };
 
   const handleToggleInlineSelect = (id: string) => {
-    setInlineSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    setInlineSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
@@ -694,7 +852,9 @@ export default function ConciliacaoBancaria() {
     setInlineSelectedIds([]);
   };
 
-  const approvedCount = matchSuggestions.filter((s) => s.status === "approved").length;
+  const approvedCount = matchSuggestions.filter(
+    (s) => s.status === "approved",
+  ).length;
   const showReconciliation = isParsing || isOFXLoading || ofxStatement;
 
   // Props for selection mode on each panel
@@ -707,13 +867,18 @@ export default function ConciliacaoBancaria() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+        <Select
+          value={String(selectedYear)}
+          onValueChange={(v) => setSelectedYear(parseInt(v))}
+        >
           <SelectTrigger className="w-[120px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {years.map((y) => (
-              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              <SelectItem key={y} value={String(y)}>
+                {y}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -724,7 +889,9 @@ export default function ConciliacaoBancaria() {
           </SelectTrigger>
           <SelectContent>
             {MONTHS.map((m) => (
-              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              <SelectItem key={m.value} value={m.value}>
+                {m.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -735,44 +902,73 @@ export default function ConciliacaoBancaria() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Saldo Inicial</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Saldo Inicial
+              </p>
               <Wallet className="h-5 w-5 text-blue-500" />
             </div>
-            {isLoading ? <Skeleton className="h-8 w-32 mt-2" /> : (
-              <p className="text-2xl font-bold mt-2">{formatCurrency(totalOpeningBalance)}</p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-32 mt-2" />
+            ) : (
+              <p className="text-2xl font-bold mt-2">
+                {formatCurrency(totalOpeningBalance)}
+              </p>
             )}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Entradas</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Entradas
+              </p>
               <TrendingUp className="h-5 w-5 text-green-500" />
             </div>
-            {isLoading ? <Skeleton className="h-8 w-32 mt-2" /> : (
-              <p className="text-2xl font-bold text-green-600 mt-2">{formatCurrency(totalReceived)}</p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-32 mt-2" />
+            ) : (
+              <p className="text-2xl font-bold text-green-600 mt-2">
+                {formatCurrency(totalReceived)}
+              </p>
             )}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Saídas</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Saídas
+              </p>
               <TrendingDown className="h-5 w-5 text-red-500" />
             </div>
-            {isLoading ? <Skeleton className="h-8 w-32 mt-2" /> : (
-              <p className="text-2xl font-bold text-red-600 mt-2">{formatCurrency(totalPaid)}</p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-32 mt-2" />
+            ) : (
+              <p className="text-2xl font-bold text-red-600 mt-2">
+                {formatCurrency(totalPaid)}
+              </p>
             )}
           </CardContent>
         </Card>
         <Card className="bg-primary/5 border-primary/20">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Saldo Final</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Saldo Final
+              </p>
               <Landmark className="h-5 w-5 text-primary" />
             </div>
-            {isLoading ? <Skeleton className="h-8 w-32 mt-2" /> : (
-              <p className={cn("text-2xl font-bold mt-2", totalCalculatedBalance >= 0 ? "text-green-600" : "text-red-600")}>
+            {isLoading ? (
+              <Skeleton className="h-8 w-32 mt-2" />
+            ) : (
+              <p
+                className={cn(
+                  "text-2xl font-bold mt-2",
+                  totalCalculatedBalance >= 0
+                    ? "text-green-600"
+                    : "text-red-600",
+                )}
+              >
                 {formatCurrency(totalCalculatedBalance)}
               </p>
             )}
@@ -791,14 +987,22 @@ export default function ConciliacaoBancaria() {
         <CardContent>
           {isLoading ? (
             <div className="space-y-2">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full" />)}
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
             </div>
           ) : reconciliations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">Nenhuma conta financeira cadastrada</div>
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhuma conta financeira cadastrada
+            </div>
           ) : (
             <div className="space-y-3">
               {reconciliations.map((acc) => (
-                <Collapsible key={acc.id} open={expandedAccounts.includes(acc.id)} onOpenChange={() => toggleExpanded(acc.id)}>
+                <Collapsible
+                  key={acc.id}
+                  open={expandedAccounts.includes(acc.id)}
+                  onOpenChange={() => toggleExpanded(acc.id)}
+                >
                   <div className="flex items-center gap-2">
                     <CollapsibleTrigger asChild>
                       <div className="flex-1 flex items-center justify-between p-4 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors">
@@ -807,26 +1011,44 @@ export default function ConciliacaoBancaria() {
                           <div>
                             <p className="font-medium">{acc.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {acc.bankName || "Conta"} • {acc.transactionsCount} lançamento(s)
+                              {acc.bankName || "Conta"} •{" "}
+                              {acc.transactionsCount} lançamento(s)
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-6">
                           <div className="text-right hidden sm:block">
-                            <p className="text-xs text-muted-foreground">Saldo Inicial</p>
-                            <p className="font-medium">{formatCurrency(acc.openingBalance)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Saldo Inicial
+                            </p>
+                            <p className="font-medium">
+                              {formatCurrency(acc.openingBalance)}
+                            </p>
                           </div>
                           <div className="text-right hidden md:block">
                             <p className="text-xs text-green-600">+ Entradas</p>
-                            <p className="font-medium text-green-600">{formatCurrency(acc.totalReceived)}</p>
+                            <p className="font-medium text-green-600">
+                              {formatCurrency(acc.totalReceived)}
+                            </p>
                           </div>
                           <div className="text-right hidden md:block">
                             <p className="text-xs text-red-600">- Saídas</p>
-                            <p className="font-medium text-red-600">{formatCurrency(acc.totalPaid)}</p>
+                            <p className="font-medium text-red-600">
+                              {formatCurrency(acc.totalPaid)}
+                            </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground">Saldo Final</p>
-                            <p className={cn("font-bold", acc.calculatedBalance >= 0 ? "text-green-600" : "text-red-600")}>
+                            <p className="text-xs text-muted-foreground">
+                              Saldo Final
+                            </p>
+                            <p
+                              className={cn(
+                                "font-bold",
+                                acc.calculatedBalance >= 0
+                                  ? "text-green-600"
+                                  : "text-red-600",
+                              )}
+                            >
                               {formatCurrency(acc.calculatedBalance)}
                             </p>
                           </div>
@@ -838,7 +1060,12 @@ export default function ConciliacaoBancaria() {
                         </div>
                       </div>
                     </CollapsibleTrigger>
-                    <Button variant="outline" size="sm" onClick={() => handleStartOFX(acc.id)} className="gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleStartOFX(acc.id)}
+                      className="gap-2"
+                    >
                       <Upload className="h-4 w-4" />
                       <span className="hidden sm:inline">Importar OFX</span>
                     </Button>
@@ -848,7 +1075,9 @@ export default function ConciliacaoBancaria() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[100px]">Data Pgto</TableHead>
+                            <TableHead className="w-[100px]">
+                              Data Pgto
+                            </TableHead>
                             <TableHead>Descrição</TableHead>
                             <TableHead className="text-center">Tipo</TableHead>
                             <TableHead className="text-right">Valor</TableHead>
@@ -857,7 +1086,10 @@ export default function ConciliacaoBancaria() {
                         <TableBody>
                           {getTransactionsByAccount(acc.id).length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                              <TableCell
+                                colSpan={4}
+                                className="text-center text-muted-foreground py-4"
+                              >
                                 Nenhuma transação no período
                               </TableCell>
                             </TableRow>
@@ -865,24 +1097,44 @@ export default function ConciliacaoBancaria() {
                             getTransactionsByAccount(acc.id).map((t) => (
                               <TableRow key={t.id}>
                                 <TableCell className="text-sm">
-                                  {t.paid_at ? format(new Date(t.paid_at), "dd/MM/yy", { locale: ptBR }) : "-"}
+                                  {t.paid_at
+                                    ? format(new Date(t.paid_at), "dd/MM/yy", {
+                                        locale: ptBR,
+                                      })
+                                    : "-"}
                                 </TableCell>
-                                <TableCell className="text-sm">{t.description || "-"}</TableCell>
+                                <TableCell className="text-sm">
+                                  {t.description || "-"}
+                                </TableCell>
                                 <TableCell className="text-center">
                                   {t.direction === "RECEIVE" ? (
-                                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-green-600 border-green-200 bg-green-50"
+                                    >
                                       <ArrowUpRight className="h-3 w-3 mr-1" />
                                       Entrada
                                     </Badge>
                                   ) : (
-                                    <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-red-600 border-red-200 bg-red-50"
+                                    >
                                       <ArrowDownRight className="h-3 w-3 mr-1" />
                                       Saída
                                     </Badge>
                                   )}
                                 </TableCell>
-                                <TableCell className={cn("text-right font-medium", t.direction === "RECEIVE" ? "text-green-600" : "text-red-600")}>
-                                  {t.direction === "RECEIVE" ? "+" : "-"}{formatCurrency(t.amount)}
+                                <TableCell
+                                  className={cn(
+                                    "text-right font-medium",
+                                    t.direction === "RECEIVE"
+                                      ? "text-green-600"
+                                      : "text-red-600",
+                                  )}
+                                >
+                                  {t.direction === "RECEIVE" ? "+" : "-"}
+                                  {formatCurrency(t.amount)}
                                 </TableCell>
                               </TableRow>
                             ))
@@ -899,7 +1151,13 @@ export default function ConciliacaoBancaria() {
       </Card>
 
       {/* Hidden file input */}
-      <input ref={fileInputRef} type="file" accept=".ofx,.qfx,.ofc" onChange={handleFileSelect} className="hidden" />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".ofx,.qfx,.ofc"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
 
       {/* OFX Reconciliation Section - 3-Panel Layout */}
       {showReconciliation && (
@@ -941,7 +1199,8 @@ export default function ConciliacaoBancaria() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Período: {ofxStatement.startDate} a {ofxStatement.endDate}
-                  {ofxStatement.balance && ` • Saldo: ${formatCurrency(ofxStatement.balance)}`}
+                  {ofxStatement.balance &&
+                    ` • Saldo: ${formatCurrency(ofxStatement.balance)}`}
                 </p>
               </div>
             )}
@@ -956,7 +1215,9 @@ export default function ConciliacaoBancaria() {
                       <div className="h-[300px] overflow-hidden">
                         <SystemTransactionsPanel
                           title="Contas a Receber"
-                          icon={<ArrowUpRight className="h-4 w-4 text-green-600" />}
+                          icon={
+                            <ArrowUpRight className="h-4 w-4 text-green-600" />
+                          }
                           transactions={unmatchedReceiveTransactions}
                           openTransactions={filteredReceivables}
                           colorClass="text-green-600"
@@ -981,7 +1242,9 @@ export default function ConciliacaoBancaria() {
                           ofxTransactions={ofxStatement?.transactions}
                           onUpdateStatus={updateSuggestionStatus}
                           onReassignMulti={reassignMultiMatch}
-                          onApproveAllReceive={() => approveAllByDirection("RECEIVE")}
+                          onApproveAllReceive={() =>
+                            approveAllByDirection("RECEIVE")
+                          }
                           onApproveAllPay={() => approveAllByDirection("PAY")}
                           onInclude={handleIncludeClick}
                           onRetryAI={() => runAIMatching(selectedAccountId)}
@@ -996,7 +1259,9 @@ export default function ConciliacaoBancaria() {
                       <div className="h-[300px] overflow-hidden">
                         <SystemTransactionsPanel
                           title="Contas a Pagar"
-                          icon={<ArrowDownRight className="h-4 w-4 text-red-600" />}
+                          icon={
+                            <ArrowDownRight className="h-4 w-4 text-red-600" />
+                          }
                           transactions={unmatchedPayTransactions}
                           openTransactions={filteredPayables}
                           colorClass="text-red-600"
@@ -1021,7 +1286,9 @@ export default function ConciliacaoBancaria() {
                       <ResizablePanel defaultSize={25} minSize={15}>
                         <SystemTransactionsPanel
                           title="Contas a Receber"
-                          icon={<ArrowUpRight className="h-4 w-4 text-green-600" />}
+                          icon={
+                            <ArrowUpRight className="h-4 w-4 text-green-600" />
+                          }
                           transactions={unmatchedReceiveTransactions}
                           openTransactions={filteredReceivables}
                           colorClass="text-green-600"
@@ -1045,7 +1312,9 @@ export default function ConciliacaoBancaria() {
                           ofxTransactions={ofxStatement?.transactions}
                           onUpdateStatus={updateSuggestionStatus}
                           onReassignMulti={reassignMultiMatch}
-                          onApproveAllReceive={() => approveAllByDirection("RECEIVE")}
+                          onApproveAllReceive={() =>
+                            approveAllByDirection("RECEIVE")
+                          }
                           onApproveAllPay={() => approveAllByDirection("PAY")}
                           onInclude={handleIncludeClick}
                           onRetryAI={() => runAIMatching(selectedAccountId)}
@@ -1059,7 +1328,9 @@ export default function ConciliacaoBancaria() {
                       <ResizablePanel defaultSize={25} minSize={15}>
                         <SystemTransactionsPanel
                           title="Contas a Pagar"
-                          icon={<ArrowDownRight className="h-4 w-4 text-red-600" />}
+                          icon={
+                            <ArrowDownRight className="h-4 w-4 text-red-600" />
+                          }
                           transactions={unmatchedPayTransactions}
                           openTransactions={filteredPayables}
                           colorClass="text-red-600"
@@ -1081,8 +1352,13 @@ export default function ConciliacaoBancaria() {
 
                 {/* Save Button */}
                 <div className="flex justify-end gap-2 pt-4 border-t">
-                  <Button variant="outline" onClick={reset}>Cancelar</Button>
-                  <Button onClick={saveReconciliation} disabled={approvedCount === 0 || isOFXLoading}>
+                  <Button variant="outline" onClick={reset}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={saveReconciliation}
+                    disabled={approvedCount === 0 || isOFXLoading}
+                  >
                     {isOFXLoading ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (

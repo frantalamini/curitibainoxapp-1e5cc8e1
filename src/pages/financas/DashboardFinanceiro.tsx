@@ -3,12 +3,12 @@ import { PageContainer } from "@/components/ui/page-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardFinanceiro } from "@/hooks/useDashboardFinanceiro";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  CreditCard, 
-  PiggyBank, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  CreditCard,
+  PiggyBank,
   Percent,
   AlertTriangle,
   Clock,
@@ -17,13 +17,13 @@ import {
   BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -60,12 +60,23 @@ interface KPICardProps {
   isLoading?: boolean;
 }
 
-function KPICard({ title, value, subtitle, icon, trend, trendLabel, variant = "default", isLoading }: KPICardProps) {
+function KPICard({
+  title,
+  value,
+  subtitle,
+  icon,
+  trend,
+  trendLabel,
+  variant = "default",
+  isLoading,
+}: KPICardProps) {
   const variantStyles = {
     default: "bg-card",
-    success: "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800",
+    success:
+      "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800",
     danger: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800",
-    warning: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
+    warning:
+      "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
   };
 
   const valueStyles = {
@@ -99,11 +110,17 @@ function KPICard({ title, value, subtitle, icon, trend, trendLabel, variant = "d
         </div>
         <div className="flex items-center gap-2 mt-1">
           {trend !== undefined && (
-            <span className={cn(
-              "text-xs font-medium flex items-center gap-1",
-              trend >= 0 ? "text-green-600" : "text-red-600"
-            )}>
-              {trend >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            <span
+              className={cn(
+                "text-xs font-medium flex items-center gap-1",
+                trend >= 0 ? "text-green-600" : "text-red-600",
+              )}
+            >
+              {trend >= 0 ? (
+                <ArrowUpRight className="h-3 w-3" />
+              ) : (
+                <ArrowDownRight className="h-3 w-3" />
+              )}
               {Math.abs(trend).toFixed(1)}%
             </span>
           )}
@@ -171,7 +188,13 @@ export default function DashboardFinanceiro() {
           value={currentMonthMargin}
           subtitle={`${currentMonthMargin.toFixed(1)}% da receita`}
           icon={<Percent className="h-5 w-5" />}
-          variant={currentMonthMargin >= 20 ? "success" : currentMonthMargin >= 10 ? "warning" : "danger"}
+          variant={
+            currentMonthMargin >= 20
+              ? "success"
+              : currentMonthMargin >= 10
+                ? "warning"
+                : "danger"
+          }
           isLoading={isLoading}
         />
       </div>
@@ -192,16 +215,32 @@ export default function DashboardFinanceiro() {
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={monthlyTrend}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-muted"
+                  />
                   <XAxis dataKey="monthLabel" className="text-xs" />
-                  <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
-                  <Tooltip 
+                  <YAxis
+                    tickFormatter={(v) => formatCompact(v)}
+                    className="text-xs"
+                  />
+                  <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
                     labelFormatter={(label) => `Mês: ${label}`}
                   />
                   <Legend />
-                  <Bar dataKey="income" name="Receitas" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expense" name="Despesas" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="income"
+                    name="Receitas"
+                    fill="hsl(var(--chart-2))"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="expense"
+                    name="Despesas"
+                    fill="hsl(var(--chart-1))"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -222,16 +261,24 @@ export default function DashboardFinanceiro() {
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={monthlyTrend}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-muted"
+                  />
                   <XAxis dataKey="monthLabel" className="text-xs" />
-                  <YAxis tickFormatter={(v) => formatCompact(v)} className="text-xs" />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="profit" 
+                  <YAxis
+                    tickFormatter={(v) => formatCompact(v)}
+                    className="text-xs"
+                  />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="profit"
                     name="Lucro"
-                    stroke="hsl(var(--chart-3))" 
-                    fill="hsl(var(--chart-3))" 
+                    stroke="hsl(var(--chart-3))"
+                    fill="hsl(var(--chart-3))"
                     fillOpacity={0.3}
                   />
                 </AreaChart>
@@ -349,20 +396,30 @@ export default function DashboardFinanceiro() {
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Receitas</span>
-                  <span className="font-semibold text-green-600">{formatCurrency(ytdIncome)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Receitas
+                  </span>
+                  <span className="font-semibold text-green-600">
+                    {formatCurrency(ytdIncome)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Despesas</span>
-                  <span className="font-semibold text-red-600">{formatCurrency(ytdExpense)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Despesas
+                  </span>
+                  <span className="font-semibold text-red-600">
+                    {formatCurrency(ytdExpense)}
+                  </span>
                 </div>
                 <div className="border-t pt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Lucro Líquido</span>
-                    <span className={cn(
-                      "font-bold text-lg",
-                      ytdProfit >= 0 ? "text-green-600" : "text-red-600"
-                    )}>
+                    <span
+                      className={cn(
+                        "font-bold text-lg",
+                        ytdProfit >= 0 ? "text-green-600" : "text-red-600",
+                      )}
+                    >
                       {formatCurrency(ytdProfit)}
                     </span>
                   </div>
@@ -386,31 +443,46 @@ export default function DashboardFinanceiro() {
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <Link to="/financas/fluxo-de-caixa">
-              <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex-col gap-2"
+              >
                 <BarChart3 className="h-5 w-5" />
                 <span className="text-xs">Fluxo de Caixa</span>
               </Button>
             </Link>
             <Link to="/financas/dre">
-              <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex-col gap-2"
+              >
                 <TrendingUp className="h-5 w-5" />
                 <span className="text-xs">DRE</span>
               </Button>
             </Link>
             <Link to="/financas/rentabilidade-os">
-              <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex-col gap-2"
+              >
                 <PiggyBank className="h-5 w-5" />
                 <span className="text-xs">Rentabilidade OS</span>
               </Button>
             </Link>
             <Link to="/financas/contas-a-receber">
-              <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex-col gap-2"
+              >
                 <DollarSign className="h-5 w-5" />
                 <span className="text-xs">A Receber</span>
               </Button>
             </Link>
             <Link to="/financas/contas-a-pagar">
-              <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex-col gap-2"
+              >
                 <CreditCard className="h-5 w-5" />
                 <span className="text-xs">A Pagar</span>
               </Button>

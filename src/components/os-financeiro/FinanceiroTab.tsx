@@ -32,17 +32,21 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/hooks/useProducts";
-import { useServiceCallItems, ItemType, ServiceCallItem } from "@/hooks/useServiceCallItems";
+import {
+  useServiceCallItems,
+  ItemType,
+  ServiceCallItem,
+} from "@/hooks/useServiceCallItems";
 import { useFinancialTransactions } from "@/hooks/useFinancialTransactions";
 import { useServiceCall } from "@/hooks/useServiceCalls";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useTechnicianReimbursements } from "@/hooks/useTechnicianReimbursements";
-import { 
-  useFinancialCalculations, 
-  generateInstallments, 
+import {
+  useFinancialCalculations,
+  generateInstallments,
   prepareWebhookPayload,
   buildPaymentConfig,
-  parsePaymentConfig
+  parsePaymentConfig,
 } from "@/hooks/useFinancialCalculations";
 import { format, addDays, parse, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -71,7 +75,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { QuickProductForm } from "./QuickProductForm";
 import { DiscountType, PaymentMode } from "./types";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { OperationalCostsTab } from "./OperationalCostsTab";
 
@@ -89,7 +97,7 @@ const formatCurrency = (value: number) => {
 
 // Format date input as dd/mm/yyyy
 const formatDateInput = (value: string) => {
-  const digits = value.replace(/\D/g, '');
+  const digits = value.replace(/\D/g, "");
   if (digits.length <= 2) return digits;
   if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
@@ -102,7 +110,10 @@ const parseDateString = (dateStr: string): Date | null => {
   return isValid(parsed) ? parsed : null;
 };
 
-export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) => {
+export const FinanceiroTab = ({
+  serviceCallId,
+  clientId,
+}: FinanceiroTabProps) => {
   const { toast } = useToast();
   const { products } = useProducts();
   const { activePaymentMethods } = usePaymentMethods();
@@ -117,7 +128,7 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     totals,
     isLoading: isLoadingItems,
   } = useServiceCallItems(serviceCallId);
-  
+
   const {
     transactions,
     createTransaction,
@@ -131,7 +142,9 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   } = useFinancialTransactions(serviceCallId);
 
   // Reimbursements for costs tab badge
-  const { summary: reimbursementsSummary } = useTechnicianReimbursements({ serviceCallId });
+  const { summary: reimbursementsSummary } = useTechnicianReimbursements({
+    serviceCallId,
+  });
   const [newProduct, setNewProduct] = useState({
     product_id: "",
     qty: 1,
@@ -155,22 +168,28 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const [osDiscountValue, setOsDiscountValue] = useState(0);
 
   // === NEW: Formas de Pagamento - Lista simples ===
-  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>([]);
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<
+    string[]
+  >([]);
 
   // === NEW: Condição de Pagamento ===
   const [installmentCount, setInstallmentCount] = useState(1);
-  const [startDateInput, setStartDateInput] = useState(format(new Date(), "dd/MM/yyyy"));
+  const [startDateInput, setStartDateInput] = useState(
+    format(new Date(), "dd/MM/yyyy"),
+  );
   const [installmentInterval, setInstallmentInterval] = useState(30);
-  
+
   // Confirm dialog for regenerating
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
   // === NEW: Inline editing state for installments ===
-  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    string | null
+  >(null);
   const [editDueDate, setEditDueDate] = useState<Date | undefined>();
   const [editAmount, setEditAmount] = useState(0);
-  const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
-  const [editNotes, setEditNotes] = useState<string>('');
+  const [editPaymentMethod, setEditPaymentMethod] = useState<string>("");
+  const [editNotes, setEditNotes] = useState<string>("");
   const [editDays, setEditDays] = useState<number>(0);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -181,7 +200,9 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const [editItemDescription, setEditItemDescription] = useState("");
   const [editItemQty, setEditItemQty] = useState(1);
   const [editItemUnitPrice, setEditItemUnitPrice] = useState(0);
-  const [editItemDiscountType, setEditItemDiscountType] = useState<"percent" | "value">("value");
+  const [editItemDiscountType, setEditItemDiscountType] = useState<
+    "percent" | "value"
+  >("value");
   const [editItemDiscountPercent, setEditItemDiscountPercent] = useState(0);
   const [editItemDiscountValue, setEditItemDiscountValue] = useState(0);
 
@@ -199,14 +220,23 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
           const d = new Date(paymentConfig.startDate + "T12:00:00");
           setStartDateInput(format(d, "dd/MM/yyyy"));
         }
-        if (paymentConfig.allowedPaymentMethods && paymentConfig.allowedPaymentMethods.length > 0) {
+        if (
+          paymentConfig.allowedPaymentMethods &&
+          paymentConfig.allowedPaymentMethods.length > 0
+        ) {
           setSelectedPaymentMethods(paymentConfig.allowedPaymentMethods);
         }
-        if (paymentConfig.installmentDays && paymentConfig.installmentDays.length > 0) {
+        if (
+          paymentConfig.installmentDays &&
+          paymentConfig.installmentDays.length > 0
+        ) {
           setInstallmentCount(paymentConfig.installmentDays.length);
           // Infer interval from days array
           if (paymentConfig.installmentDays.length > 1) {
-            setInstallmentInterval(paymentConfig.installmentDays[1] - paymentConfig.installmentDays[0]);
+            setInstallmentInterval(
+              paymentConfig.installmentDays[1] -
+                paymentConfig.installmentDays[0],
+            );
           }
         }
       }
@@ -217,14 +247,14 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const subtotalParts = totals.products;
   const subtotalServices = totals.services;
   const subtotalOS = subtotalParts + subtotalServices;
-  
+
   const osDiscount = useMemo(() => {
     if (osDiscountType === "percent") {
       return (subtotalOS * osDiscountValue) / 100;
     }
     return Math.min(osDiscountValue, subtotalOS);
   }, [osDiscountType, osDiscountValue, subtotalOS]);
-  
+
   const grandTotal = subtotalOS - osDiscount;
 
   // Calculate totals difference
@@ -238,28 +268,37 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   }, [startDateInput]);
 
   // Check if can generate
-  const canGenerate = startDateInput.length === 10 && parseDateString(startDateInput) !== null && grandTotal > 0;
+  const canGenerate =
+    startDateInput.length === 10 &&
+    parseDateString(startDateInput) !== null &&
+    grandTotal > 0;
 
   // Calculate item total with discount
-  const calculateItemTotal = (qty: number, unitPrice: number, discountType: "percent" | "value", discountPercent: number, discountValue: number) => {
+  const calculateItemTotal = (
+    qty: number,
+    unitPrice: number,
+    discountType: "percent" | "value",
+    discountPercent: number,
+    discountValue: number,
+  ) => {
     const subtotal = qty * unitPrice;
     if (discountType === "percent") {
-      return subtotal - (subtotal * discountPercent / 100);
+      return subtotal - (subtotal * discountPercent) / 100;
     }
     return subtotal - discountValue;
   };
 
   // === Payment Methods Handlers ===
   const handleAddPaymentMethod = () => {
-    setSelectedPaymentMethods(prev => [...prev, '']);
+    setSelectedPaymentMethods((prev) => [...prev, ""]);
   };
 
   const handleRemovePaymentMethod = (index: number) => {
-    setSelectedPaymentMethods(prev => prev.filter((_, i) => i !== index));
+    setSelectedPaymentMethods((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleChangePaymentMethod = (index: number, value: string) => {
-    setSelectedPaymentMethods(prev => {
+    setSelectedPaymentMethods((prev) => {
       const newMethods = [...prev];
       newMethods[index] = value;
       return newMethods;
@@ -273,14 +312,15 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       return;
     }
 
-    const product = products.find(p => p.id === newProduct.product_id);
+    const product = products.find((p) => p.id === newProduct.product_id);
     if (!product) return;
 
     const qty = newProduct.qty || 1;
     const unitPrice = newProduct.unit_price || product.unit_price || 0;
-    const discountVal = newProduct.discount_type === "percent" 
-      ? (qty * unitPrice * newProduct.discount_percent / 100)
-      : newProduct.discount_value;
+    const discountVal =
+      newProduct.discount_type === "percent"
+        ? (qty * unitPrice * newProduct.discount_percent) / 100
+        : newProduct.discount_value;
     const total = qty * unitPrice - discountVal;
 
     try {
@@ -296,7 +336,14 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         total,
       });
 
-      setNewProduct({ product_id: "", qty: 1, unit_price: 0, discount_percent: 0, discount_value: 0, discount_type: "value" });
+      setNewProduct({
+        product_id: "",
+        qty: 1,
+        unit_price: 0,
+        discount_percent: 0,
+        discount_value: 0,
+        discount_type: "value",
+      });
       toast({ title: "Peça adicionada" });
     } catch (error) {
       toast({ title: "Erro ao adicionar peça", variant: "destructive" });
@@ -312,9 +359,10 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
 
     const qty = newService.qty || 1;
     const unitPrice = newService.unit_price || 0;
-    const discountVal = newService.discount_type === "percent" 
-      ? (qty * unitPrice * newService.discount_percent / 100)
-      : newService.discount_value;
+    const discountVal =
+      newService.discount_type === "percent"
+        ? (qty * unitPrice * newService.discount_percent) / 100
+        : newService.discount_value;
     const total = qty * unitPrice - discountVal;
 
     try {
@@ -329,7 +377,14 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         total,
       });
 
-      setNewService({ description: "", qty: 1, unit_price: 0, discount_percent: 0, discount_value: 0, discount_type: "value" });
+      setNewService({
+        description: "",
+        qty: 1,
+        unit_price: 0,
+        discount_percent: 0,
+        discount_value: 0,
+        discount_type: "value",
+      });
       toast({ title: "Serviço adicionado" });
     } catch (error) {
       toast({ title: "Erro ao adicionar serviço", variant: "destructive" });
@@ -355,7 +410,9 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     const subtotal = item.qty * item.unit_price;
     if (item.discount_type === "percent" && subtotal > 0) {
       setEditItemDiscountType("percent");
-      setEditItemDiscountPercent(Math.round((item.discount_value / subtotal) * 100));
+      setEditItemDiscountPercent(
+        Math.round((item.discount_value / subtotal) * 100),
+      );
       setEditItemDiscountValue(0);
     } else {
       setEditItemDiscountType("value");
@@ -369,9 +426,10 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     const qty = editItemQty || 1;
     const unitPrice = editItemUnitPrice || 0;
     const subtotal = qty * unitPrice;
-    const discountVal = editItemDiscountType === "percent"
-      ? (subtotal * editItemDiscountPercent / 100)
-      : editItemDiscountValue;
+    const discountVal =
+      editItemDiscountType === "percent"
+        ? (subtotal * editItemDiscountPercent) / 100
+        : editItemDiscountValue;
     const total = subtotal - discountVal;
 
     try {
@@ -397,8 +455,8 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
 
   // Handle product selection
   const handleProductSelect = (productId: string) => {
-    const product = products.find(p => p.id === productId);
-    setNewProduct(prev => ({
+    const product = products.find((p) => p.id === productId);
+    setNewProduct((prev) => ({
       ...prev,
       product_id: productId,
       unit_price: product?.unit_price || 0,
@@ -408,7 +466,10 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   // === Generate Installments ===
   const handleGenerateInstallments = async () => {
     if (grandTotal <= 0) {
-      toast({ title: "O valor total deve ser maior que zero", variant: "destructive" });
+      toast({
+        title: "O valor total deve ser maior que zero",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -430,18 +491,25 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
     }
 
     const groupId = crypto.randomUUID();
-    const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * (i + 1));
-    
+    const installmentDays = Array.from(
+      { length: installmentCount },
+      (_, i) => installmentInterval * (i + 1),
+    );
+
     // Default payment method from selected list
-    const defaultMethod = selectedPaymentMethods.length > 0 ? selectedPaymentMethods[0] : null;
-    
+    const defaultMethod =
+      selectedPaymentMethods.length > 0 ? selectedPaymentMethods[0] : null;
+
     // Generate installments
     const installmentsData = installmentDays.map((days, i) => {
       const dueDate = addDays(paymentStartDate, days);
-      const amount = i === installmentCount - 1 
-        ? grandTotal - (Math.floor((grandTotal / installmentCount) * 100) / 100) * (installmentCount - 1)
-        : Math.floor((grandTotal / installmentCount) * 100) / 100;
-      
+      const amount =
+        i === installmentCount - 1
+          ? grandTotal -
+            (Math.floor((grandTotal / installmentCount) * 100) / 100) *
+              (installmentCount - 1)
+          : Math.floor((grandTotal / installmentCount) * 100) / 100;
+
       return {
         direction: "RECEIVE" as const,
         origin: "SERVICE_CALL" as const,
@@ -482,8 +550,11 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   const handleAddInstallment = async () => {
     const lastInstallment = transactions[transactions.length - 1];
     const newInstallmentNumber = (lastInstallment?.installment_number || 0) + 1;
-    const newDueDate = lastInstallment 
-      ? addDays(new Date(lastInstallment.due_date + "T12:00:00"), installmentInterval)
+    const newDueDate = lastInstallment
+      ? addDays(
+          new Date(lastInstallment.due_date + "T12:00:00"),
+          installmentInterval,
+        )
       : new Date();
 
     try {
@@ -498,7 +569,8 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         payment_method: selectedPaymentMethods[0] || null,
         installment_number: newInstallmentNumber,
         installments_total: transactions.length + 1,
-        installments_group_id: lastInstallment?.installments_group_id || crypto.randomUUID(),
+        installments_group_id:
+          lastInstallment?.installments_group_id || crypto.randomUUID(),
         notes: null,
       });
       toast({ title: "Parcela adicionada" });
@@ -508,15 +580,40 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   };
 
   // === Inline edit handlers ===
-  const handleStartEditTransaction = (t: any, index: number) => {
+  const handleStartEditTransaction = async (t: any, index: number) => {
+    // Auto-save the current row before switching to another
+    if (
+      editingTransactionId &&
+      editingTransactionId !== t.id &&
+      editDueDate &&
+      editAmount > 0
+    ) {
+      try {
+        await updateTransaction.mutateAsync({
+          id: editingTransactionId,
+          amount: editAmount,
+          due_date: format(editDueDate, "yyyy-MM-dd"),
+          payment_method: editPaymentMethod || null,
+          notes: editNotes || null,
+        });
+      } catch {
+        toast({
+          title: "Erro ao salvar a parcela anterior",
+          variant: "destructive",
+        });
+      }
+    }
     setEditingTransactionId(t.id);
     setEditDueDate(new Date(t.due_date + "T12:00:00"));
     setEditAmount(t.amount);
-    setEditPaymentMethod(t.payment_method || '');
-    setEditNotes(t.notes || '');
+    setEditPaymentMethod(t.payment_method || "");
+    setEditNotes(t.notes || "");
     // Calculate days from payment start date
     const currentDate = new Date(t.due_date + "T12:00:00");
-    const days = Math.round((currentDate.getTime() - paymentStartDate.getTime()) / (1000 * 60 * 60 * 24));
+    const days = Math.round(
+      (currentDate.getTime() - paymentStartDate.getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
     setEditDays(days);
   };
 
@@ -529,9 +626,12 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
 
   const handleSaveEditTransaction = async () => {
     if (!editingTransactionId || !editDueDate) return;
-    
+
     if (!editAmount || editAmount <= 0) {
-      toast({ title: "O valor deve ser maior que zero", variant: "destructive" });
+      toast({
+        title: "O valor deve ser maior que zero",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -555,19 +655,28 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   };
 
   // === Update payment method for a single transaction (inline select) ===
-  const handleUpdateTransactionPaymentMethod = async (transactionId: string, method: string) => {
+  const handleUpdateTransactionPaymentMethod = async (
+    transactionId: string,
+    method: string,
+  ) => {
     try {
       await updateTransaction.mutateAsync({
         id: transactionId,
         payment_method: method,
       });
     } catch (error) {
-      toast({ title: "Erro ao atualizar forma de pagamento", variant: "destructive" });
+      toast({
+        title: "Erro ao atualizar forma de pagamento",
+        variant: "destructive",
+      });
     }
   };
 
   // === Update notes for a single transaction (inline) ===
-  const handleUpdateTransactionNotes = async (transactionId: string, notes: string) => {
+  const handleUpdateTransactionNotes = async (
+    transactionId: string,
+    notes: string,
+  ) => {
     try {
       await updateTransaction.mutateAsync({
         id: transactionId,
@@ -581,15 +690,23 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
   // === Calculate days from payment start date ===
   const calculateDays = (t: any, index: number): number => {
     const currentDate = new Date(t.due_date + "T12:00:00");
-    return Math.round((currentDate.getTime() - paymentStartDate.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.round(
+      (currentDate.getTime() - paymentStartDate.getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
   };
 
   // === Save financial data ===
   const handleSaveFinancial = async () => {
     // Validate parcels before saving
-    const invalidParcels = transactions.filter(t => !t.due_date || t.amount <= 0);
+    const invalidParcels = transactions.filter(
+      (t) => !t.due_date || t.amount <= 0,
+    );
     if (invalidParcels.length > 0) {
-      toast({ title: "Todas as parcelas devem ter data e valor válidos", variant: "destructive" });
+      toast({
+        title: "Todas as parcelas devem ter data e valor válidos",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -607,13 +724,16 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
       }
 
       // 2. Build and save payment config to the service call
-      const installmentDays = Array.from({ length: installmentCount }, (_, i) => installmentInterval * (i + 1));
+      const installmentDays = Array.from(
+        { length: installmentCount },
+        (_, i) => installmentInterval * (i + 1),
+      );
       const paymentConfig = buildPaymentConfig(
-        paymentStartDate, 
-        installmentDays, 
-        'multiple',
+        paymentStartDate,
+        installmentDays,
+        "multiple",
         undefined,
-        selectedPaymentMethods.filter(m => m)
+        selectedPaymentMethods.filter((m) => m),
       );
 
       const { error } = await supabase
@@ -678,750 +798,1389 @@ export const FinanceiroTab = ({ serviceCallId, clientId }: FinanceiroTabProps) =
         <div className="space-y-4 w-full min-w-0 max-w-full">
           {/* Peças/Produtos - Compact */}
           <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Package className="w-4 h-4" />
-            Peças / Produtos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-2 space-y-2">
-          {productItems.length > 0 && (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-xs">
-                    <TableHead className="py-1 px-1">Item</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-10">Qtd</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-16">Unit.</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-16 hidden lg:table-cell">Subtot.</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-12">%Desc</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-14">R$Desc</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-16">Total</TableHead>
-                    <TableHead className="py-1 px-1 w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {productItems.map(item => {
-                    const isEditing = editingItemId === item.id;
-                    const subtotal = isEditing
-                      ? editItemQty * editItemUnitPrice
-                      : item.qty * item.unit_price;
-                    const discountPercent = item.discount_type === "percent" && subtotal > 0 
-                      ? Math.round((item.discount_value / subtotal) * 100) 
-                      : 0;
-                    const editTotal = isEditing
-                      ? subtotal - (editItemDiscountType === "percent" ? subtotal * editItemDiscountPercent / 100 : editItemDiscountValue)
-                      : item.total;
-                    return (
-                      <TableRow key={item.id} className="text-xs cursor-pointer" onClick={() => !isEditing && handleStartEditItem(item)}>
-                        <TableCell className="py-1 px-1">
-                          {isEditing ? (
-                            <Input className="h-6 text-xs" value={editItemDescription} onChange={e => setEditItemDescription(e.target.value)} onClick={e => e.stopPropagation()} />
-                          ) : (
-                            <>
-                              <span className="font-medium truncate block max-w-[150px]" title={item.description}>{item.description}</span>
-                              {item.products?.sku && <span className="text-muted-foreground text-[10px]">({item.products.sku})</span>}
-                            </>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right">
-                          {isEditing ? <Input type="number" min="1" className="h-6 text-xs w-14 text-right" value={editItemQty} onChange={e => setEditItemQty(Number(e.target.value))} onClick={e => e.stopPropagation()} /> : item.qty}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right">
-                          {isEditing ? <Input type="number" step="0.01" min="0" className="h-6 text-xs w-20 text-right" value={editItemUnitPrice} onChange={e => setEditItemUnitPrice(Number(e.target.value))} onClick={e => e.stopPropagation()} /> : formatCurrency(item.unit_price)}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right text-muted-foreground hidden lg:table-cell">{formatCurrency(subtotal)}</TableCell>
-                        <TableCell className="py-1 px-1 text-right text-destructive">
-                          {isEditing ? <Input type="number" min="0" max="100" className="h-6 text-xs w-14 text-right" value={editItemDiscountType === "percent" ? editItemDiscountPercent : ""} placeholder="-" onClick={e => e.stopPropagation()} onChange={e => { setEditItemDiscountType("percent"); setEditItemDiscountPercent(Number(e.target.value)); setEditItemDiscountValue(0); }} />
-                            : item.discount_type === "percent" && item.discount_value > 0 ? `-${discountPercent}%` : "-"}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right text-destructive">
-                          {isEditing ? <Input type="number" step="0.01" min="0" className="h-6 text-xs w-16 text-right" value={editItemDiscountType === "value" ? editItemDiscountValue : ""} placeholder="-" onClick={e => e.stopPropagation()} onChange={e => { setEditItemDiscountType("value"); setEditItemDiscountValue(Number(e.target.value)); setEditItemDiscountPercent(0); }} />
-                            : item.discount_type === "value" && item.discount_value > 0 ? `-${formatCurrency(item.discount_value)}` : "-"}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right font-medium">{formatCurrency(isEditing ? editTotal : item.total)}</TableCell>
-                        <TableCell className="py-1 px-1" onClick={e => e.stopPropagation()}>
-                          {isEditing ? (
-                            <div className="flex gap-0.5">
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleSaveEditItem} disabled={updateItem.isPending}>
-                                <Check className="h-3 w-3 text-primary" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCancelEditItem}>
-                                <X className="h-3 w-3 text-muted-foreground" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDeleteItem(item.id)}>
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </Button>
-                          )}
-                        </TableCell>
+            <CardHeader className="py-2 px-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Peças / Produtos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-2 space-y-2">
+              {productItems.length > 0 && (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="text-xs">
+                        <TableHead className="py-1 px-1">Item</TableHead>
+                        <TableHead className="py-1 px-1 text-right w-10">
+                          Qtd
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-16">
+                          Unit.
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-16 hidden lg:table-cell">
+                          Subtot.
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-12">
+                          %Desc
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-14">
+                          R$Desc
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-16">
+                          Total
+                        </TableHead>
+                        <TableHead className="py-1 px-1 w-12"></TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-          
-          {/* Total Peças */}
-          {productItems.length > 0 && (
-            <div className="text-right text-sm font-medium py-1 border-t">
-              Total Peças: {formatCurrency(subtotalParts)}
-            </div>
-          )}
+                    </TableHeader>
+                    <TableBody>
+                      {productItems.map((item) => {
+                        const isEditing = editingItemId === item.id;
+                        const subtotal = isEditing
+                          ? editItemQty * editItemUnitPrice
+                          : item.qty * item.unit_price;
+                        const discountPercent =
+                          item.discount_type === "percent" && subtotal > 0
+                            ? Math.round((item.discount_value / subtotal) * 100)
+                            : 0;
+                        const editTotal = isEditing
+                          ? subtotal -
+                            (editItemDiscountType === "percent"
+                              ? (subtotal * editItemDiscountPercent) / 100
+                              : editItemDiscountValue)
+                          : item.total;
+                        return (
+                          <TableRow
+                            key={item.id}
+                            className="text-xs cursor-pointer"
+                            onClick={() =>
+                              !isEditing && handleStartEditItem(item)
+                            }
+                          >
+                            <TableCell className="py-1 px-1">
+                              {isEditing ? (
+                                <Input
+                                  className="h-6 text-xs"
+                                  value={editItemDescription}
+                                  onChange={(e) =>
+                                    setEditItemDescription(e.target.value)
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                <>
+                                  <span
+                                    className="font-medium truncate block max-w-[150px]"
+                                    title={item.description}
+                                  >
+                                    {item.description}
+                                  </span>
+                                  {item.products?.sku && (
+                                    <span className="text-muted-foreground text-xs">
+                                      ({item.products.sku})
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right">
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  className="h-6 text-xs w-14 text-right"
+                                  value={editItemQty}
+                                  onChange={(e) =>
+                                    setEditItemQty(Number(e.target.value))
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                item.qty
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right">
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  className="h-6 text-xs w-20 text-right"
+                                  value={editItemUnitPrice}
+                                  onChange={(e) =>
+                                    setEditItemUnitPrice(Number(e.target.value))
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                formatCurrency(item.unit_price)
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right text-muted-foreground hidden lg:table-cell">
+                              {formatCurrency(subtotal)}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right text-destructive">
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  className="h-6 text-xs w-14 text-right"
+                                  value={
+                                    editItemDiscountType === "percent"
+                                      ? editItemDiscountPercent
+                                      : ""
+                                  }
+                                  placeholder="-"
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => {
+                                    setEditItemDiscountType("percent");
+                                    setEditItemDiscountPercent(
+                                      Number(e.target.value),
+                                    );
+                                    setEditItemDiscountValue(0);
+                                  }}
+                                />
+                              ) : item.discount_type === "percent" &&
+                                item.discount_value > 0 ? (
+                                `-${discountPercent}%`
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right text-destructive">
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  className="h-6 text-xs w-16 text-right"
+                                  value={
+                                    editItemDiscountType === "value"
+                                      ? editItemDiscountValue
+                                      : ""
+                                  }
+                                  placeholder="-"
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => {
+                                    setEditItemDiscountType("value");
+                                    setEditItemDiscountValue(
+                                      Number(e.target.value),
+                                    );
+                                    setEditItemDiscountPercent(0);
+                                  }}
+                                />
+                              ) : item.discount_type === "value" &&
+                                item.discount_value > 0 ? (
+                                `-${formatCurrency(item.discount_value)}`
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right font-medium">
+                              {formatCurrency(
+                                isEditing ? editTotal : item.total,
+                              )}
+                            </TableCell>
+                            <TableCell
+                              className="py-1 px-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {isEditing ? (
+                                <div className="flex gap-0.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5"
+                                    onClick={handleSaveEditItem}
+                                    disabled={updateItem.isPending}
+                                  >
+                                    <Check className="h-3 w-3 text-primary" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5"
+                                    onClick={handleCancelEditItem}
+                                  >
+                                    <X className="h-3 w-3 text-muted-foreground" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => handleDeleteItem(item.id)}
+                                >
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
 
-          {/* Add product form - compact */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-1 pt-2 border-t text-xs">
-            <div className="col-span-2">
-              <Label className="text-[10px]">Produto</Label>
-              <div className="flex gap-1">
-                <Select value={newProduct.product_id} onValueChange={handleProductSelect}>
-                  <SelectTrigger className="h-7 text-xs">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map(p => (
-                      <SelectItem key={p.id} value={p.id} className="text-xs">
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <QuickProductForm onSuccess={(product) => handleProductSelect(product.id)} />
+              {/* Total Peças */}
+              {productItems.length > 0 && (
+                <div className="text-right text-sm font-medium py-1 border-t">
+                  Total Peças: {formatCurrency(subtotalParts)}
+                </div>
+              )}
+
+              {/* Add product form - compact */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-1 pt-2 border-t text-xs">
+                <div className="col-span-2">
+                  <Label className="text-xs">Produto</Label>
+                  <div className="flex gap-1">
+                    <Select
+                      value={newProduct.product_id}
+                      onValueChange={handleProductSelect}
+                    >
+                      <SelectTrigger className="h-7 text-xs">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((p) => (
+                          <SelectItem
+                            key={p.id}
+                            value={p.id}
+                            className="text-xs"
+                          >
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <QuickProductForm
+                      onSuccess={(product) => handleProductSelect(product.id)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Qtd</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-7 text-xs"
+                    value={newProduct.qty}
+                    onChange={(e) =>
+                      setNewProduct((prev) => ({
+                        ...prev,
+                        qty: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Unit.</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="h-7 text-xs"
+                    value={newProduct.unit_price}
+                    onChange={(e) =>
+                      setNewProduct((prev) => ({
+                        ...prev,
+                        unit_price: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">%Desc</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    className="h-7 text-xs"
+                    value={
+                      newProduct.discount_type === "percent"
+                        ? newProduct.discount_percent
+                        : ""
+                    }
+                    placeholder="-"
+                    onChange={(e) =>
+                      setNewProduct((prev) => ({
+                        ...prev,
+                        discount_type: "percent",
+                        discount_percent: Number(e.target.value),
+                        discount_value: 0,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">R$Desc</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="h-7 text-xs"
+                    value={
+                      newProduct.discount_type === "value"
+                        ? newProduct.discount_value
+                        : ""
+                    }
+                    placeholder="-"
+                    onChange={(e) =>
+                      setNewProduct((prev) => ({
+                        ...prev,
+                        discount_type: "value",
+                        discount_value: Number(e.target.value),
+                        discount_percent: 0,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 w-8 text-xs"
+                    onClick={handleAddProduct}
+                    disabled={createItem.isPending}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-            </div>
-            <div>
-              <Label className="text-[10px]">Qtd</Label>
-              <Input type="number" min="1" className="h-7 text-xs" value={newProduct.qty}
-                onChange={e => setNewProduct(prev => ({ ...prev, qty: Number(e.target.value) }))} />
-            </div>
-            <div>
-              <Label className="text-[10px]">Unit.</Label>
-              <Input type="number" step="0.01" min="0" className="h-7 text-xs" value={newProduct.unit_price}
-                onChange={e => setNewProduct(prev => ({ ...prev, unit_price: Number(e.target.value) }))} />
-            </div>
-            <div>
-              <Label className="text-[10px]">%Desc</Label>
-              <Input type="number" min="0" max="100" className="h-7 text-xs" 
-                value={newProduct.discount_type === "percent" ? newProduct.discount_percent : ""}
-                placeholder="-"
-                onChange={e => setNewProduct(prev => ({ 
-                  ...prev, 
-                  discount_type: "percent",
-                  discount_percent: Number(e.target.value),
-                  discount_value: 0
-                }))} />
-            </div>
-            <div>
-              <Label className="text-[10px]">R$Desc</Label>
-              <Input type="number" step="0.01" min="0" className="h-7 text-xs" 
-                value={newProduct.discount_type === "value" ? newProduct.discount_value : ""}
-                placeholder="-"
-                onChange={e => setNewProduct(prev => ({ 
-                  ...prev, 
-                  discount_type: "value",
-                  discount_value: Number(e.target.value),
-                  discount_percent: 0
-                }))} />
-            </div>
-            <div className="flex items-end">
-              <Button type="button" size="sm" className="h-7 w-8 text-xs" onClick={handleAddProduct} disabled={createItem.isPending}>
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Serviços - Compact */}
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Wrench className="w-4 h-4" />
-            Serviços
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-2 space-y-2">
-          {serviceItems.length > 0 && (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-xs">
-                    <TableHead className="py-1 px-1">Descrição</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-10">Qtd</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-16">Unit.</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-16 hidden lg:table-cell">Subtot.</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-12">%Desc</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-14">R$Desc</TableHead>
-                    <TableHead className="py-1 px-1 text-right w-16">Total</TableHead>
-                    <TableHead className="py-1 px-1 w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {serviceItems.map(item => {
-                    const isEditing = editingItemId === item.id;
-                    const subtotal = isEditing
-                      ? editItemQty * editItemUnitPrice
-                      : item.qty * item.unit_price;
-                    const discountPercent = item.discount_type === "percent" && subtotal > 0 
-                      ? Math.round((item.discount_value / subtotal) * 100) 
-                      : 0;
-                    const editTotal = isEditing
-                      ? subtotal - (editItemDiscountType === "percent" ? subtotal * editItemDiscountPercent / 100 : editItemDiscountValue)
-                      : item.total;
-                    return (
-                      <TableRow key={item.id} className="text-xs cursor-pointer" onClick={() => !isEditing && handleStartEditItem(item)}>
-                        <TableCell className="py-1 px-1">
-                          {isEditing ? <Input className="h-6 text-xs" value={editItemDescription} onChange={e => setEditItemDescription(e.target.value)} onClick={e => e.stopPropagation()} /> : <span className="font-medium truncate block max-w-[150px]" title={item.description}>{item.description}</span>}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right">
-                          {isEditing ? <Input type="number" min="1" className="h-6 text-xs w-14 text-right" value={editItemQty} onChange={e => setEditItemQty(Number(e.target.value))} onClick={e => e.stopPropagation()} /> : item.qty}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right">
-                          {isEditing ? <Input type="number" step="0.01" min="0" className="h-6 text-xs w-20 text-right" value={editItemUnitPrice} onChange={e => setEditItemUnitPrice(Number(e.target.value))} onClick={e => e.stopPropagation()} /> : formatCurrency(item.unit_price)}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right text-muted-foreground hidden lg:table-cell">{formatCurrency(subtotal)}</TableCell>
-                        <TableCell className="py-1 px-1 text-right text-destructive">
-                          {isEditing ? <Input type="number" min="0" max="100" className="h-6 text-xs w-14 text-right" value={editItemDiscountType === "percent" ? editItemDiscountPercent : ""} placeholder="-" onClick={e => e.stopPropagation()} onChange={e => { setEditItemDiscountType("percent"); setEditItemDiscountPercent(Number(e.target.value)); setEditItemDiscountValue(0); }} />
-                            : item.discount_type === "percent" && item.discount_value > 0 ? `-${discountPercent}%` : "-"}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right text-destructive">
-                          {isEditing ? <Input type="number" step="0.01" min="0" className="h-6 text-xs w-16 text-right" value={editItemDiscountType === "value" ? editItemDiscountValue : ""} placeholder="-" onClick={e => e.stopPropagation()} onChange={e => { setEditItemDiscountType("value"); setEditItemDiscountValue(Number(e.target.value)); setEditItemDiscountPercent(0); }} />
-                            : item.discount_type === "value" && item.discount_value > 0 ? `-${formatCurrency(item.discount_value)}` : "-"}
-                        </TableCell>
-                        <TableCell className="py-1 px-1 text-right font-medium">{formatCurrency(isEditing ? editTotal : item.total)}</TableCell>
-                        <TableCell className="py-1 px-1" onClick={e => e.stopPropagation()}>
-                          {isEditing ? (
-                            <div className="flex gap-0.5">
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleSaveEditItem} disabled={updateItem.isPending}>
-                                <Check className="h-3 w-3 text-primary" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCancelEditItem}>
-                                <X className="h-3 w-3 text-muted-foreground" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDeleteItem(item.id)}>
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </Button>
-                          )}
-                        </TableCell>
+          {/* Serviços - Compact */}
+          <Card>
+            <CardHeader className="py-2 px-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Wrench className="w-4 h-4" />
+                Serviços
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-2 space-y-2">
+              {serviceItems.length > 0 && (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="text-xs">
+                        <TableHead className="py-1 px-1">Descrição</TableHead>
+                        <TableHead className="py-1 px-1 text-right w-10">
+                          Qtd
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-16">
+                          Unit.
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-16 hidden lg:table-cell">
+                          Subtot.
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-12">
+                          %Desc
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-14">
+                          R$Desc
+                        </TableHead>
+                        <TableHead className="py-1 px-1 text-right w-16">
+                          Total
+                        </TableHead>
+                        <TableHead className="py-1 px-1 w-12"></TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                    </TableHeader>
+                    <TableBody>
+                      {serviceItems.map((item) => {
+                        const isEditing = editingItemId === item.id;
+                        const subtotal = isEditing
+                          ? editItemQty * editItemUnitPrice
+                          : item.qty * item.unit_price;
+                        const discountPercent =
+                          item.discount_type === "percent" && subtotal > 0
+                            ? Math.round((item.discount_value / subtotal) * 100)
+                            : 0;
+                        const editTotal = isEditing
+                          ? subtotal -
+                            (editItemDiscountType === "percent"
+                              ? (subtotal * editItemDiscountPercent) / 100
+                              : editItemDiscountValue)
+                          : item.total;
+                        return (
+                          <TableRow
+                            key={item.id}
+                            className="text-xs cursor-pointer"
+                            onClick={() =>
+                              !isEditing && handleStartEditItem(item)
+                            }
+                          >
+                            <TableCell className="py-1 px-1">
+                              {isEditing ? (
+                                <Input
+                                  className="h-6 text-xs"
+                                  value={editItemDescription}
+                                  onChange={(e) =>
+                                    setEditItemDescription(e.target.value)
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                <span
+                                  className="font-medium truncate block max-w-[150px]"
+                                  title={item.description}
+                                >
+                                  {item.description}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right">
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  className="h-6 text-xs w-14 text-right"
+                                  value={editItemQty}
+                                  onChange={(e) =>
+                                    setEditItemQty(Number(e.target.value))
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                item.qty
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right">
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  className="h-6 text-xs w-20 text-right"
+                                  value={editItemUnitPrice}
+                                  onChange={(e) =>
+                                    setEditItemUnitPrice(Number(e.target.value))
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                formatCurrency(item.unit_price)
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right text-muted-foreground hidden lg:table-cell">
+                              {formatCurrency(subtotal)}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right text-destructive">
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  className="h-6 text-xs w-14 text-right"
+                                  value={
+                                    editItemDiscountType === "percent"
+                                      ? editItemDiscountPercent
+                                      : ""
+                                  }
+                                  placeholder="-"
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => {
+                                    setEditItemDiscountType("percent");
+                                    setEditItemDiscountPercent(
+                                      Number(e.target.value),
+                                    );
+                                    setEditItemDiscountValue(0);
+                                  }}
+                                />
+                              ) : item.discount_type === "percent" &&
+                                item.discount_value > 0 ? (
+                                `-${discountPercent}%`
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right text-destructive">
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  className="h-6 text-xs w-16 text-right"
+                                  value={
+                                    editItemDiscountType === "value"
+                                      ? editItemDiscountValue
+                                      : ""
+                                  }
+                                  placeholder="-"
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => {
+                                    setEditItemDiscountType("value");
+                                    setEditItemDiscountValue(
+                                      Number(e.target.value),
+                                    );
+                                    setEditItemDiscountPercent(0);
+                                  }}
+                                />
+                              ) : item.discount_type === "value" &&
+                                item.discount_value > 0 ? (
+                                `-${formatCurrency(item.discount_value)}`
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
+                            <TableCell className="py-1 px-1 text-right font-medium">
+                              {formatCurrency(
+                                isEditing ? editTotal : item.total,
+                              )}
+                            </TableCell>
+                            <TableCell
+                              className="py-1 px-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {isEditing ? (
+                                <div className="flex gap-0.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5"
+                                    onClick={handleSaveEditItem}
+                                    disabled={updateItem.isPending}
+                                  >
+                                    <Check className="h-3 w-3 text-primary" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5"
+                                    onClick={handleCancelEditItem}
+                                  >
+                                    <X className="h-3 w-3 text-muted-foreground" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => handleDeleteItem(item.id)}
+                                >
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
 
-          {/* Total Serviços */}
-          {serviceItems.length > 0 && (
-            <div className="text-right text-sm font-medium py-1 border-t">
-              Total Serviços: {formatCurrency(subtotalServices)}
-            </div>
-          )}
+              {/* Total Serviços */}
+              {serviceItems.length > 0 && (
+                <div className="text-right text-sm font-medium py-1 border-t">
+                  Total Serviços: {formatCurrency(subtotalServices)}
+                </div>
+              )}
 
-          {/* Add service form - compact */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2 pt-2 border-t text-xs">
-            <div className="col-span-2">
-              <Label className="text-[10px]">Descrição</Label>
-              <Input placeholder="Ex: Mão de obra..." className="h-8 text-xs" value={newService.description}
-                onChange={e => setNewService(prev => ({ ...prev, description: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-[10px]">Qtd</Label>
-              <Input type="number" min="1" className="h-8 text-xs" value={newService.qty}
-                onChange={e => setNewService(prev => ({ ...prev, qty: Number(e.target.value) }))} />
-            </div>
-            <div>
-              <Label className="text-[10px]">Unit.</Label>
-              <Input type="number" step="0.01" min="0" className="h-8 text-xs" value={newService.unit_price}
-                onChange={e => setNewService(prev => ({ ...prev, unit_price: Number(e.target.value) }))} />
-            </div>
-            <div>
-              <Label className="text-[10px]">%Desc</Label>
-              <Input type="number" min="0" max="100" className="h-8 text-xs"
-                value={newService.discount_type === "percent" ? newService.discount_percent : ""}
-                placeholder="-"
-                onChange={e => setNewService(prev => ({ 
-                  ...prev, 
-                  discount_type: "percent",
-                  discount_percent: Number(e.target.value),
-                  discount_value: 0
-                }))} />
-            </div>
-            <div>
-              <Label className="text-[10px]">R$Desc</Label>
-              <Input type="number" step="0.01" min="0" className="h-8 text-xs"
-                value={newService.discount_type === "value" ? newService.discount_value : ""}
-                placeholder="-"
-                onChange={e => setNewService(prev => ({ 
-                  ...prev, 
-                  discount_type: "value",
-                  discount_value: Number(e.target.value),
-                  discount_percent: 0
-                }))} />
-            </div>
-            <div className="flex items-end">
-              <Button type="button" size="sm" className="h-8 w-full text-xs" onClick={handleAddService} disabled={createItem.isPending}>
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              {/* Add service form - compact */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2 pt-2 border-t text-xs">
+                <div className="col-span-2">
+                  <Label className="text-xs">Descrição</Label>
+                  <Input
+                    placeholder="Ex: Mão de obra..."
+                    className="h-8 text-xs"
+                    value={newService.description}
+                    onChange={(e) =>
+                      setNewService((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Qtd</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-8 text-xs"
+                    value={newService.qty}
+                    onChange={(e) =>
+                      setNewService((prev) => ({
+                        ...prev,
+                        qty: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Unit.</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="h-8 text-xs"
+                    value={newService.unit_price}
+                    onChange={(e) =>
+                      setNewService((prev) => ({
+                        ...prev,
+                        unit_price: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">%Desc</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    className="h-8 text-xs"
+                    value={
+                      newService.discount_type === "percent"
+                        ? newService.discount_percent
+                        : ""
+                    }
+                    placeholder="-"
+                    onChange={(e) =>
+                      setNewService((prev) => ({
+                        ...prev,
+                        discount_type: "percent",
+                        discount_percent: Number(e.target.value),
+                        discount_value: 0,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">R$Desc</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="h-8 text-xs"
+                    value={
+                      newService.discount_type === "value"
+                        ? newService.discount_value
+                        : ""
+                    }
+                    placeholder="-"
+                    onChange={(e) =>
+                      setNewService((prev) => ({
+                        ...prev,
+                        discount_type: "value",
+                        discount_value: Number(e.target.value),
+                        discount_percent: 0,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 w-full text-xs"
+                    onClick={handleAddService}
+                    disabled={createItem.isPending}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Totais e Desconto Geral - Compact */}
-      <Card className="bg-muted/30">
-        <CardContent className="p-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end text-sm">
-            <div>
-              <span className="text-[10px] text-muted-foreground">Total Peças</span>
-              <p className="font-semibold">{formatCurrency(subtotalParts)}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-muted-foreground">Total Serviços</span>
-              <p className="font-semibold">{formatCurrency(subtotalServices)}</p>
-            </div>
-            <div className="flex gap-1 items-end">
-              <div className="flex-1">
-                <span className="text-[10px] text-muted-foreground">Desc. OS</span>
-                <div className="flex gap-1">
-                  <Select value={osDiscountType} onValueChange={(v) => setOsDiscountType(v as DiscountType)}>
-                    <SelectTrigger className="h-8 w-16 text-xs">
+          {/* Totais e Desconto Geral - Compact */}
+          <Card className="bg-muted/30">
+            <CardContent className="p-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 items-end text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground">
+                    Total Peças
+                  </span>
+                  <p className="font-semibold">
+                    {formatCurrency(subtotalParts)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">
+                    Total Serviços
+                  </span>
+                  <p className="font-semibold">
+                    {formatCurrency(subtotalServices)}
+                  </p>
+                </div>
+                <div className="flex gap-1 items-end">
+                  <div className="flex-1">
+                    <span className="text-xs text-muted-foreground">
+                      Desc. OS
+                    </span>
+                    <div className="flex gap-1">
+                      <Select
+                        value={osDiscountType}
+                        onValueChange={(v) =>
+                          setOsDiscountType(v as DiscountType)
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-16 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percent">
+                            <Percent className="h-3 w-3" />
+                          </SelectItem>
+                          <SelectItem value="value">
+                            <DollarSign className="h-3 w-3" />
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="h-8 text-xs w-20"
+                        value={osDiscountValue}
+                        onChange={(e) =>
+                          setOsDiscountValue(Number(e.target.value))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">
+                    Desconto Calculado
+                  </span>
+                  <p className="font-medium text-destructive">
+                    -{formatCurrency(osDiscount)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">
+                    TOTAL OS
+                  </span>
+                  <p className="text-xl font-bold text-primary">
+                    {formatCurrency(grandTotal)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* === Observação do Recebimento === */}
+          <Card>
+            <CardHeader className="py-2 px-3">
+              <CardTitle className="text-sm">
+                Observação do Recebimento
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3">
+              <Textarea
+                value={receiptObservation}
+                onChange={(e) => setReceiptObservation(e.target.value)}
+                placeholder="Observações sobre o recebimento..."
+                maxLength={300}
+                rows={3}
+                className="resize-none text-sm"
+              />
+              <p className="text-xs text-muted-foreground text-right mt-1">
+                {receiptObservation.length}/300
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* === UNIFIED: Condição de Pagamento (Formas + Parcelas Config) === */}
+          <Card>
+            <CardHeader className="py-2 px-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Receipt className="w-4 h-4" />
+                Condição de Pagamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 space-y-3">
+              {/* Formas de Pagamento Aceitas */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground font-medium">
+                    Formas de Pagamento Aceitas
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={handleAddPaymentMethod}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Adicionar
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedPaymentMethods.length === 0 && (
+                    <span className="text-xs text-muted-foreground italic">
+                      Nenhuma forma selecionada
+                    </span>
+                  )}
+                  {selectedPaymentMethods.map((method, index) => (
+                    <div key={index} className="flex items-center gap-1">
+                      <Select
+                        value={method}
+                        onValueChange={(v) =>
+                          handleChangePaymentMethod(index, v)
+                        }
+                      >
+                        <SelectTrigger className="h-7 text-xs w-32">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activePaymentMethods.map((pm) => (
+                            <SelectItem
+                              key={pm.id}
+                              value={pm.name}
+                              className="text-xs"
+                            >
+                              {pm.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleRemovePaymentMethod(index)}
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Linha separadora */}
+              <div className="border-t" />
+
+              {/* Condição de Pagamento - Menu Horizontal */}
+              <div className="flex flex-wrap items-end gap-3 text-xs">
+                <div className="min-w-[80px]">
+                  <Label className="text-xs">Condição</Label>
+                  <Select
+                    value={String(installmentCount)}
+                    onValueChange={(v) => setInstallmentCount(Number(v))}
+                  >
+                    <SelectTrigger className="h-8 text-xs mt-1">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="percent"><Percent className="h-3 w-3" /></SelectItem>
-                      <SelectItem value="value"><DollarSign className="h-3 w-3" /></SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input type="number" step="0.01" min="0" className="h-8 text-xs w-20"
-                    value={osDiscountValue} onChange={e => setOsDiscountValue(Number(e.target.value))} />
-                </div>
-              </div>
-            </div>
-            <div>
-              <span className="text-[10px] text-muted-foreground">Desconto Calculado</span>
-              <p className="font-medium text-destructive">-{formatCurrency(osDiscount)}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-muted-foreground">TOTAL OS</span>
-              <p className="text-xl font-bold text-primary">{formatCurrency(grandTotal)}</p>
-            </div>
-          </div>
-    </CardContent>
-      </Card>
-
-      {/* === Observação do Recebimento === */}
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-sm">Observação do Recebimento</CardTitle>
-        </CardHeader>
-        <CardContent className="p-3">
-          <Textarea
-            value={receiptObservation}
-            onChange={(e) => setReceiptObservation(e.target.value)}
-            placeholder="Observações sobre o recebimento..."
-            maxLength={300}
-            rows={3}
-            className="resize-none text-sm"
-          />
-          <p className="text-[10px] text-muted-foreground text-right mt-1">{receiptObservation.length}/300</p>
-        </CardContent>
-      </Card>
-
-      {/* === UNIFIED: Condição de Pagamento (Formas + Parcelas Config) === */}
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Receipt className="w-4 h-4" />
-            Condição de Pagamento
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3 space-y-3">
-          {/* Formas de Pagamento Aceitas */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-[10px] text-muted-foreground font-medium">Formas de Pagamento Aceitas</Label>
-              <Button type="button" variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={handleAddPaymentMethod}>
-                <Plus className="h-3 w-3 mr-1" />
-                Adicionar
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {selectedPaymentMethods.length === 0 && (
-                <span className="text-xs text-muted-foreground italic">Nenhuma forma selecionada</span>
-              )}
-              {selectedPaymentMethods.map((method, index) => (
-                <div key={index} className="flex items-center gap-1">
-                  <Select value={method} onValueChange={(v) => handleChangePaymentMethod(index, v)}>
-                    <SelectTrigger className="h-7 text-xs w-32">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activePaymentMethods.map(pm => (
-                        <SelectItem key={pm.id} value={pm.name} className="text-xs">
-                          {pm.name}
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                        <SelectItem
+                          key={n}
+                          value={String(n)}
+                          className="text-xs"
+                        >
+                          {n}x
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemovePaymentMethod(index)}>
-                    <Trash2 className="h-3 w-3 text-destructive" />
-                  </Button>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Linha separadora */}
-          <div className="border-t" />
-
-          {/* Condição de Pagamento - Menu Horizontal */}
-          <div className="flex flex-wrap items-end gap-3 text-xs">
-            <div className="min-w-[80px]">
-              <Label className="text-[10px]">Condição</Label>
-              <Select value={String(installmentCount)} onValueChange={(v) => setInstallmentCount(Number(v))}>
-                <SelectTrigger className="h-8 text-xs mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
-                    <SelectItem key={n} value={String(n)} className="text-xs">{n}x</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="min-w-[110px]">
-              <Label className="text-[10px]">Data Início Contagem</Label>
-              <Input 
-                type="text" 
-                placeholder="dd/mm/aaaa" 
-                className="h-8 text-xs mt-1"
-                value={startDateInput}
-                onChange={e => setStartDateInput(formatDateInput(e.target.value))}
-                maxLength={10}
-              />
-            </div>
-            <div className="min-w-[80px]">
-              <Label className="text-[10px]">Intervalo (dias)</Label>
-              <Input 
-                type="number" 
-                min="1" 
-                className="h-8 text-xs mt-1" 
-                value={installmentInterval}
-                onChange={e => setInstallmentInterval(e.target.value === '' ? 0 : Number(e.target.value))} 
-              />
-            </div>
-            <Button 
-              type="button" 
-              className="h-8 text-xs px-4" 
-              onClick={handleGenerateInstallments}
-              disabled={!canGenerate || createManyTransactions.isPending}
-            >
-              <Receipt className="h-3 w-3 mr-1" />
-              {createManyTransactions.isPending ? "Gerando..." : "GERAR PARCELAS"}
-            </Button>
-            {transactions.length > 0 && (
-              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleClearInstallments}>
-                <Trash className="h-3 w-3 mr-1" />
-                Limpar
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* === Parcelas Geradas - Tabela com todas as colunas === */}
-      <Card>
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <ListOrdered className="w-4 h-4" />
-            Parcelas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-2">
-          {transactions.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">
-              Nenhuma parcela gerada. Use o botão "GERAR PARCELAS" acima.
-            </p>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="text-xs">
-                      <TableHead className="py-1 px-1 w-10">Nº</TableHead>
-                      <TableHead className="py-1 px-1 w-10 text-right">Dias</TableHead>
-                      <TableHead className="py-1 px-1 w-20">Data</TableHead>
-                      <TableHead className="py-1 px-1 w-20 text-right">Valor</TableHead>
-                      <TableHead className="py-1 px-1 w-28">Forma</TableHead>
-                      <TableHead className="py-1 px-1 w-32">Obs</TableHead>
-                      <TableHead className="py-1 px-1 w-20">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((t, index) => {
-                      const isEditing = editingTransactionId === t.id;
-                      const days = calculateDays(t, index);
-                      
-                      return (
-                        <TableRow key={t.id} className={cn("text-xs", isEditing && "bg-muted/50")}>
-                          {/* Nº */}
-                          <TableCell className="py-1 px-2 font-medium">
-                            {t.installments_total && t.installments_total > 1 
-                              ? `${t.installment_number}/${t.installments_total}` 
-                              : "1x"}
-                          </TableCell>
-                          
-                          {/* Dias - Editável */}
-                          <TableCell className="py-1 px-2 text-right">
-                            {isEditing ? (
-                              <Input 
-                                type="number" 
-                                min="0" 
-                                className="h-7 text-xs w-16 text-right"
-                                value={editDays} 
-                                onChange={e => handleDaysChange(Number(e.target.value))} 
-                              />
-                            ) : (
-                              <span 
-                                className={cn("text-muted-foreground", t.status === "OPEN" && "cursor-pointer hover:underline")}
-                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t, index)}
-                              >
-                                {days}
-                              </span>
-                            )}
-                          </TableCell>
-                          
-                          {/* Data */}
-                          <TableCell className="py-1 px-2">
-                            {isEditing ? (
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button variant="outline" size="sm" className="h-7 text-xs w-full justify-start">
-                                    <CalendarIcon className="h-3 w-3 mr-1" />
-                                    {editDueDate ? format(editDueDate, "dd/MM/yyyy") : "-"}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar 
-                                    mode="single" 
-                                    selected={editDueDate} 
-                                    onSelect={setEditDueDate} 
-                                    locale={ptBR}
-                                    className="pointer-events-auto" 
-                                  />
-                                </PopoverContent>
-                              </Popover>
-                            ) : (
-                              <span 
-                                className={cn(t.status === "OPEN" && "cursor-pointer hover:underline")}
-                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t, index)}
-                              >
-                                {format(new Date(t.due_date + "T12:00:00"), "dd/MM/yyyy")}
-                              </span>
-                            )}
-                          </TableCell>
-                          
-                          {/* Valor */}
-                          <TableCell className="py-1 px-2 text-right">
-                            {isEditing ? (
-                              <Input 
-                                type="number" 
-                                step="0.01" 
-                                min="0" 
-                                className="h-7 text-xs w-full text-right"
-                                value={editAmount} 
-                                onChange={e => setEditAmount(Number(e.target.value))} 
-                              />
-                            ) : (
-                              <span 
-                                className={cn("font-medium", t.status === "OPEN" && "cursor-pointer hover:underline")}
-                                onClick={() => t.status === "OPEN" && handleStartEditTransaction(t, index)}
-                              >
-                                {formatCurrency(t.amount)}
-                              </span>
-                            )}
-                          </TableCell>
-                          
-                          {/* Forma */}
-                          <TableCell className="py-1 px-2">
-                            {isEditing ? (
-                              <Select value={editPaymentMethod} onValueChange={setEditPaymentMethod}>
-                                <SelectTrigger className="h-7 text-xs w-28">
-                                  <SelectValue placeholder="Selecionar" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {activePaymentMethods.map(pm => (
-                                    <SelectItem key={pm.id} value={pm.name} className="text-xs">
-                                      {pm.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : t.status === "OPEN" ? (
-                              <Select 
-                                value={t.payment_method || ''} 
-                                onValueChange={(v) => handleUpdateTransactionPaymentMethod(t.id, v)}
-                              >
-                                <SelectTrigger className="h-7 text-xs w-28">
-                                  <SelectValue placeholder="Selecionar" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {activePaymentMethods.map(pm => (
-                                    <SelectItem key={pm.id} value={pm.name} className="text-xs">
-                                      {pm.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <span className="text-xs">{t.payment_method || "-"}</span>
-                            )}
-                          </TableCell>
-                          
-                          {/* Observação - Editável inline */}
-                          <TableCell className="py-1 px-2">
-                            {isEditing ? (
-                              <Input 
-                                type="text" 
-                                placeholder="Observação..."
-                                className="h-7 text-xs w-full"
-                                maxLength={300}
-                                value={editNotes} 
-                                onChange={e => setEditNotes(e.target.value)} 
-                              />
-                            ) : t.status === "OPEN" ? (
-                              <Input 
-                                type="text" 
-                                placeholder="Observação..."
-                                className="h-7 text-xs w-full"
-                                maxLength={300}
-                                defaultValue={t.notes || ''}
-                                onBlur={(e) => {
-                                  if (e.target.value !== (t.notes || '')) {
-                                    handleUpdateTransactionNotes(t.id, e.target.value);
-                                  }
-                                }}
-                              />
-                            ) : (
-                              <span className="text-xs text-muted-foreground truncate">
-                                {t.notes || "-"}
-                              </span>
-                            )}
-                          </TableCell>
-                          
-                          {/* Ações */}
-                          <TableCell className="py-1 px-2">
-                            {isEditing ? (
-                              <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleSaveEditTransaction}>
-                                  <Check className="h-3 w-3 text-green-600" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCancelEdit}>
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ) : t.status === "OPEN" ? (
-                              <div className="flex gap-0.5">
-                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Pago" onClick={() => markAsPaid.mutateAsync(t.id)}>
-                                  <Check className="h-3 w-3 text-green-600" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Cancelar" onClick={() => cancelTransaction.mutateAsync(t.id)}>
-                                  <X className="h-3 w-3 text-destructive" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" title="Excluir" onClick={() => deleteTransaction.mutateAsync(t.id)}>
-                                  <Trash2 className="h-3 w-3 text-muted-foreground" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1">
-                                {t.status === "PAID" && <Badge className="bg-green-500 text-[10px]">Pago</Badge>}
-                                {t.status === "CANCELED" && <Badge variant="destructive" className="text-[10px]">Canc.</Badge>}
-                              </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Adicionar parcela - Link abaixo da tabela */}
-              <div className="py-2">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 text-xs text-primary hover:text-primary/80 px-0" 
-                  onClick={handleAddInstallment}
+                <div className="min-w-[110px]">
+                  <Label className="text-xs">Data Início Contagem</Label>
+                  <Input
+                    type="text"
+                    placeholder="dd/mm/aaaa"
+                    className="h-8 text-xs mt-1"
+                    value={startDateInput}
+                    onChange={(e) =>
+                      setStartDateInput(formatDateInput(e.target.value))
+                    }
+                    maxLength={10}
+                  />
+                </div>
+                <div className="min-w-[80px]">
+                  <Label className="text-xs">Intervalo (dias)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    className="h-8 text-xs mt-1"
+                    value={installmentInterval}
+                    onChange={(e) =>
+                      setInstallmentInterval(
+                        e.target.value === "" ? 0 : Number(e.target.value),
+                      )
+                    }
+                  />
+                </div>
+                <Button
+                  type="button"
+                  className="h-8 text-xs px-4"
+                  onClick={handleGenerateInstallments}
+                  disabled={!canGenerate || createManyTransactions.isPending}
                 >
-                  <Plus className="h-3 w-3 mr-1" />
-                  + adicionar outra parcela
+                  <Receipt className="h-3 w-3 mr-1" />
+                  {createManyTransactions.isPending
+                    ? "Gerando..."
+                    : "GERAR PARCELAS"}
                 </Button>
-              </div>
-              
-              {/* Summary */}
-              <div className="flex flex-wrap justify-between items-center gap-4 pt-3 border-t text-xs">
-                <div className="flex gap-4">
-                  <span>Total Parcelas: <strong>{formatCurrency(totalInstallments)}</strong></span>
-                  <span>Pago: <strong className="text-green-600">{formatCurrency(summary.paid)}</strong></span>
-                  <span>Aberto: <strong className="text-orange-600">{formatCurrency(summary.open)}</strong></span>
-                </div>
-                
-                {/* Diferença warning */}
-                {hasDiferenca && (
-                  <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                    <AlertTriangle className="h-3 w-3" />
-                    <span>Diferença: {formatCurrency(diferenca)} (Total OS: {formatCurrency(grandTotal)})</span>
-                  </div>
-                )}
-                {!hasDiferenca && transactions.length > 0 && (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <CheckCircle className="h-3 w-3" />
-                    <span>Valores conferem</span>
-                  </div>
+                {transactions.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={handleClearInstallments}
+                  >
+                    <Trash className="h-3 w-3 mr-1" />
+                    Limpar
+                  </Button>
                 )}
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Save Button */}
-      <div className="flex justify-end pt-2">
-        <Button type="button" onClick={handleSaveFinancial} disabled={isSaving} className="min-w-[160px]">
-          <Save className="h-4 w-4 mr-2" />
-          {isSaving ? "Salvando..." : "Salvar Financeiro"}
-        </Button>
-      </div>
+          {/* === Parcelas Geradas - Tabela com todas as colunas === */}
+          <Card>
+            <CardHeader className="py-2 px-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ListOrdered className="w-4 h-4" />
+                Parcelas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-2">
+              {transactions.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  Nenhuma parcela gerada. Use o botão "GERAR PARCELAS" acima.
+                </p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="text-xs">
+                          <TableHead className="py-1 px-1 w-10">Nº</TableHead>
+                          <TableHead className="py-1 px-1 w-10 text-right">
+                            Dias
+                          </TableHead>
+                          <TableHead className="py-1 px-1 w-20">Data</TableHead>
+                          <TableHead className="py-1 px-1 w-20 text-right">
+                            Valor
+                          </TableHead>
+                          <TableHead className="py-1 px-1 w-28">
+                            Forma
+                          </TableHead>
+                          <TableHead className="py-1 px-1 w-32">Obs</TableHead>
+                          <TableHead className="py-1 px-1 w-20">
+                            Ações
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {transactions.map((t, index) => {
+                          const isEditing = editingTransactionId === t.id;
+                          const days = calculateDays(t, index);
 
-      {/* Confirm Regenerate Dialog */}
-      <AlertDialog open={showRegenerateConfirm} onOpenChange={setShowRegenerateConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Regenerar Parcelas?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Já existem parcelas geradas. Deseja limpar e gerar novas parcelas com as configurações atuais?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowRegenerateConfirm(false); doGenerateInstallments(); }}>
-              Limpar e Gerar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                          return (
+                            <TableRow
+                              key={t.id}
+                              className={cn(
+                                "text-xs",
+                                isEditing && "bg-muted/50",
+                              )}
+                            >
+                              {/* Nº */}
+                              <TableCell className="py-1 px-2 font-medium">
+                                {t.installments_total &&
+                                t.installments_total > 1
+                                  ? `${t.installment_number}/${t.installments_total}`
+                                  : "1x"}
+                              </TableCell>
+
+                              {/* Dias - Editável */}
+                              <TableCell className="py-1 px-2 text-right">
+                                {isEditing ? (
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    className="h-7 text-xs w-16 text-right"
+                                    value={editDays}
+                                    onChange={(e) =>
+                                      handleDaysChange(Number(e.target.value))
+                                    }
+                                  />
+                                ) : (
+                                  <span
+                                    className={cn(
+                                      "text-muted-foreground",
+                                      t.status === "OPEN" &&
+                                        "cursor-pointer hover:underline",
+                                    )}
+                                    onClick={() =>
+                                      t.status === "OPEN" &&
+                                      handleStartEditTransaction(t, index)
+                                    }
+                                  >
+                                    {days}
+                                  </span>
+                                )}
+                              </TableCell>
+
+                              {/* Data */}
+                              <TableCell className="py-1 px-2">
+                                {isEditing ? (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs w-full justify-start"
+                                      >
+                                        <CalendarIcon className="h-3 w-3 mr-1" />
+                                        {editDueDate
+                                          ? format(editDueDate, "dd/MM/yyyy")
+                                          : "-"}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      className="w-auto p-0"
+                                      align="start"
+                                    >
+                                      <Calendar
+                                        mode="single"
+                                        selected={editDueDate}
+                                        onSelect={setEditDueDate}
+                                        locale={ptBR}
+                                        className="pointer-events-auto"
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                ) : (
+                                  <span
+                                    className={cn(
+                                      t.status === "OPEN" &&
+                                        "cursor-pointer hover:underline",
+                                    )}
+                                    onClick={() =>
+                                      t.status === "OPEN" &&
+                                      handleStartEditTransaction(t, index)
+                                    }
+                                  >
+                                    {format(
+                                      new Date(t.due_date + "T12:00:00"),
+                                      "dd/MM/yyyy",
+                                    )}
+                                  </span>
+                                )}
+                              </TableCell>
+
+                              {/* Valor */}
+                              <TableCell className="py-1 px-2 text-right">
+                                {isEditing ? (
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    className="h-7 text-xs w-full text-right"
+                                    value={editAmount}
+                                    onChange={(e) =>
+                                      setEditAmount(Number(e.target.value))
+                                    }
+                                  />
+                                ) : (
+                                  <span
+                                    className={cn(
+                                      "font-medium",
+                                      t.status === "OPEN" &&
+                                        "cursor-pointer hover:underline",
+                                    )}
+                                    onClick={() =>
+                                      t.status === "OPEN" &&
+                                      handleStartEditTransaction(t, index)
+                                    }
+                                  >
+                                    {formatCurrency(t.amount)}
+                                  </span>
+                                )}
+                              </TableCell>
+
+                              {/* Forma */}
+                              <TableCell className="py-1 px-2">
+                                {isEditing ? (
+                                  <Select
+                                    value={editPaymentMethod}
+                                    onValueChange={setEditPaymentMethod}
+                                  >
+                                    <SelectTrigger className="h-7 text-xs w-28">
+                                      <SelectValue placeholder="Selecionar" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {activePaymentMethods.map((pm) => (
+                                        <SelectItem
+                                          key={pm.id}
+                                          value={pm.name}
+                                          className="text-xs"
+                                        >
+                                          {pm.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : t.status === "OPEN" ? (
+                                  <Select
+                                    value={t.payment_method || ""}
+                                    onValueChange={(v) =>
+                                      handleUpdateTransactionPaymentMethod(
+                                        t.id,
+                                        v,
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="h-7 text-xs w-28">
+                                      <SelectValue placeholder="Selecionar" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {activePaymentMethods.map((pm) => (
+                                        <SelectItem
+                                          key={pm.id}
+                                          value={pm.name}
+                                          className="text-xs"
+                                        >
+                                          {pm.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <span className="text-xs">
+                                    {t.payment_method || "-"}
+                                  </span>
+                                )}
+                              </TableCell>
+
+                              {/* Observação - Editável inline */}
+                              <TableCell className="py-1 px-2">
+                                {isEditing ? (
+                                  <Input
+                                    type="text"
+                                    placeholder="Observação..."
+                                    className="h-7 text-xs w-full"
+                                    maxLength={300}
+                                    value={editNotes}
+                                    onChange={(e) =>
+                                      setEditNotes(e.target.value)
+                                    }
+                                  />
+                                ) : t.status === "OPEN" ? (
+                                  <Input
+                                    type="text"
+                                    placeholder="Observação..."
+                                    className="h-7 text-xs w-full"
+                                    maxLength={300}
+                                    defaultValue={t.notes || ""}
+                                    onBlur={(e) => {
+                                      if (e.target.value !== (t.notes || "")) {
+                                        handleUpdateTransactionNotes(
+                                          t.id,
+                                          e.target.value,
+                                        );
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-xs text-muted-foreground truncate">
+                                    {t.notes || "-"}
+                                  </span>
+                                )}
+                              </TableCell>
+
+                              {/* Ações */}
+                              <TableCell className="py-1 px-2">
+                                {isEditing ? (
+                                  <div className="flex gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={handleSaveEditTransaction}
+                                    >
+                                      <Check className="h-3 w-3 text-green-600" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={handleCancelEdit}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : t.status === "OPEN" ? (
+                                  <div className="flex gap-0.5">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      title="Pago"
+                                      onClick={() =>
+                                        markAsPaid.mutateAsync(t.id)
+                                      }
+                                    >
+                                      <Check className="h-3 w-3 text-green-600" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      title="Cancelar"
+                                      onClick={() =>
+                                        cancelTransaction.mutateAsync(t.id)
+                                      }
+                                    >
+                                      <X className="h-3 w-3 text-destructive" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      title="Excluir"
+                                      onClick={() =>
+                                        deleteTransaction.mutateAsync(t.id)
+                                      }
+                                    >
+                                      <Trash2 className="h-3 w-3 text-muted-foreground" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    {t.status === "PAID" && (
+                                      <Badge className="bg-green-500 text-xs">
+                                        Pago
+                                      </Badge>
+                                    )}
+                                    {t.status === "CANCELED" && (
+                                      <Badge
+                                        variant="destructive"
+                                        className="text-xs"
+                                      >
+                                        Canc.
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Adicionar parcela - Link abaixo da tabela */}
+                  <div className="py-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-primary hover:text-primary/80 px-0"
+                      onClick={handleAddInstallment}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />+ adicionar outra parcela
+                    </Button>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="flex flex-wrap justify-between items-center gap-4 pt-3 border-t text-xs">
+                    <div className="flex gap-4">
+                      <span>
+                        Total Parcelas:{" "}
+                        <strong>{formatCurrency(totalInstallments)}</strong>
+                      </span>
+                      <span>
+                        Pago:{" "}
+                        <strong className="text-green-600">
+                          {formatCurrency(summary.paid)}
+                        </strong>
+                      </span>
+                      <span>
+                        Aberto:{" "}
+                        <strong className="text-orange-600">
+                          {formatCurrency(summary.open)}
+                        </strong>
+                      </span>
+                    </div>
+
+                    {/* Diferença warning */}
+                    {hasDiferenca && (
+                      <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                        <AlertTriangle className="h-3 w-3" />
+                        <span>
+                          Diferença: {formatCurrency(diferenca)} (Total OS:{" "}
+                          {formatCurrency(grandTotal)})
+                        </span>
+                      </div>
+                    )}
+                    {!hasDiferenca && transactions.length > 0 && (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Valores conferem</span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Save Button */}
+          <div className="flex justify-end pt-2">
+            <Button
+              type="button"
+              onClick={handleSaveFinancial}
+              disabled={isSaving}
+              className="min-w-[160px]"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isSaving ? "Salvando..." : "Salvar Financeiro"}
+            </Button>
+          </div>
+
+          {/* Confirm Regenerate Dialog */}
+          <AlertDialog
+            open={showRegenerateConfirm}
+            onOpenChange={setShowRegenerateConfirm}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Regenerar Parcelas?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Já existem parcelas geradas. Deseja limpar e gerar novas
+                  parcelas com as configurações atuais?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setShowRegenerateConfirm(false);
+                    doGenerateInstallments();
+                  }}
+                >
+                  Limpar e Gerar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </TabsContent>
 
       <TabsContent value="custos">
-        <OperationalCostsTab serviceCallId={serviceCallId} osNumber={osNumber} />
+        <OperationalCostsTab
+          serviceCallId={serviceCallId}
+          osNumber={osNumber}
+        />
       </TabsContent>
     </Tabs>
   );

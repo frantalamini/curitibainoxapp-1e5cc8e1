@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import { addDays, format } from "date-fns";
-import { 
-  DiscountConfig, 
-  CalculatedTotals, 
-  Installment, 
-  OSPaymentEntry, 
+import {
+  DiscountConfig,
+  CalculatedTotals,
+  Installment,
+  OSPaymentEntry,
   FinancialWebhookPayload,
   PaymentConfig,
-  PaymentMode 
+  PaymentMode,
 } from "@/components/os-financeiro/types";
 
 interface UseFinancialCalculationsProps {
@@ -24,7 +24,7 @@ export const useFinancialCalculations = ({
   return useMemo(() => {
     // Calculate parts discount
     let discountParts = 0;
-    if (discounts.parts.type === 'percent') {
+    if (discounts.parts.type === "percent") {
       discountParts = subtotalParts * (discounts.parts.value / 100);
     } else {
       discountParts = Math.min(discounts.parts.value, subtotalParts);
@@ -33,7 +33,7 @@ export const useFinancialCalculations = ({
 
     // Calculate services discount
     let discountServices = 0;
-    if (discounts.services.type === 'percent') {
+    if (discounts.services.type === "percent") {
       discountServices = subtotalServices * (discounts.services.value / 100);
     } else {
       discountServices = Math.min(discounts.services.value, subtotalServices);
@@ -43,7 +43,7 @@ export const useFinancialCalculations = ({
     // Calculate total OS discount (applied on subtotal after category discounts)
     const subtotalAfterCategories = totalParts + totalServices;
     let discountTotal = 0;
-    if (discounts.total.type === 'percent') {
+    if (discounts.total.type === "percent") {
       discountTotal = subtotalAfterCategories * (discounts.total.value / 100);
     } else {
       discountTotal = Math.min(discounts.total.value, subtotalAfterCategories);
@@ -67,7 +67,7 @@ export const useFinancialCalculations = ({
 export const generateInstallments = (
   startDate: Date,
   installmentDays: number[],
-  total: number
+  total: number,
 ): Installment[] => {
   if (installmentDays.length === 0 || total <= 0) return [];
 
@@ -83,7 +83,7 @@ export const generateInstallments = (
       days,
       dueDate: new Date(currentDate),
       amount: valuePerInstallment,
-      status: 'OPEN' as const,
+      status: "OPEN" as const,
       isEdited: false,
     };
   });
@@ -92,7 +92,7 @@ export const generateInstallments = (
 // Validate payment methods sum
 export const validatePaymentMethods = (
   methods: OSPaymentEntry[],
-  total: number
+  total: number,
 ): { valid: boolean; diff: number } => {
   const sum = methods.reduce((acc, m) => acc + m.amount, 0);
   return {
@@ -112,8 +112,14 @@ export const prepareWebhookPayload = (
     startDate: Date;
     installmentDays: number[];
   },
-  installments: Array<{ number: number; days: number; dueDate: Date; amount: number; status: string }>,
-  paymentMethods: OSPaymentEntry[]
+  installments: Array<{
+    number: number;
+    days: number;
+    dueDate: Date;
+    amount: number;
+    status: string;
+  }>,
+  paymentMethods: OSPaymentEntry[],
 ): FinancialWebhookPayload => {
   return {
     os_id: serviceCallId,
@@ -140,15 +146,15 @@ export const prepareWebhookPayload = (
     },
     total_os: calculatedTotals.grandTotal,
     pagamento: {
-      data_inicio_prazo: format(paymentConfig.startDate, 'yyyy-MM-dd'),
-      parcelas: installments.map(inst => ({
+      data_inicio_prazo: format(paymentConfig.startDate, "yyyy-MM-dd"),
+      parcelas: installments.map((inst) => ({
         numero: inst.number,
         dias: inst.days,
-        vencimento: format(inst.dueDate, 'yyyy-MM-dd'),
+        vencimento: format(inst.dueDate, "yyyy-MM-dd"),
         valor: inst.amount,
         status: inst.status,
       })),
-      formas: paymentMethods.map(pm => ({
+      formas: paymentMethods.map((pm) => ({
         method: pm.method,
         valor: pm.amount,
         detalhes: pm.details,
@@ -160,21 +166,25 @@ export const prepareWebhookPayload = (
 
 // Parse payment_config JSON from database
 export const parsePaymentConfig = (config: unknown): PaymentConfig | null => {
-  if (!config || typeof config !== 'object') return null;
-  
+  if (!config || typeof config !== "object") return null;
+
   const c = config as Record<string, unknown>;
-  
+
   return {
-    startDate: (c.start_date as string) || (c.startDate as string) || '',
-    installmentDays: Array.isArray(c.installment_days) 
-      ? c.installment_days 
-      : Array.isArray(c.installmentDays) 
-        ? c.installmentDays 
+    startDate: (c.start_date as string) || (c.startDate as string) || "",
+    installmentDays: Array.isArray(c.installment_days)
+      ? c.installment_days
+      : Array.isArray(c.installmentDays)
+        ? c.installmentDays
         : [],
-    paymentMode: (c.payment_mode as PaymentMode) || (c.paymentMode as PaymentMode) || 'single',
-    singlePaymentMethod: (c.single_payment_method as string) || (c.singlePaymentMethod as string),
-    allowedPaymentMethods: Array.isArray(c.allowed_payment_methods) 
-      ? c.allowed_payment_methods 
+    paymentMode:
+      (c.payment_mode as PaymentMode) ||
+      (c.paymentMode as PaymentMode) ||
+      "single",
+    singlePaymentMethod:
+      (c.single_payment_method as string) || (c.singlePaymentMethod as string),
+    allowedPaymentMethods: Array.isArray(c.allowed_payment_methods)
+      ? c.allowed_payment_methods
       : Array.isArray(c.allowedPaymentMethods)
         ? c.allowedPaymentMethods
         : [],
@@ -187,13 +197,15 @@ export const buildPaymentConfig = (
   installmentDays: number[],
   paymentMode: PaymentMode,
   singlePaymentMethod?: string,
-  allowedPaymentMethods?: string[]
+  allowedPaymentMethods?: string[],
 ): Record<string, unknown> => {
   return {
-    start_date: format(startDate, 'yyyy-MM-dd'),
+    start_date: format(startDate, "yyyy-MM-dd"),
     installment_days: installmentDays,
     payment_mode: paymentMode,
-    single_payment_method: paymentMode === 'single' ? singlePaymentMethod : undefined,
-    allowed_payment_methods: paymentMode === 'multiple' ? allowedPaymentMethods : undefined,
+    single_payment_method:
+      paymentMode === "single" ? singlePaymentMethod : undefined,
+    allowed_payment_methods:
+      paymentMode === "multiple" ? allowedPaymentMethods : undefined,
   };
 };

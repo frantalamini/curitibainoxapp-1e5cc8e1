@@ -30,9 +30,11 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
   const chartData = useMemo(() => {
     // Sample data for better visualization (every 3 days for large datasets)
     const sampleRate = data.length > 60 ? 3 : data.length > 30 ? 2 : 1;
-    
+
     return data
-      .filter((_, index) => index % sampleRate === 0 || index === data.length - 1)
+      .filter(
+        (_, index) => index % sampleRate === 0 || index === data.length - 1,
+      )
       .map((item) => ({
         date: item.date,
         dateLabel: format(parseISO(item.date), "dd/MM", { locale: ptBR }),
@@ -60,16 +62,40 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
         >
           <defs>
             <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+              <stop
+                offset="5%"
+                stopColor="hsl(var(--primary))"
+                stopOpacity={0.3}
+              />
+              <stop
+                offset="95%"
+                stopColor="hsl(var(--primary))"
+                stopOpacity={0}
+              />
             </linearGradient>
             <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0.2} />
-              <stop offset="95%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0} />
+              <stop
+                offset="5%"
+                stopColor="hsl(var(--muted-foreground))"
+                stopOpacity={0.2}
+              />
+              <stop
+                offset="95%"
+                stopColor="hsl(var(--muted-foreground))"
+                stopOpacity={0}
+              />
             </linearGradient>
             <linearGradient id="colorNegative" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
+              <stop
+                offset="5%"
+                stopColor="hsl(var(--destructive))"
+                stopOpacity={0.3}
+              />
+              <stop
+                offset="95%"
+                stopColor="hsl(var(--destructive))"
+                stopOpacity={0}
+              />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -99,7 +125,11 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             }}
             labelFormatter={(label) => `Data: ${label}`}
           />
-          <ReferenceLine y={0} stroke="hsl(var(--destructive))" strokeDasharray="5 5" />
+          <ReferenceLine
+            y={0}
+            stroke="hsl(var(--destructive))"
+            strokeDasharray="5 5"
+          />
           {projectionStartIndex > 0 && (
             <ReferenceLine
               x={chartData[projectionStartIndex]?.dateLabel}

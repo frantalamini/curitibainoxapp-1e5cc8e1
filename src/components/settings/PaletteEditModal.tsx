@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,12 +6,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ExtractedColor } from '@/lib/colorExtractor';
-import { convertFromHex, isValidHex } from '@/lib/colorUtils';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ExtractedColor } from "@/lib/colorExtractor";
+import { convertFromHex, isValidHex } from "@/lib/colorUtils";
 
 interface PaletteEditModalProps {
   open: boolean;
@@ -42,12 +42,12 @@ export function PaletteEditModal({
   const handleHexBlur = (index: number) => {
     const color = editedColors[index];
     let hex = color.hex;
-    
+
     // Add # if missing
-    if (!hex.startsWith('#')) {
-      hex = '#' + hex;
+    if (!hex.startsWith("#")) {
+      hex = "#" + hex;
     }
-    
+
     if (isValidHex(hex)) {
       const formats = convertFromHex(hex);
       const updated = [...editedColors];
@@ -64,10 +64,10 @@ export function PaletteEditModal({
 
   const handleSave = () => {
     // Validate all colors before saving
-    const validatedColors = editedColors.map(color => {
+    const validatedColors = editedColors.map((color) => {
       let hex = color.hex;
-      if (!hex.startsWith('#')) {
-        hex = '#' + hex;
+      if (!hex.startsWith("#")) {
+        hex = "#" + hex;
       }
       if (isValidHex(hex)) {
         const formats = convertFromHex(hex);
@@ -81,7 +81,7 @@ export function PaletteEditModal({
       }
       return color;
     });
-    
+
     onSave(validatedColors);
   };
 
@@ -105,10 +105,7 @@ export function PaletteEditModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
           {editedColors.map((color, index) => (
-            <div
-              key={color.role}
-              className="border rounded-lg p-3 space-y-3"
-            >
+            <div key={color.role} className="border rounded-lg p-3 space-y-3">
               <div className="flex items-center gap-3">
                 <div
                   className="w-12 h-12 rounded-lg border shadow-sm shrink-0"
@@ -136,21 +133,22 @@ export function PaletteEditModal({
 
                 <div className="grid grid-cols-3 gap-1 text-xs">
                   <div>
-                    <span className="text-muted-foreground">R:</span>{' '}
+                    <span className="text-muted-foreground">R:</span>{" "}
                     <span className="font-mono">{color.rgb.r}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">G:</span>{' '}
+                    <span className="text-muted-foreground">G:</span>{" "}
                     <span className="font-mono">{color.rgb.g}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">B:</span>{' '}
+                    <span className="text-muted-foreground">B:</span>{" "}
                     <span className="font-mono">{color.rgb.b}</span>
                   </div>
                 </div>
 
                 <div className="text-xs text-muted-foreground">
-                  HSL: {Math.round(color.hsl.h)}°, {Math.round(color.hsl.s)}%, {Math.round(color.hsl.l)}%
+                  HSL: {Math.round(color.hsl.h)}°, {Math.round(color.hsl.s)}%,{" "}
+                  {Math.round(color.hsl.l)}%
                 </div>
               </div>
             </div>
@@ -161,9 +159,7 @@ export function PaletteEditModal({
           <Button variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>
-            Aplicar Paleta ao App
-          </Button>
+          <Button onClick={handleSave}>Aplicar Paleta ao App</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

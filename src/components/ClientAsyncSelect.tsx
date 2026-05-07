@@ -28,27 +28,27 @@ interface ClientAsyncSelectProps {
   disabled?: boolean;
 }
 
-export const ClientAsyncSelect = ({ 
-  value, 
-  onChange, 
+export const ClientAsyncSelect = ({
+  value,
+  onChange,
   onNewClientClick,
   error,
-  disabled = false
+  disabled = false,
 }: ClientAsyncSelectProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 300);
-  
+
   const { data: results, isLoading } = useClientSearch(debouncedSearch, open);
-  
+
   const { data: selectedClient } = useQuery({
     queryKey: ["client", value],
     queryFn: async () => {
       if (!value) return null;
       const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', value)
+        .from("clients")
+        .select("*")
+        .eq("id", value)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -59,7 +59,10 @@ export const ClientAsyncSelect = ({
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <Popover open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
+        <Popover
+          open={disabled ? false : open}
+          onOpenChange={disabled ? undefined : setOpen}
+        >
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -69,27 +72,38 @@ export const ClientAsyncSelect = ({
               className={cn(
                 "flex-1 justify-between",
                 error && "border-destructive",
-                disabled && "bg-muted cursor-not-allowed opacity-70"
+                disabled && "bg-muted cursor-not-allowed opacity-70",
               )}
             >
               {selectedClient ? (
                 <span className="truncate">{selectedClient.full_name}</span>
               ) : (
-                <span className="text-muted-foreground">Digite para buscar...</span>
+                <span className="text-muted-foreground">
+                  Digite para buscar...
+                </span>
               )}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[95vw] sm:w-[400px] max-w-full p-0" align="start" sideOffset={8} collisionPadding={16}>
+          <PopoverContent
+            className="w-[95vw] sm:w-[400px] max-w-full p-0"
+            align="start"
+            sideOffset={8}
+            collisionPadding={16}
+          >
             <Command shouldFilter={false}>
-              <CommandInput 
+              <CommandInput
                 placeholder="Buscar por nome, fantasia ou CNPJ..."
                 value={searchTerm}
                 onValueChange={setSearchTerm}
               />
               <CommandList>
                 <CommandEmpty>
-                  {isLoading ? "Buscando..." : searchTerm.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhum resultado"}
+                  {isLoading
+                    ? "Buscando..."
+                    : searchTerm.length < 2
+                      ? "Digite pelo menos 2 caracteres"
+                      : "Nenhum resultado"}
                 </CommandEmpty>
                 {results && results.length > 0 && (
                   <CommandGroup>
@@ -106,11 +120,13 @@ export const ClientAsyncSelect = ({
                         <Check
                           className={cn(
                             "mt-1 h-4 w-4 shrink-0",
-                            value === client.id ? "opacity-100" : "opacity-0"
+                            value === client.id ? "opacity-100" : "opacity-0",
                           )}
                         />
                         <div className="flex flex-col flex-1 min-w-0">
-                          <span className="font-medium truncate">{client.full_name}</span>
+                          <span className="font-medium truncate">
+                            {client.full_name}
+                          </span>
                           {(client.nome_fantasia || client.cpf_cnpj) && (
                             <span className="text-xs text-muted-foreground truncate">
                               {client.nome_fantasia && client.nome_fantasia}

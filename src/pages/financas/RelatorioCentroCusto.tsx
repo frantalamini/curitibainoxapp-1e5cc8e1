@@ -26,9 +26,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCostCenterReport } from "@/hooks/useCostCenterReport";
-import { 
-  Building2, 
-  ChevronDown, 
+import {
+  Building2,
+  ChevronDown,
   ChevronRight,
   TrendingDown,
   Percent,
@@ -88,14 +88,18 @@ export default function RelatorioCentroCusto() {
   const [expandedCenters, setExpandedCenters] = useState<string[]>([]);
 
   const month = selectedMonth === "all" ? undefined : parseInt(selectedMonth);
-  const { costCenterSummaries, grandTotal, isLoading, getTransactionsByCostCenter } =
-    useCostCenterReport(selectedYear, month);
+  const {
+    costCenterSummaries,
+    grandTotal,
+    isLoading,
+    getTransactionsByCostCenter,
+  } = useCostCenterReport(selectedYear, month);
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   const toggleExpanded = (id: string) => {
     setExpandedCenters((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
@@ -149,7 +153,9 @@ export default function RelatorioCentroCusto() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Total de Despesas</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Total de Despesas
+              </p>
               <TrendingDown className="h-5 w-5 text-red-500" />
             </div>
             {isLoading ? (
@@ -165,14 +171,19 @@ export default function RelatorioCentroCusto() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Centros de Custo</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Centros de Custo
+              </p>
               <Building2 className="h-5 w-5 text-primary" />
             </div>
             {isLoading ? (
               <Skeleton className="h-8 w-16 mt-2" />
             ) : (
               <p className="text-2xl font-bold mt-2">
-                {costCenterSummaries.filter((cc) => cc.totalExpenses > 0).length}
+                {
+                  costCenterSummaries.filter((cc) => cc.totalExpenses > 0)
+                    .length
+                }
               </p>
             )}
           </CardContent>
@@ -181,14 +192,19 @@ export default function RelatorioCentroCusto() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Lançamentos</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Lançamentos
+              </p>
               <FileText className="h-5 w-5 text-muted-foreground" />
             </div>
             {isLoading ? (
               <Skeleton className="h-8 w-16 mt-2" />
             ) : (
               <p className="text-2xl font-bold mt-2">
-                {costCenterSummaries.reduce((sum, cc) => sum + cc.transactionCount, 0)}
+                {costCenterSummaries.reduce(
+                  (sum, cc) => sum + cc.transactionCount,
+                  0,
+                )}
               </p>
             )}
           </CardContent>
@@ -279,7 +295,7 @@ export default function RelatorioCentroCusto() {
                       <div
                         className={cn(
                           "flex items-center justify-between p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
-                          "border"
+                          "border",
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -322,7 +338,9 @@ export default function RelatorioCentroCusto() {
                               <TableHead>Descrição</TableHead>
                               <TableHead>Categoria</TableHead>
                               <TableHead>Status</TableHead>
-                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead className="text-right">
+                                Valor
+                              </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -342,12 +360,14 @@ export default function RelatorioCentroCusto() {
                                 <TableCell>
                                   <Badge
                                     variant={
-                                      t.status === "PAID" ? "default" : "secondary"
+                                      t.status === "PAID"
+                                        ? "default"
+                                        : "secondary"
                                     }
                                     className={cn(
                                       "text-xs",
                                       t.status === "PAID" &&
-                                        "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                        "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
                                     )}
                                   >
                                     {t.status === "PAID" ? "Pago" : "Aberto"}

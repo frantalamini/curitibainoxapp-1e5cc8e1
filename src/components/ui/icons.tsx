@@ -45,6 +45,7 @@ import {
   Home,
   Palette,
   ShoppingCart,
+  QrCode,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -60,11 +61,11 @@ export const IconMap = {
   relatorios: BarChart3,
   financeiro: DollarSign,
   configuracoes: Settings,
-  
+
   // Location & Map
   gps: MapPin,
   mapa: Navigation,
-  
+
   // Actions
   mais: Plus,
   voltar: ArrowLeft,
@@ -73,7 +74,7 @@ export const IconMap = {
   salvar: Save,
   upload: Upload,
   download: Download,
-  
+
   // System
   notificacoes: Bell,
   usuario: User,
@@ -83,11 +84,11 @@ export const IconMap = {
   fechar: X,
   maisOpcoes: MoreVertical,
   visualizar: Eye,
-  
+
   // Communication
   telefone: Phone,
   email: Mail,
-  
+
   // UI
   buscar: Search,
   direita: ChevronRight,
@@ -95,12 +96,12 @@ export const IconMap = {
   baixo: ChevronDown,
   cima: ChevronUp,
   check: Check,
-  
+
   // Status
   relogio: Clock,
   alerta: AlertTriangle,
   info: Info,
-  
+
   // Additional
   home: Home,
   servicos: Wrench,
@@ -113,6 +114,7 @@ export const IconMap = {
   checklist: FileCheck,
   paleta: Palette,
   carrinho: ShoppingCart,
+  qrcode: QrCode,
 } as const;
 
 export type IconName = keyof typeof IconMap;
@@ -154,14 +156,14 @@ export interface IconProps extends Omit<LucideProps, "ref"> {
 
 /**
  * Icon component with consistent styling for Curitiba Inox Design System
- * 
+ *
  * @example
  * // Basic usage
  * <Icon name="chamadosTecnicos" />
- * 
+ *
  * // With size and color
  * <Icon name="editar" size="sm" color="primary" />
- * 
+ *
  * // Filled variant (with background)
  * <Icon name="agenda" variant="filled" />
  */
@@ -174,7 +176,7 @@ export const Icon = ({
   ...props
 }: IconProps) => {
   const IconComponent = IconMap[name];
-  
+
   if (!IconComponent) {
     console.warn(`Icon "${name}" not found in IconMap`);
     return null;
@@ -182,11 +184,7 @@ export const Icon = ({
 
   const iconElement = (
     <IconComponent
-      className={cn(
-        sizeClasses[size],
-        colorClasses[color],
-        className
-      )}
+      className={cn(sizeClasses[size], colorClasses[color], className)}
       {...props}
     />
   );
@@ -201,7 +199,7 @@ export const Icon = ({
           size === "md" && "p-2",
           size === "lg" && "p-2.5",
           size === "xl" && "p-3",
-          size === "2xl" && "p-4"
+          size === "2xl" && "p-4",
         )}
       >
         {iconElement}
@@ -214,7 +212,7 @@ export const Icon = ({
 
 /**
  * Direct access to icon components for advanced usage
- * 
+ *
  * @example
  * import { Icons } from "@/components/ui/icons";
  * <Icons.chamadosTecnicos className="h-6 w-6 text-primary" />

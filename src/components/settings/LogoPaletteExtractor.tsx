@@ -1,15 +1,17 @@
-import { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Upload, Loader2, Image as ImageIcon } from 'lucide-react';
-import { extractColorsFromImage, ExtractedColor } from '@/lib/colorExtractor';
-import { toast } from '@/hooks/use-toast';
+import { useState, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Upload, Loader2, Image as ImageIcon } from "lucide-react";
+import { extractColorsFromImage, ExtractedColor } from "@/lib/colorExtractor";
+import { toast } from "@/hooks/use-toast";
 
 interface LogoPaletteExtractorProps {
   onPaletteGenerated: (colors: ExtractedColor[]) => void;
 }
 
-export function LogoPaletteExtractor({ onPaletteGenerated }: LogoPaletteExtractorProps) {
+export function LogoPaletteExtractor({
+  onPaletteGenerated,
+}: LogoPaletteExtractorProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -19,18 +21,18 @@ export function LogoPaletteExtractor({ onPaletteGenerated }: LogoPaletteExtracto
   const handleFileSelect = (selectedFile: File) => {
     if (!selectedFile.type.match(/^image\/(png|jpeg|jpg)$/)) {
       toast({
-        title: 'Formato inválido',
-        description: 'Por favor, selecione uma imagem PNG ou JPG.',
-        variant: 'destructive',
+        title: "Formato inválido",
+        description: "Por favor, selecione uma imagem PNG ou JPG.",
+        variant: "destructive",
       });
       return;
     }
 
     if (selectedFile.size > 2 * 1024 * 1024) {
       toast({
-        title: 'Arquivo muito grande',
-        description: 'O arquivo deve ter no máximo 2MB.',
-        variant: 'destructive',
+        title: "Arquivo muito grande",
+        description: "O arquivo deve ter no máximo 2MB.",
+        variant: "destructive",
       });
       return;
     }
@@ -42,7 +44,7 @@ export function LogoPaletteExtractor({ onPaletteGenerated }: LogoPaletteExtracto
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile) {
       handleFileSelect(droppedFile);
@@ -73,15 +75,15 @@ export function LogoPaletteExtractor({ onPaletteGenerated }: LogoPaletteExtracto
       const colors = await extractColorsFromImage(file);
       onPaletteGenerated(colors);
       toast({
-        title: 'Análise concluída',
-        description: 'Paleta de cores gerada com sucesso!',
+        title: "Análise concluída",
+        description: "Paleta de cores gerada com sucesso!",
       });
     } catch (error) {
-      console.error('Error extracting colors:', error);
+      console.error("Error extracting colors:", error);
       toast({
-        title: 'Erro na análise',
-        description: 'Não foi possível extrair as cores da imagem.',
-        variant: 'destructive',
+        title: "Erro na análise",
+        description: "Não foi possível extrair as cores da imagem.",
+        variant: "destructive",
       });
     } finally {
       setIsAnalyzing(false);
@@ -92,7 +94,7 @@ export function LogoPaletteExtractor({ onPaletteGenerated }: LogoPaletteExtracto
     setFile(null);
     setPreview(null);
     if (inputRef.current) {
-      inputRef.current.value = '';
+      inputRef.current.value = "";
     }
   };
 
@@ -108,8 +110,8 @@ export function LogoPaletteExtractor({ onPaletteGenerated }: LogoPaletteExtracto
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
             isDragging
-              ? 'border-primary bg-primary/5'
-              : 'border-muted-foreground/25 hover:border-primary/50'
+              ? "border-primary bg-primary/5"
+              : "border-muted-foreground/25 hover:border-primary/50"
           }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -123,7 +125,7 @@ export function LogoPaletteExtractor({ onPaletteGenerated }: LogoPaletteExtracto
             className="hidden"
             onChange={handleInputChange}
           />
-          
+
           {preview ? (
             <div className="space-y-4">
               <img
@@ -158,10 +160,10 @@ export function LogoPaletteExtractor({ onPaletteGenerated }: LogoPaletteExtracto
                 Analisando...
               </>
             ) : (
-              'Analisar Logo e Gerar Paleta'
+              "Analisar Logo e Gerar Paleta"
             )}
           </Button>
-          
+
           {file && (
             <Button variant="outline" onClick={handleClear}>
               Limpar

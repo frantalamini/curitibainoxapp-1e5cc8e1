@@ -16,7 +16,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, Edit, MoreHorizontal, CheckCircle, XCircle, Copy, ShoppingCart, Truck } from "lucide-react";
+import {
+  Eye,
+  Edit,
+  MoreHorizontal,
+  CheckCircle,
+  XCircle,
+  Copy,
+  ShoppingCart,
+  Truck,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -66,14 +75,19 @@ export function SalesTable({
         <TableBody>
           {sales.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+              <TableCell
+                colSpan={7}
+                className="h-24 text-center text-muted-foreground"
+              >
                 Nenhuma venda encontrada.
               </TableCell>
             </TableRow>
           ) : (
             sales.map((sale) => (
               <TableRow key={sale.id}>
-                <TableCell className="font-medium">#{sale.sale_number}</TableCell>
+                <TableCell className="font-medium">
+                  #{sale.sale_number}
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-medium truncate max-w-[200px]">
@@ -106,13 +120,18 @@ export function SalesTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => navigate(`/vendas/${sale.id}`)}>
+                      <DropdownMenuItem
+                        onClick={() => navigate(`/vendas/${sale.id}`)}
+                      >
                         <Eye className="mr-2 h-4 w-4" />
                         Visualizar
                       </DropdownMenuItem>
-                      
-                      {(sale.status === "QUOTE" || sale.status === "APPROVED") && (
-                        <DropdownMenuItem onClick={() => navigate(`/vendas/${sale.id}/editar`)}>
+
+                      {(sale.status === "QUOTE" ||
+                        sale.status === "APPROVED") && (
+                        <DropdownMenuItem
+                          onClick={() => navigate(`/vendas/${sale.id}/editar`)}
+                        >
                           <Edit className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
@@ -134,8 +153,11 @@ export function SalesTable({
                         </DropdownMenuItem>
                       )}
 
-                      {(sale.status === "SALE" || sale.status === "INVOICED") && (
-                        <DropdownMenuItem onClick={() => navigate(`/vendas/entregas`)}>
+                      {(sale.status === "SALE" ||
+                        sale.status === "INVOICED") && (
+                        <DropdownMenuItem
+                          onClick={() => navigate(`/vendas/entregas`)}
+                        >
                           <Truck className="mr-2 h-4 w-4 text-blue-500" />
                           Registrar Entrega
                         </DropdownMenuItem>
@@ -148,18 +170,20 @@ export function SalesTable({
                         </DropdownMenuItem>
                       )}
 
-                      {(sale.status === "QUOTE" || sale.status === "APPROVED") && onCancel && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => onCancel(sale.id)}
-                            className="text-destructive"
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Cancelar
-                          </DropdownMenuItem>
-                        </>
-                      )}
+                      {(sale.status === "QUOTE" ||
+                        sale.status === "APPROVED") &&
+                        onCancel && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => onCancel(sale.id)}
+                              className="text-destructive"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Cancelar
+                            </DropdownMenuItem>
+                          </>
+                        )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

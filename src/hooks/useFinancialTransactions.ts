@@ -50,21 +50,28 @@ export interface FinancialTransactionInsert {
 export const useFinancialTransactions = (serviceCallId?: string) => {
   const queryClient = useQueryClient();
 
-  const { data: transactions, isLoading, error } = useQuery({
+  const {
+    data: transactions,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["financial-transactions", serviceCallId],
     queryFn: async () => {
       if (!serviceCallId) return [];
-      
+
       const { data, error } = await supabase
         .from("financial_transactions")
-        .select(`
+        .select(
+          `
           *,
           clients (
             id,
             full_name
           )
-        `)
+        `,
+        )
         .eq("service_call_id", serviceCallId)
+        .eq("direction", "RECEIVE")
         .order("due_date")
         .order("installment_number");
 
@@ -86,7 +93,9 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["financial-transactions", serviceCallId],
+      });
       queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
@@ -102,13 +111,18 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["financial-transactions", serviceCallId],
+      });
       queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
 
   const updateTransaction = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<FinancialTransaction> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: Partial<FinancialTransaction> & { id: string }) => {
       const { data, error } = await supabase
         .from("financial_transactions")
         .update(updates)
@@ -120,7 +134,9 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["financial-transactions", serviceCallId],
+      });
       queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
@@ -141,7 +157,9 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["financial-transactions", serviceCallId],
+      });
       queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
@@ -159,7 +177,9 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["financial-transactions", serviceCallId],
+      });
       queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
@@ -174,15 +194,19 @@ export const useFinancialTransactions = (serviceCallId?: string) => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["financial-transactions", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["financial-transactions", serviceCallId],
+      });
       queryClient.invalidateQueries({ queryKey: ["receivables"] });
     },
   });
 
   // Calculate summary
-  const openTransactions = transactions?.filter(t => t.status === "OPEN") || [];
-  const paidTransactions = transactions?.filter(t => t.status === "PAID") || [];
-  
+  const openTransactions =
+    transactions?.filter((t) => t.status === "OPEN") || [];
+  const paidTransactions =
+    transactions?.filter((t) => t.status === "PAID") || [];
+
   const totalOpen = openTransactions.reduce((sum, t) => sum + t.amount, 0);
   const totalPaid = paidTransactions.reduce((sum, t) => sum + t.amount, 0);
   const totalAll = transactions?.reduce((sum, t) => sum + t.amount, 0) || 0;

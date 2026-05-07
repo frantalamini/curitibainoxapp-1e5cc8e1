@@ -39,7 +39,7 @@ export default function RelatorioOS() {
           "get-os-report",
           {
             body: { osNumber: parseInt(osNumber), token },
-          }
+          },
         );
 
         if (functionError || data?.error) {
@@ -72,7 +72,9 @@ export default function RelatorioOS() {
         <Card className="w-full max-w-2xl">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
-            <p className="text-lg text-muted-foreground">Carregando relatório...</p>
+            <p className="text-lg text-muted-foreground">
+              Carregando relatório...
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -91,11 +93,10 @@ export default function RelatorioOS() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              {GENERIC_ERROR_MESSAGE}
-            </p>
+            <p className="text-muted-foreground">{GENERIC_ERROR_MESSAGE}</p>
             <p className="text-sm text-muted-foreground">
-              Entre em contato com a Curitiba Inox para obter um novo link de acesso.
+              Entre em contato com a Curitiba Inox para obter um novo link de
+              acesso.
             </p>
           </CardContent>
         </Card>
@@ -111,14 +112,16 @@ export default function RelatorioOS() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Curitiba Inox</h1>
-              <p className="text-sm opacity-90 mt-1">Assistência Técnica Especializada</p>
+              <p className="text-sm opacity-90 mt-1">
+                Assistência Técnica Especializada
+              </p>
             </div>
-            <img 
-              src="/src/assets/curitiba-logo.png" 
-              alt="Curitiba Inox" 
+            <img
+              src="/src/assets/curitiba-logo.png"
+              alt="Curitiba Inox"
               className="h-16 w-auto"
               onError={(e) => {
-                e.currentTarget.style.display = 'none';
+                e.currentTarget.style.display = "none";
               }}
             />
           </div>
@@ -158,20 +161,39 @@ export default function RelatorioOS() {
 
             {/* PDF Preview */}
             <div className="mt-6">
-              <p className="text-sm text-muted-foreground mb-2">Pré-visualização do Relatório</p>
-              <div className="w-full max-w-full overflow-x-auto border rounded-lg bg-muted/30">
-                <iframe
-                  src={reportData.pdfUrl}
-                  className="w-full min-w-[320px] h-[400px] sm:h-[600px]"
-                  title="Relatório PDF"
-                />
+              <p className="text-sm text-muted-foreground mb-2">
+                Pré-visualização do Relatório
+              </p>
+              <div className="w-full border rounded-lg bg-muted/30 overflow-hidden">
+                <object
+                  data={reportData.pdfUrl}
+                  type="application/pdf"
+                  className="w-full h-[400px] sm:h-[600px]"
+                  aria-label="Relatório PDF"
+                >
+                  {/* Fallback for iOS Safari and other browsers that can't render PDF inline */}
+                  <div className="flex flex-col items-center justify-center h-[200px] gap-4 p-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Seu navegador não suporta visualização inline de PDF.
+                    </p>
+                    <Button
+                      onClick={handleDownload}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Abrir PDF
+                    </Button>
+                  </div>
+                </object>
               </div>
             </div>
 
             {/* Footer Note */}
             <div className="text-center text-xs text-muted-foreground pt-4 border-t">
               <p>
-                Para dúvidas ou mais informações, entre em contato com a Curitiba Inox.
+                Para dúvidas ou mais informações, entre em contato com a
+                Curitiba Inox.
               </p>
             </div>
           </CardContent>

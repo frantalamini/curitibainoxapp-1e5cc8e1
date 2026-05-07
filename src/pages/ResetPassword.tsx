@@ -6,7 +6,13 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -17,20 +23,25 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-const resetPasswordSchema = z.object({
-  password: z
-    .string()
-    .min(8, "Senha deve ter no mínimo 8 caracteres")
-    .regex(/[A-Z]/, "Senha deve conter ao menos 1 letra maiúscula")
-    .regex(/[a-z]/, "Senha deve conter ao menos 1 letra minúscula")
-    .regex(/[0-9]/, "Senha deve conter ao menos 1 número")
-    .regex(/[^A-Za-z0-9]/, "Senha deve conter ao menos 1 caractere especial (!@#$%)")
-    .max(100, "Senha muito longa"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-});
+const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "Senha deve ter no mínimo 8 caracteres")
+      .regex(/[A-Z]/, "Senha deve conter ao menos 1 letra maiúscula")
+      .regex(/[a-z]/, "Senha deve conter ao menos 1 letra minúscula")
+      .regex(/[0-9]/, "Senha deve conter ao menos 1 número")
+      .regex(
+        /[^A-Za-z0-9]/,
+        "Senha deve conter ao menos 1 caractere especial (!@#$%)",
+      )
+      .max(100, "Senha muito longa"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
@@ -101,13 +112,14 @@ const ResetPassword = () => {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Redefinir Senha</CardTitle>
-          <CardDescription>
-            Digite sua nova senha abaixo
-          </CardDescription>
+          <CardDescription>Digite sua nova senha abaixo</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleResetPassword)} className="space-y-4">
+            <form
+              onSubmit={form.handleSubmit(handleResetPassword)}
+              className="space-y-4"
+            >
               <FormField
                 control={form.control}
                 name="password"
@@ -119,12 +131,13 @@ const ResetPassword = () => {
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial
+                      Mínimo 8 caracteres, com maiúscula, minúscula, número e
+                      caractere especial
                     </p>
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="confirmPassword"
@@ -138,14 +151,14 @@ const ResetPassword = () => {
                   </FormItem>
                 )}
               />
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
+
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={form.formState.isSubmitting}
               >
-                {form.formState.isSubmitting 
-                  ? "Redefinindo..." 
+                {form.formState.isSubmitting
+                  ? "Redefinindo..."
                   : "Redefinir Senha"}
               </Button>
             </form>

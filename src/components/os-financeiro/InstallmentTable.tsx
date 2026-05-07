@@ -19,10 +19,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon, Check, X, RefreshCw, Trash2, ListOrdered } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Check,
+  X,
+  RefreshCw,
+  Trash2,
+  ListOrdered,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FinancialTransaction } from "@/hooks/useFinancialTransactions";
 
@@ -118,7 +129,12 @@ export const InstallmentTable = ({
             Parcelas Geradas
           </CardTitle>
           {onRecalculate && (
-            <Button type="button" variant="outline" size="sm" onClick={onRecalculate}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRecalculate}
+            >
               <RefreshCw className="h-4 w-4 mr-1" />
               Recalcular
             </Button>
@@ -141,7 +157,10 @@ export const InstallmentTable = ({
             </TableHeader>
             <TableBody>
               {transactions.map((t) => (
-                <TableRow key={t.id} className={editingId === t.id ? "bg-muted/50" : ""}>
+                <TableRow
+                  key={t.id}
+                  className={editingId === t.id ? "bg-muted/50" : ""}
+                >
                   <TableCell className="font-medium">
                     {t.installments_total && t.installments_total > 1
                       ? `${t.installment_number}/${t.installments_total}`
@@ -157,11 +176,13 @@ export const InstallmentTable = ({
                             size="sm"
                             className={cn(
                               "w-[130px] justify-start text-left font-normal",
-                              !editDueDate && "text-muted-foreground"
+                              !editDueDate && "text-muted-foreground",
                             )}
                           >
                             <CalendarIcon className="mr-2 h-3 w-3" />
-                            {editDueDate ? format(editDueDate, "dd/MM/yyyy") : "Data"}
+                            {editDueDate
+                              ? format(editDueDate, "dd/MM/yyyy")
+                              : "Data"}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -174,11 +195,17 @@ export const InstallmentTable = ({
                         </PopoverContent>
                       </Popover>
                     ) : (
-                      <span 
+                      <span
                         className="cursor-pointer hover:underline"
-                        onClick={() => t.status === "OPEN" && handleStartEdit(t)}
+                        onClick={() =>
+                          t.status === "OPEN" && handleStartEdit(t)
+                        }
                       >
-                        {format(new Date(t.due_date + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })}
+                        {format(
+                          new Date(t.due_date + "T12:00:00"),
+                          "dd/MM/yyyy",
+                          { locale: ptBR },
+                        )}
                       </span>
                     )}
                   </TableCell>
@@ -193,24 +220,32 @@ export const InstallmentTable = ({
                         className="w-24 text-right"
                       />
                     ) : (
-                      <span 
+                      <span
                         className={cn(
                           "font-medium",
-                          t.status === "OPEN" && "cursor-pointer hover:underline"
+                          t.status === "OPEN" &&
+                            "cursor-pointer hover:underline",
                         )}
-                        onClick={() => t.status === "OPEN" && handleStartEdit(t)}
+                        onClick={() =>
+                          t.status === "OPEN" && handleStartEdit(t)
+                        }
                       >
                         {formatCurrency(t.amount)}
                       </span>
                     )}
                   </TableCell>
                   <TableCell>
-                    {t.payment_method ? paymentMethodLabels[t.payment_method] || t.payment_method : "-"}
+                    {t.payment_method
+                      ? paymentMethodLabels[t.payment_method] ||
+                        t.payment_method
+                      : "-"}
                   </TableCell>
                   <TableCell>{getStatusBadge(t.status)}</TableCell>
                   <TableCell>
                     {t.paid_at
-                      ? format(new Date(t.paid_at), "dd/MM/yyyy", { locale: ptBR })
+                      ? format(new Date(t.paid_at), "dd/MM/yyyy", {
+                          locale: ptBR,
+                        })
                       : "-"}
                   </TableCell>
                   <TableCell>
@@ -278,15 +313,21 @@ export const InstallmentTable = ({
         <div className="flex justify-end gap-6 pt-4 border-t text-sm">
           <div>
             <span className="text-muted-foreground">Total:</span>{" "}
-            <span className="font-semibold">{formatCurrency(summary.total)}</span>
+            <span className="font-semibold">
+              {formatCurrency(summary.total)}
+            </span>
           </div>
           <div>
             <span className="text-muted-foreground">Pago:</span>{" "}
-            <span className="font-semibold text-green-600">{formatCurrency(summary.paid)}</span>
+            <span className="font-semibold text-green-600">
+              {formatCurrency(summary.paid)}
+            </span>
           </div>
           <div>
             <span className="text-muted-foreground">Em Aberto:</span>{" "}
-            <span className="font-semibold text-orange-600">{formatCurrency(summary.open)}</span>
+            <span className="font-semibold text-orange-600">
+              {formatCurrency(summary.open)}
+            </span>
           </div>
         </div>
       </CardContent>

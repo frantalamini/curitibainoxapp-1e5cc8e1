@@ -38,14 +38,19 @@ export interface ServiceCallItemInsert {
 export const useServiceCallItems = (serviceCallId?: string) => {
   const queryClient = useQueryClient();
 
-  const { data: items, isLoading, error } = useQuery({
+  const {
+    data: items,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["service-call-items", serviceCallId],
     queryFn: async () => {
       if (!serviceCallId) return [];
-      
+
       const { data, error } = await supabase
         .from("service_call_items")
-        .select(`
+        .select(
+          `
           *,
           products (
             id,
@@ -53,7 +58,8 @@ export const useServiceCallItems = (serviceCallId?: string) => {
             name,
             unit
           )
-        `)
+        `,
+        )
         .eq("service_call_id", serviceCallId)
         .order("created_at");
 
@@ -68,7 +74,8 @@ export const useServiceCallItems = (serviceCallId?: string) => {
       const { data, error } = await supabase
         .from("service_call_items")
         .insert(item)
-        .select(`
+        .select(
+          `
           *,
           products (
             id,
@@ -76,19 +83,25 @@ export const useServiceCallItems = (serviceCallId?: string) => {
             name,
             unit
           )
-        `)
+        `,
+        )
         .single();
 
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["service-call-items", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["service-call-items", serviceCallId],
+      });
     },
   });
 
   const updateItem = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<ServiceCallItem> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: Partial<ServiceCallItem> & { id: string }) => {
       const { data, error } = await supabase
         .from("service_call_items")
         .update(updates)
@@ -100,7 +113,9 @@ export const useServiceCallItems = (serviceCallId?: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["service-call-items", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["service-call-items", serviceCallId],
+      });
     },
   });
 
@@ -114,15 +129,17 @@ export const useServiceCallItems = (serviceCallId?: string) => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["service-call-items", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["service-call-items", serviceCallId],
+      });
     },
   });
 
   // Calculate totals
-  const productItems = items?.filter(i => i.type === "PRODUCT") || [];
-  const serviceItems = items?.filter(i => i.type === "SERVICE") || [];
-  const feeItems = items?.filter(i => i.type === "FEE") || [];
-  const discountItems = items?.filter(i => i.type === "DISCOUNT") || [];
+  const productItems = items?.filter((i) => i.type === "PRODUCT") || [];
+  const serviceItems = items?.filter((i) => i.type === "SERVICE") || [];
+  const feeItems = items?.filter((i) => i.type === "FEE") || [];
+  const discountItems = items?.filter((i) => i.type === "DISCOUNT") || [];
 
   const totalProducts = productItems.reduce((sum, i) => sum + i.total, 0);
   const totalServices = serviceItems.reduce((sum, i) => sum + i.total, 0);

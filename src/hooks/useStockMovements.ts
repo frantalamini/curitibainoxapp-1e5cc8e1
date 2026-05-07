@@ -33,7 +33,7 @@ export const useStockMovements = (productId?: string) => {
     queryKey: ["stock-movements", productId],
     queryFn: async () => {
       if (!productId) return [];
-      
+
       const { data, error } = await supabase
         .from("stock_movements")
         .select("*")
@@ -59,7 +59,9 @@ export const useStockMovements = (productId?: string) => {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["stock-movements", variables.product_id] });
+      queryClient.invalidateQueries({
+        queryKey: ["stock-movements", variables.product_id],
+      });
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
@@ -94,7 +96,9 @@ export const useStockMovements = (productId?: string) => {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["stock-movements", variables.productId] });
+      queryClient.invalidateQueries({
+        queryKey: ["stock-movements", variables.productId],
+      });
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });

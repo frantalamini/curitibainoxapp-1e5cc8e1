@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Vehicle } from "./useVehicles";
 
-export type MaintenanceType = 'preventiva' | 'corretiva' | 'colisao';
+export type MaintenanceType = "preventiva" | "corretiva" | "colisao";
 
 export interface VehicleMaintenance {
   id: string;
@@ -90,7 +90,10 @@ export const useVehicleMaintenances = (filters?: VehicleMaintenanceFilters) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Partial<VehicleMaintenance> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...data
+    }: Partial<VehicleMaintenance> & { id: string }) => {
       const { error } = await supabase
         .from("vehicle_maintenances")
         .update(data)

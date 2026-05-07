@@ -19,7 +19,7 @@ export interface OptimizedRoute {
  */
 export function optimizeRoute(
   currentPosition: GeoCoordinates,
-  stops: DeliveryStop[]
+  stops: DeliveryStop[],
 ): OptimizedRoute {
   if (stops.length === 0) {
     return { stops: [], totalDistanceKm: 0, legDistances: [] };
@@ -27,8 +27,10 @@ export function optimizeRoute(
 
   if (stops.length === 1) {
     const dist = haversineDistance(
-      currentPosition.lat, currentPosition.lng,
-      stops[0].coords.lat, stops[0].coords.lng
+      currentPosition.lat,
+      currentPosition.lng,
+      stops[0].coords.lat,
+      stops[0].coords.lng,
     );
     return { stops: [...stops], totalDistanceKm: dist, legDistances: [dist] };
   }
@@ -45,8 +47,10 @@ export function optimizeRoute(
 
     for (let i = 0; i < remaining.length; i++) {
       const dist = haversineDistance(
-        current.lat, current.lng,
-        remaining[i].coords.lat, remaining[i].coords.lng
+        current.lat,
+        current.lng,
+        remaining[i].coords.lat,
+        remaining[i].coords.lng,
       );
       if (dist < nearestDist) {
         nearestDist = dist;

@@ -1,10 +1,23 @@
 import { useMemo, useState } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, getDay } from "date-fns";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameMonth,
+  isToday,
+  getDay,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ScheduleEventCard from "./ScheduleEventCard";
 import { Technician } from "@/hooks/useTechnicians";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ChevronRight } from "lucide-react";
 
 interface ServiceCall {
@@ -69,7 +82,10 @@ const MonthlyView = ({
       const callDate = parseLocalDate(call.scheduled_date);
       if (!isSameMonth(callDate, currentDate)) return false;
 
-      if (selectedTechnicianId !== "all" && call.technician_id !== selectedTechnicianId) {
+      if (
+        selectedTechnicianId !== "all" &&
+        call.technician_id !== selectedTechnicianId
+      ) {
         return false;
       }
 
@@ -164,8 +180,8 @@ const MonthlyView = ({
               <div className="hidden sm:block space-y-1 overflow-y-auto max-h-[150px]">
                 {dayCalls.map((call) => {
                   const techName =
-                    technicians?.find((t) => t.id === call.technician_id)?.full_name ||
-                    "Sem técnico";
+                    technicians?.find((t) => t.id === call.technician_id)
+                      ?.full_name || "Sem técnico";
 
                   return (
                     <ScheduleEventCard
@@ -196,7 +212,9 @@ const MonthlyView = ({
               </p>
             ) : (
               selectedDayCalls.map((call) => {
-                const techName = technicians?.find((t) => t.id === call.technician_id)?.full_name || "Sem técnico";
+                const techName =
+                  technicians?.find((t) => t.id === call.technician_id)
+                    ?.full_name || "Sem técnico";
                 return (
                   <button
                     key={call.id}
@@ -210,20 +228,29 @@ const MonthlyView = ({
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">{call.scheduled_time}</span>
+                          <span className="font-semibold">
+                            {call.scheduled_time}
+                          </span>
                           <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                            {call.status === "pending" ? "Pendente" : 
-                             call.status === "in_progress" ? "Em Andamento" :
-                             call.status === "completed" ? "Concluído" : call.status}
+                            {call.status === "pending"
+                              ? "Pendente"
+                              : call.status === "in_progress"
+                                ? "Em Andamento"
+                                : call.status === "completed"
+                                  ? "Concluído"
+                                  : call.status}
                           </span>
                         </div>
                         <p className="font-medium truncate mt-1">
-                          {call.clients?.company_name || call.clients?.full_name}
+                          {call.clients?.company_name ||
+                            call.clients?.full_name}
                         </p>
                         <p className="text-sm text-muted-foreground truncate">
                           {call.equipment_description}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">{techName}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {techName}
+                        </p>
                       </div>
                       <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
                     </div>
@@ -237,6 +264,5 @@ const MonthlyView = ({
     </div>
   );
 };
-
 
 export default MonthlyView;

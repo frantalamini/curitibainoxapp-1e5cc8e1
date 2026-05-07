@@ -19,7 +19,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useServiceCallStatuses, StatusType } from "@/hooks/useServiceCallStatuses";
+import {
+  useServiceCallStatuses,
+  StatusType,
+} from "@/hooks/useServiceCallStatuses";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -56,10 +59,11 @@ export function ServiceCallActionsMenu({
   const { toast } = useToast();
   const { statuses } = useServiceCallStatuses();
   const queryClient = useQueryClient();
-  
+
   // Permissões
   const { isAdmin, isTechnician, loading: roleLoading } = useUserRole();
-  const { data: permissionsData, isLoading: permissionsLoading } = useCurrentUserPermissions();
+  const { data: permissionsData, isLoading: permissionsLoading } =
+    useCurrentUserPermissions();
   const profileType = permissionsData?.profileType;
   const isGerencial = profileType === "gerencial";
   const isAdm = profileType === "adm";
@@ -69,23 +73,31 @@ export function ServiceCallActionsMenu({
   const isLoadingPermissions = roleLoading || permissionsLoading;
 
   // Permissões para alteração de status
-  const canEditTechnicalStatus = isLoadingPermissions || isAdmin || isTechnician || isGerencial || isAdm;
-  const canEditCommercialStatus = isLoadingPermissions || isAdmin || isGerencial || isAdm;
+  const canEditTechnicalStatus =
+    isLoadingPermissions || isAdmin || isTechnician || isGerencial || isAdm;
+  const canEditCommercialStatus =
+    isLoadingPermissions || isAdmin || isGerencial || isAdm;
 
   // Filtrar status por tipo
-  const technicalStatuses = statuses?.filter(s => s.active && s.status_type === 'tecnico') || [];
-  const commercialStatuses = statuses?.filter(s => s.active && s.status_type === 'comercial') || [];
+  const technicalStatuses =
+    statuses?.filter((s) => s.active && s.status_type === "tecnico") || [];
+  const commercialStatuses =
+    statuses?.filter((s) => s.active && s.status_type === "comercial") || [];
 
   // Verificar se a OS está faturada (bloqueio de edição)
   // Gerencial pode alterar status mesmo quando faturado
-  const isStatusFaturado = !!currentCommercialStatusId && statuses?.some(
-    s => s.id === currentCommercialStatusId && s.name.toLowerCase() === 'faturado'
-  );
+  const isStatusFaturado =
+    !!currentCommercialStatusId &&
+    statuses?.some(
+      (s) =>
+        s.id === currentCommercialStatusId &&
+        s.name.toLowerCase() === "faturado",
+    );
   const isFaturado = isStatusFaturado && !isGerencial;
 
   const handleAddMarker = async () => {
     if (!newMarkerText.trim()) return;
-    
+
     setIsSaving(true);
     try {
       await onAddMarker(serviceCallId, newMarkerText);
@@ -124,17 +136,21 @@ export function ServiceCallActionsMenu({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Impede que eventos de teclado "vazem" para a TableRow
     e.stopPropagation();
-    
+
     if (e.key === "Enter" && !isSaving) {
       handleAddMarker();
     }
   };
 
-  const handleStatusChange = async (statusType: 'tecnico' | 'comercial', statusId: string | null) => {
+  const handleStatusChange = async (
+    statusType: "tecnico" | "comercial",
+    statusId: string | null,
+  ) => {
     setIsUpdatingStatus(true);
     try {
-      const updateField = statusType === 'tecnico' ? 'status_id' : 'commercial_status_id';
-      
+      const updateField =
+        statusType === "tecnico" ? "status_id" : "commercial_status_id";
+
       const { error } = await supabase
         .from("service_calls")
         .update({ [updateField]: statusId })
@@ -144,22 +160,24 @@ export function ServiceCallActionsMenu({
 
       // Invalidar queries para atualizar a lista
       queryClient.invalidateQueries({ queryKey: ["service-calls"] });
-      queryClient.invalidateQueries({ queryKey: ["service-call", serviceCallId] });
+      queryClient.invalidateQueries({
+        queryKey: ["service-call", serviceCallId],
+      });
 
       // Invalidar queries financeiras quando status comercial muda
-      if (statusType === 'comercial') {
+      if (statusType === "comercial") {
         queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
         queryClient.invalidateQueries({ queryKey: ["receivables"] });
         queryClient.invalidateQueries({ queryKey: ["cash-flow"] });
       }
 
-      const statusName = statusId 
-        ? statuses?.find(s => s.id === statusId)?.name 
+      const statusName = statusId
+        ? statuses?.find((s) => s.id === statusId)?.name
         : "Nenhum";
-      
+
       toast({
         title: "Status atualizado",
-        description: `${statusType === 'tecnico' ? 'Status Técnico' : 'Status Comercial'} alterado para "${statusName}"`,
+        description: `${statusType === "tecnico" ? "Status Técnico" : "Status Comercial"} alterado para "${statusName}"`,
       });
     } catch (error: any) {
       toast({
@@ -190,99 +208,117 @@ export function ServiceCallActionsMenu({
             <span className="sr-only">Ações</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuContent
+          align="start"
+          className="max-h-[80vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="px-2 py-1.5 text-sm font-medium">
             Nº {osNumber} - {clientName || "Sem cliente"}
           </div>
           <DropdownMenuSeparator />
-          
+
           {/* Status Técnico */}
-          {canEditTechnicalStatus && technicalStatuses.length > 0 && !isFaturado && (
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="cursor-pointer">
-                <CircleDot className="mr-2 h-4 w-4" />
-                Status Técnico
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="min-w-[180px] max-h-[50vh] overflow-y-auto" sideOffset={2} alignOffset={-5}>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange('tecnico', null)}
-                  className="cursor-pointer"
+          {canEditTechnicalStatus &&
+            technicalStatuses.length > 0 &&
+            !isFaturado && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                  <CircleDot className="mr-2 h-4 w-4" />
+                  Status Técnico
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent
+                  className="min-w-[180px] max-h-[50vh] overflow-y-auto"
+                  sideOffset={2}
+                  alignOffset={-5}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full border-2 border-muted-foreground" />
-                    <span className="text-muted-foreground">Nenhum</span>
-                    {!currentStatusId && (
-                      <span className="ml-auto text-xs">✓</span>
-                    )}
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {technicalStatuses.map((status) => (
                   <DropdownMenuItem
-                    key={status.id}
-                    onClick={() => handleStatusChange('tecnico', status.id)}
+                    onClick={() => handleStatusChange("tecnico", null)}
                     className="cursor-pointer"
                   >
-                    <div className="flex items-center gap-2 w-full">
-                      <div
-                        className="w-3 h-3 rounded-full shrink-0"
-                        style={{ backgroundColor: status.color }}
-                      />
-                      <span>{status.name}</span>
-                      {currentStatusId === status.id && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full border-2 border-muted-foreground" />
+                      <span className="text-muted-foreground">Nenhum</span>
+                      {!currentStatusId && (
                         <span className="ml-auto text-xs">✓</span>
                       )}
                     </div>
                   </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          )}
+                  <DropdownMenuSeparator />
+                  {technicalStatuses.map((status) => (
+                    <DropdownMenuItem
+                      key={status.id}
+                      onClick={() => handleStatusChange("tecnico", status.id)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: status.color }}
+                        />
+                        <span>{status.name}</span>
+                        {currentStatusId === status.id && (
+                          <span className="ml-auto text-xs">✓</span>
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )}
 
           {/* Status Comercial */}
-          {canEditCommercialStatus && commercialStatuses.length > 0 && !isFaturado && (
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="cursor-pointer">
-                <CircleDot className="mr-2 h-4 w-4" />
-                Status Comercial
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="min-w-[180px] max-h-[50vh] overflow-y-auto" sideOffset={2} alignOffset={-5}>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange('comercial', null)}
-                  className="cursor-pointer"
+          {canEditCommercialStatus &&
+            commercialStatuses.length > 0 &&
+            !isFaturado && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                  <CircleDot className="mr-2 h-4 w-4" />
+                  Status Comercial
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent
+                  className="min-w-[180px] max-h-[50vh] overflow-y-auto"
+                  sideOffset={2}
+                  alignOffset={-5}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full border-2 border-muted-foreground" />
-                    <span className="text-muted-foreground">Nenhum</span>
-                    {!currentCommercialStatusId && (
-                      <span className="ml-auto text-xs">✓</span>
-                    )}
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {commercialStatuses.map((status) => (
                   <DropdownMenuItem
-                    key={status.id}
-                    onClick={() => handleStatusChange('comercial', status.id)}
+                    onClick={() => handleStatusChange("comercial", null)}
                     className="cursor-pointer"
                   >
-                    <div className="flex items-center gap-2 w-full">
-                      <div
-                        className="w-3 h-3 rounded-full shrink-0"
-                        style={{ backgroundColor: status.color }}
-                      />
-                      <span>{status.name}</span>
-                      {currentCommercialStatusId === status.id && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full border-2 border-muted-foreground" />
+                      <span className="text-muted-foreground">Nenhum</span>
+                      {!currentCommercialStatusId && (
                         <span className="ml-auto text-xs">✓</span>
                       )}
                     </div>
                   </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          )}
+                  <DropdownMenuSeparator />
+                  {commercialStatuses.map((status) => (
+                    <DropdownMenuItem
+                      key={status.id}
+                      onClick={() => handleStatusChange("comercial", status.id)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: status.color }}
+                        />
+                        <span>{status.name}</span>
+                        {currentCommercialStatusId === status.id && (
+                          <span className="ml-auto text-xs">✓</span>
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )}
 
-          {(canEditTechnicalStatus || canEditCommercialStatus) && <DropdownMenuSeparator />}
+          {(canEditTechnicalStatus || canEditCommercialStatus) && (
+            <DropdownMenuSeparator />
+          )}
 
           <DropdownMenuItem
             onClick={() => setIsMarkersOpen(true)}
@@ -300,8 +336,8 @@ export function ServiceCallActionsMenu({
       </DropdownMenu>
 
       <Dialog open={isMarkersOpen} onOpenChange={setIsMarkersOpen}>
-        <DialogContent 
-          className="sm:max-w-md" 
+        <DialogContent
+          className="sm:max-w-md"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >

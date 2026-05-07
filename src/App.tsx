@@ -3,14 +3,26 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useParams,
+  useLocation,
+} from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import LazyLoadErrorBoundary from "@/components/LazyLoadErrorBoundary";
 import DynamicFavicon from "@/components/DynamicFavicon";
+import PixelPageTracker from "@/components/PixelPageTracker";
 import PaletteLoader from "@/components/PaletteLoader";
 import { AppShell } from "@/components/AppShell";
-import { clearSupabaseAuthKeys, getCurrentPathForRedirect } from "@/lib/authStorage";
+import {
+  clearSupabaseAuthKeys,
+  getCurrentPathForRedirect,
+} from "@/lib/authStorage";
+import { RoutePermissionGuard } from "@/components/PermissionGuard";
 
 // Componentes críticos carregados imediatamente (usados no primeiro render)
 import Auth from "./pages/Auth";
@@ -32,12 +44,16 @@ const ServiceCallForm = lazy(() => import("./pages/ServiceCallForm"));
 const ServiceTypes = lazy(() => import("./pages/ServiceTypes"));
 const ServiceTypeForm = lazy(() => import("./pages/ServiceTypeForm"));
 const ServiceCallStatuses = lazy(() => import("./pages/ServiceCallStatuses"));
-const ServiceCallStatusForm = lazy(() => import("./pages/ServiceCallStatusForm"));
+const ServiceCallStatusForm = lazy(
+  () => import("./pages/ServiceCallStatusForm"),
+);
 const Schedule = lazy(() => import("./pages/Schedule"));
 const Checklists = lazy(() => import("./pages/Checklists"));
 const ChecklistForm = lazy(() => import("./pages/ChecklistForm"));
 const Settings = lazy(() => import("./pages/Settings"));
-const CadastrosClientesFornecedores = lazy(() => import("./pages/CadastrosClientesFornecedores"));
+const CadastrosClientesFornecedores = lazy(
+  () => import("./pages/CadastrosClientesFornecedores"),
+);
 const CadastroDetail = lazy(() => import("./pages/CadastroDetail"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
 const RelatorioOS = lazy(() => import("./pages/relatorio-os/[osNumber]"));
@@ -52,23 +68,40 @@ const Products = lazy(() => import("./pages/Products"));
 const ProductForm = lazy(() => import("./pages/ProductForm"));
 const PaymentMethods = lazy(() => import("./pages/PaymentMethods"));
 const PaymentMethodForm = lazy(() => import("./pages/PaymentMethodForm"));
-const TechnicianReimbursements = lazy(() => import("./pages/TechnicianReimbursements"));
+const TechnicianReimbursements = lazy(
+  () => import("./pages/TechnicianReimbursements"),
+);
 
 // Módulo Finanças
-const DashboardFinanceiro = lazy(() => import("./pages/financas/DashboardFinanceiro"));
+const DashboardFinanceiro = lazy(
+  () => import("./pages/financas/DashboardFinanceiro"),
+);
 const ContasAPagar = lazy(() => import("./pages/financas/ContasAPagar"));
 const ContasAReceber = lazy(() => import("./pages/financas/ContasAReceber"));
 const FluxoDeCaixa = lazy(() => import("./pages/financas/FluxoDeCaixa"));
-const ConfiguracoesFinanceiras = lazy(() => import("./pages/financas/ConfiguracoesFinanceiras"));
+const ConfiguracoesFinanceiras = lazy(
+  () => import("./pages/financas/ConfiguracoesFinanceiras"),
+);
 const CartoesCredito = lazy(() => import("./pages/financas/CartoesCredito"));
 const DRE = lazy(() => import("./pages/financas/DRE"));
 const RentabilidadeOS = lazy(() => import("./pages/financas/RentabilidadeOS"));
-const RelatorioCentroCusto = lazy(() => import("./pages/financas/RelatorioCentroCusto"));
-const CustosPorTecnico = lazy(() => import("./pages/financas/CustosPorTecnico"));
-const CustosPorVeiculo = lazy(() => import("./pages/financas/CustosPorVeiculo"));
-const ConciliacaoBancaria = lazy(() => import("./pages/financas/ConciliacaoBancaria"));
+const RelatorioCentroCusto = lazy(
+  () => import("./pages/financas/RelatorioCentroCusto"),
+);
+const CustosPorTecnico = lazy(
+  () => import("./pages/financas/CustosPorTecnico"),
+);
+const CustosPorVeiculo = lazy(
+  () => import("./pages/financas/CustosPorVeiculo"),
+);
+const SatisfacaoTecnicos = lazy(() => import("./pages/SatisfacaoTecnicos"));
+const ConciliacaoBancaria = lazy(
+  () => import("./pages/financas/ConciliacaoBancaria"),
+);
 const OrcamentoMensal = lazy(() => import("./pages/financas/OrcamentoMensal"));
-const DespesasRecorrentes = lazy(() => import("./pages/financas/DespesasRecorrentes"));
+const DespesasRecorrentes = lazy(
+  () => import("./pages/financas/DespesasRecorrentes"),
+);
 
 // Módulo Vendas
 const Sales = lazy(() => import("./pages/vendas/Sales"));
@@ -76,18 +109,73 @@ const SaleForm = lazy(() => import("./pages/vendas/SaleForm"));
 const SaleDeliveries = lazy(() => import("./pages/vendas/SaleDeliveries"));
 const SaleDeliveryFlow = lazy(() => import("./pages/vendas/SaleDeliveryFlow"));
 
+// Compras
+const PurchaseRequests = lazy(() => import("./pages/compras/PurchaseRequests"));
+const PurchaseRequestForm = lazy(
+  () => import("./pages/compras/PurchaseRequestForm"),
+);
+const PurchaseQuotations = lazy(
+  () => import("./pages/compras/PurchaseQuotations"),
+);
+const PurchaseQuotationForm = lazy(
+  () => import("./pages/compras/PurchaseQuotationForm"),
+);
+const PurchaseQuotationMap = lazy(
+  () => import("./pages/compras/PurchaseQuotationMap"),
+);
+const PurchaseOrders = lazy(() => import("./pages/compras/PurchaseOrders"));
+const PurchaseOrderForm = lazy(
+  () => import("./pages/compras/PurchaseOrderForm"),
+);
+const PurchaseReceipts = lazy(() => import("./pages/compras/PurchaseReceipts"));
+const PurchaseReceiptForm = lazy(
+  () => import("./pages/compras/PurchaseReceiptForm"),
+);
+const PurchaseInvoices = lazy(() => import("./pages/compras/PurchaseInvoices"));
+const PurchaseInvoiceForm = lazy(
+  () => import("./pages/compras/PurchaseInvoiceForm"),
+);
+const PurchaseApprovals = lazy(
+  () => import("./pages/compras/PurchaseApprovals"),
+);
+const PurchaseDashboard = lazy(
+  () => import("./pages/compras/PurchaseDashboard"),
+);
+
+// Configurações — subpáginas
+const PerfisAcesso = lazy(() => import("./pages/settings/PerfisAcesso"));
+const GerenciadorPermissoes = lazy(
+  () => import("./pages/settings/GerenciadorPermissoes"),
+);
+
 // Pendências
 const Pendencias = lazy(() => import("./pages/Pendencias"));
+const BaseConhecimento = lazy(() => import("./pages/ai/BaseConhecimento"));
+
+// Módulo QR Code
+const QRCodeHome = lazy(() => import("./pages/qr-code/QRCodeHome"));
+const QRProducts = lazy(() => import("./pages/qr-code/QRProducts"));
+const QRProductForm = lazy(() => import("./pages/qr-code/QRProductForm"));
+const QRTemplates = lazy(() => import("./pages/qr-code/QRTemplates"));
+const QRTemplateEditor = lazy(() => import("./pages/qr-code/QRTemplateEditor"));
+const QRGenerateFabricated = lazy(
+  () => import("./pages/qr-code/QRGenerateFabricated"),
+);
+const QRGenerateAssistance = lazy(
+  () => import("./pages/qr-code/QRGenerateAssistance"),
+);
+const QRSettings = lazy(() => import("./pages/qr-code/QRSettings"));
+const QRPublicHub = lazy(() => import("./pages/qr-code/QRPublicHub"));
 
 // QueryClient otimizado para performance mobile
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000,      // 1 minuto - dados são considerados frescos
-      gcTime: 5 * 60 * 1000,     // 5 minutos no cache
-      retry: 1,                   // Menos retries = mais rápido em caso de falha
-      refetchOnWindowFocus: true, // Refetch ao focar - atualiza dados ao voltar ao app
-      refetchOnReconnect: true,   // Refetch ao reconectar
+      staleTime: 3 * 60 * 1000, // 3 minutos - reduz chamadas desnecessárias
+      gcTime: 10 * 60 * 1000, // 10 minutos no cache
+      retry: 1,
+      refetchOnWindowFocus: false, // Evita cascata de queries ao trocar de aba
+      refetchOnReconnect: true,
     },
   },
 });
@@ -170,548 +258,1022 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <PixelPageTracker />
           <LazyLoadErrorBoundary>
             <Suspense fallback={<PageLoader />}>
-            <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/relatorio-os/:osNumber/:token" element={<RelatorioOS />} />
-            <Route path="/install" element={<Install />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/inicio"
-              element={
-                <ProtectedRoute>
-                  <Inicio />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/clients"
-              element={
-                <ProtectedRoute>
-                  <Clients />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cadastros/clientes"
-              element={
-                <ProtectedRoute>
-                  <CadastrosClientesFornecedores />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cadastros/novo"
-              element={
-                <ProtectedRoute>
-                  <ClientForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cadastros/clientes/:id"
-              element={
-                <ProtectedRoute>
-                  <CadastroDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cadastros/clientes/:id/editar"
-              element={
-                <ProtectedRoute>
-                  <ClientForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cadastros/:id"
-              element={
-                <ProtectedRoute>
-                  <CadastroRedirect />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/clients/new"
-              element={
-                <ProtectedRoute>
-                  <ClientForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/clients/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <ClientForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/equipment"
-              element={
-                <ProtectedRoute>
-                  <Equipment />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/equipment/new"
-              element={
-                <ProtectedRoute>
-                  <EquipmentForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/equipment/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <EquipmentForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/products"
-              element={
-                <ProtectedRoute>
-                  <Products />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/products/new"
-              element={
-                <ProtectedRoute>
-                  <ProductForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/products/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <ProductForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/technicians"
-              element={
-                <ProtectedRoute>
-                  <Technicians />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/technicians/new"
-              element={
-                <ProtectedRoute>
-                  <TechnicianForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/technicians/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <TechnicianForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-calls"
-              element={
-                <ProtectedRoute>
-                  <ServiceCalls />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-calls/:id"
-              element={
-                <ProtectedRoute>
-                  <ServiceCallForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-calls/new"
-              element={
-                <ProtectedRoute>
-                  <ServiceCallForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-calls/edit/:id"
-              element={
-                <ProtectedRoute>
-                  <ServiceCallForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-types"
-              element={
-                <ProtectedRoute>
-                  <ServiceTypes />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-types/new"
-              element={
-                <ProtectedRoute>
-                  <ServiceTypeForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-types/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <ServiceTypeForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-call-statuses"
-              element={
-                <ProtectedRoute>
-                  <ServiceCallStatuses />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-call-statuses/new"
-              element={
-                <ProtectedRoute>
-                  <ServiceCallStatusForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-call-statuses/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <ServiceCallStatusForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vehicles"
-              element={
-                <ProtectedRoute>
-                  <Vehicles />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vehicles/new"
-              element={
-                <ProtectedRoute>
-                  <VehicleForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vehicles/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <VehicleForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vehicle-maintenances"
-              element={
-                <ProtectedRoute>
-                  <VehicleMaintenances />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-call-trips"
-              element={
-                <ProtectedRoute>
-                  <ServiceCallTrips />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/technician-map"
-              element={
-                <ProtectedRoute>
-                  <TechnicianMap />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/schedule"
-              element={
-                <ProtectedRoute>
-                  <Schedule />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/technician-reimbursements"
-              element={
-                <ProtectedRoute>
-                  <TechnicianReimbursements />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/checklists"
-              element={
-                <ProtectedRoute>
-                  <Checklists />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/checklists/new"
-              element={
-                <ProtectedRoute>
-                  <ChecklistForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/checklists/edit/:id"
-              element={
-                <ProtectedRoute>
-                  <ChecklistForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/users"
-              element={
-                <ProtectedRoute>
-                  <UserManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payment-methods"
-              element={
-                <ProtectedRoute>
-                  <PaymentMethods />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payment-methods/new"
-              element={
-                <ProtectedRoute>
-                  <PaymentMethodForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payment-methods/edit/:id"
-              element={
-                <ProtectedRoute>
-                  <PaymentMethodForm />
-                </ProtectedRoute>
-              }
-            />
-            {/* MÓDULO FINANÇAS - Admin Only */}
-            <Route
-              path="/financas/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardFinanceiro />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/contas-a-pagar"
-              element={
-                <ProtectedRoute>
-                  <ContasAPagar />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/contas-a-receber"
-              element={
-                <ProtectedRoute>
-                  <ContasAReceber />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/fluxo-de-caixa"
-              element={
-                <ProtectedRoute>
-                  <FluxoDeCaixa />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/configuracoes"
-              element={
-                <ProtectedRoute>
-                  <ConfiguracoesFinanceiras />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/cartoes"
-              element={
-                <ProtectedRoute>
-                  <CartoesCredito />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/dre"
-              element={
-                <ProtectedRoute>
-                  <DRE />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/rentabilidade-os"
-              element={
-                <ProtectedRoute>
-                  <RentabilidadeOS />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/centro-de-custo"
-              element={
-                <ProtectedRoute>
-                  <RelatorioCentroCusto />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/custos-por-tecnico"
-              element={
-                <ProtectedRoute>
-                  <CustosPorTecnico />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/custos-por-veiculo"
-              element={
-                <ProtectedRoute>
-                  <CustosPorVeiculo />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/conciliacao-bancaria"
-              element={
-                <ProtectedRoute>
-                  <ConciliacaoBancaria />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/orcamento-mensal"
-              element={
-                <ProtectedRoute>
-                  <OrcamentoMensal />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/financas/despesas-recorrentes"
-              element={
-                <ProtectedRoute>
-                  <DespesasRecorrentes />
-                </ProtectedRoute>
-              }
-            />
-            {/* MÓDULO VENDAS */}
-            <Route
-              path="/vendas"
-              element={
-                <ProtectedRoute>
-                  <Sales />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vendas/novo"
-              element={
-                <ProtectedRoute>
-                  <SaleForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vendas/:id/editar"
-              element={
-                <ProtectedRoute>
-                  <SaleForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vendas/entregas"
-              element={
-                <ProtectedRoute>
-                  <SaleDeliveries />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vendas/entregas/:routeGroupId"
-              element={
-                <ProtectedRoute>
-                  <SaleDeliveryFlow />
-                </ProtectedRoute>
-              }
-            />
-            {/* PENDÊNCIAS */}
-            <Route
-              path="/pendencias"
-              element={
-                <ProtectedRoute>
-                  <Pendencias />
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          </Suspense>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route
+                  path="/auth/reset-password"
+                  element={<ResetPassword />}
+                />
+                <Route
+                  path="/relatorio-os/:osNumber/:token"
+                  element={<RelatorioOS />}
+                />
+                <Route path="/install" element={<Install />} />
+                <Route path="/qr/:code" element={<QRPublicHub />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/inicio"
+                  element={
+                    <ProtectedRoute>
+                      <Inicio />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="relatorios_dashboard"
+                        action="can_view"
+                      >
+                        <Dashboard />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/clients"
+                  element={
+                    <ProtectedRoute>
+                      <Clients />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cadastros/clientes"
+                  element={
+                    <ProtectedRoute>
+                      <CadastrosClientesFornecedores />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cadastros/novo"
+                  element={
+                    <ProtectedRoute>
+                      <ClientForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cadastros/clientes/:id"
+                  element={
+                    <ProtectedRoute>
+                      <CadastroDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cadastros/clientes/:id/editar"
+                  element={
+                    <ProtectedRoute>
+                      <ClientForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cadastros/:id"
+                  element={
+                    <ProtectedRoute>
+                      <CadastroRedirect />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/clients/new"
+                  element={
+                    <ProtectedRoute>
+                      <ClientForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/clients/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <ClientForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/equipment"
+                  element={
+                    <ProtectedRoute>
+                      <Equipment />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/equipment/new"
+                  element={
+                    <ProtectedRoute>
+                      <EquipmentForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/equipment/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <EquipmentForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/products"
+                  element={
+                    <ProtectedRoute>
+                      <Products />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/products/new"
+                  element={
+                    <ProtectedRoute>
+                      <ProductForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/products/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <ProductForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/technicians"
+                  element={
+                    <ProtectedRoute>
+                      <Technicians />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/technicians/new"
+                  element={
+                    <ProtectedRoute>
+                      <TechnicianForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/technicians/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <TechnicianForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-calls"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceCalls />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-calls/:id"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceCallForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-calls/new"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceCallForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-calls/edit/:id"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceCallForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-types"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceTypes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-types/new"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceTypeForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-types/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceTypeForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-call-statuses"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceCallStatuses />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-call-statuses/new"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceCallStatusForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-call-statuses/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <ServiceCallStatusForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vehicles"
+                  element={
+                    <ProtectedRoute>
+                      <Vehicles />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vehicles/new"
+                  element={
+                    <ProtectedRoute>
+                      <VehicleForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vehicles/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <VehicleForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vehicle-maintenances"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="relatorios_manutencoes"
+                        action="can_view"
+                      >
+                        <VehicleMaintenances />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/service-call-trips"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="relatorios_deslocamentos"
+                        action="can_view"
+                      >
+                        <ServiceCallTrips />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/technician-map"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="technician_map"
+                        action="can_view"
+                      >
+                        <TechnicianMap />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/schedule"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="schedule" action="can_view">
+                        <Schedule />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/technician-reimbursements"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="reimbursements"
+                        action="can_view"
+                        allowRoles={["technician"]}
+                      >
+                        <TechnicianReimbursements />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/checklists"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="checklists"
+                        action="can_view"
+                      >
+                        <Checklists />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/checklists/new"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="checklists"
+                        action="can_view"
+                      >
+                        <ChecklistForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/checklists/edit/:id"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="checklists"
+                        action="can_view"
+                      >
+                        <ChecklistForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="settings" action="can_view">
+                        <Settings />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="users" action="can_view">
+                        <UserManagement />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payment-methods"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="payment_methods"
+                        action="can_view"
+                      >
+                        <PaymentMethods />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payment-methods/new"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="payment_methods"
+                        action="can_view"
+                      >
+                        <PaymentMethodForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payment-methods/edit/:id"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="payment_methods"
+                        action="can_view"
+                      >
+                        <PaymentMethodForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                {/* ============================================================
+                MÓDULO FINANÇAS — Protegido por perfil (can_view: finances)
+                Qualquer rota abaixo exige permissão de VISUALIZAR finanças.
+                Técnico é bloqueado em todas as camadas: rota, componente e RLS.
+            ============================================================ */}
+                <Route
+                  path="/financas/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <DashboardFinanceiro />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/contas-a-pagar"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <ContasAPagar />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/contas-a-receber"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <ContasAReceber />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/fluxo-de-caixa"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <FluxoDeCaixa />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/configuracoes"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <ConfiguracoesFinanceiras />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/cartoes"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <CartoesCredito />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/dre"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <DRE />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/rentabilidade-os"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <RentabilidadeOS />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/centro-de-custo"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <RelatorioCentroCusto />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/custos-por-tecnico"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <CustosPorTecnico />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/custos-por-veiculo"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <CustosPorVeiculo />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/technical-indicators"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="reports" action="can_view">
+                        <SatisfacaoTecnicos />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/conciliacao-bancaria"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <ConciliacaoBancaria />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/orcamento-mensal"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <OrcamentoMensal />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financas/despesas-recorrentes"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="finances" action="can_view">
+                        <DespesasRecorrentes />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Configurações — subpáginas (somente Gerencial) */}
+                <Route
+                  path="/settings/perfis-acesso"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="settings" action="can_view">
+                        <PerfisAcesso />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings/permissoes"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="settings" action="can_view">
+                        <GerenciadorPermissoes />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                {/* MÓDULO VENDAS */}
+                <Route
+                  path="/vendas"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="vendas" action="can_view">
+                        <Sales />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vendas/novo"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="vendas" action="can_view">
+                        <SaleForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vendas/:id/editar"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="vendas" action="can_view">
+                        <SaleForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vendas/entregas"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="vendas_entregas"
+                        action="can_view"
+                      >
+                        <SaleDeliveries />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vendas/entregas/:routeGroupId"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="vendas_entregas"
+                        action="can_view"
+                      >
+                        <SaleDeliveryFlow />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                {/* COMPRAS */}
+                <Route
+                  path="/compras/solicitacoes"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_solicitacoes"
+                        action="can_view"
+                      >
+                        <PurchaseRequests />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/solicitacoes/nova"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_solicitacoes"
+                        action="can_create"
+                      >
+                        <PurchaseRequestForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/solicitacoes/:id/editar"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_solicitacoes"
+                        action="can_edit"
+                      >
+                        <PurchaseRequestForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/cotacoes"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_cotacoes"
+                        action="can_view"
+                      >
+                        <PurchaseQuotations />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/cotacoes/nova"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_cotacoes"
+                        action="can_create"
+                      >
+                        <PurchaseQuotationForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/cotacoes/:id/editar"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_cotacoes"
+                        action="can_edit"
+                      >
+                        <PurchaseQuotationForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/mapa-cotacoes"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_cotacoes"
+                        action="can_view"
+                      >
+                        <PurchaseQuotationMap />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/pedidos"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_pedidos"
+                        action="can_view"
+                      >
+                        <PurchaseOrders />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/pedidos/novo"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_pedidos"
+                        action="can_create"
+                      >
+                        <PurchaseOrderForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/pedidos/:id/editar"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_pedidos"
+                        action="can_edit"
+                      >
+                        <PurchaseOrderForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/recebimentos"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_recebimentos"
+                        action="can_view"
+                      >
+                        <PurchaseReceipts />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/recebimentos/novo"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_recebimentos"
+                        action="can_create"
+                      >
+                        <PurchaseReceiptForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/recebimentos/:id/editar"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_recebimentos"
+                        action="can_edit"
+                      >
+                        <PurchaseReceiptForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/notas-entrada"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_nf_entrada"
+                        action="can_view"
+                      >
+                        <PurchaseInvoices />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/notas-entrada/nova"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_nf_entrada"
+                        action="can_create"
+                      >
+                        <PurchaseInvoiceForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/notas-entrada/:id/editar"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="compras_nf_entrada"
+                        action="can_edit"
+                      >
+                        <PurchaseInvoiceForm />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/aprovacoes"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="compras" action="can_view">
+                        <PurchaseApprovals />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/compras/indicadores"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="compras" action="can_view">
+                        <PurchaseDashboard />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                {/* PENDÊNCIAS */}
+                <Route
+                  path="/pendencias"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard
+                        module="pendencias"
+                        action="can_view"
+                      >
+                        <Pendencias />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                {/* MÓDULO QR CODE */}
+                <Route
+                  path="/qr-code"
+                  element={
+                    <ProtectedRoute>
+                      <QRCodeHome />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/qr-code/produtos"
+                  element={
+                    <ProtectedRoute>
+                      <QRProducts />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/qr-code/produtos/novo"
+                  element={
+                    <ProtectedRoute>
+                      <QRProductForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/qr-code/produtos/:id"
+                  element={
+                    <ProtectedRoute>
+                      <QRProductForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/qr-code/templates"
+                  element={
+                    <ProtectedRoute>
+                      <QRTemplates />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/qr-code/templates/novo"
+                  element={
+                    <ProtectedRoute>
+                      <QRTemplateEditor />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/qr-code/templates/:id"
+                  element={
+                    <ProtectedRoute>
+                      <QRTemplateEditor />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/qr-code/fabricados"
+                  element={
+                    <ProtectedRoute>
+                      <QRGenerateFabricated />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/qr-code/assistencia"
+                  element={
+                    <ProtectedRoute>
+                      <QRGenerateAssistance />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/qr-code/configuracoes"
+                  element={
+                    <ProtectedRoute>
+                      <QRSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route
+                  path="/ai/base-conhecimento"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="ia" action="can_view">
+                        <BaseConhecimento />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </LazyLoadErrorBoundary>
         </BrowserRouter>
       </AppShell>

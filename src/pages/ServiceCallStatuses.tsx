@@ -23,7 +23,7 @@ import {
 import { Pencil, Trash2, Wrench, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusMobileCard } from "@/components/mobile/StatusMobileCard";
@@ -33,7 +33,8 @@ const ServiceCallStatuses = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { statuses, isLoading, deleteStatus } = useServiceCallStatuses();
-  const { isAdmin } = useUserRole();
+  const { canCreate, canEdit, canDelete } =
+    useModulePermissions("service_statuses");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleDelete = () => {
@@ -55,11 +56,13 @@ const ServiceCallStatuses = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
-        <PageHeader 
-          title="Status de Chamado" 
-          actionLabel={isAdmin ? "Novo Status" : undefined}
-          onAction={isAdmin ? () => navigate("/service-call-statuses/new") : undefined}
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
+        <PageHeader
+          title="Status de Chamado"
+          actionLabel={canCreate ? "Novo Status" : undefined}
+          onAction={
+            canCreate ? () => navigate("/service-call-statuses/new") : undefined
+          }
         />
 
         {!statuses || statuses.length === 0 ? (
@@ -72,8 +75,12 @@ const ServiceCallStatuses = () => {
               <StatusMobileCard
                 key={status.id}
                 status={status}
-                onEdit={() => navigate(`/service-call-statuses/${status.id}/edit`)}
-                onDelete={() => setDeleteId(status.id)}
+                onEdit={
+                  canEdit
+                    ? () => navigate(`/service-call-statuses/${status.id}/edit`)
+                    : undefined
+                }
+                onDelete={canDelete ? () => setDeleteId(status.id) : undefined}
               />
             ))}
           </div>
@@ -86,7 +93,9 @@ const ServiceCallStatuses = () => {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Cor</TableHead>
                   <TableHead>Ativo</TableHead>
-                  {isAdmin && <TableHead className="text-right">Ações</TableHead>}
+                  {(canEdit || canDelete) && (
+                    <TableHead className="text-right">Ações</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -102,40 +111,56 @@ const ServiceCallStatuses = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {status.status_type === 'tecnico' ? (
-                        <Badge variant="secondary" className="gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
+                      {status.status_type === "tecnico" ? (
+                        <Badge
+                          variant="secondary"
+                          className="gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
+                        >
                           <Wrench className="h-3.5 w-3.5" />
                           Status Técnico
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/80 border-accent/20">
+                        <Badge
+                          variant="secondary"
+                          className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/80 border-accent/20"
+                        >
                           <Briefcase className="h-3.5 w-3.5" />
                           Situação Comercial
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground">{status.color}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {status.color}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <ActiveBadge active={status.active} />
                     </TableCell>
-                    {isAdmin && (
+                    {(canEdit || canDelete) && (
                       <TableCell className="text-right space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/service-call-statuses/${status.id}/edit`)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteId(status.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              navigate(
+                                `/service-call-statuses/${status.id}/edit`,
+                              )
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteId(status.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
@@ -151,12 +176,15 @@ const ServiceCallStatuses = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este status? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este status? Esta ação não pode ser
+              desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

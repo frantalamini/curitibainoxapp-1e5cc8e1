@@ -1,4 +1,9 @@
-import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
+import {
+  MobileCard,
+  MobileCardHeader,
+  MobileCardRow,
+  MobileCardFooter,
+} from "@/components/ui/mobile-card";
 import { ActiveBadge } from "@/components/ui/status-badge";
 import { ListChecks, FileText } from "lucide-react";
 
@@ -17,9 +22,14 @@ interface ChecklistMobileCardProps {
   onDelete: () => void;
 }
 
-export function ChecklistMobileCard({ checklist, onView, onEdit, onDelete }: ChecklistMobileCardProps) {
+export function ChecklistMobileCard({
+  checklist,
+  onView,
+  onEdit,
+  onDelete,
+}: ChecklistMobileCardProps) {
   const itemCount = Array.isArray(checklist.items) ? checklist.items.length : 0;
-  
+
   return (
     <MobileCard onClick={onEdit}>
       <MobileCardHeader
@@ -27,20 +37,16 @@ export function ChecklistMobileCard({ checklist, onView, onEdit, onDelete }: Che
         subtitle={checklist.description || undefined}
         badge={<ActiveBadge active={checklist.active ?? true} />}
       />
-      
+
       <div className="space-y-1">
         <MobileCardRow
           icon={<ListChecks className="h-4 w-4" />}
           label="Itens"
-          value={`${itemCount} ${itemCount === 1 ? 'item' : 'itens'}`}
+          value={`${itemCount} ${itemCount === 1 ? "item" : "itens"}`}
         />
       </div>
-      
-      <MobileCardFooter
-        onView={onView}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
+
+      <MobileCardFooter onView={onView} onEdit={onEdit} onDelete={onDelete} />
     </MobileCard>
   );
 }

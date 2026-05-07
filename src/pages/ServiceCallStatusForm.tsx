@@ -16,8 +16,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useServiceCallStatuses, ServiceCallStatusInsert } from "@/hooks/useServiceCallStatuses";
+import {
+  useServiceCallStatuses,
+  ServiceCallStatusInsert,
+} from "@/hooks/useServiceCallStatuses";
 import { useToast } from "@/hooks/use-toast";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { toTitleCase } from "@/lib/utils";
 import { Wrench, Briefcase } from "lucide-react";
@@ -26,7 +30,7 @@ const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   color: z.string().min(1, "Cor é obrigatória"),
   active: z.boolean().default(true),
-  status_type: z.enum(['tecnico', 'comercial'], {
+  status_type: z.enum(["tecnico", "comercial"], {
     required_error: "Selecione o tipo de status",
   }),
 });
@@ -37,6 +41,7 @@ const ServiceCallStatusForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { canCreate, canEdit } = useModulePermissions("service_statuses");
   const { createStatus, updateStatus } = useServiceCallStatuses();
 
   const form = useForm<FormData>({
@@ -82,6 +87,22 @@ const ServiceCallStatusForm = () => {
   }, [id, form, toast]);
 
   const onSubmit = (formData: FormData) => {
+    if (id && !canEdit) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para editar status.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!id && !canCreate) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para criar status.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Validate required fields before submitting
     if (!formData.name || !formData.color) {
       toast({
@@ -140,7 +161,9 @@ const ServiceCallStatusForm = () => {
                       className="w-12 h-10 rounded border"
                       style={{ backgroundColor: field.value }}
                     />
-                    <span className="text-sm text-muted-foreground">{field.value}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {field.value}
+                    </span>
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -185,7 +208,8 @@ const ServiceCallStatusForm = () => {
                             Situação Comercial
                           </label>
                           <p className="text-sm text-muted-foreground">
-                            Orçamento/aprovação/faturamento (Ex: Aprovado, Cancelado)
+                            Orçamento/aprovação/faturamento (Ex: Aprovado,
+                            Cancelado)
                           </p>
                         </div>
                       </div>
@@ -215,9 +239,7 @@ const ServiceCallStatusForm = () => {
             />
 
             <div className="flex gap-4">
-              <Button type="submit">
-                {id ? "Atualizar" : "Criar"}
-              </Button>
+              <Button type="submit">{id ? "Atualizar" : "Criar"}</Button>
               <Button
                 type="button"
                 variant="outline"

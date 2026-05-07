@@ -15,7 +15,11 @@ export interface CategoryBudget {
 export const useCategoryBudgets = (year: number) => {
   const queryClient = useQueryClient();
 
-  const { data: budgets = [], isLoading, refetch } = useQuery({
+  const {
+    data: budgets = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["category-budgets", year],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -49,7 +53,7 @@ export const useCategoryBudgets = (year: number) => {
             month,
             amount,
           },
-          { onConflict: "category_id,year,month" }
+          { onConflict: "category_id,year,month" },
         )
         .select()
         .single();
@@ -68,7 +72,7 @@ export const useCategoryBudgets = (year: number) => {
 
   const getBudget = (categoryId: string, month: number): number => {
     const budget = budgets.find(
-      (b) => b.category_id === categoryId && b.month === month
+      (b) => b.category_id === categoryId && b.month === month,
     );
     return budget?.amount || 0;
   };

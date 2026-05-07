@@ -14,7 +14,10 @@ export type Equipment = {
   updated_at: string;
 };
 
-export type EquipmentInsert = Omit<Equipment, "id" | "created_at" | "updated_at">;
+export type EquipmentInsert = Omit<
+  Equipment,
+  "id" | "created_at" | "updated_at"
+>;
 
 export const useEquipment = (clientId?: string) => {
   const queryClient = useQueryClient();
@@ -65,7 +68,10 @@ export const useEquipment = (clientId?: string) => {
   });
 
   const updateEquipment = useMutation({
-    mutationFn: async ({ id, ...equipment }: Partial<Equipment> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...equipment
+    }: Partial<Equipment> & { id: string }) => {
       const { data, error } = await supabase
         .from("equipment")
         .update(equipment)
@@ -94,10 +100,7 @@ export const useEquipment = (clientId?: string) => {
 
   const deleteEquipment = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("equipment")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("equipment").delete().eq("id", id);
 
       if (error) throw error;
     },

@@ -66,7 +66,11 @@ export interface ProductInsert {
 export const useProducts = () => {
   const queryClient = useQueryClient();
 
-  const { data: products, isLoading, error } = useQuery({
+  const {
+    data: products,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
       // First get products
@@ -89,9 +93,11 @@ export const useProducts = () => {
       }
 
       // Merge stock balances into products
-      const stockMap = new Map(stockData?.map(s => [s.product_id, s.balance]) || []);
-      
-      return (productsData || []).map(p => ({
+      const stockMap = new Map(
+        stockData?.map((s) => [s.product_id, s.balance]) || [],
+      );
+
+      return (productsData || []).map((p) => ({
         ...p,
         stock_balance: stockMap.get(p.id) ?? 0,
       })) as Product[];
@@ -115,7 +121,10 @@ export const useProducts = () => {
   });
 
   const updateProduct = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Product> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: Partial<Product> & { id: string }) => {
       const { data, error } = await supabase
         .from("products")
         .update({ ...updates, updated_at: new Date().toISOString() })

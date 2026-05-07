@@ -2,7 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type ColorRole = 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'destructive';
+export type ColorRole =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "success"
+  | "warning"
+  | "destructive";
 
 export interface ColorPalette {
   id: string;
@@ -25,7 +31,10 @@ export interface ColorPalette {
   updated_at?: string;
 }
 
-export type ColorPaletteInsert = Omit<ColorPalette, 'id' | 'created_at' | 'updated_at'>;
+export type ColorPaletteInsert = Omit<
+  ColorPalette,
+  "id" | "created_at" | "updated_at"
+>;
 export type ColorPaletteUpdate = Partial<ColorPaletteInsert>;
 
 export const useColorPalette = () => {
@@ -67,7 +76,10 @@ export const useColorPalette = () => {
   });
 
   const updateColor = useMutation({
-    mutationFn: async ({ id, ...updates }: ColorPaletteUpdate & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: ColorPaletteUpdate & { id: string }) => {
       const { data, error } = await supabase
         .from("color_palettes")
         .update(updates)
@@ -116,25 +128,33 @@ export const useColorPalette = () => {
       const hslValue = `${color.hsl_h} ${color.hsl_s}% ${color.hsl_l}%`;
 
       switch (color.role) {
-        case 'primary':
-          root.style.setProperty('--primary', hslValue);
-          root.style.setProperty('--sidebar-primary', hslValue);
-          root.style.setProperty('--ring', hslValue);
+        case "primary":
+          root.style.setProperty("--primary", hslValue);
+          root.style.setProperty("--sidebar-primary", hslValue);
+          root.style.setProperty("--ring", hslValue);
+          // Sync hex token for labels/headings
+          root.style.setProperty("--color-primary", color.hex);
+          root.style.setProperty("--color-text-label", color.hex);
           break;
-        case 'secondary':
-          root.style.setProperty('--secondary', hslValue);
+        case "secondary":
+          root.style.setProperty("--secondary", hslValue);
+          root.style.setProperty("--color-secondary", color.hex);
           break;
-        case 'accent':
-          root.style.setProperty('--accent', hslValue);
+        case "accent":
+          root.style.setProperty("--accent", hslValue);
+          root.style.setProperty("--color-accent", color.hex);
           break;
-        case 'success':
-          root.style.setProperty('--success', hslValue);
+        case "success":
+          root.style.setProperty("--success", hslValue);
+          root.style.setProperty("--color-success", color.hex);
           break;
-        case 'warning':
-          root.style.setProperty('--warning', hslValue);
+        case "warning":
+          root.style.setProperty("--warning", hslValue);
+          root.style.setProperty("--color-warning", color.hex);
           break;
-        case 'destructive':
-          root.style.setProperty('--destructive', hslValue);
+        case "destructive":
+          root.style.setProperty("--destructive", hslValue);
+          root.style.setProperty("--color-error", color.hex);
           break;
       }
     });

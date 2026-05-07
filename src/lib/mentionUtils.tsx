@@ -16,26 +16,26 @@ export const renderContentWithMentions = (content: string): React.ReactNode => {
     if (match.index > lastIndex) {
       parts.push(content.slice(lastIndex, match.index));
     }
-    
+
     // Parse mention [id:name]
     const [, mentionData] = match;
-    const [, ...nameParts] = mentionData.split(':');
-    const name = nameParts.join(':') || mentionData;
-    
+    const [, ...nameParts] = mentionData.split(":");
+    const name = nameParts.join(":") || mentionData;
+
     parts.push(
       <span key={match.index} className="text-primary font-medium">
         @{name}
-      </span>
+      </span>,
     );
-    
+
     lastIndex = match.index + match[0].length;
   }
-  
+
   // Add remaining text
   if (lastIndex < content.length) {
     parts.push(content.slice(lastIndex));
   }
-  
+
   return parts.length > 0 ? parts : content;
 };
 
@@ -45,8 +45,8 @@ export const renderContentWithMentions = (content: string): React.ReactNode => {
  */
 export const stripMentionFormatting = (content: string): string => {
   return content.replace(/@\[([^\]]+)\]/g, (_, mentionData) => {
-    const [, ...nameParts] = mentionData.split(':');
-    const name = nameParts.join(':') || mentionData;
+    const [, ...nameParts] = mentionData.split(":");
+    const name = nameParts.join(":") || mentionData;
     return `@${name}`;
   });
 };

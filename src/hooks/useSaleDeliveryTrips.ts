@@ -67,7 +67,8 @@ export const usePendingDeliveries = () => {
       // Get sales with SALE or INVOICED status
       const { data: sales, error: salesError } = await supabase
         .from("sales")
-        .select(`
+        .select(
+          `
           id,
           sale_number,
           total,
@@ -84,14 +85,15 @@ export const usePendingDeliveries = () => {
             state,
             cep
           )
-        `)
+        `,
+        )
         .in("status", ["SALE", "INVOICED"])
         .order("created_at", { ascending: false });
 
       if (salesError) throw salesError;
 
       // Get sale IDs that already have a completed delivery proof
-      const saleIds = sales?.map(s => s.id) || [];
+      const saleIds = sales?.map((s) => s.id) || [];
       if (saleIds.length === 0) return [];
 
       const { data: proofs, error: proofsError } = await supabase
@@ -101,10 +103,10 @@ export const usePendingDeliveries = () => {
 
       if (proofsError) throw proofsError;
 
-      const deliveredSaleIds = new Set(proofs?.map(p => p.sale_id) || []);
+      const deliveredSaleIds = new Set(proofs?.map((p) => p.sale_id) || []);
 
       // Return only sales without proof
-      return (sales || []).filter(s => !deliveredSaleIds.has(s.id));
+      return (sales || []).filter((s) => !deliveredSaleIds.has(s.id));
     },
   });
 };
@@ -118,7 +120,8 @@ export const useRouteGroupTrips = (routeGroupId?: string) => {
 
       const { data, error } = await supabase
         .from("sale_delivery_trips")
-        .select(`
+        .select(
+          `
           *,
           sales:sale_id (
             sale_number,
@@ -135,7 +138,8 @@ export const useRouteGroupTrips = (routeGroupId?: string) => {
             )
           ),
           vehicles:vehicle_id (name, plate)
-        `)
+        `,
+        )
         .eq("route_group_id", routeGroupId)
         .order("route_order", { ascending: true });
 
@@ -190,7 +194,15 @@ export const useSaleDeliveryTripsMutations = () => {
   });
 
   const startTrip = useMutation({
-    mutationFn: async ({ id, origin_lat, origin_lng }: { id: string; origin_lat: number; origin_lng: number }) => {
+    mutationFn: async ({
+      id,
+      origin_lat,
+      origin_lng,
+    }: {
+      id: string;
+      origin_lat: number;
+      origin_lng: number;
+    }) => {
       const { data, error } = await supabase
         .from("sale_delivery_trips")
         .update({
@@ -219,7 +231,13 @@ export const useSaleDeliveryTripsMutations = () => {
   });
 
   const finishTrip = useMutation({
-    mutationFn: async ({ id, distance_km }: { id: string; distance_km?: number }) => {
+    mutationFn: async ({
+      id,
+      distance_km,
+    }: {
+      id: string;
+      distance_km?: number;
+    }) => {
       const { data, error } = await supabase
         .from("sale_delivery_trips")
         .update({
@@ -244,7 +262,11 @@ export const useSaleDeliveryTripsMutations = () => {
     },
   });
 
-  const updateTripPosition = async (tripId: string, lat: number, lng: number) => {
+  const updateTripPosition = async (
+    tripId: string,
+    lat: number,
+    lng: number,
+  ) => {
     await supabase
       .from("sale_delivery_trips")
       .update({

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type StatusType = 'tecnico' | 'comercial';
+export type StatusType = "tecnico" | "comercial";
 
 export interface ServiceCallStatus {
   id: string;
@@ -41,7 +41,7 @@ export const useServiceCallStatuses = () => {
       return data as ServiceCallStatus[];
     },
     staleTime: 5 * 60 * 1000, // 5 minutos - statuses raramente mudam
-    gcTime: 30 * 60 * 1000,   // 30 minutos no cache
+    gcTime: 30 * 60 * 1000, // 30 minutos no cache
   });
 
   const createMutation = useMutation({
@@ -72,7 +72,10 @@ export const useServiceCallStatuses = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<ServiceCallStatus> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: Partial<ServiceCallStatus> & { id: string }) => {
       const { data, error } = await supabase
         .from("service_call_statuses")
         .update(updates)

@@ -1,6 +1,11 @@
-import { MobileCard, MobileCardHeader, MobileCardRow, MobileCardFooter } from "@/components/ui/mobile-card";
+import {
+  MobileCard,
+  MobileCardHeader,
+  MobileCardRow,
+  MobileCardFooter,
+} from "@/components/ui/mobile-card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Calendar, User, Clock, DollarSign } from "lucide-react";
+import { Calendar, User, Clock, DollarSign, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ServiceCall } from "@/hooks/useServiceCalls";
@@ -20,9 +25,9 @@ interface ServiceCallMobileCardProps {
   totalValue?: number;
 }
 
-export function ServiceCallMobileCard({ 
-  call, 
-  onClick, 
+export function ServiceCallMobileCard({
+  call,
+  onClick,
   markers = [],
   onAddMarker,
   onRemoveMarker,
@@ -35,11 +40,13 @@ export function ServiceCallMobileCard({
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-base text-foreground">OS #{call.os_number}</h3>
+            <h3 className="font-semibold text-base text-foreground">
+              OS #{call.os_number}
+            </h3>
             {call.service_call_statuses && (
-              <StatusBadge 
-                color={call.service_call_statuses.color} 
-                label={call.service_call_statuses.name} 
+              <StatusBadge
+                color={call.service_call_statuses.color}
+                label={call.service_call_statuses.name}
               />
             )}
           </div>
@@ -60,14 +67,14 @@ export function ServiceCallMobileCard({
           </div>
         )}
       </div>
-      
+
       <div className="space-y-1">
         <MobileCardRow
           icon={<Calendar className="h-4 w-4" />}
           label="Data/Hora"
           value={`${format(parseLocalDate(call.scheduled_date), "dd/MM/yyyy", { locale: ptBR })} às ${call.scheduled_time}`}
         />
-        
+
         <MobileCardRow
           icon={<User className="h-4 w-4" />}
           label="Cliente"
@@ -75,15 +82,29 @@ export function ServiceCallMobileCard({
             <div className="flex flex-col">
               <span className="font-medium">{call.clients?.full_name}</span>
               {call.clients?.secondary_name && (
-                <span className="text-xs text-blue-600 font-medium">{call.clients.secondary_name}</span>
+                <span className="text-xs text-blue-600 font-medium">
+                  {call.clients.secondary_name}
+                </span>
               )}
               {call.clients?.phone && (
-                <span className="text-xs text-muted-foreground">{call.clients.phone}</span>
+                <span className="text-xs text-muted-foreground">
+                  {call.clients.phone}
+                </span>
               )}
             </div>
           }
         />
-        
+
+        {call.equipment_description && (
+          <MobileCardRow
+            icon={<Wrench className="h-4 w-4" />}
+            label="Equipamento"
+            value={
+              <span className="text-sm">{call.equipment_description}</span>
+            }
+          />
+        )}
+
         {call.technicians && (
           <MobileCardRow
             icon={<Clock className="h-4 w-4" />}
@@ -98,7 +119,10 @@ export function ServiceCallMobileCard({
             value={
               <span className="font-semibold text-foreground">
                 {totalValue != null
-                  ? totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                  ? totalValue.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })
                   : "-"}
               </span>
             }
@@ -108,22 +132,25 @@ export function ServiceCallMobileCard({
 
       {/* Marcadores */}
       {markers.length > 0 && (
-        <div className="mt-3 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="mt-3 pt-2 border-t"
+          onClick={(e) => e.stopPropagation()}
+        >
           <ServiceCallMarkersList markers={markers} maxVisible={3} />
         </div>
       )}
-      
+
       <MobileCardFooter>
         {call.service_types && (
-          <StatusBadge 
-            color={call.service_types.color} 
-            label={call.service_types.name} 
+          <StatusBadge
+            color={call.service_types.color}
+            label={call.service_types.name}
           />
         )}
         {call.commercial_status && (
-          <StatusBadge 
-            color={call.commercial_status.color} 
-            label={call.commercial_status.name} 
+          <StatusBadge
+            color={call.commercial_status.color}
+            label={call.commercial_status.name}
           />
         )}
       </MobileCardFooter>

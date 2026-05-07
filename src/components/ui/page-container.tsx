@@ -8,23 +8,23 @@ interface PageContainerProps {
 
 /**
  * PageContainer - Standard container for all pages
- * 
+ *
  * Guarantees:
  * - No horizontal overflow
  * - Consistent spacing
  * - Proper width constraints
  * - min-width: 0 for flex/grid children
- * 
+ *
  * Use this as the root container inside MainLayout for any page.
  */
 export const PageContainer = ({ children, className }: PageContainerProps) => {
   return (
-    <div 
+    <div
       className={cn(
         "w-full max-w-[1400px] mr-auto",
-        "pl-1 pr-4 sm:pl-2 sm:pr-6",
+        "pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10",
         "py-6 space-y-6",
-        className
+        className,
       )}
     >
       {children}

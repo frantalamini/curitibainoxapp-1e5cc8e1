@@ -34,17 +34,20 @@ export const DiscountSection = ({
   calculatedTotals,
 }: DiscountSectionProps) => {
   const handleDiscountChange = (
-    category: 'parts' | 'services' | 'total',
-    field: 'type' | 'value',
-    newValue: DiscountType | number
+    category: "parts" | "services" | "total",
+    field: "type" | "value",
+    newValue: DiscountType | number,
   ) => {
     const updated = { ...discounts };
-    if (field === 'type') {
-      updated[category] = { ...updated[category], type: newValue as DiscountType };
+    if (field === "type") {
+      updated[category] = {
+        ...updated[category],
+        type: newValue as DiscountType,
+      };
     } else {
       // Validate value
       let value = newValue as number;
-      if (updated[category].type === 'percent') {
+      if (updated[category].type === "percent") {
         value = Math.min(100, Math.max(0, value));
       }
       updated[category] = { ...updated[category], value };
@@ -64,14 +67,20 @@ export const DiscountSection = ({
         {/* Discount on Parts */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end pb-3 border-b">
           <div>
-            <Label className="text-xs text-muted-foreground">Subtotal Peças</Label>
-            <p className="text-lg font-semibold">{formatCurrency(subtotalParts)}</p>
+            <Label className="text-xs text-muted-foreground">
+              Subtotal Peças
+            </Label>
+            <p className="text-lg font-semibold">
+              {formatCurrency(subtotalParts)}
+            </p>
           </div>
           <div>
             <Label className="text-xs">Tipo</Label>
             <Select
               value={discounts.parts.type}
-              onValueChange={(v) => handleDiscountChange('parts', 'type', v as DiscountType)}
+              onValueChange={(v) =>
+                handleDiscountChange("parts", "type", v as DiscountType)
+              }
             >
               <SelectTrigger>
                 <SelectValue />
@@ -91,39 +100,53 @@ export const DiscountSection = ({
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Valor {discounts.parts.type === 'percent' ? '(%)' : '(R$)'}</Label>
+            <Label className="text-xs">
+              Valor {discounts.parts.type === "percent" ? "(%)" : "(R$)"}
+            </Label>
             <Input
               type="number"
-              step={discounts.parts.type === 'percent' ? '1' : '0.01'}
+              step={discounts.parts.type === "percent" ? "1" : "0.01"}
               min="0"
-              max={discounts.parts.type === 'percent' ? '100' : subtotalParts}
+              max={discounts.parts.type === "percent" ? "100" : subtotalParts}
               value={discounts.parts.value}
-              onChange={(e) => handleDiscountChange('parts', 'value', Number(e.target.value))}
+              onChange={(e) =>
+                handleDiscountChange("parts", "value", Number(e.target.value))
+              }
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Desconto Calculado</Label>
+            <Label className="text-xs text-muted-foreground">
+              Desconto Calculado
+            </Label>
             <p className="text-lg font-medium text-destructive">
               -{formatCurrency(calculatedTotals.discountParts)}
             </p>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Total Peças</Label>
-            <p className="text-lg font-bold">{formatCurrency(calculatedTotals.totalParts)}</p>
+            <p className="text-lg font-bold">
+              {formatCurrency(calculatedTotals.totalParts)}
+            </p>
           </div>
         </div>
 
         {/* Discount on Services */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end pb-3 border-b">
           <div>
-            <Label className="text-xs text-muted-foreground">Subtotal Serviços</Label>
-            <p className="text-lg font-semibold">{formatCurrency(subtotalServices)}</p>
+            <Label className="text-xs text-muted-foreground">
+              Subtotal Serviços
+            </Label>
+            <p className="text-lg font-semibold">
+              {formatCurrency(subtotalServices)}
+            </p>
           </div>
           <div>
             <Label className="text-xs">Tipo</Label>
             <Select
               value={discounts.services.type}
-              onValueChange={(v) => handleDiscountChange('services', 'type', v as DiscountType)}
+              onValueChange={(v) =>
+                handleDiscountChange("services", "type", v as DiscountType)
+              }
             >
               <SelectTrigger>
                 <SelectValue />
@@ -143,25 +166,41 @@ export const DiscountSection = ({
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Valor {discounts.services.type === 'percent' ? '(%)' : '(R$)'}</Label>
+            <Label className="text-xs">
+              Valor {discounts.services.type === "percent" ? "(%)" : "(R$)"}
+            </Label>
             <Input
               type="number"
-              step={discounts.services.type === 'percent' ? '1' : '0.01'}
+              step={discounts.services.type === "percent" ? "1" : "0.01"}
               min="0"
-              max={discounts.services.type === 'percent' ? '100' : subtotalServices}
+              max={
+                discounts.services.type === "percent" ? "100" : subtotalServices
+              }
               value={discounts.services.value}
-              onChange={(e) => handleDiscountChange('services', 'value', Number(e.target.value))}
+              onChange={(e) =>
+                handleDiscountChange(
+                  "services",
+                  "value",
+                  Number(e.target.value),
+                )
+              }
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Desconto Calculado</Label>
+            <Label className="text-xs text-muted-foreground">
+              Desconto Calculado
+            </Label>
             <p className="text-lg font-medium text-destructive">
               -{formatCurrency(calculatedTotals.discountServices)}
             </p>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Total Serviços</Label>
-            <p className="text-lg font-bold">{formatCurrency(calculatedTotals.totalServices)}</p>
+            <Label className="text-xs text-muted-foreground">
+              Total Serviços
+            </Label>
+            <p className="text-lg font-bold">
+              {formatCurrency(calculatedTotals.totalServices)}
+            </p>
           </div>
         </div>
 
@@ -170,14 +209,18 @@ export const DiscountSection = ({
           <div>
             <Label className="text-xs text-muted-foreground">Subtotal OS</Label>
             <p className="text-lg font-semibold">
-              {formatCurrency(calculatedTotals.totalParts + calculatedTotals.totalServices)}
+              {formatCurrency(
+                calculatedTotals.totalParts + calculatedTotals.totalServices,
+              )}
             </p>
           </div>
           <div>
             <Label className="text-xs">Tipo</Label>
             <Select
               value={discounts.total.type}
-              onValueChange={(v) => handleDiscountChange('total', 'type', v as DiscountType)}
+              onValueChange={(v) =>
+                handleDiscountChange("total", "type", v as DiscountType)
+              }
             >
               <SelectTrigger>
                 <SelectValue />
@@ -197,14 +240,18 @@ export const DiscountSection = ({
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Valor {discounts.total.type === 'percent' ? '(%)' : '(R$)'}</Label>
+            <Label className="text-xs">
+              Valor {discounts.total.type === "percent" ? "(%)" : "(R$)"}
+            </Label>
             <Input
               type="number"
-              step={discounts.total.type === 'percent' ? '1' : '0.01'}
+              step={discounts.total.type === "percent" ? "1" : "0.01"}
               min="0"
-              max={discounts.total.type === 'percent' ? '100' : undefined}
+              max={discounts.total.type === "percent" ? "100" : undefined}
               value={discounts.total.value}
-              onChange={(e) => handleDiscountChange('total', 'value', Number(e.target.value))}
+              onChange={(e) =>
+                handleDiscountChange("total", "value", Number(e.target.value))
+              }
             />
           </div>
           <div>

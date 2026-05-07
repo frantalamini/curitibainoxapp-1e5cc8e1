@@ -3,25 +3,25 @@ export const DRE_GROUPS = {
   // 1. Faturamento/Receita
   RECEITAS_VENDAS: "receitas_vendas",
   RECEITAS_SERVICOS: "receitas_servicos",
-  
+
   // 2. Custo da Mercadoria
   CMV_MERCADORIAS: "cmv_mercadorias",
   CMV_SERVICOS: "cmv_servicos",
-  
+
   // 3. Despesas Variáveis
   DESPESAS_VARIAVEIS: "despesas_variaveis",
-  
+
   // 6. Despesas Fixas
   DESPESAS_FIXAS: "despesas_fixas",
-  
+
   // 8. Amortização de Empréstimos
   AMORTIZACOES: "amortizacoes",
-  
+
   // 9. Parcelamento de Impostos
   PARCELAMENTO_IMPOSTOS: "parcelamento_impostos",
 } as const;
 
-export type DREGroup = typeof DRE_GROUPS[keyof typeof DRE_GROUPS];
+export type DREGroup = (typeof DRE_GROUPS)[keyof typeof DRE_GROUPS];
 
 export const DRE_GROUP_LABELS: Record<DREGroup, string> = {
   [DRE_GROUPS.RECEITAS_VENDAS]: "Vendas",
@@ -35,7 +35,7 @@ export const DRE_GROUP_LABELS: Record<DREGroup, string> = {
 };
 
 export const DRE_GROUP_OPTIONS = Object.entries(DRE_GROUP_LABELS).map(
-  ([value, label]) => ({ value, label })
+  ([value, label]) => ({ value, label }),
 );
 
 // Structure for DRE display

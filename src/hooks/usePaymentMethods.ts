@@ -21,7 +21,11 @@ export const usePaymentMethods = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: paymentMethods, isLoading, error } = useQuery({
+  const {
+    data: paymentMethods,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["payment-methods"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -34,7 +38,7 @@ export const usePaymentMethods = () => {
     },
   });
 
-  const activePaymentMethods = paymentMethods?.filter(pm => pm.active) || [];
+  const activePaymentMethods = paymentMethods?.filter((pm) => pm.active) || [];
 
   const createPaymentMethod = useMutation({
     mutationFn: async (paymentMethod: PaymentMethodInsert) => {
@@ -52,12 +56,18 @@ export const usePaymentMethods = () => {
       toast({ title: "Forma de pagamento criada com sucesso" });
     },
     onError: () => {
-      toast({ title: "Erro ao criar forma de pagamento", variant: "destructive" });
+      toast({
+        title: "Erro ao criar forma de pagamento",
+        variant: "destructive",
+      });
     },
   });
 
   const updatePaymentMethod = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<PaymentMethod> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: Partial<PaymentMethod> & { id: string }) => {
       const { data, error } = await supabase
         .from("payment_methods")
         .update(updates)
@@ -73,7 +83,10 @@ export const usePaymentMethods = () => {
       toast({ title: "Forma de pagamento atualizada" });
     },
     onError: () => {
-      toast({ title: "Erro ao atualizar forma de pagamento", variant: "destructive" });
+      toast({
+        title: "Erro ao atualizar forma de pagamento",
+        variant: "destructive",
+      });
     },
   });
 
@@ -91,7 +104,10 @@ export const usePaymentMethods = () => {
       toast({ title: "Forma de pagamento excluída" });
     },
     onError: () => {
-      toast({ title: "Erro ao excluir forma de pagamento", variant: "destructive" });
+      toast({
+        title: "Erro ao excluir forma de pagamento",
+        variant: "destructive",
+      });
     },
   });
 

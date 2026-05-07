@@ -10,18 +10,18 @@ export const logger = {
       console.log(...args);
     }
   },
-  
+
   error: (...args: any[]) => {
     // Errors sempre visíveis, mesmo em produção
     console.error(...args);
   },
-  
+
   warn: (...args: any[]) => {
     if (!isProduction) {
       console.warn(...args);
     }
   },
-  
+
   debug: (...args: any[]) => {
     if (!isProduction) {
       console.debug(...args);

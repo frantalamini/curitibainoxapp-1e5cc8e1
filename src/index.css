@@ -5,68 +5,69 @@
 /* ============================================
    DESIGN SYSTEM CURITIBA INOX
    Identidade Visual Unificada Desktop/Mobile
-   Cor Primária: #18487A (HSL: 204 92% 29%)
+   Cor Primaria: #1A3A6B (HSL: 216 61% 26%)
+   Tokens: src/styles/tokens.css
    ============================================ */
 
 @layer base {
   :root {
-    /* Core Colors - Curitiba Inox Brand */
-    --background: 0 0% 100%;
-    --foreground: 215 25% 15%;
+    /* Core Colors - Curitiba Inox Brand (synced with tokens.css) */
+    --background: 0 0% 100%; /* #FFFFFF — content areas white */
+    --foreground: 215 28% 17%; /* #1E293B */
 
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 222 47% 11%; /* #0F172A */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Primary: Curitiba Inox Blue #18487A */
-    --primary: 204 92% 29%;
+    /* Primary: Curitiba Inox Blue #1A3A6B */
+    --primary: 216 61% 26%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Light Blue-Gray */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 204 92% 29%;
+    /* Secondary: #2E87CC */
+    --secondary: 206 63% 49%;
+    --secondary-foreground: 0 0% 100%;
 
     /* Muted: Subtle Gray */
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted-foreground: 215 16% 47%; /* #64748B */
 
-    /* Accent: Primary Variant */
-    --accent: 204 80% 94%;
-    --accent-foreground: 204 92% 29%;
+    /* Accent: #4A4A4A */
+    --accent: 210 40% 96%;
+    --accent-foreground: 0 0% 29%; /* #4A4A4A */
 
-    /* Destructive: Red */
-    --destructive: 0 84% 60%;
+    /* Destructive / Error: #DC2626 */
+    --destructive: 0 84% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success: Green */
+    /* Success: #16A34A */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning: Amber */
-    --warning: 38 92% 50%;
+    /* Warning: #D97706 */
+    --warning: 32 95% 44%;
     --warning-foreground: 0 0% 100%;
 
-    /* Borders and Inputs */
+    /* Borders and Inputs — #E2E8F0 */
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 204 92% 29%;
+    --ring: 216 61% 26%;
 
-    /* Radius - Increased for modern look */
-    --radius: 0.75rem;
-    --radius-card: 1rem;
-    --radius-button: 0.625rem;
+    /* Radius (synced with tokens.css) */
+    --radius: var(--border-radius-md);
+    --radius-card: var(--border-radius-lg);
+    --radius-button: var(--border-radius-btn);
 
     /* Sidebar - Curitiba Inox Palette */
     --sidebar-background: 210 20% 98%;
-    --sidebar-foreground: 215 16% 47%;
-    --sidebar-primary: 204 92% 29%;
+    --sidebar-foreground: 220 9% 46%;
+    --sidebar-primary: 216 61% 26%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 14% 93%;
-    --sidebar-accent-foreground: 204 92% 29%;
+    --sidebar-accent-foreground: 216 61% 26%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 204 92% 29%;
+    --sidebar-ring: 216 61% 26%;
   }
 
   .dark {
@@ -79,17 +80,17 @@
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 204 92% 45%;
+    --primary: 216 61% 40%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
+    --secondary: 206 50% 30%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 204 50% 20%;
-    --accent-foreground: 204 92% 70%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 0 0% 70%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
@@ -97,21 +98,21 @@
     --success: 142 76% 30%;
     --success-foreground: 210 40% 98%;
 
-    --warning: 38 92% 40%;
+    --warning: 32 95% 40%;
     --warning-foreground: 210 40% 98%;
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 204 92% 45%;
+    --ring: 216 61% 40%;
 
     --sidebar-background: 222 47% 8%;
     --sidebar-foreground: 215 20% 65%;
-    --sidebar-primary: 204 92% 45%;
+    --sidebar-primary: 216 61% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 33% 15%;
-    --sidebar-accent-foreground: 204 92% 70%;
+    --sidebar-accent-foreground: 216 61% 70%;
     --sidebar-border: 217 33% 15%;
-    --sidebar-ring: 204 92% 50%;
+    --sidebar-ring: 216 61% 50%;
   }
 }
 
@@ -126,16 +127,25 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: var(--font-family);
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-body);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-page);
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
-  
+
   /* 
    * RESPONSIVE LAYOUT STRATEGY (v2 - definitivo)
    * Em vez de mascarar overflow com hidden, permitimos scroll interno onde necessário.
    * - html/body não escondem overflow, permitindo scroll interno legítimo
    * - Containers internos (tables, forms) usam overflow-x-auto
    */
-  html, body, #root {
+  html,
+  body,
+  #root {
     width: 100%;
     max-width: 100%;
     /* NÃO usar overflow-x: hidden aqui - causa clipping */
@@ -163,13 +173,19 @@
   }
 
   /* Responsive media elements */
-  img, video, canvas, iframe, svg {
+  img,
+  video,
+  canvas,
+  iframe,
+  svg {
     max-width: 100%;
     height: auto;
   }
 
   /* Form inputs - prevent overflow */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     min-width: 0;
     max-width: 100%;
   }
@@ -206,9 +222,9 @@
     z-index: 10;
     background-color: hsl(var(--background));
   }
-  
+
   .sticky-actions-cell::before {
-    content: '';
+    content: "";
     position: absolute;
     left: -12px;
     top: 0;
@@ -220,51 +236,161 @@
 }
 
 /* ============================================
-   TYPOGRAPHY - Inter / SF Pro
+   TYPOGRAPHY — Design Tokens Applied
    ============================================ */
 @layer base {
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+  /* Titulos e headings → azul escuro da paleta */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply tracking-tight;
+    color: var(--color-primary);
   }
-  
+
+  /* Page title */
   h1 {
-    @apply text-2xl md:text-3xl;
+    font-size: var(--font-size-page-title);
+    font-weight: var(--font-weight-page-title);
   }
-  
+
+  /* Section title */
   h2 {
-    @apply text-xl md:text-2xl;
+    font-size: var(--font-size-section-title);
+    font-weight: var(--font-weight-section-title);
   }
-  
+
   h3 {
-    @apply text-lg md:text-xl;
+    font-size: var(--font-size-section-title);
+    font-weight: var(--font-weight-section-title);
+  }
+
+  /* Labels → azul escuro da paleta */
+  label {
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-label);
+    color: var(--color-primary);
+  }
+
+  /* Texto dentro de inputs/selects/textareas */
+  input,
+  select,
+  textarea {
+    color: var(--color-text-dark);
+    font-size: var(--font-size-value);
+    font-weight: var(--font-weight-value);
+  }
+
+  /* Placeholders */
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+  }
+
+  /* Paragrafos e texto de conteudo */
+  p,
+  span,
+  li {
+    color: var(--color-text-primary);
+  }
+
+  /* Tabelas — header uppercase cinza, linhas limpas */
+  thead th {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    background: #fafbfd;
+  }
+
+  tbody td {
+    font-size: var(--font-size-table);
+    font-weight: var(--font-weight-table);
+    color: var(--color-text-dark);
+    vertical-align: top;
+    line-height: 1.4;
+  }
+
+  tbody tr {
+    transition: background 0.1s;
+  }
+
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  /* Small / helper text */
+  small,
+  .text-sm {
+    font-size: var(--font-size-small);
+  }
+
+  /* Secondary text */
+  .text-muted-foreground {
+    color: var(--color-text-secondary);
   }
 }
 
 /* ============================================
-   CARD STYLES - Unified Design
+   CARD STYLES — Design Tokens Applied
    ============================================ */
 @layer components {
   .card-elevated {
-    @apply bg-card rounded-[var(--radius-card)] border border-border;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    background-color: var(--color-bg-card);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-card);
   }
-  
+
   .card-elevated:hover {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.06),
+      0 2px 4px -2px rgb(0 0 0 / 0.04);
   }
-  
+
   .card-mobile {
-    @apply bg-card rounded-[var(--radius-card)] border border-border p-4;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    background-color: var(--color-bg-card);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--color-border);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-card);
   }
 }
 
 /* ============================================
-   BUTTON STYLES - Touch-friendly
+   BUTTON STYLES — Design Tokens Applied
    ============================================ */
 @layer components {
   .btn-touch {
     @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+/* ============================================
+   FORM INPUTS — Design Tokens Applied
+   ============================================ */
+@layer base {
+  select {
+    font-family: var(--font-family);
+    font-size: var(--font-size-value);
+    font-weight: var(--font-weight-value);
+    border-radius: 8px;
+    border-color: var(--color-border);
+    height: 42px;
+    color: var(--color-text-dark);
+    background: white;
+    padding: 0 14px;
+    transition: all 0.15s;
+  }
+
+  select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(26, 58, 107, 0.08);
+    outline: none;
   }
 }
 
@@ -321,7 +447,9 @@
 }
 
 .submenu-panel {
-  transition: width 0.25s ease-in-out, opacity 0.25s ease-in-out;
+  transition:
+    width 0.25s ease-in-out,
+    opacity 0.25s ease-in-out;
 }
 
 /* ============================================
@@ -333,7 +461,7 @@
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
-  
+
   /* Mobile Header Height (base 4rem + safe area) */
   --mobile-header-height: calc(4rem + var(--safe-area-top));
 }
@@ -342,11 +470,11 @@
   .safe-padding-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  
+
   .safe-padding-top {
     padding-top: env(safe-area-inset-top, 0px);
   }
-  
+
   .touch-manipulation {
     touch-action: manipulation;
   }
@@ -387,17 +515,17 @@
     padding-left: var(--safe-area-left);
     padding-right: var(--safe-area-right);
     overflow-y: auto;
-    overflow-x: clip;  /* Changed from hidden to clip - allows internal wrappers */
+    overflow-x: clip; /* Changed from hidden to clip - allows internal wrappers */
     -webkit-overflow-scrolling: touch;
     width: 100%;
-    min-width: 0;  /* Allow shrinking in flex */
+    min-width: 0; /* Allow shrinking in flex */
   }
 
   /* Mobile Content Wrapper */
   .mobile-content {
     width: 100%;
-    max-width: 100%;  /* Respect parent container, not viewport */
-    min-width: 0;     /* Allow shrinking in flex */
+    max-width: 100%; /* Respect parent container, not viewport */
+    min-width: 0; /* Allow shrinking in flex */
     padding: 1rem;
     /* Removed overflow-x: hidden to allow internal scroll wrappers */
   }
@@ -407,7 +535,7 @@
     .mobile-header {
       padding-top: var(--safe-area-top);
     }
-    
+
     .mobile-main {
       padding-bottom: calc(var(--safe-area-bottom) + 0.5rem);
     }

@@ -1,7 +1,19 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { MoreVertical, Eye, Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import { Cadastro } from "@/hooks/useCadastros";
 
@@ -13,9 +25,9 @@ type CadastrosTableProps = {
   onEdit: (id: string) => void;
   onView: (id: string) => void;
   onDelete: (id: string) => void;
-  orderBy: 'full_name' | 'created_at';
-  orderDirection: 'asc' | 'desc';
-  onSort: (field: 'full_name' | 'created_at') => void;
+  orderBy: "full_name" | "created_at";
+  orderDirection: "asc" | "desc";
+  onSort: (field: "full_name" | "created_at") => void;
 };
 
 export const CadastrosTable = ({
@@ -30,7 +42,8 @@ export const CadastrosTable = ({
   orderDirection,
   onSort,
 }: CadastrosTableProps) => {
-  const allSelected = cadastros.length > 0 && selectedIds.length === cadastros.length;
+  const allSelected =
+    cadastros.length > 0 && selectedIds.length === cadastros.length;
 
   return (
     <div className="border rounded-lg">
@@ -49,12 +62,14 @@ export const CadastrosTable = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onSort('full_name')}
+                onClick={() => onSort("full_name")}
                 className="h-8 px-1 font-semibold text-xs"
               >
                 Nome
-                {orderBy === 'full_name' && (
-                  <ArrowUpDown className={`ml-1 h-3 w-3 ${orderDirection === 'desc' ? 'rotate-180' : ''}`} />
+                {orderBy === "full_name" && (
+                  <ArrowUpDown
+                    className={`ml-1 h-3 w-3 ${orderDirection === "desc" ? "rotate-180" : ""}`}
+                  />
                 )}
               </Button>
             </TableHead>
@@ -65,12 +80,14 @@ export const CadastrosTable = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onSort('created_at')}
+                onClick={() => onSort("created_at")}
                 className="h-8 px-1 font-semibold text-xs"
               >
                 Cadastro
-                {orderBy === 'created_at' && (
-                  <ArrowUpDown className={`ml-1 h-3 w-3 ${orderDirection === 'desc' ? 'rotate-180' : ''}`} />
+                {orderBy === "created_at" && (
+                  <ArrowUpDown
+                    className={`ml-1 h-3 w-3 ${orderDirection === "desc" ? "rotate-180" : ""}`}
+                  />
                 )}
               </Button>
             </TableHead>
@@ -86,13 +103,15 @@ export const CadastrosTable = ({
               <TableCell>
                 <Checkbox
                   checked={selectedIds.includes(cadastro.id)}
-                  onCheckedChange={(checked) => onSelectOne(cadastro.id, checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    onSelectOne(cadastro.id, checked as boolean)
+                  }
                   aria-label={`Selecionar ${cadastro.full_name}`}
                 />
               </TableCell>
               <TableCell>
                 <span className="text-sm font-mono text-muted-foreground">
-                  {cadastro.client_number ? `#${cadastro.client_number}` : '-'}
+                  {cadastro.client_number ? `#${cadastro.client_number}` : "-"}
                 </span>
               </TableCell>
               <TableCell
@@ -100,34 +119,68 @@ export const CadastrosTable = ({
                 className="cursor-pointer hover:underline hover:text-blue-600 transition-colors"
               >
                 <div className="flex flex-col max-w-[200px]">
-                  <span className="font-medium text-sm truncate" title={cadastro.full_name}>{cadastro.full_name}</span>
+                  <span
+                    className="font-medium text-sm truncate"
+                    title={cadastro.full_name}
+                  >
+                    {cadastro.full_name}
+                  </span>
                   {cadastro.nome_fantasia && (
-                    <span className="text-xs text-muted-foreground truncate" title={cadastro.nome_fantasia}>{cadastro.nome_fantasia}</span>
+                    <span
+                      className="text-xs text-muted-foreground truncate"
+                      title={cadastro.nome_fantasia}
+                    >
+                      {cadastro.nome_fantasia}
+                    </span>
                   )}
                   {cadastro.secondary_name && (
-                    <span className="text-xs text-blue-600 truncate" title={cadastro.secondary_name}>{cadastro.secondary_name}</span>
+                    <span
+                      className="text-xs text-blue-600 truncate"
+                      title={cadastro.secondary_name}
+                    >
+                      {cadastro.secondary_name}
+                    </span>
                   )}
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-sm truncate block max-w-[120px]" title={cadastro.cpf_cnpj || undefined}>{cadastro.cpf_cnpj || '-'}</span>
+                <span
+                  className="text-sm truncate block max-w-[120px]"
+                  title={cadastro.cpf_cnpj || undefined}
+                >
+                  {cadastro.cpf_cnpj || "-"}
+                </span>
               </TableCell>
               <TableCell>
-                <span className="text-sm truncate block max-w-[100px]" title={cadastro.city ? `${cadastro.city}${cadastro.state ? `/${cadastro.state}` : ''}` : undefined}>
-                  {cadastro.city ? `${cadastro.city}${cadastro.state ? `/${cadastro.state}` : ''}` : '-'}
+                <span
+                  className="text-sm truncate block max-w-[100px]"
+                  title={
+                    cadastro.city
+                      ? `${cadastro.city}${cadastro.state ? `/${cadastro.state}` : ""}`
+                      : undefined
+                  }
+                >
+                  {cadastro.city
+                    ? `${cadastro.city}${cadastro.state ? `/${cadastro.state}` : ""}`
+                    : "-"}
                 </span>
               </TableCell>
               <TableCell>
                 <div className="flex flex-col text-sm max-w-[120px]">
                   <span className="truncate">{cadastro.phone}</span>
                   {cadastro.email && (
-                    <span className="text-xs text-muted-foreground truncate" title={cadastro.email}>{cadastro.email}</span>
+                    <span
+                      className="text-xs text-muted-foreground truncate"
+                      title={cadastro.email}
+                    >
+                      {cadastro.email}
+                    </span>
                   )}
                 </div>
               </TableCell>
               <TableCell>
                 <span className="text-sm text-muted-foreground">
-                  {new Date(cadastro.created_at).toLocaleDateString('pt-BR')}
+                  {new Date(cadastro.created_at).toLocaleDateString("pt-BR")}
                 </span>
               </TableCell>
               <TableCell>
@@ -147,7 +200,7 @@ export const CadastrosTable = ({
                       <Pencil className="mr-2 h-4 w-4" />
                       Editar
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => onDelete(cadastro.id)}
                       className="text-destructive focus:text-destructive"
                     >

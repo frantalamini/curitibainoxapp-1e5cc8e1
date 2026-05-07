@@ -16,8 +16,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useProducts } from "@/hooks/useProducts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Plus, Search, Package, Edit, Trash2, Box } from "lucide-react";
-import { MobileCard, MobileCardRow, MobileCardHeader, MobileCardFooter } from "@/components/ui/mobile-card";
+import {
+  MobileCard,
+  MobileCardRow,
+  MobileCardHeader,
+  MobileCardFooter,
+} from "@/components/ui/mobile-card";
 import { useToast } from "@/hooks/use-toast";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 
 const formatCurrency = (value: number | null) => {
   if (value === null || value === undefined) return "-";
@@ -43,15 +49,17 @@ export default function Products() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { products, isLoading, deleteProduct } = useProducts();
+  const { canCreate, canEdit, canDelete } = useModulePermissions("products");
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()))
+      (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   const handleDelete = async (id: string) => {
+    if (!canDelete) return;
     try {
       await deleteProduct.mutateAsync(id);
       toast({ title: "Produto removido com sucesso" });
@@ -62,7 +70,7 @@ export default function Products() {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -74,10 +82,12 @@ export default function Products() {
               Cadastro de peças, materiais e serviços
             </p>
           </div>
-          <Button onClick={() => navigate("/products/new")}>
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Produto
-          </Button>
+          {canCreate && (
+            <Button onClick={() => navigate("/products/new")}>
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Produto
+            </Button>
+          )}
         </div>
 
         {/* Search */}
@@ -107,10 +117,12 @@ export default function Products() {
               <p className="text-muted-foreground text-sm mb-4">
                 Cadastre seu primeiro produto para começar
               </p>
-              <Button onClick={() => navigate("/products/new")}>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Produto
-              </Button>
+              {canCreate && (
+                <Button onClick={() => navigate("/products/new")}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Produto
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
@@ -132,11 +144,23 @@ export default function Products() {
                   }
                 />
                 <div className="space-y-1">
-                  <MobileCardRow label="Tipo" value={getProductTypeLabel(product.type)} />
+                  <MobileCardRow
+                    label="Tipo"
+                    value={getProductTypeLabel(product.type)}
+                  />
                   <MobileCardRow label="Unidade" value={product.unit || "-"} />
-                  <MobileCardRow label="Preço Venda" value={formatCurrency(product.sale_price)} />
+                  <MobileCardRow
+                    label="Preço Venda"
+                    value={formatCurrency(product.sale_price)}
+                  />
                 </div>
-                <MobileCardFooter onEdit={() => navigate(`/products/${product.id}/edit`)} />
+                <MobileCardFooter
+                  onEdit={
+                    canEdit
+                      ? () => navigate(`/products/${product.id}/edit`)
+                      : undefined
+                  }
+                />
               </MobileCard>
             ))}
           </div>
@@ -161,10 +185,21 @@ export default function Products() {
                 <TableBody>
                   {filteredProducts.map((product) => (
                     <TableRow key={product.id}>
-                      <TableCell className="font-medium text-sm max-w-[150px] truncate" title={product.name}>{product.name}</TableCell>
-                      <TableCell className="text-sm">{product.sku || "-"}</TableCell>
-                      <TableCell className="text-xs">{getProductTypeLabel(product.type)}</TableCell>
-                      <TableCell className="text-sm">{product.unit || "-"}</TableCell>
+                      <TableCell
+                        className="font-medium text-sm max-w-[150px] truncate"
+                        title={product.name}
+                      >
+                        {product.name}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {product.sku || "-"}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {getProductTypeLabel(product.type)}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {product.unit || "-"}
+                      </TableCell>
                       <TableCell className="text-right text-sm">
                         {formatCurrency(product.sale_price)}
                       </TableCell>
@@ -174,29 +209,39 @@ export default function Products() {
                             {product.stock_balance ?? 0}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
+                          <span className="text-muted-foreground text-sm">
+                            -
+                          </span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => navigate(`/products/${product.id}/edit`)}
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleDelete(product.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {(canEdit || canDelete) && (
+                        <TableCell>
+                          <div className="flex gap-1 justify-end">
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() =>
+                                  navigate(`/products/${product.id}/edit`)
+                                }
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => handleDelete(product.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

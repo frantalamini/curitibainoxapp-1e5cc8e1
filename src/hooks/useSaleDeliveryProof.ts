@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { compressImageFile } from "@/lib/compressImage";
 
 export interface SaleDeliveryProof {
   id: string;
@@ -38,7 +39,10 @@ export const useSaleDeliveryProof = (saleId?: string) => {
 export const useSaleDeliveryProofMutations = () => {
   const queryClient = useQueryClient();
 
-  const uploadFile = async (file: File | Blob, path: string): Promise<string> => {
+  const uploadFile = async (
+    file: File | Blob,
+    path: string,
+  ): Promise<string> => {
     const { error } = await supabase.storage
       .from("sale-attachments")
       .upload(path, file, { upsert: true });
@@ -74,19 +78,22 @@ export const useSaleDeliveryProofMutations = () => {
       photoFiles: File[];
       notes?: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       // Upload signature
-      const signatureBlob = await fetch(signatureDataUrl).then(r => r.blob());
+      const signatureBlob = await fetch(signatureDataUrl).then((r) => r.blob());
       const signaturePath = `deliveries/${saleId}/signature_${Date.now()}.png`;
       await uploadFile(signatureBlob, signaturePath);
 
-      // Upload photos
+      // Upload photos (comprimidas)
       const photoUrls: string[] = [];
       for (let i = 0; i < photoFiles.length; i++) {
-        const photoPath = `deliveries/${saleId}/photo_${Date.now()}_${i}.${photoFiles[i].name.split('.').pop() || 'jpg'}`;
-        await uploadFile(photoFiles[i], photoPath);
+        const compressed = await compressImageFile(photoFiles[i]);
+        const photoPath = `deliveries/${saleId}/photo_${Date.now()}_${i}.jpg`;
+        await uploadFile(compressed, photoPath);
         const signedUrl = await getSignedUrl(photoPath);
         photoUrls.push(signedUrl);
       }

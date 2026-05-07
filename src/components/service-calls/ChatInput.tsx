@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from "react";
+import { compressImageFile } from "@/lib/compressImage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   Popover,
@@ -16,20 +17,23 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { 
-  Send, 
-  Paperclip, 
-  AtSign, 
-  FileText, 
+import {
+  Send,
+  Paperclip,
+  AtSign,
+  FileText,
   Loader2,
   X,
-  MessageSquarePlus
+  MessageSquarePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAllUsers, UserWithRole } from "@/hooks/useUsers";
-import { useMessageTemplates, TEMPLATE_ICONS } from "@/hooks/useMessageTemplates";
-import { 
-  MessageCategory, 
+import {
+  useMessageTemplates,
+  TEMPLATE_ICONS,
+} from "@/hooks/useMessageTemplates";
+import {
+  MessageCategory,
   MessagePriority,
   CATEGORY_LABELS,
   CATEGORY_ICONS,
@@ -51,7 +55,7 @@ interface ChatInputProps {
     attachments?: {
       file_url: string;
       file_name: string;
-      file_type: 'image' | 'document' | 'audio';
+      file_type: "image" | "document" | "audio";
       file_size?: number;
       file_path?: string;
     }[];
@@ -60,7 +64,11 @@ interface ChatInputProps {
   serviceCallId: string;
 }
 
-export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) => {
+export const ChatInput = ({
+  onSend,
+  isLoading,
+  serviceCallId,
+}: ChatInputProps) => {
   const [content, setContent] = useState("");
   const [requiresAction, setRequiresAction] = useState(false);
   const [category, setCategory] = useState<MessageCategory | null>(null);
@@ -70,33 +78,35 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
   const [showMentionsMobile, setShowMentionsMobile] = useState(false);
   const [showMentionsDesktop, setShowMentionsDesktop] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
-  const [attachments, setAttachments] = useState<{
-    file_url: string;
-    file_name: string;
-    file_type: 'image' | 'document' | 'audio';
-    file_size?: number;
-    file_path?: string;
-  }[]>([]);
+  const [attachments, setAttachments] = useState<
+    {
+      file_url: string;
+      file_name: string;
+      file_type: "image" | "document" | "audio";
+      file_size?: number;
+      file_path?: string;
+    }[]
+  >([]);
   const [isUploading, setIsUploading] = useState(false);
-  
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { data: allUsers = [] } = useAllUsers();
   const { data: templates = [] } = useMessageTemplates();
 
   // Filter users for mention dropdown
-  const filteredUsers = allUsers.filter(user =>
-    user.full_name.toLowerCase().includes(mentionSearch.toLowerCase())
+  const filteredUsers = allUsers.filter((user) =>
+    user.full_name.toLowerCase().includes(mentionSearch.toLowerCase()),
   );
 
   // Handle @ key for mentions (desktop only - mobile uses button)
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === '@') {
+    if (e.key === "@") {
       setShowMentionsDesktop(true);
       setMentionSearch("");
     }
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       setShowMentionsMobile(false);
       setShowMentionsDesktop(false);
     }
@@ -105,13 +115,13 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
   // Add mention to content
   const addMention = (user: UserWithRole) => {
     const mentionText = `@[${user.user_id}:${user.full_name}] `;
-    setContent(prev => {
+    setContent((prev) => {
       // Remove the @ that triggered the dropdown
-      const lastAtIndex = prev.lastIndexOf('@');
+      const lastAtIndex = prev.lastIndexOf("@");
       return prev.slice(0, lastAtIndex) + mentionText;
     });
-    setMentionedUsers(prev => 
-      prev.some(u => u.user_id === user.user_id) ? prev : [...prev, user]
+    setMentionedUsers((prev) =>
+      prev.some((u) => u.user_id === user.user_id) ? prev : [...prev, user],
     );
     setShowMentionsMobile(false);
     setShowMentionsDesktop(false);
@@ -120,12 +130,12 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
 
   // Remove mention
   const removeMention = (userId: string) => {
-    setMentionedUsers(prev => prev.filter(u => u.user_id !== userId));
+    setMentionedUsers((prev) => prev.filter((u) => u.user_id !== userId));
   };
 
   // Apply template
-  const applyTemplate = (template: typeof templates[0]) => {
-    setContent(prev => prev + template.content);
+  const applyTemplate = (template: (typeof templates)[0]) => {
+    setContent((prev) => prev + template.content);
     if (template.category) {
       setCategory(template.category);
       setRequiresAction(true);
@@ -143,38 +153,43 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    
+
     try {
-      for (const file of Array.from(files)) {
+      for (let file of Array.from(files)) {
         // Determine file type
-        let fileType: 'image' | 'document' | 'audio' = 'document';
-        if (file.type.startsWith('image/')) fileType = 'image';
-        else if (file.type.startsWith('audio/')) fileType = 'audio';
+        let fileType: "image" | "document" | "audio" = "document";
+        if (file.type.startsWith("image/")) {
+          fileType = "image";
+          file = await compressImageFile(file);
+        } else if (file.type.startsWith("audio/")) fileType = "audio";
 
         // Upload to storage - sanitize filename to avoid invalid characters
         const sanitizedName = file.name
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-          .replace(/[^a-zA-Z0-9._-]/g, '_') // Substitui caracteres especiais por underscore
-          .replace(/_+/g, '_'); // Remove underscores duplicados
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+          .replace(/[^a-zA-Z0-9._-]/g, "_") // Substitui caracteres especiais por underscore
+          .replace(/_+/g, "_"); // Remove underscores duplicados
         const fileName = `${Date.now()}-${sanitizedName}`;
         const filePath = `${serviceCallId}/${fileName}`;
-        
+
         const { error: uploadError } = await supabase.storage
-          .from('chat-attachments')
+          .from("chat-attachments")
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         // Store the file_path for signed URL generation later
         // file_url is kept as empty string for backwards compatibility
-        setAttachments(prev => [...prev, {
-          file_url: '', // Not used anymore - signed URLs generated on-demand
-          file_name: file.name,
-          file_type: fileType,
-          file_size: file.size,
-          file_path: filePath,
-        }]);
+        setAttachments((prev) => [
+          ...prev,
+          {
+            file_url: "", // Not used anymore - signed URLs generated on-demand
+            file_name: file.name,
+            file_type: fileType,
+            file_size: file.size,
+            file_path: filePath,
+          },
+        ]);
       }
     } catch (error: any) {
       toast({
@@ -185,14 +200,14 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
 
   // Remove attachment
   const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Update due date when priority changes
@@ -211,10 +226,11 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
     onSend({
       content: content.trim(),
       category: requiresAction ? category : null,
-      priority: requiresAction ? priority : 'normal',
+      priority: requiresAction ? priority : "normal",
       requires_action: requiresAction,
-      due_date: requiresAction && dueDate ? new Date(dueDate).toISOString() : null,
-      mentioned_user_ids: mentionedUsers.map(u => u.user_id),
+      due_date:
+        requiresAction && dueDate ? new Date(dueDate).toISOString() : null,
+      mentioned_user_ids: mentionedUsers.map((u) => u.user_id),
       attachments,
     });
 
@@ -234,7 +250,7 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {attachments.map((att, index) => (
-            <div 
+            <div
               key={index}
               className="flex items-center gap-2 px-2 py-1 rounded bg-muted text-sm"
             >
@@ -255,8 +271,8 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
       {/* Mentioned users */}
       {mentionedUsers.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {mentionedUsers.map(user => (
-            <div 
+          {mentionedUsers.map((user) => (
+            <div
               key={user.user_id}
               className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs"
             >
@@ -316,7 +332,7 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
               className="mb-2"
             />
             <div className="max-h-48 overflow-y-auto space-y-1">
-              {filteredUsers.map(user => (
+              {filteredUsers.map((user) => (
                 <button
                   key={user.user_id}
                   className="w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm"
@@ -351,15 +367,15 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
               Templates Rápidos
             </p>
             <div className="space-y-1">
-              {templates.map(template => (
+              {templates.map((template) => (
                 <button
                   key={template.id}
                   className="w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm flex items-center gap-2"
                   onClick={() => applyTemplate(template)}
                 >
                   <span>
-                    {template.category 
-                      ? TEMPLATE_ICONS[template.category] 
+                    {template.category
+                      ? TEMPLATE_ICONS[template.category]
                       : TEMPLATE_ICONS.default}
                   </span>
                   {template.title}
@@ -412,7 +428,10 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
           )}
         </Button>
 
-        <Popover open={showMentionsDesktop} onOpenChange={setShowMentionsDesktop}>
+        <Popover
+          open={showMentionsDesktop}
+          onOpenChange={setShowMentionsDesktop}
+        >
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="shrink-0">
               <AtSign className="h-4 w-4" />
@@ -426,7 +445,7 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
               className="mb-2"
             />
             <div className="max-h-48 overflow-y-auto space-y-1">
-              {filteredUsers.map(user => (
+              {filteredUsers.map((user) => (
                 <button
                   key={user.user_id}
                   className="w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm"
@@ -471,15 +490,15 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
               Templates Rápidos
             </p>
             <div className="space-y-1">
-              {templates.map(template => (
+              {templates.map((template) => (
                 <button
                   key={template.id}
                   className="w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm flex items-center gap-2"
                   onClick={() => applyTemplate(template)}
                 >
                   <span>
-                    {template.category 
-                      ? TEMPLATE_ICONS[template.category] 
+                    {template.category
+                      ? TEMPLATE_ICONS[template.category]
                       : TEMPLATE_ICONS.default}
                   </span>
                   {template.title}
@@ -511,7 +530,10 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
             checked={requiresAction}
             onCheckedChange={(checked) => setRequiresAction(!!checked)}
           />
-          <Label htmlFor="requires-action" className="text-sm font-normal cursor-pointer">
+          <Label
+            htmlFor="requires-action"
+            className="text-sm font-normal cursor-pointer"
+          >
             Marcar como pendência
           </Label>
         </div>
@@ -540,7 +562,9 @@ export const ChatInput = ({ onSend, isLoading, serviceCallId }: ChatInputProps) 
 
             {/* Priority */}
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Prioridade</Label>
+              <Label className="text-xs text-muted-foreground">
+                Prioridade
+              </Label>
               <Select
                 value={priority}
                 onValueChange={(v) => setPriority(v as MessagePriority)}

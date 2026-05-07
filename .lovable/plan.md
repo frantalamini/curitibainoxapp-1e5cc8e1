@@ -1,5 +1,3 @@
-
-
 ## Plano: Conciliação Inline nos Painéis + Cliente + Confirmação + Desfazer
 
 ### Resumo dos pedidos
@@ -14,6 +12,7 @@
 ### Alterações por arquivo
 
 #### 1. `src/hooks/useOFXReconciliation.ts`
+
 - **Incluir `client_id` e join com `clients`** na query `fetchOpenTransactions`:
   ```sql
   .select("id, description, amount, direction, due_date, status, client_id, clients(full_name, secondary_name)")
@@ -25,30 +24,37 @@
 #### 2. `src/pages/financas/ConciliacaoBancaria.tsx`
 
 **SystemTransactionsPanel — modo seleção inline:**
+
 - Adicionar props: `selectionMode: boolean`, `selectedIds: string[]`, `onToggleSelect: (id: string) => void`
 - Quando `selectionMode=true`, cada item do painel mostra um Checkbox ao lado
 - No header do painel, quando em modo seleção, mostrar um botão "Confirmar (N)" para aplicar a seleção
 - Estado de "qual OFX está sendo conciliado" gerenciado no componente pai
 
 **Exibir nome do cliente:**
+
 - No render de cada transação, mostrar `t.clients?.full_name` acima ou ao lado da descrição
 
 **ConciliationPanel — botão conciliar inline:**
+
 - O ícone circular (RefreshCw do MultiSelectReassignPopover) passa a ativar o modo seleção no painel lateral correspondente (Receber ou Pagar) em vez de abrir popover
 - Manter o popover como fallback caso haja transações de ambas direções
 
 **Botão Incluir com confirmação:**
+
 - Após preencher o `ManualIncludeModal`, ao clicar "Incluir", exibir AlertDialog: "Tem certeza que deseja fazer inclusão manual deste lançamento?" com botões Cancelar/Confirmar
 
 **Botão Desfazer:**
+
 - Em itens com status "approved" ou "included", mostrar botão "Desfazer" que:
   - Para "approved": reverte status para "pending"
   - Para "included" (já salvo no banco): chama `undoManualInclusion` para deletar a transação criada
 
 #### 3. `supabase/functions/reconcile-bank-statement/index.ts`
+
 - Incluir join com `clients(full_name)` na query de system transactions para que o nome do cliente venha junto nas sugestões da IA
 
 #### 4. `src/components/conciliacao/ManualIncludeModal.tsx`
+
 - Adicionar AlertDialog de confirmação antes de executar o `onConfirm`
 
 ---
@@ -63,10 +69,10 @@
 6. Item incluído mostra botão **"Desfazer"** que deleta a transação criada
 
 ### Arquivos alterados
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/hooks/useOFXReconciliation.ts` | Join com clients, undo functions |
-| `src/pages/financas/ConciliacaoBancaria.tsx` | Modo seleção inline, cliente nos itens, desfazer |
-| `src/components/conciliacao/ManualIncludeModal.tsx` | AlertDialog de confirmação |
-| `supabase/functions/reconcile-bank-statement/index.ts` | Join com clients na query |
 
+| Arquivo                                                | Alteração                                        |
+| ------------------------------------------------------ | ------------------------------------------------ |
+| `src/hooks/useOFXReconciliation.ts`                    | Join com clients, undo functions                 |
+| `src/pages/financas/ConciliacaoBancaria.tsx`           | Modo seleção inline, cliente nos itens, desfazer |
+| `src/components/conciliacao/ManualIncludeModal.tsx`    | AlertDialog de confirmação                       |
+| `supabase/functions/reconcile-bank-statement/index.ts` | Join com clients na query                        |

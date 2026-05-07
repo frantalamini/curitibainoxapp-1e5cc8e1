@@ -34,8 +34,11 @@ export const useOFXReconciliation = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [ofxStatement, setOfxStatement] = useState<OFXStatement | null>(null);
-  const [matchSuggestions, setMatchSuggestions] = useState<MatchSuggestion[]>([]);
-  const [unmatchedSystemTransactions, setUnmatchedSystemTransactions] = useState<any[]>([]);
+  const [matchSuggestions, setMatchSuggestions] = useState<MatchSuggestion[]>(
+    [],
+  );
+  const [unmatchedSystemTransactions, setUnmatchedSystemTransactions] =
+    useState<any[]>([]);
   const [openReceivables, setOpenReceivables] = useState<any[]>([]);
   const [openPayables, setOpenPayables] = useState<any[]>([]);
 
@@ -43,10 +46,11 @@ export const useOFXReconciliation = () => {
   const receiveSuggestions = useMemo(
     () =>
       matchSuggestions.filter((s) => {
-        if (s.systemTransaction) return s.systemTransaction.direction === "RECEIVE";
+        if (s.systemTransaction)
+          return s.systemTransaction.direction === "RECEIVE";
         return s.ofxTransaction.amount > 0;
       }),
-    [matchSuggestions]
+    [matchSuggestions],
   );
 
   const paySuggestions = useMemo(
@@ -55,130 +59,162 @@ export const useOFXReconciliation = () => {
         if (s.systemTransaction) return s.systemTransaction.direction === "PAY";
         return s.ofxTransaction.amount < 0;
       }),
-    [matchSuggestions]
+    [matchSuggestions],
   );
 
   const unmatchedReceiveTransactions = useMemo(
     () => unmatchedSystemTransactions.filter((t) => t.direction === "RECEIVE"),
-    [unmatchedSystemTransactions]
+    [unmatchedSystemTransactions],
   );
 
   const unmatchedPayTransactions = useMemo(
     () => unmatchedSystemTransactions.filter((t) => t.direction === "PAY"),
-    [unmatchedSystemTransactions]
+    [unmatchedSystemTransactions],
   );
 
-  const fetchOpenTransactions = useCallback(async (
-    startDate: string,
-    endDate: string,
-  ) => {
-    try {
-      const { data, error } = await supabase
-        .from("financial_transactions")
-        .select("id, description, amount, direction, due_date, paid_at, status, client_id, clients(full_name, secondary_name)")
-        .in("status", ["OPEN"] as any[])
-        .gte("due_date", startDate)
-        .lte("due_date", endDate)
-        .order("due_date", { ascending: true });
+  const fetchOpenTransactions = useCallback(
+    async (startDate: string, endDate: string) => {
+      try {
+        const { data, error } = await supabase
+          .from("financial_transactions")
+          .select(
+            "id, description, amount, direction, due_date, paid_at, status, client_id, clients(full_name, secondary_name)",
+          )
+          .in("status", ["OPEN"] as any[])
+          .gte("due_date", startDate)
+          .lte("due_date", endDate)
+          .order("due_date", { ascending: true });
 
-      if (error) {
-        console.error("Error fetching open transactions:", error);
+        if (error) {
+          console.error("Error fetching open transactions:", error);
+          return;
+        }
+
+        setOpenReceivables(
+          (data || []).filter((t: any) => t.direction === "RECEIVE"),
+        );
+        setOpenPayables((data || []).filter((t: any) => t.direction === "PAY"));
+      } catch (e) {
+        console.error("fetchOpenTransactions error:", e);
+      }
+    },
+    [],
+  );
+
+  const parseOFXFile = useCallback(
+    async (file: File): Promise<OFXStatement | null> => {
+      setIsParsing(true);
+      try {
+        const content = await file.text();
+        const statement = parseOFX(content);
+        if (!statement) {
+          toast.error(
+            "Não foi possível ler o arquivo OFX. Verifique se o formato está correto.",
+          );
+          return null;
+        }
+        if (statement.transactions.length === 0) {
+          toast.error("Nenhuma transação encontrada no arquivo OFX.");
+          return null;
+        }
+        setOfxStatement(statement);
+        toast.success(
+          `${statement.transactions.length} transações encontradas no extrato.`,
+        );
+        return statement;
+      } catch (e) {
+        console.error("Error parsing OFX:", e);
+        toast.error("Erro ao processar o arquivo OFX.");
+        return null;
+      } finally {
+        setIsParsing(false);
+      }
+    },
+    [],
+  );
+
+  const runAIMatching = useCallback(
+    async (accountId: string, passedStatement?: OFXStatement) => {
+      const statementToUse = passedStatement || ofxStatement;
+      if (!statementToUse) {
+        toast.error("Nenhum extrato carregado.");
         return;
       }
+      setIsLoading(true);
+      try {
+        const response = await supabase.functions.invoke(
+          "reconcile-bank-statement",
+          {
+            body: {
+              ofxTransactions: statementToUse.transactions,
+              accountId,
+              startDate: statementToUse.startDate,
+              endDate: statementToUse.endDate,
+            },
+          },
+        );
+        if (response.error) throw new Error(response.error.message);
 
-      setOpenReceivables((data || []).filter((t: any) => t.direction === "RECEIVE"));
-      setOpenPayables((data || []).filter((t: any) => t.direction === "PAY"));
-    } catch (e) {
-      console.error("fetchOpenTransactions error:", e);
-    }
-  }, []);
+        const { suggestions, systemTransactions } = response.data;
+        const formattedSuggestions: MatchSuggestion[] = suggestions.map(
+          (s: any) => ({
+            ...s,
+            systemTransactions: s.systemTransaction
+              ? [s.systemTransaction]
+              : [],
+            status:
+              s.confidence >= 80
+                ? "pending"
+                : s.systemTransaction
+                  ? "pending"
+                  : "manual",
+          }),
+        );
 
-  const parseOFXFile = useCallback(async (file: File): Promise<OFXStatement | null> => {
-    setIsParsing(true);
-    try {
-      const content = await file.text();
-      const statement = parseOFX(content);
-      if (!statement) {
-        toast.error("Não foi possível ler o arquivo OFX. Verifique se o formato está correto.");
-        return null;
+        setMatchSuggestions(formattedSuggestions);
+
+        const matchedIds = new Set(
+          formattedSuggestions
+            .filter((s: MatchSuggestion) => s.systemTransaction)
+            .map((s: MatchSuggestion) => s.systemTransaction!.id),
+        );
+        const unmatched = systemTransactions.filter(
+          (t: any) => !matchedIds.has(t.id),
+        );
+        setUnmatchedSystemTransactions(unmatched);
+
+        const highConfidence = formattedSuggestions.filter(
+          (s: MatchSuggestion) => s.confidence >= 80,
+        ).length;
+        const lowConfidence = formattedSuggestions.filter(
+          (s: MatchSuggestion) => s.confidence > 0 && s.confidence < 80,
+        ).length;
+        const noMatch = formattedSuggestions.filter(
+          (s: MatchSuggestion) => !s.systemTransaction,
+        ).length;
+
+        toast.success(
+          `Análise concluída! ${highConfidence} matches confiáveis, ${lowConfidence} para revisar, ${noMatch} sem correspondência.`,
+        );
+      } catch (e) {
+        console.error("AI matching error:", e);
+        toast.error("Erro ao executar matching com IA. Tente novamente.");
+      } finally {
+        setIsLoading(false);
       }
-      if (statement.transactions.length === 0) {
-        toast.error("Nenhuma transação encontrada no arquivo OFX.");
-        return null;
-      }
-      setOfxStatement(statement);
-      toast.success(`${statement.transactions.length} transações encontradas no extrato.`);
-      return statement;
-    } catch (e) {
-      console.error("Error parsing OFX:", e);
-      toast.error("Erro ao processar o arquivo OFX.");
-      return null;
-    } finally {
-      setIsParsing(false);
-    }
-  }, []);
-
-  const runAIMatching = useCallback(async (accountId: string, passedStatement?: OFXStatement) => {
-    const statementToUse = passedStatement || ofxStatement;
-    if (!statementToUse) {
-      toast.error("Nenhum extrato carregado.");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const response = await supabase.functions.invoke("reconcile-bank-statement", {
-        body: {
-          ofxTransactions: statementToUse.transactions,
-          accountId,
-          startDate: statementToUse.startDate,
-          endDate: statementToUse.endDate,
-        },
-      });
-      if (response.error) throw new Error(response.error.message);
-
-      const { suggestions, systemTransactions } = response.data;
-      const formattedSuggestions: MatchSuggestion[] = suggestions.map((s: any) => ({
-        ...s,
-        systemTransactions: s.systemTransaction ? [s.systemTransaction] : [],
-        status: s.confidence >= 80 ? "pending" : s.systemTransaction ? "pending" : "manual",
-      }));
-
-      setMatchSuggestions(formattedSuggestions);
-
-      const matchedIds = new Set(
-        formattedSuggestions
-          .filter((s: MatchSuggestion) => s.systemTransaction)
-          .map((s: MatchSuggestion) => s.systemTransaction!.id)
-      );
-      const unmatched = systemTransactions.filter((t: any) => !matchedIds.has(t.id));
-      setUnmatchedSystemTransactions(unmatched);
-
-      const highConfidence = formattedSuggestions.filter((s: MatchSuggestion) => s.confidence >= 80).length;
-      const lowConfidence = formattedSuggestions.filter(
-        (s: MatchSuggestion) => s.confidence > 0 && s.confidence < 80
-      ).length;
-      const noMatch = formattedSuggestions.filter((s: MatchSuggestion) => !s.systemTransaction).length;
-
-      toast.success(
-        `Análise concluída! ${highConfidence} matches confiáveis, ${lowConfidence} para revisar, ${noMatch} sem correspondência.`
-      );
-    } catch (e) {
-      console.error("AI matching error:", e);
-      toast.error("Erro ao executar matching com IA. Tente novamente.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [ofxStatement]);
+    },
+    [ofxStatement],
+  );
 
   const updateSuggestionStatus = useCallback(
     (ofxFitId: string, status: MatchSuggestion["status"]) => {
       setMatchSuggestions((prev) =>
         prev.map((s) =>
-          s.ofxTransaction.fitId === ofxFitId ? { ...s, status } : s
-        )
+          s.ofxTransaction.fitId === ofxFitId ? { ...s, status } : s,
+        ),
       );
     },
-    []
+    [],
   );
 
   // Multi-match: assign multiple system transactions to one OFX item
@@ -195,13 +231,21 @@ export const useOFXReconciliation = () => {
         const txMap = new Map<string, any>();
         for (const tx of allSystemTxs) txMap.set(tx.id, tx);
 
-        const selectedTxs = selectedSystemTxIds.map(id => txMap.get(id)).filter(Boolean);
+        const selectedTxs = selectedSystemTxIds
+          .map((id) => txMap.get(id))
+          .filter(Boolean);
         if (selectedTxs.length === 0) return prev;
 
-        const currentSuggestion = prev.find((s) => s.ofxTransaction.fitId === ofxFitId);
+        const currentSuggestion = prev.find(
+          (s) => s.ofxTransaction.fitId === ofxFitId,
+        );
         const oldTxIds = new Set(
-          (currentSuggestion?.systemTransactions || (currentSuggestion?.systemTransaction ? [currentSuggestion.systemTransaction] : []))
-            .map(t => t.id)
+          (
+            currentSuggestion?.systemTransactions ||
+            (currentSuggestion?.systemTransaction
+              ? [currentSuggestion.systemTransaction]
+              : [])
+          ).map((t) => t.id),
         );
 
         const updated = prev.map((s) => {
@@ -216,7 +260,10 @@ export const useOFXReconciliation = () => {
             };
           }
           // Remove selected txs from other suggestions
-          if (s.systemTransaction && selectedSystemTxIds.includes(s.systemTransaction.id)) {
+          if (
+            s.systemTransaction &&
+            selectedSystemTxIds.includes(s.systemTransaction.id)
+          ) {
             return {
               ...s,
               systemTransaction: null,
@@ -231,7 +278,9 @@ export const useOFXReconciliation = () => {
 
         // Update unmatched list: remove selected, add back old ones that aren't selected
         setUnmatchedSystemTransactions((prevUnmatched) => {
-          let newUnmatched = prevUnmatched.filter(t => !selectedSystemTxIds.includes(t.id));
+          let newUnmatched = prevUnmatched.filter(
+            (t) => !selectedSystemTxIds.includes(t.id),
+          );
           // Add back old txs that were unselected
           for (const id of oldTxIds) {
             if (!selectedSystemTxIds.includes(id)) {
@@ -245,7 +294,7 @@ export const useOFXReconciliation = () => {
         return updated;
       });
     },
-    [unmatchedSystemTransactions]
+    [unmatchedSystemTransactions],
   );
 
   // Legacy single reassign (kept for compatibility)
@@ -253,14 +302,16 @@ export const useOFXReconciliation = () => {
     (ofxFitId: string, newSystemTransactionId: string) => {
       reassignMultiMatch(ofxFitId, [newSystemTransactionId]);
     },
-    [reassignMultiMatch]
+    [reassignMultiMatch],
   );
 
   const approveAll = useCallback(() => {
     setMatchSuggestions((prev) =>
       prev.map((s) =>
-        s.systemTransaction && s.confidence >= 80 ? { ...s, status: "approved" } : s
-      )
+        s.systemTransaction && s.confidence >= 80
+          ? { ...s, status: "approved" }
+          : s,
+      ),
     );
   }, []);
 
@@ -277,71 +328,80 @@ export const useOFXReconciliation = () => {
           return { ...s, status: "approved" };
         }
         return s;
-      })
+      }),
     );
   }, []);
 
   // Create manual financial transaction from OFX item
-  const createManualTransaction = useCallback(async (
-    ofxTransaction: OFXTransaction,
-    accountId: string,
-    categoryId: string,
-    costCenterId?: string,
-    description?: string,
-  ) => {
-    const direction = ofxTransaction.amount < 0 ? "PAY" : "RECEIVE";
-    const amount = Math.abs(ofxTransaction.amount);
-    const desc = description || `Conciliação bancária - ${ofxTransaction.description}`;
+  const createManualTransaction = useCallback(
+    async (
+      ofxTransaction: OFXTransaction,
+      accountId: string,
+      categoryId: string,
+      costCenterId?: string,
+      description?: string,
+    ) => {
+      const direction = ofxTransaction.amount < 0 ? "PAY" : "RECEIVE";
+      const amount = Math.abs(ofxTransaction.amount);
+      const desc =
+        description || `Conciliação bancária - ${ofxTransaction.description}`;
 
-    const { error } = await supabase.from("financial_transactions").insert({
-      direction,
-      origin: "MANUAL" as any,
-      status: "PAID" as any,
-      amount,
-      description: desc,
-      due_date: ofxTransaction.date,
-      paid_at: new Date(ofxTransaction.date + "T12:00:00").toISOString(),
-      financial_account_id: accountId,
-      category_id: categoryId,
-      cost_center_id: costCenterId || null,
-      is_reconciled: true,
-      reconciled_at: new Date().toISOString(),
-      bank_statement_ref: ofxTransaction.fitId,
-    });
+      const { error } = await supabase.from("financial_transactions").insert({
+        direction,
+        origin: "MANUAL" as any,
+        status: "PAID" as any,
+        amount,
+        description: desc,
+        due_date: ofxTransaction.date,
+        paid_at: new Date(ofxTransaction.date + "T12:00:00").toISOString(),
+        financial_account_id: accountId,
+        category_id: categoryId,
+        cost_center_id: costCenterId || null,
+        is_reconciled: true,
+        reconciled_at: new Date().toISOString(),
+        bank_statement_ref: ofxTransaction.fitId,
+      });
 
-    if (error) {
-      console.error("Error creating manual transaction:", error);
-      toast.error("Erro ao incluir lançamento.");
-      return false;
-    }
+      if (error) {
+        console.error("Error creating manual transaction:", error);
+        toast.error("Erro ao incluir lançamento.");
+        return false;
+      }
 
-    // Mark suggestion as included
-    setMatchSuggestions((prev) =>
-      prev.map((s) =>
-        s.ofxTransaction.fitId === ofxTransaction.fitId
-          ? { ...s, status: "included" as const }
-          : s
-      )
-    );
+      // Mark suggestion as included
+      setMatchSuggestions((prev) =>
+        prev.map((s) =>
+          s.ofxTransaction.fitId === ofxTransaction.fitId
+            ? { ...s, status: "included" as const }
+            : s,
+        ),
+      );
 
-    toast.success(`Lançamento incluído: ${desc}`);
-    return true;
-  }, []);
+      toast.success(`Lançamento incluído: ${desc}`);
+      return true;
+    },
+    [],
+  );
 
   // Undo reconciliation: revert is_reconciled flag on system transactions
-  const undoReconciliation = useCallback(async (ofxFitId: string) => {
-    // Find the suggestion
-    const suggestion = matchSuggestions.find(s => s.ofxTransaction.fitId === ofxFitId);
-    if (!suggestion) return;
+  const undoReconciliation = useCallback(
+    async (ofxFitId: string) => {
+      // Find the suggestion
+      const suggestion = matchSuggestions.find(
+        (s) => s.ofxTransaction.fitId === ofxFitId,
+      );
+      if (!suggestion) return;
 
-    // Revert status locally to pending
-    setMatchSuggestions((prev) =>
-      prev.map((s) =>
-        s.ofxTransaction.fitId === ofxFitId ? { ...s, status: "pending" } : s
-      )
-    );
-    toast.success("Aprovação desfeita.");
-  }, [matchSuggestions]);
+      // Revert status locally to pending
+      setMatchSuggestions((prev) =>
+        prev.map((s) =>
+          s.ofxTransaction.fitId === ofxFitId ? { ...s, status: "pending" } : s,
+        ),
+      );
+      toast.success("Aprovação desfeita.");
+    },
+    [matchSuggestions],
+  );
 
   // Undo manual inclusion: delete the created transaction and revert suggestion status
   const undoManualInclusion = useCallback(async (ofxFitId: string) => {
@@ -361,8 +421,10 @@ export const useOFXReconciliation = () => {
       // Revert suggestion status back to manual
       setMatchSuggestions((prev) =>
         prev.map((s) =>
-          s.ofxTransaction.fitId === ofxFitId ? { ...s, status: "manual" as const } : s
-        )
+          s.ofxTransaction.fitId === ofxFitId
+            ? { ...s, status: "manual" as const }
+            : s,
+        ),
       );
       toast.success("Inclusão manual desfeita.");
     } catch (e) {
@@ -373,7 +435,10 @@ export const useOFXReconciliation = () => {
 
   const saveReconciliation = useCallback(async () => {
     const approved = matchSuggestions.filter(
-      (s) => s.status === "approved" && (s.systemTransaction || (s.systemTransactions && s.systemTransactions.length > 0))
+      (s) =>
+        s.status === "approved" &&
+        (s.systemTransaction ||
+          (s.systemTransactions && s.systemTransactions.length > 0)),
     );
 
     if (approved.length === 0) {
@@ -384,9 +449,12 @@ export const useOFXReconciliation = () => {
     setIsLoading(true);
     try {
       for (const match of approved) {
-        const txsToReconcile = match.systemTransactions && match.systemTransactions.length > 0
-          ? match.systemTransactions
-          : match.systemTransaction ? [match.systemTransaction] : [];
+        const txsToReconcile =
+          match.systemTransactions && match.systemTransactions.length > 0
+            ? match.systemTransactions
+            : match.systemTransaction
+              ? [match.systemTransaction]
+              : [];
 
         for (const tx of txsToReconcile) {
           const { error } = await supabase
@@ -402,7 +470,8 @@ export const useOFXReconciliation = () => {
       }
 
       const totalTxs = approved.reduce((sum, m) => {
-        const count = m.systemTransactions?.length || (m.systemTransaction ? 1 : 0);
+        const count =
+          m.systemTransactions?.length || (m.systemTransaction ? 1 : 0);
         return sum + count;
       }, 0);
 

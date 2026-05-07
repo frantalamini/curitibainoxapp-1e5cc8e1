@@ -2,12 +2,37 @@ import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Users, ClipboardList, Wrench, TrendingUp, X, Download } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CalendarIcon,
+  Users,
+  ClipboardList,
+  Wrench,
+  TrendingUp,
+  X,
+  Download,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
 import MainLayout from "@/components/MainLayout";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useTechnicians } from "@/hooks/useTechnicians";
@@ -15,12 +40,21 @@ import { cn } from "@/lib/utils";
 import { generateDashboardReport } from "@/lib/dashboardPdfGenerator";
 import { toast } from "sonner";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#A4DE6C", "#D0ED57"];
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884D8",
+  "#82CA9D",
+  "#A4DE6C",
+  "#D0ED57",
+];
 
 const TECHNICIAN_COLORS: Record<string, string> = {
-  "José": "#15803d",      // Verde escuro (melhor contraste)
-  "Anderson": "#fbbf24",  // Amarelo (parametrizado)
-  "Matheus": "#3b82f6",   // Azul
+  José: "#15803d", // Verde escuro (melhor contraste)
+  Anderson: "#fbbf24", // Amarelo (parametrizado)
+  Matheus: "#3b82f6", // Azul
 };
 
 const getTechnicianColor = (name: string, fallbackIndex: number): string => {
@@ -38,7 +72,11 @@ const Dashboard = () => {
   const equipmentChartRef = useRef<HTMLDivElement>(null);
   const topClientsChartRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading } = useDashboardData(startDate, endDate, selectedTechnician);
+  const { data, isLoading } = useDashboardData(
+    startDate,
+    endDate,
+    selectedTechnician,
+  );
   const { technicians } = useTechnicians();
 
   const clearFilters = () => {
@@ -48,9 +86,13 @@ const Dashboard = () => {
   };
 
   const handleExportPdf = async () => {
-    if (!statusChartRef.current || !technicianChartRef.current || 
-        !serviceTypeChartRef.current || !equipmentChartRef.current || 
-        !topClientsChartRef.current) {
+    if (
+      !statusChartRef.current ||
+      !technicianChartRef.current ||
+      !serviceTypeChartRef.current ||
+      !equipmentChartRef.current ||
+      !topClientsChartRef.current
+    ) {
       toast.error("Aguarde os gráficos carregarem completamente");
       return;
     }
@@ -61,7 +103,7 @@ const Dashboard = () => {
       // Buscar nome do técnico se filtro aplicado
       let technicianName: string | undefined;
       if (selectedTechnician) {
-        const tech = technicians?.find(t => t.id === selectedTechnician);
+        const tech = technicians?.find((t) => t.id === selectedTechnician);
         technicianName = tech?.full_name;
       }
 
@@ -81,12 +123,12 @@ const Dashboard = () => {
           serviceTypeChart: serviceTypeChartRef.current,
           equipmentChart: equipmentChartRef.current,
           topClientsChart: topClientsChartRef.current,
-        }
+        },
       );
 
       const fileName = `dashboard-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`;
       pdf.save(fileName);
-      
+
       toast.dismiss();
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
@@ -97,63 +139,97 @@ const Dashboard = () => {
   };
 
   const statusData = [
-    { name: "Pendente", value: data?.calls.filter((c: any) => c.status === "pending").length || 0, color: "#fbbf24" },
-    { name: "Em Andamento", value: data?.calls.filter((c: any) => c.status === "in_progress").length || 0, color: "#3b82f6" },
-    { name: "Com Pendências", value: data?.calls.filter((c: any) => c.status === "on_hold").length || 0, color: "#f97316" },
-    { name: "Finalizado", value: data?.calls.filter((c: any) => c.status === "completed").length || 0, color: "#22c55e" },
-  ].filter(item => item.value > 0);
+    {
+      name: "Pendente",
+      value: data?.calls.filter((c: any) => c.status === "pending").length || 0,
+      color: "#fbbf24",
+    },
+    {
+      name: "Em Andamento",
+      value:
+        data?.calls.filter((c: any) => c.status === "in_progress").length || 0,
+      color: "#3b82f6",
+    },
+    {
+      name: "Com Pendências",
+      value: data?.calls.filter((c: any) => c.status === "on_hold").length || 0,
+      color: "#f97316",
+    },
+    {
+      name: "Finalizado",
+      value:
+        data?.calls.filter((c: any) => c.status === "completed").length || 0,
+      color: "#22c55e",
+    },
+  ].filter((item) => item.value > 0);
 
   const technicianData = Object.entries(
-    data?.calls.reduce((acc: any, call: any) => {
-      const techName = call.technicians?.full_name || "Sem técnico";
-      acc[techName] = (acc[techName] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {}
-  ).map(([name, value], index) => ({ 
-    name, 
-    value: value as number, 
-    color: getTechnicianColor(name, index)
+    data?.calls.reduce(
+      (acc: any, call: any) => {
+        const techName = call.technicians?.full_name || "Sem técnico";
+        acc[techName] = (acc[techName] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ) || {},
+  ).map(([name, value], index) => ({
+    name,
+    value: value as number,
+    color: getTechnicianColor(name, index),
   }));
 
   const serviceTypeData = Object.entries(
-    data?.calls.reduce((acc: any, call: any) => {
-      const typeName = call.service_types?.name || "Sem tipo";
-      const typeColor = call.service_types?.color || "#cccccc";
-      if (!acc[typeName]) {
-        acc[typeName] = { count: 0, color: typeColor };
-      }
-      acc[typeName].count++;
-      return acc;
-    }, {} as Record<string, { count: number; color: string }>) || {}
+    data?.calls.reduce(
+      (acc: any, call: any) => {
+        const typeName = call.service_types?.name || "Sem tipo";
+        const typeColor = call.service_types?.color || "#cccccc";
+        if (!acc[typeName]) {
+          acc[typeName] = { count: 0, color: typeColor };
+        }
+        acc[typeName].count++;
+        return acc;
+      },
+      {} as Record<string, { count: number; color: string }>,
+    ) || {},
   ).map(([name, data]) => {
     const typedData = data as { count: number; color: string };
     return { name, value: typedData.count, color: typedData.color };
   });
 
   const equipmentData = Object.entries(
-    data?.calls.reduce((acc: any, call: any) => {
-      const equipment = call.equipment_description || "Sem descrição";
-      acc[equipment] = (acc[equipment] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {}
+    data?.calls.reduce(
+      (acc: any, call: any) => {
+        const equipment = call.equipment_description || "Sem descrição";
+        acc[equipment] = (acc[equipment] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ) || {},
   )
     .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 5)
-    .map(([name, value], index) => ({ name, value: value as number, color: COLORS[index % COLORS.length] }));
+    .map(([name, value], index) => ({
+      name,
+      value: value as number,
+      color: COLORS[index % COLORS.length],
+    }));
 
   const clientData = Object.entries(
-    data?.calls.reduce((acc: any, call: any) => {
-      const clientName = call.clients?.full_name || "Sem cliente";
-      acc[clientName] = (acc[clientName] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {}
+    data?.calls.reduce(
+      (acc: any, call: any) => {
+        const clientName = call.clients?.full_name || "Sem cliente";
+        acc[clientName] = (acc[clientName] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ) || {},
   )
     .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 5)
-    .map(([name, value], index) => ({ 
-      name, 
-      value: value as number, 
-      color: COLORS[index % COLORS.length] 
+    .map(([name, value], index) => ({
+      name,
+      value: value as number,
+      color: COLORS[index % COLORS.length],
     }));
 
   const metricsCards = [
@@ -189,13 +265,21 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Dashboard Analítico</h1>
-            <p className="text-muted-foreground">Visão completa dos chamados técnicos</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">
+              Dashboard Analítico
+            </h1>
+            <p className="text-muted-foreground">
+              Visão completa dos chamados técnicos
+            </p>
           </div>
-          <Button onClick={handleExportPdf} variant="default" className="w-full sm:w-auto">
+          <Button
+            onClick={handleExportPdf}
+            variant="default"
+            className="w-full sm:w-auto"
+          >
             <Download className="mr-2 h-4 w-4" />
             Exportar PDF
           </Button>
@@ -212,14 +296,21 @@ const Dashboard = () => {
                   variant="outline"
                   className={cn(
                     "w-full sm:w-[240px] justify-start text-left font-normal",
-                    !startDate && "text-muted-foreground"
+                    !startDate && "text-muted-foreground",
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : "Data inicial"}
+                  {startDate
+                    ? format(startDate, "dd/MM/yyyy", { locale: ptBR })
+                    : "Data inicial"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start" sideOffset={8} collisionPadding={16}>
+              <PopoverContent
+                className="w-auto p-0"
+                align="start"
+                sideOffset={8}
+                collisionPadding={16}
+              >
                 <Calendar
                   mode="single"
                   selected={startDate}
@@ -236,14 +327,21 @@ const Dashboard = () => {
                   variant="outline"
                   className={cn(
                     "w-full sm:w-[240px] justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
+                    !endDate && "text-muted-foreground",
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "dd/MM/yyyy", { locale: ptBR }) : "Data final"}
+                  {endDate
+                    ? format(endDate, "dd/MM/yyyy", { locale: ptBR })
+                    : "Data final"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start" sideOffset={8} collisionPadding={16}>
+              <PopoverContent
+                className="w-auto p-0"
+                align="start"
+                sideOffset={8}
+                collisionPadding={16}
+              >
                 <Calendar
                   mode="single"
                   selected={endDate}
@@ -254,7 +352,10 @@ const Dashboard = () => {
               </PopoverContent>
             </Popover>
 
-            <Select value={selectedTechnician} onValueChange={setSelectedTechnician}>
+            <Select
+              value={selectedTechnician}
+              onValueChange={setSelectedTechnician}
+            >
               <SelectTrigger className="w-full sm:w-[240px]">
                 <SelectValue placeholder="Selecione um técnico" />
               </SelectTrigger>
@@ -267,7 +368,11 @@ const Dashboard = () => {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={clearFilters} className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={clearFilters}
+              className="w-full sm:w-auto"
+            >
               <X className="mr-2 h-4 w-4" />
               Limpar Filtros
             </Button>
@@ -278,7 +383,9 @@ const Dashboard = () => {
           {metricsCards.map((metric) => (
             <Card key={metric.title}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{metric.title}</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {metric.title}
+                </CardTitle>
                 <metric.icon className={cn("h-4 w-4", metric.color)} />
               </CardHeader>
               <CardContent>
@@ -305,7 +412,9 @@ const Dashboard = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        label={({ percent }) =>
+                          `${(percent * 100).toFixed(0)}%`
+                        }
                         outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
@@ -314,24 +423,26 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        formatter={(value: number) => [`${value} chamados`, '']}
-                        contentStyle={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          border: '1px solid #ccc',
-                          borderRadius: '4px',
-                          padding: '8px'
+                      <Tooltip
+                        formatter={(value: number) => [`${value} chamados`, ""]}
+                        contentStyle={{
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          border: "1px solid #ccc",
+                          borderRadius: "4px",
+                          padding: "8px",
                         }}
                       />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px' }}
+                      <Legend
+                        wrapperStyle={{ paddingTop: "20px" }}
                         layout="horizontal"
                         align="center"
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">Nenhum dado disponível</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum dado disponível
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -349,7 +460,9 @@ const Dashboard = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        label={({ percent }) =>
+                          `${(percent * 100).toFixed(0)}%`
+                        }
                         outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
@@ -358,24 +471,26 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        formatter={(value: number) => [`${value} chamados`, '']}
-                        contentStyle={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          border: '1px solid #ccc',
-                          borderRadius: '4px',
-                          padding: '8px'
+                      <Tooltip
+                        formatter={(value: number) => [`${value} chamados`, ""]}
+                        contentStyle={{
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          border: "1px solid #ccc",
+                          borderRadius: "4px",
+                          padding: "8px",
                         }}
                       />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px' }}
+                      <Legend
+                        wrapperStyle={{ paddingTop: "20px" }}
                         layout="horizontal"
                         align="center"
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">Nenhum dado disponível</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum dado disponível
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -393,7 +508,9 @@ const Dashboard = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        label={({ percent }) =>
+                          `${(percent * 100).toFixed(0)}%`
+                        }
                         outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
@@ -402,24 +519,26 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        formatter={(value: number) => [`${value} chamados`, '']}
-                        contentStyle={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          border: '1px solid #ccc',
-                          borderRadius: '4px',
-                          padding: '8px'
+                      <Tooltip
+                        formatter={(value: number) => [`${value} chamados`, ""]}
+                        contentStyle={{
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          border: "1px solid #ccc",
+                          borderRadius: "4px",
+                          padding: "8px",
                         }}
                       />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px' }}
+                      <Legend
+                        wrapperStyle={{ paddingTop: "20px" }}
                         layout="horizontal"
                         align="center"
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">Nenhum dado disponível</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum dado disponível
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -437,7 +556,9 @@ const Dashboard = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        label={({ percent }) =>
+                          `${(percent * 100).toFixed(0)}%`
+                        }
                         outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
@@ -446,24 +567,26 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        formatter={(value: number) => [`${value} chamados`, '']}
-                        contentStyle={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          border: '1px solid #ccc',
-                          borderRadius: '4px',
-                          padding: '8px'
+                      <Tooltip
+                        formatter={(value: number) => [`${value} chamados`, ""]}
+                        contentStyle={{
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          border: "1px solid #ccc",
+                          borderRadius: "4px",
+                          padding: "8px",
                         }}
                       />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px' }}
+                      <Legend
+                        wrapperStyle={{ paddingTop: "20px" }}
                         layout="horizontal"
                         align="center"
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">Nenhum dado disponível</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum dado disponível
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -481,7 +604,9 @@ const Dashboard = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        label={({ percent }) =>
+                          `${(percent * 100).toFixed(0)}%`
+                        }
                         outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
@@ -490,24 +615,26 @@ const Dashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        formatter={(value: number) => [`${value} chamados`, '']}
-                        contentStyle={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          border: '1px solid #ccc',
-                          borderRadius: '4px',
-                          padding: '8px'
+                      <Tooltip
+                        formatter={(value: number) => [`${value} chamados`, ""]}
+                        contentStyle={{
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          border: "1px solid #ccc",
+                          borderRadius: "4px",
+                          padding: "8px",
                         }}
                       />
-                      <Legend 
-                        wrapperStyle={{ paddingTop: '20px' }}
+                      <Legend
+                        wrapperStyle={{ paddingTop: "20px" }}
                         layout="horizontal"
                         align="center"
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">Nenhum dado disponível</div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum dado disponível
+                  </div>
                 )}
               </CardContent>
             </Card>

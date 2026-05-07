@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { FUEL_COST_PER_KM } from "@/lib/constants";
 
 interface VehicleCostSummary {
   id: string;
@@ -12,8 +13,6 @@ interface VehicleCostSummary {
   totalCost: number;
   costPerKm: number;
 }
-
-const FUEL_COST_PER_KM = 1.2; // R$ 1.20 por km
 
 export const useVehicleCostsReport = (year: number, month?: number) => {
   const { data, isLoading } = useQuery({
@@ -34,10 +33,11 @@ export const useVehicleCostsReport = (year: number, month?: number) => {
 
       if (vehError) throw vehError;
 
-      // Fetch trips
+      // Fetch trips (only deslocamento — internal trips have no vehicle)
       const { data: trips, error: tripsError } = await supabase
         .from("service_call_trips")
         .select("vehicle_id, distance_km, status")
+        .neq("trip_type", "interno")
         .gte("started_at", startDate)
         .lte("started_at", endDate + "T23:59:59");
 
@@ -56,17 +56,17 @@ export const useVehicleCostsReport = (year: number, month?: number) => {
       const summaries: VehicleCostSummary[] = vehicles.map((veh) => {
         // Trips (completed only)
         const vehTrips = trips.filter(
-          (t) => t.vehicle_id === veh.id && t.status === "concluido"
+          (t) => t.vehicle_id === veh.id && t.status === "concluido",
         );
         const totalKm = vehTrips.reduce(
           (sum, t) => sum + (t.distance_km || 0),
-          0
+          0,
         );
         const fuelCostEstimate = totalKm * FUEL_COST_PER_KM;
 
         // Maintenances
         const vehMaintenances = maintenances.filter(
-          (m) => m.vehicle_id === veh.id
+          (m) => m.vehicle_id === veh.id,
         );
 
         const totalCost = fuelCostEstimate;
@@ -94,7 +94,7 @@ export const useVehicleCostsReport = (year: number, month?: number) => {
       const totalTrips = summaries.reduce((sum, s) => sum + s.tripsCount, 0);
       const totalMaintenances = summaries.reduce(
         (sum, s) => sum + s.maintenanceCount,
-        0
+        0,
       );
 
       return {

@@ -15,21 +15,21 @@ interface WhatsAppButtonProps {
 function buildMessageFromData(data: WhatsAppMessageData): string {
   let message = `Olá ${data.clientName}!\n\n`;
   message += `Referente à OS #${data.osNumber}`;
-  
+
   if (data.deviceModel) {
     message += `\n📱 Equipamento: ${data.deviceModel}`;
   }
-  
+
   if (data.issue) {
     message += `\n🔧 Problema: ${data.issue}`;
   }
-  
+
   if (data.status) {
     message += `\n📊 Status: ${data.status}`;
   }
-  
+
   message += `\n\nEstou entrando em contato para atualizar sobre o andamento do serviço.`;
-  
+
   return message;
 }
 
@@ -37,11 +37,11 @@ function buildMessageFromData(data: WhatsAppMessageData): string {
  * WhatsApp Button Component
  * Opens WhatsApp with pre-filled message for client communication
  */
-export const WhatsAppButton = ({ 
-  data, 
-  variant = "default", 
+export const WhatsAppButton = ({
+  data,
+  variant = "default",
   size = "default",
-  className 
+  className,
 }: WhatsAppButtonProps) => {
   const handleClick = () => {
     const message = buildMessageFromData(data);

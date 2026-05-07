@@ -11,13 +11,13 @@ interface PageHeaderProps {
   children?: React.ReactNode;
 }
 
-export function PageHeader({ 
-  title, 
-  actionLabel, 
-  onAction, 
+export function PageHeader({
+  title,
+  actionLabel,
+  onAction,
   showBackButton = false,
   backTo,
-  children 
+  children,
 }: PageHeaderProps) {
   const navigate = useNavigate();
 
@@ -28,7 +28,7 @@ export function PageHeader({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => backTo ? navigate(backTo) : navigate(-1)}
+            onClick={() => (backTo ? navigate(backTo) : navigate(-1))}
             className="h-9 w-9 shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -38,7 +38,7 @@ export function PageHeader({
           {title}
         </h1>
       </div>
-      
+
       <div className="flex items-center gap-2">
         {children}
         {actionLabel && onAction && (

@@ -3,7 +3,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PageContainer } from "@/components/ui/page-container";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useDREDataNew } from "@/hooks/useDREDataNew";
 import { DRETable } from "@/components/dre/DRETable";
@@ -44,13 +50,20 @@ export default function DRE() {
 
   return (
     <PageContainer>
-      <PageHeader title="DRE - Demonstrativo de Resultados" showBackButton backTo="/financas/fluxo-de-caixa" />
+      <PageHeader
+        title="DRE - Demonstrativo de Resultados"
+        showBackButton
+        backTo="/financas/fluxo-de-caixa"
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Mês:</span>
-            <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+            <Select
+              value={String(selectedMonth)}
+              onValueChange={(v) => setSelectedMonth(Number(v))}
+            >
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
               </SelectTrigger>
@@ -66,7 +79,10 @@ export default function DRE() {
 
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Ano:</span>
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+            <Select
+              value={String(selectedYear)}
+              onValueChange={(v) => setSelectedYear(Number(v))}
+            >
               <SelectTrigger className="w-[100px]">
                 <SelectValue />
               </SelectTrigger>
@@ -99,7 +115,8 @@ export default function DRE() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
-                DRE - {MONTHS.find(m => m.value === selectedMonth)?.label} de {selectedYear}
+                DRE - {MONTHS.find((m) => m.value === selectedMonth)?.label} de{" "}
+                {selectedYear}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -147,14 +164,19 @@ export default function DRE() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cn(
-              "text-2xl font-bold",
-              dreData.margemContribuicao.realizedMonth >= 0 ? "text-blue-600" : "text-red-600"
-            )}>
+            <div
+              className={cn(
+                "text-2xl font-bold",
+                dreData.margemContribuicao.realizedMonth >= 0
+                  ? "text-blue-600"
+                  : "text-red-600",
+              )}
+            >
               {formatCurrency(dreData.margemContribuicao.realizedMonth)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {dreData.margemContribuicaoPct.realizedMonth.toFixed(1)}% do faturamento
+              {dreData.margemContribuicaoPct.realizedMonth.toFixed(1)}% do
+              faturamento
             </p>
           </CardContent>
         </Card>
@@ -166,14 +188,19 @@ export default function DRE() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cn(
-              "text-2xl font-bold",
-              dreData.resultadoOperacional.realizedMonth >= 0 ? "text-green-600" : "text-red-600"
-            )}>
+            <div
+              className={cn(
+                "text-2xl font-bold",
+                dreData.resultadoOperacional.realizedMonth >= 0
+                  ? "text-green-600"
+                  : "text-red-600",
+              )}
+            >
               {formatCurrency(dreData.resultadoOperacional.realizedMonth)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Previsto: {formatCurrency(dreData.resultadoOperacional.budgetMonth)}
+              Previsto:{" "}
+              {formatCurrency(dreData.resultadoOperacional.budgetMonth)}
             </p>
           </CardContent>
         </Card>
@@ -185,14 +212,19 @@ export default function DRE() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cn(
-              "text-2xl font-bold",
-              dreData.resultadoGlobal.realizedMonth >= 0 ? "text-green-600" : "text-red-600"
-            )}>
+            <div
+              className={cn(
+                "text-2xl font-bold",
+                dreData.resultadoGlobal.realizedMonth >= 0
+                  ? "text-green-600"
+                  : "text-red-600",
+              )}
+            >
               {formatCurrency(dreData.resultadoGlobal.realizedMonth)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Ponto de Equilíbrio: {formatCurrency(dreData.pontoEquilibrio.realizedMonth)}
+              Ponto de Equilíbrio:{" "}
+              {formatCurrency(dreData.pontoEquilibrio.realizedMonth)}
             </p>
           </CardContent>
         </Card>

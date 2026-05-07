@@ -9,7 +9,10 @@ export const useCurrentUserProfile = () => {
   return useQuery({
     queryKey: ["current-user-profile"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return null;
 
       const { data, error } = await supabase
@@ -26,7 +29,8 @@ export const useCurrentUserProfile = () => {
       if (!data) return null;
 
       // Extrair primeiro nome e inicial
-      const fullName = data.full_name || data.username || data.email || "Usuário";
+      const fullName =
+        data.full_name || data.username || data.email || "Usuário";
       const firstName = fullName.split(" ")[0];
       const initial = firstName.charAt(0).toUpperCase();
 

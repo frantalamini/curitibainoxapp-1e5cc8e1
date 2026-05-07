@@ -1,16 +1,26 @@
 import { useState, useEffect } from "react";
+import { pixel } from "@/lib/pixel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Smartphone, CheckCircle, AlertTriangle, Share, Copy, Check } from "lucide-react";
+import {
+  Download,
+  Smartphone,
+  CheckCircle,
+  AlertTriangle,
+  Share,
+  Copy,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
 export default function Install() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isSafari, setIsSafari] = useState(false);
@@ -18,8 +28,9 @@ export default function Install() {
 
   useEffect(() => {
     // Detectar iOS (incluindo iPadOS 13+)
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isIOSDevice =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     setIsIOS(isIOSDevice);
 
     // Detectar Safari no iOS (não Chrome, Firefox, etc)
@@ -27,14 +38,19 @@ export default function Install() {
     const isChrome = /CriOS/.test(ua);
     const isFirefox = /FxiOS/.test(ua);
     const isEdge = /EdgiOS/.test(ua);
-    const isSafariBrowser = isIOSDevice && !isChrome && !isFirefox && !isEdge && /Safari/.test(ua);
+    const isSafariBrowser =
+      isIOSDevice && !isChrome && !isFirefox && !isEdge && /Safari/.test(ua);
     setIsSafari(isSafariBrowser);
 
     // Verificar se já está instalado (standalone ou fullscreen)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
+    const isStandalone = window.matchMedia(
+      "(display-mode: standalone)",
+    ).matches;
+    const isFullscreen = window.matchMedia(
+      "(display-mode: fullscreen)",
+    ).matches;
     const isIOSStandalone = (navigator as any).standalone === true;
-    
+
     if (isStandalone || isFullscreen || isIOSStandalone) {
       setIsInstalled(true);
     }
@@ -45,27 +61,28 @@ export default function Install() {
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
-    
+    window.addEventListener("beforeinstallprompt", handler);
+
     // Detectar quando o app foi instalado
-    window.addEventListener('appinstalled', () => {
+    window.addEventListener("appinstalled", () => {
+      pixel.pwaInstall();
       setIsInstalled(true);
       setDeferredPrompt(null);
     });
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener("beforeinstallprompt", handler);
     };
   }, []);
 
   const copyURL = async () => {
     try {
-      await navigator.clipboard.writeText('https://curitibainoxapp.com');
+      await navigator.clipboard.writeText("https://curitibainoxapp.com");
       setCopied(true);
-      toast.success('Link copiado!');
+      toast.success("Link copiado!");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Não foi possível copiar o link');
+      toast.error("Não foi possível copiar o link");
     }
   };
 
@@ -73,7 +90,8 @@ export default function Install() {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
+      if (outcome === "accepted") {
+        pixel.pwaInstall();
         setIsInstalled(true);
       }
       setDeferredPrompt(null);
@@ -90,9 +108,9 @@ export default function Install() {
             <p className="text-muted-foreground">
               O Curitiba Inox já está na sua tela inicial.
             </p>
-            <Button 
-              className="mt-4" 
-              onClick={() => window.location.href = '/'}
+            <Button
+              className="mt-4"
+              onClick={() => (window.location.href = "/")}
             >
               Abrir o App
             </Button>
@@ -106,10 +124,10 @@ export default function Install() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
-          <img 
-            src="/pwa-192x192.png" 
-            alt="Curitiba Inox" 
-            className="h-20 w-20 mx-auto mb-2 rounded-2xl"
+          <img
+            src="/pwa-192x192.png"
+            alt="Curitiba Inox"
+            className="h-20 w-20 mx-auto mb-2 rounded-lg"
           />
           <CardTitle className="text-primary">Instalar Curitiba Inox</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
@@ -129,11 +147,12 @@ export default function Install() {
                         Abra no Safari para instalar
                       </p>
                       <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                        No iOS, apenas o Safari permite adicionar apps à tela inicial.
+                        No iOS, apenas o Safari permite adicionar apps à tela
+                        inicial.
                       </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={copyURL}
                         className="mt-2 w-full"
                       >
@@ -171,27 +190,33 @@ export default function Install() {
                 </p>
                 <ol className="list-decimal list-inside space-y-3 text-muted-foreground">
                   <li className="leading-relaxed">
-                    Toque no botão <strong className="text-foreground">Compartilhar</strong>
+                    Toque no botão{" "}
+                    <strong className="text-foreground">Compartilhar</strong>
                     <span className="block text-xs mt-1 ml-5">
                       (ícone ⬆️ na barra inferior do Safari)
                     </span>
                   </li>
                   <li className="leading-relaxed">
-                    Role para baixo e toque em <strong className="text-foreground">"Adicionar à Tela de Início"</strong>
+                    Role para baixo e toque em{" "}
+                    <strong className="text-foreground">
+                      "Adicionar à Tela de Início"
+                    </strong>
                     <span className="block text-xs mt-1 ml-5">
                       (ícone com + quadrado)
                     </span>
                   </li>
                   <li className="leading-relaxed">
-                    Toque em <strong className="text-foreground">"Adicionar"</strong> no canto superior direito
+                    Toque em{" "}
+                    <strong className="text-foreground">"Adicionar"</strong> no
+                    canto superior direito
                   </li>
                 </ol>
               </div>
 
               <div className="bg-muted p-3 rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  ✅ Após instalar, o app abrirá em tela cheia sem a barra do Safari, 
-                  como um aplicativo nativo.
+                  ✅ Após instalar, o app abrirá em tela cheia sem a barra do
+                  Safari, como um aplicativo nativo.
                 </p>
               </div>
             </div>
@@ -209,13 +234,29 @@ export default function Install() {
             <div className="space-y-3 text-sm">
               <p className="font-medium">No Android/Chrome:</p>
               <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                <li>Toque no menu <strong className="text-foreground">⋮</strong> (três pontos no canto superior)</li>
-                <li>Toque em <strong className="text-foreground">"Instalar aplicativo"</strong> ou <strong className="text-foreground">"Adicionar à tela inicial"</strong></li>
-                <li>Confirme tocando em <strong className="text-foreground">"Instalar"</strong></li>
+                <li>
+                  Toque no menu <strong className="text-foreground">⋮</strong>{" "}
+                  (três pontos no canto superior)
+                </li>
+                <li>
+                  Toque em{" "}
+                  <strong className="text-foreground">
+                    "Instalar aplicativo"
+                  </strong>{" "}
+                  ou{" "}
+                  <strong className="text-foreground">
+                    "Adicionar à tela inicial"
+                  </strong>
+                </li>
+                <li>
+                  Confirme tocando em{" "}
+                  <strong className="text-foreground">"Instalar"</strong>
+                </li>
               </ol>
               <div className="bg-muted p-3 rounded-lg mt-4">
                 <p className="text-xs text-muted-foreground">
-                  💡 Se o botão de instalação não aparecer automaticamente, use o menu do navegador.
+                  💡 Se o botão de instalação não aparecer automaticamente, use
+                  o menu do navegador.
                 </p>
               </div>
             </div>

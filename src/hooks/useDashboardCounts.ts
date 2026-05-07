@@ -12,18 +12,17 @@ export const useDashboardCounts = () => {
     queryKey: ["dashboard-counts"],
     queryFn: async (): Promise<DashboardCounts> => {
       // Execute count queries in parallel for better performance
-      const [clientsResult, equipmentResult, techniciansResult] = await Promise.all([
-        supabase
-          .from("clients")
-          .select("id", { count: "exact", head: true }),
-        supabase
-          .from("equipment")
-          .select("id", { count: "exact", head: true }),
-        supabase
-          .from("technicians")
-          .select("id", { count: "exact", head: true })
-          .eq("active", true),
-      ]);
+      const [clientsResult, equipmentResult, techniciansResult] =
+        await Promise.all([
+          supabase.from("clients").select("id", { count: "exact", head: true }),
+          supabase
+            .from("equipment")
+            .select("id", { count: "exact", head: true }),
+          supabase
+            .from("technicians")
+            .select("id", { count: "exact", head: true })
+            .eq("active", true),
+        ]);
 
       if (clientsResult.error) throw clientsResult.error;
       if (equipmentResult.error) throw equipmentResult.error;
@@ -35,8 +34,9 @@ export const useDashboardCounts = () => {
         activeTechniciansCount: techniciansResult.count || 0,
       };
     },
-    staleTime: 2 * 60 * 1000, // 2 minutos - contagens não mudam frequentemente
-    gcTime: 10 * 60 * 1000,   // 10 minutos no cache
+    staleTime: 10 * 60 * 1000, // 10 minutos — contagens não mudam frequentemente
+    gcTime: 30 * 60 * 1000, // 30 minutos no cache
+    retry: 1, // 1 retry para não bombardear Supabase em 503
   });
 };
 
@@ -54,8 +54,9 @@ export const useRecentClients = () => {
       if (error) throw error;
       return data;
     },
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: 1,
   });
 };
 
@@ -72,7 +73,8 @@ export const useRecentEquipment = () => {
       if (error) throw error;
       return data;
     },
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: 1,
   });
 };

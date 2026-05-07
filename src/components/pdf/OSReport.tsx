@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Document,
   Page,
@@ -7,7 +7,7 @@ import {
   Image,
   StyleSheet,
   Font,
-} from '@react-pdf/renderer';
+} from "@react-pdf/renderer";
 
 // Tipos de dados para o PDF
 type Report = {
@@ -76,12 +76,17 @@ type Report = {
   } | null;
   signatures: {
     tech?: { name: string; when?: string; imageDataUrl?: string } | null;
-    client?: { name: string; role?: string; when?: string; imageDataUrl?: string } | null;
+    client?: {
+      name: string;
+      role?: string;
+      when?: string;
+      imageDataUrl?: string;
+    } | null;
   };
   // Dados financeiros (opcional - apenas para relatório completo)
   financial?: {
     items: {
-      type: 'PRODUCT' | 'SERVICE' | 'FEE' | 'DISCOUNT';
+      type: "PRODUCT" | "SERVICE" | "FEE" | "DISCOUNT";
       description: string;
       qty: number;
       unitPrice: number;
@@ -120,16 +125,16 @@ const styles = StyleSheet.create({
   page: {
     padding: 25,
     fontSize: 11,
-    fontFamily: 'Helvetica',
-    color: '#111111',
+    fontFamily: "Helvetica",
+    color: "#111111",
     lineHeight: 1.35,
   },
 
   // Cabeçalho
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   logoContainer: {
@@ -139,35 +144,35 @@ const styles = StyleSheet.create({
   logo: {
     width: 190,
     maxHeight: 70,
-    objectFit: 'cover',
+    objectFit: "cover",
   },
   companyInfo: {
-    textAlign: 'right',
+    textAlign: "right",
     fontSize: 9,
     maxWidth: 250,
   },
   companyName: {
     fontSize: 11,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 3,
   },
   companyText: {
     fontSize: 8,
     marginBottom: 1,
-    color: '#333333',
+    color: "#333333",
   },
 
   // Título
   title: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 13,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
+    fontWeight: "bold",
+    textTransform: "uppercase",
     paddingVertical: 8,
     marginBottom: 12,
     borderTopWidth: 0.5,
     borderBottomWidth: 0.5,
-    borderColor: '#C9CED6',
+    borderColor: "#C9CED6",
   },
 
   // Seções
@@ -176,17 +181,17 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 10,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
+    fontWeight: "bold",
+    textTransform: "uppercase",
     borderBottomWidth: 0.5,
-    borderColor: '#C9CED6',
+    borderColor: "#C9CED6",
     paddingBottom: 4,
     marginBottom: 6,
   },
   sectionContent: {
     padding: 8,
     borderWidth: 0.5,
-    borderColor: '#C9CED6',
+    borderColor: "#C9CED6",
     borderRadius: 3,
     fontSize: 10,
   },
@@ -197,7 +202,7 @@ const styles = StyleSheet.create({
 
   // Grid 2 colunas
   grid2Cols: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginBottom: 8,
   },
@@ -220,59 +225,59 @@ const styles = StyleSheet.create({
   // Cliente + OS Data
   clientBox: {
     borderWidth: 0.5,
-    borderColor: '#C9CED6',
+    borderColor: "#C9CED6",
     borderRadius: 3,
     padding: 8,
   },
   clientName: {
     fontSize: 11,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 4,
   },
   clientInfo: {
     fontSize: 9,
     marginBottom: 2,
-    color: '#333333',
+    color: "#333333",
   },
 
   osBox: {
     borderWidth: 0.5,
-    borderColor: '#C9CED6',
+    borderColor: "#C9CED6",
     borderRadius: 3,
     padding: 8,
   },
   osRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 3,
     borderBottomWidth: 0.5,
-    borderColor: '#E3E7EB',
+    borderColor: "#E3E7EB",
     fontSize: 9,
   },
   osRowLast: {
     borderBottomWidth: 0,
   },
   osLabel: {
-    color: '#666666',
+    color: "#666666",
   },
   osValue: {
-    fontWeight: 'bold',
-    color: '#111111',
+    fontWeight: "bold",
+    color: "#111111",
   },
 
   // Checklist
   checklistItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 6,
     fontSize: 9,
   },
   checklistStatus: {
     width: 40,
     marginRight: 6,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 8,
-    color: '#111111',
+    color: "#111111",
   },
   checklistLabel: {
     flex: 1,
@@ -280,72 +285,72 @@ const styles = StyleSheet.create({
   },
   checklistNote: {
     fontSize: 8,
-    color: '#666666',
+    color: "#666666",
     marginLeft: 46,
     marginTop: 2,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   checklistSectionTitle: {
     fontSize: 9,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 6,
     marginBottom: 4,
-    color: '#333333',
+    color: "#333333",
   },
 
   // Fotos
   photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginTop: 8,
   },
   photoBox: {
-    width: '30%',
+    width: "30%",
     aspectRatio: 4 / 3,
     borderWidth: 0.5,
-    borderColor: '#C9CED6',
+    borderColor: "#C9CED6",
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   photo: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
   },
 
   // Assinaturas
   signatures: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 24,
     marginTop: 12,
   },
   signatureCol: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   signatureTitle: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 11,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginBottom: 8,
   },
   signatureImage: {
     width: 180,
     height: 60,
-    objectFit: 'contain',
+    objectFit: "contain",
     marginBottom: 6,
   },
   signatureLine: {
-    width: '70%',
+    width: "70%",
     height: 0.5,
-    backgroundColor: '#000000',
+    backgroundColor: "#000000",
     marginVertical: 6,
   },
   signatureLegend: {
     fontSize: 8,
-    color: '#666666',
-    textAlign: 'center',
+    color: "#666666",
+    textAlign: "center",
     lineHeight: 1.4,
   },
 
@@ -353,21 +358,21 @@ const styles = StyleSheet.create({
   table: {
     marginTop: 8,
     borderWidth: 0.5,
-    borderColor: '#C9CED6',
+    borderColor: "#C9CED6",
     borderRadius: 3,
   },
   tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    backgroundColor: "#F5F5F5",
     borderBottomWidth: 0.5,
-    borderColor: '#C9CED6',
+    borderColor: "#C9CED6",
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
   tableRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: 0.5,
-    borderColor: '#E3E7EB',
+    borderColor: "#E3E7EB",
     paddingVertical: 5,
     paddingHorizontal: 8,
   },
@@ -381,65 +386,65 @@ const styles = StyleSheet.create({
   tableColQty: {
     width: 40,
     fontSize: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   tableColPrice: {
     width: 60,
     fontSize: 8,
-    textAlign: 'right',
+    textAlign: "right",
   },
   tableColTotal: {
     width: 70,
     fontSize: 8,
-    textAlign: 'right',
-    fontWeight: 'bold',
+    textAlign: "right",
+    fontWeight: "bold",
   },
   tableHeaderText: {
     fontSize: 8,
-    fontWeight: 'bold',
-    color: '#333333',
+    fontWeight: "bold",
+    color: "#333333",
   },
   subtotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 4,
     paddingHorizontal: 8,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: "#F9F9F9",
     borderBottomWidth: 0.5,
-    borderColor: '#E3E7EB',
+    borderColor: "#E3E7EB",
   },
   subtotalLabel: {
     fontSize: 9,
-    color: '#666666',
+    color: "#666666",
   },
   subtotalValue: {
     fontSize: 9,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   grandTotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 8,
     paddingHorizontal: 8,
-    backgroundColor: '#18487A',
+    backgroundColor: "#18487A",
   },
   grandTotalLabel: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   grandTotalValue: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   installmentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderBottomWidth: 0.5,
-    borderColor: '#E3E7EB',
+    borderColor: "#E3E7EB",
   },
   installmentLabel: {
     fontSize: 8,
@@ -448,42 +453,48 @@ const styles = StyleSheet.create({
   installmentDate: {
     fontSize: 8,
     width: 70,
-    textAlign: 'center',
+    textAlign: "center",
   },
   installmentMethod: {
     fontSize: 8,
     width: 65,
-    textAlign: 'center',
+    textAlign: "center",
   },
   installmentNotes: {
     fontSize: 7,
     flex: 1,
-    textAlign: 'left',
-    color: '#666666',
+    textAlign: "left",
+    color: "#666666",
   },
   installmentAmount: {
     fontSize: 8,
     width: 60,
-    textAlign: 'right',
-    fontWeight: 'bold',
+    textAlign: "right",
+    fontWeight: "bold",
   },
 
   // Utilidades
   muted: {
-    color: '#666666',
+    color: "#666666",
   },
   wrap: {
-    wordWrap: 'break-word',
+    wordWrap: "break-word",
   },
 });
 
 // Formatar moeda
 const formatCurrency = (value: number): string => {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 };
 
 // Componente Header
-const Header = ({ company, osNumber }: { company: Report['company']; osNumber: number | string }) => (
+const Header = ({
+  company,
+  osNumber,
+}: {
+  company: Report["company"];
+  osNumber: number | string;
+}) => (
   <>
     <View style={styles.header}>
       <View style={styles.logoContainer}>
@@ -496,14 +507,20 @@ const Header = ({ company, osNumber }: { company: Report['company']; osNumber: n
         {(company.cnpj || company.ie) && (
           <Text style={styles.companyText}>
             {company.cnpj && `CNPJ: ${company.cnpj}`}
-            {company.cnpj && company.ie && ' | '}
+            {company.cnpj && company.ie && " | "}
             {company.ie && `IE: ${company.ie}`}
           </Text>
         )}
         {company.site && <Text style={styles.companyText}>{company.site}</Text>}
-        {company.email && <Text style={styles.companyText}>{company.email}</Text>}
-        {company.phone && <Text style={styles.companyText}>{company.phone}</Text>}
-        {company.address && <Text style={styles.companyText}>{company.address}</Text>}
+        {company.email && (
+          <Text style={styles.companyText}>{company.email}</Text>
+        )}
+        {company.phone && (
+          <Text style={styles.companyText}>{company.phone}</Text>
+        )}
+        {company.address && (
+          <Text style={styles.companyText}>{company.address}</Text>
+        )}
       </View>
     </View>
     <View style={styles.title}>
@@ -513,7 +530,15 @@ const Header = ({ company, osNumber }: { company: Report['company']; osNumber: n
 );
 
 // Componente Section
-const Section = ({ title, children, noBorder }: { title: string; children: React.ReactNode; noBorder?: boolean }) => (
+const Section = ({
+  title,
+  children,
+  noBorder,
+}: {
+  title: string;
+  children: React.ReactNode;
+  noBorder?: boolean;
+}) => (
   <View style={styles.section} wrap={false}>
     <View style={styles.sectionTitle}>
       <Text>{title}</Text>
@@ -538,7 +563,7 @@ const PhotoGrid = ({ photos }: { photos: string[] }) => (
 );
 
 // Componente Signatures
-const Signatures = ({ signatures }: { signatures: Report['signatures'] }) => (
+const Signatures = ({ signatures }: { signatures: Report["signatures"] }) => (
   <View style={styles.section} wrap={false}>
     <View style={styles.sectionTitle}>
       <Text>ASSINATURAS</Text>
@@ -548,7 +573,10 @@ const Signatures = ({ signatures }: { signatures: Report['signatures'] }) => (
         <View style={styles.signatureCol}>
           <Text style={styles.signatureTitle}>TÉCNICO RESPONSÁVEL</Text>
           {signatures.tech.imageDataUrl && (
-            <Image src={signatures.tech.imageDataUrl} style={styles.signatureImage} />
+            <Image
+              src={signatures.tech.imageDataUrl}
+              style={styles.signatureImage}
+            />
           )}
           <View style={styles.signatureLine} />
           <Text style={styles.signatureLegend}>{signatures.tech.name}</Text>
@@ -561,12 +589,17 @@ const Signatures = ({ signatures }: { signatures: Report['signatures'] }) => (
         <View style={styles.signatureCol}>
           <Text style={styles.signatureTitle}>CLIENTE / RESPONSÁVEL</Text>
           {signatures.client.imageDataUrl && (
-            <Image src={signatures.client.imageDataUrl} style={styles.signatureImage} />
+            <Image
+              src={signatures.client.imageDataUrl}
+              style={styles.signatureImage}
+            />
           )}
           <View style={styles.signatureLine} />
           <Text style={styles.signatureLegend}>{signatures.client.name}</Text>
           {signatures.client.role && (
-            <Text style={styles.signatureLegend}>Cargo: {signatures.client.role}</Text>
+            <Text style={styles.signatureLegend}>
+              Cargo: {signatures.client.role}
+            </Text>
           )}
           {signatures.client.when && (
             <Text style={styles.signatureLegend}>{signatures.client.when}</Text>
@@ -578,51 +611,75 @@ const Signatures = ({ signatures }: { signatures: Report['signatures'] }) => (
 );
 
 // Componente Seção Financeira
-const FinancialSection = ({ financial }: { financial: NonNullable<Report['financial']> }) => {
+const FinancialSection = ({
+  financial,
+}: {
+  financial: NonNullable<Report["financial"]>;
+}) => {
   const typeLabels: Record<string, string> = {
-    PRODUCT: 'Produtos',
-    SERVICE: 'Serviços',
-    FEE: 'Taxas',
-    DISCOUNT: 'Descontos',
+    PRODUCT: "Produtos",
+    SERVICE: "Serviços",
+    FEE: "Taxas",
+    DISCOUNT: "Descontos",
   };
 
-  const productItems = financial.items.filter(i => i.type === 'PRODUCT');
-  const serviceItems = financial.items.filter(i => i.type === 'SERVICE');
+  const productItems = financial.items.filter((i) => i.type === "PRODUCT");
+  const serviceItems = financial.items.filter((i) => i.type === "SERVICE");
 
   return (
     <View style={styles.section}>
       <View style={styles.sectionTitle}>
         <Text>RESUMO FINANCEIRO</Text>
       </View>
-      
+
       {/* Tabela de Itens */}
       <View style={styles.table}>
         {/* Header */}
         <View style={styles.tableHeader}>
-          <Text style={[styles.tableColDesc, styles.tableHeaderText]}>Descrição</Text>
+          <Text style={[styles.tableColDesc, styles.tableHeaderText]}>
+            Descrição
+          </Text>
           <Text style={[styles.tableColQty, styles.tableHeaderText]}>Qtd</Text>
-          <Text style={[styles.tableColPrice, styles.tableHeaderText]}>Vlr Unit</Text>
-          <Text style={[styles.tableColTotal, styles.tableHeaderText]}>Total</Text>
+          <Text style={[styles.tableColPrice, styles.tableHeaderText]}>
+            Vlr Unit
+          </Text>
+          <Text style={[styles.tableColTotal, styles.tableHeaderText]}>
+            Total
+          </Text>
         </View>
 
         {/* Produtos */}
         {productItems.length > 0 && (
           <>
-            <View style={[styles.subtotalRow, { backgroundColor: '#E8F4FD' }]}>
-              <Text style={[styles.subtotalLabel, { fontWeight: 'bold' }]}>PRODUTOS</Text>
+            <View style={[styles.subtotalRow, { backgroundColor: "#E8F4FD" }]}>
+              <Text style={[styles.subtotalLabel, { fontWeight: "bold" }]}>
+                PRODUTOS
+              </Text>
               <Text style={styles.subtotalValue}></Text>
             </View>
             {productItems.map((item, idx) => (
-              <View key={`prod-${idx}`} style={[styles.tableRow, idx === productItems.length - 1 && styles.tableRowLast]}>
+              <View
+                key={`prod-${idx}`}
+                style={[
+                  styles.tableRow,
+                  idx === productItems.length - 1 && styles.tableRowLast,
+                ]}
+              >
                 <Text style={styles.tableColDesc}>{item.description}</Text>
                 <Text style={styles.tableColQty}>{item.qty}</Text>
-                <Text style={styles.tableColPrice}>{formatCurrency(item.unitPrice)}</Text>
-                <Text style={styles.tableColTotal}>{formatCurrency(item.total)}</Text>
+                <Text style={styles.tableColPrice}>
+                  {formatCurrency(item.unitPrice)}
+                </Text>
+                <Text style={styles.tableColTotal}>
+                  {formatCurrency(item.total)}
+                </Text>
               </View>
             ))}
             <View style={styles.subtotalRow}>
               <Text style={styles.subtotalLabel}>Subtotal Produtos</Text>
-              <Text style={styles.subtotalValue}>{formatCurrency(financial.subtotals.products)}</Text>
+              <Text style={styles.subtotalValue}>
+                {formatCurrency(financial.subtotals.products)}
+              </Text>
             </View>
           </>
         )}
@@ -630,61 +687,102 @@ const FinancialSection = ({ financial }: { financial: NonNullable<Report['financ
         {/* Serviços */}
         {serviceItems.length > 0 && (
           <>
-            <View style={[styles.subtotalRow, { backgroundColor: '#E8FDF4' }]}>
-              <Text style={[styles.subtotalLabel, { fontWeight: 'bold' }]}>SERVIÇOS</Text>
+            <View style={[styles.subtotalRow, { backgroundColor: "#E8FDF4" }]}>
+              <Text style={[styles.subtotalLabel, { fontWeight: "bold" }]}>
+                SERVIÇOS
+              </Text>
               <Text style={styles.subtotalValue}></Text>
             </View>
             {serviceItems.map((item, idx) => (
-              <View key={`serv-${idx}`} style={[styles.tableRow, idx === serviceItems.length - 1 && styles.tableRowLast]}>
+              <View
+                key={`serv-${idx}`}
+                style={[
+                  styles.tableRow,
+                  idx === serviceItems.length - 1 && styles.tableRowLast,
+                ]}
+              >
                 <Text style={styles.tableColDesc}>{item.description}</Text>
                 <Text style={styles.tableColQty}>{item.qty}</Text>
-                <Text style={styles.tableColPrice}>{formatCurrency(item.unitPrice)}</Text>
-                <Text style={styles.tableColTotal}>{formatCurrency(item.total)}</Text>
+                <Text style={styles.tableColPrice}>
+                  {formatCurrency(item.unitPrice)}
+                </Text>
+                <Text style={styles.tableColTotal}>
+                  {formatCurrency(item.total)}
+                </Text>
               </View>
             ))}
             <View style={styles.subtotalRow}>
               <Text style={styles.subtotalLabel}>Subtotal Serviços</Text>
-              <Text style={styles.subtotalValue}>{formatCurrency(financial.subtotals.services)}</Text>
+              <Text style={styles.subtotalValue}>
+                {formatCurrency(financial.subtotals.services)}
+              </Text>
             </View>
           </>
         )}
 
         {/* Descontos da OS */}
-        {(financial.osDiscounts.partsValue > 0 || financial.osDiscounts.servicesValue > 0 || financial.osDiscounts.totalValue > 0) && (
+        {(financial.osDiscounts.partsValue > 0 ||
+          financial.osDiscounts.servicesValue > 0 ||
+          financial.osDiscounts.totalValue > 0) && (
           <>
             {financial.osDiscounts.partsValue > 0 && (
               <View style={styles.subtotalRow}>
-                <Text style={[styles.subtotalLabel, { color: '#DC2626' }]}>
-                  Desconto Peças {financial.osDiscounts.partsType === 'percentage' ? `(${financial.osDiscounts.partsValue}%)` : ''}
+                <Text style={[styles.subtotalLabel, { color: "#DC2626" }]}>
+                  Desconto Peças{" "}
+                  {financial.osDiscounts.partsType === "percentage"
+                    ? `(${financial.osDiscounts.partsValue}%)`
+                    : ""}
                 </Text>
-                <Text style={[styles.subtotalValue, { color: '#DC2626' }]}>
-                  -{formatCurrency(financial.osDiscounts.partsType === 'percentage' 
-                    ? (financial.subtotals.products * financial.osDiscounts.partsValue / 100)
-                    : financial.osDiscounts.partsValue)}
+                <Text style={[styles.subtotalValue, { color: "#DC2626" }]}>
+                  -
+                  {formatCurrency(
+                    financial.osDiscounts.partsType === "percentage"
+                      ? (financial.subtotals.products *
+                          financial.osDiscounts.partsValue) /
+                          100
+                      : financial.osDiscounts.partsValue,
+                  )}
                 </Text>
               </View>
             )}
             {financial.osDiscounts.servicesValue > 0 && (
               <View style={styles.subtotalRow}>
-                <Text style={[styles.subtotalLabel, { color: '#DC2626' }]}>
-                  Desconto Serviços {financial.osDiscounts.servicesType === 'percentage' ? `(${financial.osDiscounts.servicesValue}%)` : ''}
+                <Text style={[styles.subtotalLabel, { color: "#DC2626" }]}>
+                  Desconto Serviços{" "}
+                  {financial.osDiscounts.servicesType === "percentage"
+                    ? `(${financial.osDiscounts.servicesValue}%)`
+                    : ""}
                 </Text>
-                <Text style={[styles.subtotalValue, { color: '#DC2626' }]}>
-                  -{formatCurrency(financial.osDiscounts.servicesType === 'percentage'
-                    ? (financial.subtotals.services * financial.osDiscounts.servicesValue / 100)
-                    : financial.osDiscounts.servicesValue)}
+                <Text style={[styles.subtotalValue, { color: "#DC2626" }]}>
+                  -
+                  {formatCurrency(
+                    financial.osDiscounts.servicesType === "percentage"
+                      ? (financial.subtotals.services *
+                          financial.osDiscounts.servicesValue) /
+                          100
+                      : financial.osDiscounts.servicesValue,
+                  )}
                 </Text>
               </View>
             )}
             {financial.osDiscounts.totalValue > 0 && (
               <View style={styles.subtotalRow}>
-                <Text style={[styles.subtotalLabel, { color: '#DC2626' }]}>
-                  Desconto Geral {financial.osDiscounts.totalType === 'percentage' ? `(${financial.osDiscounts.totalValue}%)` : ''}
+                <Text style={[styles.subtotalLabel, { color: "#DC2626" }]}>
+                  Desconto Geral{" "}
+                  {financial.osDiscounts.totalType === "percentage"
+                    ? `(${financial.osDiscounts.totalValue}%)`
+                    : ""}
                 </Text>
-                <Text style={[styles.subtotalValue, { color: '#DC2626' }]}>
-                  -{formatCurrency(financial.osDiscounts.totalType === 'percentage'
-                    ? ((financial.subtotals.products + financial.subtotals.services) * financial.osDiscounts.totalValue / 100)
-                    : financial.osDiscounts.totalValue)}
+                <Text style={[styles.subtotalValue, { color: "#DC2626" }]}>
+                  -
+                  {formatCurrency(
+                    financial.osDiscounts.totalType === "percentage"
+                      ? ((financial.subtotals.products +
+                          financial.subtotals.services) *
+                          financial.osDiscounts.totalValue) /
+                          100
+                      : financial.osDiscounts.totalValue,
+                  )}
                 </Text>
               </View>
             )}
@@ -694,7 +792,9 @@ const FinancialSection = ({ financial }: { financial: NonNullable<Report['financ
         {/* Total Geral */}
         <View style={styles.grandTotalRow}>
           <Text style={styles.grandTotalLabel}>TOTAL GERAL</Text>
-          <Text style={styles.grandTotalValue}>{formatCurrency(financial.grandTotal)}</Text>
+          <Text style={styles.grandTotalValue}>
+            {formatCurrency(financial.grandTotal)}
+          </Text>
         </View>
       </View>
 
@@ -706,21 +806,42 @@ const FinancialSection = ({ financial }: { financial: NonNullable<Report['financ
           </View>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
-              <Text style={[styles.installmentLabel, styles.tableHeaderText]}>Parcela</Text>
-              <Text style={[styles.installmentDate, styles.tableHeaderText]}>Vencimento</Text>
-              <Text style={[styles.installmentMethod, styles.tableHeaderText]}>Forma</Text>
-              <Text style={[styles.installmentNotes, styles.tableHeaderText]}>Obs</Text>
-              <Text style={[styles.installmentAmount, styles.tableHeaderText]}>Valor</Text>
+              <Text style={[styles.installmentLabel, styles.tableHeaderText]}>
+                Parcela
+              </Text>
+              <Text style={[styles.installmentDate, styles.tableHeaderText]}>
+                Vencimento
+              </Text>
+              <Text style={[styles.installmentMethod, styles.tableHeaderText]}>
+                Forma
+              </Text>
+              <Text style={[styles.installmentNotes, styles.tableHeaderText]}>
+                Obs
+              </Text>
+              <Text style={[styles.installmentAmount, styles.tableHeaderText]}>
+                Valor
+              </Text>
             </View>
             {financial.installments.map((inst, idx) => (
-              <View key={idx} style={[styles.installmentRow, idx === financial.installments.length - 1 && styles.tableRowLast]}>
+              <View
+                key={idx}
+                style={[
+                  styles.installmentRow,
+                  idx === financial.installments.length - 1 &&
+                    styles.tableRowLast,
+                ]}
+              >
                 <Text style={styles.installmentLabel}>
                   {inst.number}/{financial.installments.length}
                 </Text>
                 <Text style={styles.installmentDate}>{inst.dueDate}</Text>
-                <Text style={styles.installmentMethod}>{inst.paymentMethod || '-'}</Text>
-                <Text style={styles.installmentNotes}>{inst.notes || '-'}</Text>
-                <Text style={styles.installmentAmount}>{formatCurrency(inst.amount)}</Text>
+                <Text style={styles.installmentMethod}>
+                  {inst.paymentMethod || "-"}
+                </Text>
+                <Text style={styles.installmentNotes}>{inst.notes || "-"}</Text>
+                <Text style={styles.installmentAmount}>
+                  {formatCurrency(inst.amount)}
+                </Text>
               </View>
             ))}
           </View>
@@ -732,7 +853,6 @@ const FinancialSection = ({ financial }: { financial: NonNullable<Report['financ
 
 // Componente Principal
 export const OSReport = ({ data }: { data: Report }) => {
-
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -749,7 +869,7 @@ export const OSReport = ({ data }: { data: Report }) => {
             {(data.client.cnpj || data.client.ie) && (
               <Text style={styles.clientInfo}>
                 {data.client.cnpj && `CNPJ: ${data.client.cnpj}`}
-                {data.client.cnpj && data.client.ie && ' | '}
+                {data.client.cnpj && data.client.ie && " | "}
                 {data.client.ie && `IE: ${data.client.ie}`}
               </Text>
             )}
@@ -759,7 +879,7 @@ export const OSReport = ({ data }: { data: Report }) => {
             {(data.client.phone || data.client.email) && (
               <Text style={styles.clientInfo}>
                 {data.client.phone && `Fone: ${data.client.phone}`}
-                {data.client.phone && data.client.email && ' — '}
+                {data.client.phone && data.client.email && " — "}
                 {data.client.email}
               </Text>
             )}
@@ -769,7 +889,7 @@ export const OSReport = ({ data }: { data: Report }) => {
             <View style={styles.osRow}>
               <Text style={styles.osLabel}>Agendamento</Text>
               <Text style={styles.osValue}>
-                {data.os.scheduledDate || '—'}
+                {data.os.scheduledDate || "—"}
                 {data.os.scheduledTime && ` - ${data.os.scheduledTime}`}
               </Text>
             </View>
@@ -786,8 +906,12 @@ export const OSReport = ({ data }: { data: Report }) => {
               </View>
             )}
             <View style={[styles.osRow, styles.osRowLast]}>
-              <Text style={styles.osLabel}>{data.os.technicalStatus || 'Conclusão'}</Text>
-              <Text style={styles.osValue}>{data.os.conclusionDate || '—'}</Text>
+              <Text style={styles.osLabel}>
+                {data.os.technicalStatus || "Conclusão"}
+              </Text>
+              <Text style={styles.osValue}>
+                {data.os.conclusionDate || "—"}
+              </Text>
             </View>
           </View>
         </View>
@@ -795,7 +919,9 @@ export const OSReport = ({ data }: { data: Report }) => {
         {/* Iniciado em (se houver) */}
         {data.general.schedule?.startedAt && (
           <Section title="INÍCIO DO ATENDIMENTO">
-            <Text style={styles.sectionText}>Iniciado em: {data.general.schedule.startedAt}</Text>
+            <Text style={styles.sectionText}>
+              Iniciado em: {data.general.schedule.startedAt}
+            </Text>
           </Section>
         )}
 
@@ -810,14 +936,14 @@ export const OSReport = ({ data }: { data: Report }) => {
             <View style={styles.colSerial}>
               <Section title="Nº DE SÉRIE">
                 <Text style={styles.sectionText}>
-                  {data.general.serialNumber || '—'}
+                  {data.general.serialNumber || "—"}
                 </Text>
               </Section>
             </View>
             <View style={styles.colOC}>
               <Section title="Nº DA OC">
                 <Text style={styles.sectionText}>
-                  {data.general.purchaseOrderNumber || '—'}
+                  {data.general.purchaseOrderNumber || "—"}
                 </Text>
               </Section>
             </View>
@@ -827,7 +953,9 @@ export const OSReport = ({ data }: { data: Report }) => {
         {/* Problema */}
         {data.general.problemDescription && (
           <Section title="PROBLEMA">
-            <Text style={styles.sectionText}>{data.general.problemDescription}</Text>
+            <Text style={styles.sectionText}>
+              {data.general.problemDescription}
+            </Text>
           </Section>
         )}
 
@@ -846,27 +974,38 @@ export const OSReport = ({ data }: { data: Report }) => {
             </View>
             {(data.checklist.filledBy || data.checklist.filledAt) && (
               <Text style={[styles.muted, { fontSize: 8, marginBottom: 6 }]}>
-                {data.checklist.filledBy && `Preenchido por: ${data.checklist.filledBy}`}
-                {data.checklist.filledBy && data.checklist.filledAt && ' • '}
+                {data.checklist.filledBy &&
+                  `Preenchido por: ${data.checklist.filledBy}`}
+                {data.checklist.filledBy && data.checklist.filledAt && " • "}
                 {data.checklist.filledAt}
               </Text>
             )}
             {data.checklist.sections.map((section, sIdx) => (
               <View key={sIdx}>
                 {section.title && (
-                  <Text style={styles.checklistSectionTitle}>{section.title}</Text>
+                  <Text style={styles.checklistSectionTitle}>
+                    {section.title}
+                  </Text>
                 )}
                 {section.items.map((item, iIdx) => (
                   <View key={iIdx}>
                     <View style={styles.checklistItem}>
-                      <Text style={styles.checklistStatus}>[{item.status}]</Text>
+                      <Text style={styles.checklistStatus}>
+                        [{item.status}]
+                      </Text>
                       <Text style={styles.checklistLabel}>{item.label}</Text>
                     </View>
                     {item.note && (
                       <Text style={styles.checklistNote}>{item.note}</Text>
                     )}
                     {item.photos && item.photos.length > 0 && (
-                      <View style={{ marginLeft: 46, marginTop: 4, marginBottom: 6 }}>
+                      <View
+                        style={{
+                          marginLeft: 46,
+                          marginTop: 4,
+                          marginBottom: 6,
+                        }}
+                      >
                         <PhotoGrid photos={item.photos} />
                       </View>
                     )}
@@ -880,7 +1019,9 @@ export const OSReport = ({ data }: { data: Report }) => {
         {/* Análises e Providências */}
         {data.technical.analysisAndActions && (
           <Section title="ANÁLISES E PROVIDÊNCIAS REALIZADAS">
-            <Text style={styles.sectionText}>{data.technical.analysisAndActions}</Text>
+            <Text style={styles.sectionText}>
+              {data.technical.analysisAndActions}
+            </Text>
           </Section>
         )}
 
@@ -892,51 +1033,69 @@ export const OSReport = ({ data }: { data: Report }) => {
         )}
 
         {/* FOTOS ANTES DA MANUTENÇÃO */}
-        {(data.photos?.before && ((data.photos.before.images?.length ?? 0) > 0 || (data.photos.before.videos?.length ?? 0) > 0)) && (
-          <View style={styles.section} wrap={false}>
-            <View style={styles.sectionTitle}>
-              <Text>FOTOS ANTES DA MANUTENÇÃO</Text>
+        {data.photos?.before &&
+          ((data.photos.before.images?.length ?? 0) > 0 ||
+            (data.photos.before.videos?.length ?? 0) > 0) && (
+            <View style={styles.section} wrap={false}>
+              <View style={styles.sectionTitle}>
+                <Text>FOTOS ANTES DA MANUTENÇÃO</Text>
+              </View>
+
+              {/* Renderizar fotos se houver */}
+              {(data.photos.before.images?.length ?? 0) > 0 && (
+                <PhotoGrid photos={data.photos.before.images} />
+              )}
+
+              {/* Renderizar aviso de vídeos se houver */}
+              {(data.photos.before.videos?.length ?? 0) > 0 && (
+                <Text
+                  style={[
+                    styles.sectionText,
+                    { marginTop: 8, fontSize: 9, color: "#666" },
+                  ]}
+                >
+                  Vídeos anexados
+                  {data.photos.before.videos.length > 1
+                    ? ` (${data.photos.before.videos.length})`
+                    : ""}
+                </Text>
+              )}
             </View>
-            
-            {/* Renderizar fotos se houver */}
-            {(data.photos.before.images?.length ?? 0) > 0 && (
-              <PhotoGrid photos={data.photos.before.images} />
-            )}
-            
-            {/* Renderizar aviso de vídeos se houver */}
-            {(data.photos.before.videos?.length ?? 0) > 0 && (
-              <Text style={[styles.sectionText, { marginTop: 8, fontSize: 9, color: '#666' }]}>
-                Vídeos anexados{data.photos.before.videos.length > 1 ? ` (${data.photos.before.videos.length})` : ''}
-              </Text>
-            )}
-          </View>
-        )}
+          )}
 
         {/* FOTOS APÓS A MANUTENÇÃO */}
-        {(data.photos?.after && ((data.photos.after.images?.length ?? 0) > 0 || (data.photos.after.videos?.length ?? 0) > 0)) && (
-          <View style={styles.section} wrap={false}>
-            <View style={styles.sectionTitle}>
-              <Text>FOTOS APÓS A MANUTENÇÃO</Text>
+        {data.photos?.after &&
+          ((data.photos.after.images?.length ?? 0) > 0 ||
+            (data.photos.after.videos?.length ?? 0) > 0) && (
+            <View style={styles.section} wrap={false}>
+              <View style={styles.sectionTitle}>
+                <Text>FOTOS APÓS A MANUTENÇÃO</Text>
+              </View>
+
+              {/* Renderizar fotos se houver */}
+              {(data.photos.after.images?.length ?? 0) > 0 && (
+                <PhotoGrid photos={data.photos.after.images} />
+              )}
+
+              {/* Renderizar aviso de vídeos se houver */}
+              {(data.photos.after.videos?.length ?? 0) > 0 && (
+                <Text
+                  style={[
+                    styles.sectionText,
+                    { marginTop: 8, fontSize: 9, color: "#666" },
+                  ]}
+                >
+                  Vídeos anexados
+                  {data.photos.after.videos.length > 1
+                    ? ` (${data.photos.after.videos.length})`
+                    : ""}
+                </Text>
+              )}
             </View>
-            
-            {/* Renderizar fotos se houver */}
-            {(data.photos.after.images?.length ?? 0) > 0 && (
-              <PhotoGrid photos={data.photos.after.images} />
-            )}
-            
-            {/* Renderizar aviso de vídeos se houver */}
-            {(data.photos.after.videos?.length ?? 0) > 0 && (
-              <Text style={[styles.sectionText, { marginTop: 8, fontSize: 9, color: '#666' }]}>
-                Vídeos anexados{data.photos.after.videos.length > 1 ? ` (${data.photos.after.videos.length})` : ''}
-              </Text>
-            )}
-          </View>
-        )}
+          )}
 
         {/* SEÇÃO FINANCEIRA (apenas para relatório completo) */}
-        {data.financial && (
-          <FinancialSection financial={data.financial} />
-        )}
+        {data.financial && <FinancialSection financial={data.financial} />}
 
         {/* Assinaturas (sempre por último) */}
         {(data.signatures.tech || data.signatures.client) && (

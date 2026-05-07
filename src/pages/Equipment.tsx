@@ -27,29 +27,35 @@ import MainLayout from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { SearchBar } from "@/components/ui/search-bar";
 import { EquipmentMobileCard } from "@/components/mobile/EquipmentMobileCard";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 
 const Equipment = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { equipment, isLoading, deleteEquipment } = useEquipment();
   const { clients } = useClients();
+  const { canCreate, canEdit, canDelete } = useModulePermissions("equipment");
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const getClientName = (clientId: string) => {
-    return clients?.find((c) => c.id === clientId)?.full_name || "Cliente não encontrado";
+    return (
+      clients?.find((c) => c.id === clientId)?.full_name ||
+      "Cliente não encontrado"
+    );
   };
 
-  const filteredEquipment = equipment?.filter((eq) =>
-    eq.brand.toLowerCase().includes(search.toLowerCase()) ||
-    eq.model.toLowerCase().includes(search.toLowerCase()) ||
-    eq.serial_number?.includes(search) ||
-    eq.imei?.includes(search) ||
-    getClientName(eq.client_id).toLowerCase().includes(search.toLowerCase())
+  const filteredEquipment = equipment?.filter(
+    (eq) =>
+      eq.brand.toLowerCase().includes(search.toLowerCase()) ||
+      eq.model.toLowerCase().includes(search.toLowerCase()) ||
+      eq.serial_number?.includes(search) ||
+      eq.imei?.includes(search) ||
+      getClientName(eq.client_id).toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleDelete = () => {
-    if (deleteId) {
+    if (deleteId && canDelete) {
       deleteEquipment.mutate(deleteId);
       setDeleteId(null);
     }
@@ -57,11 +63,11 @@ const Equipment = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
-        <PageHeader 
-          title="Equipamentos" 
-          actionLabel="Novo Equipamento"
-          onAction={() => navigate("/equipment/new")}
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
+        <PageHeader
+          title="Equipamentos"
+          actionLabel={canCreate ? "Novo Equipamento" : undefined}
+          onAction={canCreate ? () => navigate("/equipment/new") : undefined}
         />
 
         <SearchBar
@@ -87,8 +93,12 @@ const Equipment = () => {
                 equipment={eq}
                 clientName={getClientName(eq.client_id)}
                 onView={() => navigate(`/equipment/${eq.id}`)}
-                onEdit={() => navigate(`/equipment/${eq.id}/edit`)}
-                onDelete={() => setDeleteId(eq.id)}
+                onEdit={
+                  canEdit
+                    ? () => navigate(`/equipment/${eq.id}/edit`)
+                    : undefined
+                }
+                onDelete={canDelete ? () => setDeleteId(eq.id) : undefined}
               />
             ))}
           </div>
@@ -97,7 +107,9 @@ const Equipment = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[100px] max-w-[160px]">Cliente</TableHead>
+                  <TableHead className="min-w-[100px] max-w-[160px]">
+                    Cliente
+                  </TableHead>
                   <TableHead className="w-24">Marca</TableHead>
                   <TableHead className="w-28">Modelo</TableHead>
                   <TableHead className="w-32">Serial/IMEI</TableHead>
@@ -107,10 +119,25 @@ const Equipment = () => {
               <TableBody>
                 {filteredEquipment?.map((eq) => (
                   <TableRow key={eq.id}>
-                    <TableCell className="font-medium max-w-[160px] truncate" title={getClientName(eq.client_id)}>{getClientName(eq.client_id)}</TableCell>
+                    <TableCell
+                      className="font-medium max-w-[160px] truncate"
+                      title={getClientName(eq.client_id)}
+                    >
+                      {getClientName(eq.client_id)}
+                    </TableCell>
                     <TableCell className="text-sm">{eq.brand}</TableCell>
-                    <TableCell className="text-sm max-w-[110px] truncate" title={eq.model}>{eq.model}</TableCell>
-                    <TableCell className="text-sm max-w-[120px] truncate" title={eq.serial_number || eq.imei || undefined}>{eq.serial_number || eq.imei || "-"}</TableCell>
+                    <TableCell
+                      className="text-sm max-w-[110px] truncate"
+                      title={eq.model}
+                    >
+                      {eq.model}
+                    </TableCell>
+                    <TableCell
+                      className="text-sm max-w-[120px] truncate"
+                      title={eq.serial_number || eq.imei || undefined}
+                    >
+                      {eq.serial_number || eq.imei || "-"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button
@@ -121,22 +148,26 @@ const Equipment = () => {
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => navigate(`/equipment/${eq.id}/edit`)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setDeleteId(eq.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => navigate(`/equipment/${eq.id}/edit`)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setDeleteId(eq.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -152,12 +183,15 @@ const Equipment = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este equipamento? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este equipamento? Esta ação não
+              pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

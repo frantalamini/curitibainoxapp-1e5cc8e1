@@ -2,8 +2,17 @@ import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Loader2, Navigation, Clock, AlertCircle } from "lucide-react";
-import { useServiceCallTrips, ServiceCallTrip } from "@/hooks/useServiceCallTrips";
+import {
+  RefreshCw,
+  Loader2,
+  Navigation,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
+import {
+  useServiceCallTrips,
+  ServiceCallTrip,
+} from "@/hooks/useServiceCallTrips";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -12,23 +21,23 @@ import { LeafletTripsMap } from "@/components/map/LeafletTripsMap";
 const getStatusLabel = (trip: ServiceCallTrip) => {
   const updateTime = trip.position_updated_at || trip.started_at;
   const minutesAgo = (Date.now() - new Date(updateTime).getTime()) / 60000;
-  
+
   if (minutesAgo < 5) return { label: "Ativo", color: "bg-green-500" };
-  if (minutesAgo < 30) return { label: "Desatualizado", color: "bg-yellow-500" };
+  if (minutesAgo < 30)
+    return { label: "Desatualizado", color: "bg-yellow-500" };
   return { label: "Sem sinal", color: "bg-gray-500" };
 };
 
 const TechnicianMap = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // Buscar apenas viagens em deslocamento
   const { data: activeTrips, isLoading, refetch } = useServiceCallTrips();
-  
+
   // Filtrar apenas trips em deslocamento com coordenadas
-  const tripsEmDeslocamento = activeTrips?.filter(
-    t => t.status === "em_deslocamento"
-  ) || [];
-  
+  const tripsEmDeslocamento =
+    activeTrips?.filter((t) => t.status === "em_deslocamento") || [];
+
   // Configurar realtime para atualizações
   useEffect(() => {
     const channel = supabase
@@ -42,35 +51,37 @@ const TechnicianMap = () => {
         },
         () => {
           refetch();
-        }
+        },
       )
       .subscribe();
-    
+
     return () => {
       supabase.removeChannel(channel);
     };
   }, [refetch]);
-  
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refetch();
     setIsRefreshing(false);
   };
-  
+
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Navigation className="h-8 w-8 flex-shrink-0" />
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">Mapa de Técnicos</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">
+                Mapa de Técnicos
+              </h1>
               <p className="text-sm text-muted-foreground">
                 {tripsEmDeslocamento.length} técnico(s) em deslocamento
               </p>
             </div>
           </div>
-          
+
           <Button
             variant="outline"
             onClick={handleRefresh}
@@ -84,7 +95,7 @@ const TechnicianMap = () => {
             Atualizar
           </Button>
         </div>
-        
+
         {/* Legenda */}
         <Card>
           <CardContent className="pt-4">
@@ -104,7 +115,7 @@ const TechnicianMap = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Mapa */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
@@ -115,17 +126,24 @@ const TechnicianMap = () => {
             ) : tripsEmDeslocamento.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[500px] bg-muted text-muted-foreground">
                 <AlertCircle className="h-12 w-12 mb-4" />
-                <p className="text-lg font-medium">Nenhum técnico em deslocamento</p>
-                <p className="text-sm">Os técnicos aparecerão aqui quando iniciarem um deslocamento</p>
+                <p className="text-lg font-medium">
+                  Nenhum técnico em deslocamento
+                </p>
+                <p className="text-sm">
+                  Os técnicos aparecerão aqui quando iniciarem um deslocamento
+                </p>
               </div>
             ) : (
               <div className="h-[500px]">
-                <LeafletTripsMap trips={tripsEmDeslocamento} className="h-full w-full" />
+                <LeafletTripsMap
+                  trips={tripsEmDeslocamento}
+                  className="h-full w-full"
+                />
               </div>
             )}
           </CardContent>
         </Card>
-        
+
         {/* Lista de técnicos em deslocamento */}
         {tripsEmDeslocamento.length > 0 && (
           <Card>
@@ -136,25 +154,29 @@ const TechnicianMap = () => {
               <div className="space-y-3">
                 {tripsEmDeslocamento.map((trip) => {
                   const status = getStatusLabel(trip);
-                  const updateTime = trip.position_updated_at || trip.started_at;
-                  
+                  const updateTime =
+                    trip.position_updated_at || trip.started_at;
+
                   return (
                     <div
                       key={trip.id}
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${status.color}`} />
+                        <div
+                          className={`w-3 h-3 rounded-full ${status.color}`}
+                        />
                         <div>
                           <div className="font-medium">
                             {trip.technicians?.full_name}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            OS #{trip.service_calls?.os_number} • {trip.vehicles?.plate}
+                            OS #{trip.service_calls?.os_number} •{" "}
+                            {trip.vehicles?.plate}
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="text-right text-sm">
                         <div className="text-muted-foreground">
                           {formatDistanceToNow(new Date(updateTime), {

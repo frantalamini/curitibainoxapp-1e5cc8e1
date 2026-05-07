@@ -1,5 +1,12 @@
 import { useMemo } from "react";
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from "date-fns";
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  isSameDay,
+  isToday,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ScheduleEventCard from "./ScheduleEventCard";
 import { Technician } from "@/hooks/useTechnicians";
@@ -49,7 +56,10 @@ const WeeklyView = ({
   // Group service calls by date
   const callsByDate = useMemo(() => {
     const filtered = serviceCalls.filter((call) => {
-      if (selectedTechnicianId !== "all" && call.technician_id !== selectedTechnicianId) {
+      if (
+        selectedTechnicianId !== "all" &&
+        call.technician_id !== selectedTechnicianId
+      ) {
         return false;
       }
       return true;
@@ -60,7 +70,7 @@ const WeeklyView = ({
     weekDays.forEach((day) => {
       const dateKey = format(day, "yyyy-MM-dd");
       const dayCalls = filtered.filter((call) =>
-        isSameDay(parseLocalDate(call.scheduled_date), day)
+        isSameDay(parseLocalDate(call.scheduled_date), day),
       );
       dayCalls.sort((a, b) => {
         const timeA = a.scheduled_time || "00:00";
@@ -83,7 +93,10 @@ const WeeklyView = ({
           const isCurrentDay = isToday(day);
 
           return (
-            <div key={dateKey} className="bg-card rounded-lg border overflow-hidden">
+            <div
+              key={dateKey}
+              className="bg-card rounded-lg border overflow-hidden"
+            >
               {/* Day Header */}
               <div
                 className={`px-4 py-3 border-b ${
@@ -92,7 +105,9 @@ const WeeklyView = ({
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className={`font-semibold capitalize ${isCurrentDay ? "text-primary" : ""}`}>
+                    <span
+                      className={`font-semibold capitalize ${isCurrentDay ? "text-primary" : ""}`}
+                    >
                       {format(day, "EEEE", { locale: ptBR })}
                     </span>
                     <span className="text-muted-foreground ml-2">
@@ -101,7 +116,8 @@ const WeeklyView = ({
                   </div>
                   {dayCalls.length > 0 && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                      {dayCalls.length} chamado{dayCalls.length !== 1 ? "s" : ""}
+                      {dayCalls.length} chamado
+                      {dayCalls.length !== 1 ? "s" : ""}
                     </span>
                   )}
                 </div>
@@ -117,8 +133,8 @@ const WeeklyView = ({
                   <div className="space-y-2">
                     {dayCalls.map((call) => {
                       const techName =
-                        technicians?.find((t) => t.id === call.technician_id)?.full_name ||
-                        "Sem técnico";
+                        technicians?.find((t) => t.id === call.technician_id)
+                          ?.full_name || "Sem técnico";
 
                       return (
                         <ScheduleEventCard
@@ -154,7 +170,9 @@ const WeeklyView = ({
                 isCurrentDay ? "bg-primary/10" : ""
               }`}
             >
-              <div className={`text-sm font-semibold capitalize ${isCurrentDay ? "text-primary" : "text-muted-foreground"}`}>
+              <div
+                className={`text-sm font-semibold capitalize ${isCurrentDay ? "text-primary" : "text-muted-foreground"}`}
+              >
                 {format(day, "EEE", { locale: ptBR })}
               </div>
               <div
@@ -193,8 +211,8 @@ const WeeklyView = ({
                 ) : (
                   dayCalls.map((call) => {
                     const techName =
-                      technicians?.find((t) => t.id === call.technician_id)?.full_name ||
-                      "Sem técnico";
+                      technicians?.find((t) => t.id === call.technician_id)
+                        ?.full_name || "Sem técnico";
 
                     return (
                       <ScheduleEventCard

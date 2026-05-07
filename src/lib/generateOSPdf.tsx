@@ -1,17 +1,17 @@
-import React from 'react';
-import { pdf } from '@react-pdf/renderer';
-import { supabase } from '@/integrations/supabase/client';
-import { OSReport } from '@/components/pdf/OSReport';
-import { ServiceCall } from '@/hooks/useServiceCalls';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { parseLocalDate } from '@/lib/dateUtils';
+import React from "react";
+import { pdf } from "@react-pdf/renderer";
+import { supabase } from "@/integrations/supabase/client";
+import { OSReport } from "@/components/pdf/OSReport";
+import { ServiceCall } from "@/hooks/useServiceCalls";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 /** Formata date-only (YYYY-MM-DD) para DD/MM/YYYY sem passar por Date/timezone */
 function formatDateOnly(dateStr: string | null | undefined): string {
-  if (!dateStr) return '-';
-  const part = dateStr.split('T')[0]; // garante só YYYY-MM-DD
-  const [y, m, d] = part.split('-');
+  if (!dateStr) return "-";
+  const part = dateStr.split("T")[0]; // garante só YYYY-MM-DD
+  const [y, m, d] = part.split("-");
   if (!y || !m || !d) return dateStr;
   return `${d}/${m}/${y}`;
 }
@@ -93,11 +93,16 @@ type Report = {
   } | null;
   signatures: {
     tech?: { name: string; when?: string; imageDataUrl?: string } | null;
-    client?: { name: string; role?: string; when?: string; imageDataUrl?: string } | null;
+    client?: {
+      name: string;
+      role?: string;
+      when?: string;
+      imageDataUrl?: string;
+    } | null;
   };
   financial?: {
     items: {
-      type: 'PRODUCT' | 'SERVICE' | 'FEE' | 'DISCOUNT';
+      type: "PRODUCT" | "SERVICE" | "FEE" | "DISCOUNT";
       description: string;
       qty: number;
       unitPrice: number;
@@ -140,24 +145,58 @@ type Report = {
 };
 
 // Aguarda um tempo especificado (útil para debounce pós-upload)
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Converte data URL para JPEG via Canvas API.
+ * @react-pdf/renderer só suporta JPEG e PNG — WebP (padrão Android/Chrome) quebra silenciosamente.
+ * Esta função garante que qualquer formato seja convertido para JPEG antes de entrar no PDF.
+ */
+function convertToJpegDataUrl(dataUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX_SIZE = 1200;
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      if (w > MAX_SIZE || h > MAX_SIZE) {
+        const ratio = Math.min(MAX_SIZE / w, MAX_SIZE / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Canvas context unavailable"));
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", 0.6));
+    };
+    img.onerror = () => reject(new Error("Falha ao carregar imagem no Canvas"));
+    img.src = dataUrl;
+  });
+}
 
 /**
  * Converte URL para Data URL com retry, timeout e método robusto (FileReader)
  */
 async function toDataUrlWithRetry(
-  url: string, 
-  maxRetries = 2, 
-  timeoutMs = 8000
+  url: string,
+  maxRetries = 2,
+  timeoutMs = 8000,
 ): Promise<string | null> {
-  // Se já é DataURL, retorna direto
-  if (url.startsWith('data:')) {
-    return url;
+  // Se já é DataURL, converte para JPEG se necessário e retorna
+  if (url.startsWith("data:")) {
+    try {
+      return await convertToJpegDataUrl(url);
+    } catch {
+      return url; // fallback: retorna original
+    }
   }
-  
+
   // Validação básica
-  if (!url.startsWith('http')) {
-    console.warn('⚠️ [toDataUrl] URL inválida:', url.substring(0, 100));
+  if (!url.startsWith("http")) {
+    console.warn("⚠️ [toDataUrl] URL inválida:", url.substring(0, 100));
     return null;
   }
 
@@ -166,52 +205,67 @@ async function toDataUrlWithRetry(
       // Timeout controller
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
-      console.log(`🔄 [toDataUrl] Tentativa ${attempt + 1}/${maxRetries + 1}:`, url.substring(0, 80) + '...');
-      
+
+      console.log(
+        `🔄 [toDataUrl] Tentativa ${attempt + 1}/${maxRetries + 1}:`,
+        url.substring(0, 80) + "...",
+      );
+
       // Fetch com timeout
-      const response = await fetch(url, { 
+      const response = await fetch(url, {
         signal: controller.signal,
-        credentials: 'omit' // Evita CORS issues
+        credentials: "omit", // Evita CORS issues
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       // Converte para blob e depois para Data URL usando FileReader (método mais robusto)
       const blob = await response.blob();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
+      const rawDataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error('FileReader falhou'));
+        reader.onerror = () => reject(new Error("FileReader falhou"));
         reader.readAsDataURL(blob);
       });
-      
-      console.log('✅ [toDataUrl] Conversão bem-sucedida:', blob.type);
-      return dataUrl;
-      
-    } catch (error: any) {
-      const isTimeout = error.name === 'AbortError';
-      const isLastAttempt = attempt === maxRetries;
-      
-      console.warn(
-        `⚠️ [toDataUrl] Tentativa ${attempt + 1} falhou${isTimeout ? ' (timeout)' : ''}:`,
-        error.message
+
+      // Converte para JPEG se o formato não for suportado pelo react-pdf (ex: WebP do Android)
+      const dataUrl = await convertToJpegDataUrl(rawDataUrl).catch(
+        () => rawDataUrl,
       );
-      
+
+      console.log(
+        "✅ [toDataUrl] Conversão bem-sucedida:",
+        blob.type,
+        "→",
+        dataUrl.substring(0, 30),
+      );
+      return dataUrl;
+    } catch (error: any) {
+      const isTimeout = error.name === "AbortError";
+      const isLastAttempt = attempt === maxRetries;
+
+      console.warn(
+        `⚠️ [toDataUrl] Tentativa ${attempt + 1} falhou${isTimeout ? " (timeout)" : ""}:`,
+        error.message,
+      );
+
       // Se não for a última tentativa, aguarda antes de tentar novamente
       if (!isLastAttempt) {
         await sleep(400); // Backoff de 400ms
       } else {
-        console.error('❌ [toDataUrl] TODAS as tentativas falharam:', url.substring(0, 80));
+        console.error(
+          "❌ [toDataUrl] TODAS as tentativas falharam:",
+          url.substring(0, 80),
+        );
         return null;
       }
     }
   }
-  
+
   return null;
 }
 
@@ -221,22 +275,22 @@ async function toDataUrlWithRetry(
 function splitMedia(urls: string[]): { images: string[]; videos: string[] } {
   const images: string[] = [];
   const videos: string[] = [];
-  
-  const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
-  const videoExts = ['.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'];
-  
+
+  const imageExts = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"];
+  const videoExts = [".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"];
+
   for (const url of urls) {
     const lower = url.toLowerCase();
-    const isImage = imageExts.some(ext => lower.includes(ext));
-    const isVideo = videoExts.some(ext => lower.includes(ext));
-    
+    const isImage = imageExts.some((ext) => lower.includes(ext));
+    const isVideo = videoExts.some((ext) => lower.includes(ext));
+
     if (isVideo) {
       videos.push(url);
     } else if (isImage) {
       images.push(url);
     }
   }
-  
+
   return { images, videos };
 }
 
@@ -244,16 +298,23 @@ function splitMedia(urls: string[]): { images: string[]; videos: string[] } {
  * Busca a assinatura mais recente de um role específico
  */
 function getLatestSignature(
-  signatures: any[] | undefined, 
-  role: 'tech' | 'client'
-): { image_url: string; storage_path?: string; signed_at: string; signed_by?: string; position?: string } | null {
+  signatures: any[] | undefined,
+  role: "tech" | "client",
+): {
+  image_url: string;
+  storage_path?: string;
+  signed_at: string;
+  signed_by?: string;
+  position?: string;
+} | null {
   if (!signatures || !Array.isArray(signatures)) return null;
-  
+
   const filtered = signatures.filter((s: any) => s.role === role);
   if (filtered.length === 0) return null;
-  
-  return filtered.sort((a: any, b: any) => 
-    new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime()
+
+  return filtered.sort(
+    (a: any, b: any) =>
+      new Date(b.signed_at).getTime() - new Date(a.signed_at).getTime(),
   )[0];
 }
 
@@ -262,65 +323,70 @@ function getLatestSignature(
  * Suporta: caminhos relativos (novo), signed URLs (legacy), e data URLs
  */
 async function resolveSignatureUrl(
-  imageUrlOrPath: string | undefined | null
+  imageUrlOrPath: string | undefined | null,
 ): Promise<string | null> {
   if (!imageUrlOrPath) return null;
-  
+
   // Se já é data URL, retorna direto
-  if (imageUrlOrPath.startsWith('data:')) {
+  if (imageUrlOrPath.startsWith("data:")) {
     return imageUrlOrPath;
   }
-  
+
   // Se é URL completa (https://...), pode ser signed URL antiga - tentar usar direto
-  if (imageUrlOrPath.startsWith('http')) {
+  if (imageUrlOrPath.startsWith("http")) {
     // Tentar converter para data URL (pode falhar se expirada)
     const dataUrl = await toDataUrlWithRetry(imageUrlOrPath, 1, 5000);
     if (dataUrl) return dataUrl;
-    
+
     // Se falhou e parece ser URL do Supabase storage, extrair o path e gerar nova signed URL
-    if (imageUrlOrPath.includes('/storage/v1/object/')) {
+    if (imageUrlOrPath.includes("/storage/v1/object/")) {
       try {
         // Extrair path do storage da URL
-        const match = imageUrlOrPath.match(/\/service-call-attachments\/([^?]+)/);
+        const match = imageUrlOrPath.match(
+          /\/service-call-attachments\/([^?]+)/,
+        );
         if (match) {
           const storagePath = match[1];
-          console.log('🔄 [PDF] Regenerando signed URL para path:', storagePath);
-          
+          console.log(
+            "🔄 [PDF] Regenerando signed URL para path:",
+            storagePath,
+          );
+
           const { data: signedData, error } = await supabase.storage
-            .from('service-call-attachments')
+            .from("service-call-attachments")
             .createSignedUrl(storagePath, 3600); // 1 hora
-          
+
           if (!error && signedData?.signedUrl) {
             return toDataUrlWithRetry(signedData.signedUrl, 2, 8000);
           }
         }
       } catch (err) {
-        console.warn('⚠️ [PDF] Falha ao regenerar signed URL:', err);
+        console.warn("⚠️ [PDF] Falha ao regenerar signed URL:", err);
       }
     }
-    
+
     return null;
   }
-  
+
   // É um caminho relativo no storage (novo formato)
-  console.log('🔄 [PDF] Gerando signed URL para path:', imageUrlOrPath);
-  
+  console.log("🔄 [PDF] Gerando signed URL para path:", imageUrlOrPath);
+
   try {
     const { data: signedData, error } = await supabase.storage
-      .from('service-call-attachments')
+      .from("service-call-attachments")
       .createSignedUrl(imageUrlOrPath, 3600); // 1 hora
-    
+
     if (error) {
-      console.error('❌ [PDF] Erro ao gerar signed URL:', error);
+      console.error("❌ [PDF] Erro ao gerar signed URL:", error);
       return null;
     }
-    
+
     if (!signedData?.signedUrl) return null;
-    
+
     // Converter para data URL
     return toDataUrlWithRetry(signedData.signedUrl, 2, 8000);
   } catch (err) {
-    console.error('❌ [PDF] Falha ao resolver assinatura:', err);
+    console.error("❌ [PDF] Falha ao resolver assinatura:", err);
     return null;
   }
 }
@@ -336,43 +402,55 @@ async function waitForStoragePropagation(delayMs = 300): Promise<void> {
 /**
  * Busca dados financeiros da OS (itens + transações/parcelas)
  */
-async function fetchFinancialData(osId: string, osData: any): Promise<Report['financial'] | null> {
+async function fetchFinancialData(
+  osId: string,
+  osData: any,
+): Promise<Report["financial"] | null> {
   try {
     // Buscar itens da OS
     const { data: items, error: itemsError } = await supabase
-      .from('service_call_items')
-      .select('*')
-      .eq('service_call_id', osId)
-      .order('created_at');
+      .from("service_call_items")
+      .select("*")
+      .eq("service_call_id", osId)
+      .order("created_at");
 
     if (itemsError) {
-      console.error('❌ [PDF] Erro ao buscar itens financeiros:', itemsError);
+      console.error("❌ [PDF] Erro ao buscar itens financeiros:", itemsError);
       return null;
     }
 
     // Buscar transações/parcelas
     const { data: transactions, error: transError } = await supabase
-      .from('financial_transactions')
-      .select('*')
-      .eq('service_call_id', osId)
-      .eq('direction', 'RECEIVE')
-      .order('due_date')
-      .order('installment_number');
+      .from("financial_transactions")
+      .select("*")
+      .eq("service_call_id", osId)
+      .eq("direction", "RECEIVE")
+      .order("due_date")
+      .order("installment_number");
 
     if (transError) {
-      console.error('❌ [PDF] Erro ao buscar transações:', transError);
+      console.error("❌ [PDF] Erro ao buscar transações:", transError);
     }
 
     // Calcular subtotais
-    const productItems = items?.filter(i => i.type === 'PRODUCT') || [];
-    const serviceItems = items?.filter(i => i.type === 'SERVICE') || [];
-    const feeItems = items?.filter(i => i.type === 'FEE') || [];
-    const discountItems = items?.filter(i => i.type === 'DISCOUNT') || [];
+    const productItems = items?.filter((i) => i.type === "PRODUCT") || [];
+    const serviceItems = items?.filter((i) => i.type === "SERVICE") || [];
+    const feeItems = items?.filter((i) => i.type === "FEE") || [];
+    const discountItems = items?.filter((i) => i.type === "DISCOUNT") || [];
 
-    const totalProducts = productItems.reduce((sum, i) => sum + (i.total || 0), 0);
-    const totalServices = serviceItems.reduce((sum, i) => sum + (i.total || 0), 0);
+    const totalProducts = productItems.reduce(
+      (sum, i) => sum + (i.total || 0),
+      0,
+    );
+    const totalServices = serviceItems.reduce(
+      (sum, i) => sum + (i.total || 0),
+      0,
+    );
     const totalFees = feeItems.reduce((sum, i) => sum + (i.total || 0), 0);
-    const totalDiscounts = discountItems.reduce((sum, i) => sum + (i.total || 0), 0);
+    const totalDiscounts = discountItems.reduce(
+      (sum, i) => sum + (i.total || 0),
+      0,
+    );
 
     // Calcular descontos da OS
     const partsDiscountValue = osData.discount_parts_value || 0;
@@ -380,33 +458,39 @@ async function fetchFinancialData(osId: string, osData: any): Promise<Report['fi
     const totalDiscountValue = osData.discount_total_value || 0;
 
     let partsDiscount = 0;
-    if (osData.discount_parts_type === 'percentage') {
+    if (osData.discount_parts_type === "percentage") {
       partsDiscount = totalProducts * (partsDiscountValue / 100);
     } else {
       partsDiscount = partsDiscountValue;
     }
 
     let servicesDiscount = 0;
-    if (osData.discount_services_type === 'percentage') {
+    if (osData.discount_services_type === "percentage") {
       servicesDiscount = totalServices * (servicesDiscountValue / 100);
     } else {
       servicesDiscount = servicesDiscountValue;
     }
 
-    const subtotalAfterGroupDiscounts = totalProducts + totalServices - partsDiscount - servicesDiscount;
+    const subtotalAfterGroupDiscounts =
+      totalProducts + totalServices - partsDiscount - servicesDiscount;
 
     let generalDiscount = 0;
-    if (osData.discount_total_type === 'percentage') {
-      generalDiscount = subtotalAfterGroupDiscounts * (totalDiscountValue / 100);
+    if (osData.discount_total_type === "percentage") {
+      generalDiscount =
+        subtotalAfterGroupDiscounts * (totalDiscountValue / 100);
     } else {
       generalDiscount = totalDiscountValue;
     }
 
-    const grandTotal = subtotalAfterGroupDiscounts + totalFees - totalDiscounts - generalDiscount;
+    const grandTotal =
+      subtotalAfterGroupDiscounts +
+      totalFees -
+      totalDiscounts -
+      generalDiscount;
 
     // Mapear itens
-    const mappedItems = (items || []).map(item => ({
-      type: item.type as 'PRODUCT' | 'SERVICE' | 'FEE' | 'DISCOUNT',
+    const mappedItems = (items || []).map((item) => ({
+      type: item.type as "PRODUCT" | "SERVICE" | "FEE" | "DISCOUNT",
       description: item.description,
       qty: item.qty || 1,
       unitPrice: item.unit_price || 0,
@@ -417,14 +501,14 @@ async function fetchFinancialData(osId: string, osData: any): Promise<Report['fi
 
     // Mapear parcelas
     const installments = (transactions || [])
-      .filter(t => t.status !== 'CANCELED')
-      .map(t => ({
+      .filter((t) => t.status !== "CANCELED")
+      .map((t) => ({
         number: t.installment_number || 1,
         dueDate: formatDateOnly(t.due_date),
         amount: t.amount || 0,
         paymentMethod: t.payment_method,
         notes: t.notes || null,
-        status: t.status || 'OPEN',
+        status: t.status || "OPEN",
       }));
 
     return {
@@ -447,7 +531,7 @@ async function fetchFinancialData(osId: string, osData: any): Promise<Report['fi
       installments,
     };
   } catch (error) {
-    console.error('❌ [PDF] Erro geral ao buscar dados financeiros:', error);
+    console.error("❌ [PDF] Erro geral ao buscar dados financeiros:", error);
     return null;
   }
 }
@@ -459,18 +543,19 @@ async function fetchFinancialData(osId: string, osData: any): Promise<Report['fi
  * @returns Blob, fileName, blobUrl e osNumber
  */
 export const generateOSPdf = async (
-  osId: string, 
-  options: GenerateOSPdfOptions = {}
+  osId: string,
+  options: GenerateOSPdfOptions = {},
 ): Promise<GenerateOSPdfResult> => {
   const { includeFinancial = false } = options;
 
   // 0. AGUARDAR PROPAGAÇÃO DE UPLOADS RECENTES
   await waitForStoragePropagation(300);
-  
+
   // 1. BUSCAR DADOS DA OS
   const { data: osData, error: osError } = await supabase
-    .from('service_calls')
-    .select(`
+    .from("service_calls")
+    .select(
+      `
       *,
       clients (
         full_name,
@@ -494,12 +579,13 @@ export const generateOSPdf = async (
       status:service_call_statuses!service_calls_status_id_fkey (
         name
       )
-    `)
-    .eq('id', osId)
+    `,
+    )
+    .eq("id", osId)
     .single();
 
   if (osError || !osData) {
-    throw new Error('OS não encontrada');
+    throw new Error("OS não encontrada");
   }
 
   const call = osData as ServiceCall;
@@ -507,23 +593,23 @@ export const generateOSPdf = async (
 
   // 2. BUSCAR DADOS DA EMPRESA
   const { data: companyData } = await supabase
-    .from('system_settings')
-    .select('*')
+    .from("system_settings")
+    .select("*")
     .single();
 
   const companyDataAny = companyData as any;
 
   // Converter logo para DataURL
   const logoUrl = companyDataAny?.report_logo || companyData?.logo_url || null;
-  const logoDataUrl = await toDataUrlWithRetry(logoUrl || '');
+  const logoDataUrl = await toDataUrlWithRetry(logoUrl || "");
 
   // 3. BUSCAR CHECKLIST (se houver)
-  let checklist: Report['checklist'] = null;
+  let checklist: Report["checklist"] = null;
   if (call.checklist_id && call.checklist_responses) {
     const { data: checklistData } = await supabase
-      .from('checklists')
-      .select('name, items')
-      .eq('id', call.checklist_id)
+      .from("checklists")
+      .select("name, items")
+      .eq("id", call.checklist_id)
       .single();
 
     if (checklistData) {
@@ -531,18 +617,24 @@ export const generateOSPdf = async (
       checklist = {
         title: checklistData.name,
         filledBy: call.technicians?.full_name || undefined,
-        filledAt: call.updated_at 
-          ? format(new Date(call.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+        filledAt: call.updated_at
+          ? format(new Date(call.updated_at), "dd/MM/yyyy 'às' HH:mm", {
+              locale: ptBR,
+            })
           : undefined,
-        sections: [{
-          title: "Itens do Checklist",
-          items: (checklistData.items as Array<{ id: string; text: string }>).map((item) => ({
-            label: item.text,
-            status: responses[item.id] ? "OK" : "Pendente",
-            note: null,
-            photos: []
-          }))
-        }]
+        sections: [
+          {
+            title: "Itens do Checklist",
+            items: (
+              checklistData.items as Array<{ id: string; text: string }>
+            ).map((item) => ({
+              label: item.text,
+              status: responses[item.id] ? "OK" : "Pendente",
+              note: null,
+              photos: [],
+            })),
+          },
+        ],
       };
     }
   }
@@ -551,9 +643,15 @@ export const generateOSPdf = async (
   const beforeSplit = splitMedia(call.photos_before_urls || []);
   const afterSplit = splitMedia(call.photos_after_urls || []);
 
-  console.log('🔍 [PDF] Separação de mídias técnicas:', {
-    before: { images: beforeSplit.images.length, videos: beforeSplit.videos.length },
-    after: { images: afterSplit.images.length, videos: afterSplit.videos.length },
+  console.log("🔍 [PDF] Separação de mídias técnicas:", {
+    before: {
+      images: beforeSplit.images.length,
+      videos: beforeSplit.videos.length,
+    },
+    after: {
+      images: afterSplit.images.length,
+      videos: afterSplit.videos.length,
+    },
   });
 
   // Converter apenas IMAGENS para DataURL (com retry)
@@ -581,47 +679,73 @@ export const generateOSPdf = async (
     }
   }
 
-  console.log('🔍 [PDF] Fotos convertidas:', {
+  console.log("🔍 [PDF] Fotos convertidas:", {
     before: beforePhotos.length,
     after: afterPhotos.length,
   });
 
   // 5. PROCESSAR ASSINATURAS (novo formato com histórico + resolução robusta de URLs)
-  const latestTechSignature = getLatestSignature((call as any).signatures, 'tech');
-  const latestClientSignature = getLatestSignature((call as any).signatures, 'client');
+  const latestTechSignature = getLatestSignature(
+    (call as any).signatures,
+    "tech",
+  );
+  const latestClientSignature = getLatestSignature(
+    (call as any).signatures,
+    "client",
+  );
 
   let techSignatureDataUrl: string | null = null;
   let clientSignatureDataUrl: string | null = null;
 
   // Técnico: usar nova função que resolve paths e regenera signed URLs se necessário
   if (latestTechSignature?.storage_path) {
-    techSignatureDataUrl = await resolveSignatureUrl(latestTechSignature.storage_path);
+    techSignatureDataUrl = await resolveSignatureUrl(
+      latestTechSignature.storage_path,
+    );
   } else if (latestTechSignature?.image_url) {
-    techSignatureDataUrl = await resolveSignatureUrl(latestTechSignature.image_url);
+    techSignatureDataUrl = await resolveSignatureUrl(
+      latestTechSignature.image_url,
+    );
   } else if (call.technician_signature_data) {
-    techSignatureDataUrl = await resolveSignatureUrl(call.technician_signature_data);
+    techSignatureDataUrl = await resolveSignatureUrl(
+      call.technician_signature_data,
+    );
   } else if (call.technician_signature_url) {
-    techSignatureDataUrl = await resolveSignatureUrl(call.technician_signature_url);
+    techSignatureDataUrl = await resolveSignatureUrl(
+      call.technician_signature_url,
+    );
   }
 
   // Cliente: usar nova função que resolve paths e regenera signed URLs se necessário
   if (latestClientSignature?.storage_path) {
-    clientSignatureDataUrl = await resolveSignatureUrl(latestClientSignature.storage_path);
+    clientSignatureDataUrl = await resolveSignatureUrl(
+      latestClientSignature.storage_path,
+    );
   } else if (latestClientSignature?.image_url) {
-    clientSignatureDataUrl = await resolveSignatureUrl(latestClientSignature.image_url);
+    clientSignatureDataUrl = await resolveSignatureUrl(
+      latestClientSignature.image_url,
+    );
   } else if (call.customer_signature_data) {
-    clientSignatureDataUrl = await resolveSignatureUrl(call.customer_signature_data);
+    clientSignatureDataUrl = await resolveSignatureUrl(
+      call.customer_signature_data,
+    );
   } else if (call.customer_signature_url) {
-    clientSignatureDataUrl = await resolveSignatureUrl(call.customer_signature_url);
+    clientSignatureDataUrl = await resolveSignatureUrl(
+      call.customer_signature_url,
+    );
   }
 
-  console.log('🔍 [PDF] Assinaturas processadas:', {
+  console.log("🔍 [PDF] Assinaturas processadas:", {
     techFromHistory: !!latestTechSignature,
     clientFromHistory: !!latestClientSignature,
     techResolved: !!techSignatureDataUrl,
     clientResolved: !!clientSignatureDataUrl,
-    techFallback: !latestTechSignature && !!(call.technician_signature_data || call.technician_signature_url),
-    clientFallback: !latestClientSignature && !!(call.customer_signature_data || call.customer_signature_url),
+    techFallback:
+      !latestTechSignature &&
+      !!(call.technician_signature_data || call.technician_signature_url),
+    clientFallback:
+      !latestClientSignature &&
+      !!(call.customer_signature_data || call.customer_signature_url),
   });
 
   // 6. SEPARAR IMAGENS E VÍDEOS DE "FOTOS E VÍDEOS" (media_urls)
@@ -640,39 +764,47 @@ export const generateOSPdf = async (
     if (dataUrl) {
       mediaPhotos.push(dataUrl);
     } else {
-      console.error('❌ [PDF] FALHA CRÍTICA ao converter foto de media_urls:', url);
+      console.error(
+        "❌ [PDF] FALHA CRÍTICA ao converter foto de media_urls:",
+        url,
+      );
       mediaFailed.push(url);
     }
   }
 
-  console.log('🔍 [PDF] Fotos de "Fotos e Vídeos" convertidas:', mediaPhotos.length);
+  console.log(
+    '🔍 [PDF] Fotos de "Fotos e Vídeos" convertidas:',
+    mediaPhotos.length,
+  );
 
   // 7. BUSCAR DADOS FINANCEIROS (se solicitado)
-  let financialData: Report['financial'] = null;
+  let financialData: Report["financial"] = null;
   if (includeFinancial) {
-    console.log('💰 [PDF] Buscando dados financeiros...');
+    console.log("💰 [PDF] Buscando dados financeiros...");
     financialData = await fetchFinancialData(osId, osData);
-    console.log('💰 [PDF] Dados financeiros:', financialData ? 'OK' : 'Nenhum');
+    console.log("💰 [PDF] Dados financeiros:", financialData ? "OK" : "Nenhum");
   }
 
   // 8. MONTAR ENDEREÇO COMPLETO DA EMPRESA
-  const companyAddressParts = [
-    companyDataAny?.company_address,
-  ].filter(Boolean);
-  const companyAddress = companyAddressParts.length > 0 ? companyAddressParts.join(', ') : undefined;
+  const companyAddressParts = [companyDataAny?.company_address].filter(Boolean);
+  const companyAddress =
+    companyAddressParts.length > 0 ? companyAddressParts.join(", ") : undefined;
 
   // 9. MONTAR ENDEREÇO COMPLETO DO CLIENTE
   const clientAddressParts = [
     clientData?.address,
-    clientData?.city && clientData?.state ? `${clientData.city}/${clientData.state}` : clientData?.city || clientData?.state,
+    clientData?.city && clientData?.state
+      ? `${clientData.city}/${clientData.state}`
+      : clientData?.city || clientData?.state,
     clientData?.cep ? `CEP: ${clientData.cep}` : null,
   ].filter(Boolean);
-  const clientAddress = clientAddressParts.length > 0 ? clientAddressParts.join(', ') : undefined;
+  const clientAddress =
+    clientAddressParts.length > 0 ? clientAddressParts.join(", ") : undefined;
 
   // 10. PREPARAR DADOS PARA O PDF
   const report: Report = {
     company: {
-      name: companyData?.company_name || 'Curitiba Inox',
+      name: companyData?.company_name || "Curitiba Inox",
       cnpj: companyDataAny?.company_cnpj?.trim() || undefined,
       ie: companyDataAny?.company_ie?.trim() || undefined,
       phone: companyDataAny?.company_phone?.trim() || undefined,
@@ -683,16 +815,16 @@ export const generateOSPdf = async (
     },
     os: {
       number: call.os_number,
-      scheduledDate: format(new Date(call.scheduled_date), 'dd/MM/yyyy', { locale: ptBR }),
+      scheduledDate: formatDateOnly(call.scheduled_date),
       scheduledTime: call.scheduled_time || undefined,
       technicianName: call.technicians?.full_name || undefined,
       technicalStatus: (call as any).status?.name || undefined,
       conclusionDate: call.updated_at
-        ? format(new Date(call.updated_at), 'dd/MM/yyyy', { locale: ptBR })
+        ? format(new Date(call.updated_at), "dd/MM/yyyy", { locale: ptBR })
         : undefined,
     },
     client: {
-      name: clientData?.full_name || 'Cliente não identificado',
+      name: clientData?.full_name || "Cliente não identificado",
       phone: clientData?.phone?.trim() || undefined,
       email: clientData?.email?.trim() || undefined,
       cnpj: clientData?.cpf_cnpj?.trim() || undefined,
@@ -702,19 +834,22 @@ export const generateOSPdf = async (
     general: {
       equipment: call.equipment_description?.trim() || undefined,
       serialNumber: call.equipment_serial_number?.trim() || undefined,
-      purchaseOrderNumber: (call as any).purchase_order_number?.trim() || undefined,
+      purchaseOrderNumber:
+        (call as any).purchase_order_number?.trim() || undefined,
       problemDescription: call.problem_description?.trim() || undefined,
       serviceType: call.service_types?.name?.trim() || undefined,
       checklistTitle: checklist?.title || null,
       notes: call.notes?.trim() || null,
       schedule: {
-        date: format(new Date(call.scheduled_date), 'dd/MM/yyyy', { locale: ptBR }),
+        date: formatDateOnly(call.scheduled_date),
         time: call.scheduled_time || undefined,
         startedAt: call.started_at
-          ? format(new Date(call.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+          ? format(new Date(call.started_at), "dd/MM/yyyy 'às' HH:mm", {
+              locale: ptBR,
+            })
           : undefined,
       },
-      technician: call.technicians?.full_name 
+      technician: call.technicians?.full_name
         ? { name: call.technicians.full_name }
         : undefined,
     },
@@ -749,32 +884,62 @@ export const generateOSPdf = async (
       mediaFailed: mediaFailed.length > 0 ? mediaFailed : undefined,
       beforeFailed: beforeFailed.length > 0 ? beforeFailed : undefined,
       afterFailed: afterFailed.length > 0 ? afterFailed : undefined,
-      totalAttempted: beforeSplit.images.length + afterSplit.images.length + mediaSplit.images.length,
-      totalConverted: mediaPhotos.length + beforePhotos.length + afterPhotos.length,
-      totalFailed: mediaFailed.length + beforeFailed.length + afterFailed.length,
+      totalAttempted:
+        beforeSplit.images.length +
+        afterSplit.images.length +
+        mediaSplit.images.length,
+      totalConverted:
+        mediaPhotos.length + beforePhotos.length + afterPhotos.length,
+      totalFailed:
+        mediaFailed.length + beforeFailed.length + afterFailed.length,
     },
     checklist,
     signatures: {
       tech: techSignatureDataUrl
         ? {
-            name: latestTechSignature?.signed_by || call.technicians?.full_name || 'Técnico',
+            name:
+              latestTechSignature?.signed_by ||
+              call.technicians?.full_name ||
+              "Técnico",
             when: latestTechSignature?.signed_at
-              ? format(new Date(latestTechSignature.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+              ? format(
+                  new Date(latestTechSignature.signed_at),
+                  "dd/MM/yyyy 'às' HH:mm",
+                  { locale: ptBR },
+                )
               : call.technician_signature_date
-              ? format(new Date(call.technician_signature_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-              : undefined,
+                ? format(
+                    new Date(call.technician_signature_date),
+                    "dd/MM/yyyy 'às' HH:mm",
+                    { locale: ptBR },
+                  )
+                : undefined,
             imageDataUrl: techSignatureDataUrl,
           }
         : null,
       client: clientSignatureDataUrl
         ? {
-            name: latestClientSignature?.signed_by || call.customer_name || 'Cliente',
-            role: latestClientSignature?.position?.trim() || call.customer_position?.trim() || undefined,
+            name:
+              latestClientSignature?.signed_by ||
+              call.customer_name ||
+              "Cliente",
+            role:
+              latestClientSignature?.position?.trim() ||
+              call.customer_position?.trim() ||
+              undefined,
             when: latestClientSignature?.signed_at
-              ? format(new Date(latestClientSignature.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+              ? format(
+                  new Date(latestClientSignature.signed_at),
+                  "dd/MM/yyyy 'às' HH:mm",
+                  { locale: ptBR },
+                )
               : call.customer_signature_date
-              ? format(new Date(call.customer_signature_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-              : undefined,
+                ? format(
+                    new Date(call.customer_signature_date),
+                    "dd/MM/yyyy 'às' HH:mm",
+                    { locale: ptBR },
+                  )
+                : undefined,
             imageDataUrl: clientSignatureDataUrl,
           }
         : null,
@@ -788,7 +953,7 @@ export const generateOSPdf = async (
   const blob = await asPdf.toBlob();
 
   // 12. GERAR NOME DO ARQUIVO
-  const suffix = includeFinancial ? '-completo' : '';
+  const suffix = includeFinancial ? "-completo" : "";
   const fileName = `relatorio-os-${call.os_number}${suffix}.pdf`;
 
   // 13. CRIAR BLOB URL
@@ -797,7 +962,7 @@ export const generateOSPdf = async (
   // LOG DE DIAGNÓSTICO
   const diag = report._imageDiagnostics;
   if (diag && diag.totalFailed > 0) {
-    console.error('🚨 [PDF] IMAGENS FALHARAM:', {
+    console.error("🚨 [PDF] IMAGENS FALHARAM:", {
       tentadas: diag.totalAttempted,
       convertidas: diag.totalConverted,
       falhadas: diag.totalFailed,
@@ -805,10 +970,10 @@ export const generateOSPdf = async (
         media: diag.mediaFailed,
         antes: diag.beforeFailed,
         depois: diag.afterFailed,
-      }
+      },
     });
   } else {
-    console.log('✅ [PDF] TODAS as imagens convertidas com sucesso:', {
+    console.log("✅ [PDF] TODAS as imagens convertidas com sucesso:", {
       total: diag?.totalConverted || 0,
     });
   }
@@ -825,16 +990,21 @@ export const generateOSPdf = async (
  * Marca a OS como tendo relatório financeiro gerado
  * Isso bloqueia técnicos de acessar/baixar relatórios dessa OS
  */
-export const markOSWithFinancialReport = async (osId: string): Promise<void> => {
+export const markOSWithFinancialReport = async (
+  osId: string,
+): Promise<void> => {
   const { error } = await supabase
-    .from('service_calls')
+    .from("service_calls")
     .update({ has_financial_report: true })
-    .eq('id', osId);
+    .eq("id", osId);
 
   if (error) {
-    console.error('❌ [PDF] Erro ao marcar OS com relatório financeiro:', error);
+    console.error(
+      "❌ [PDF] Erro ao marcar OS com relatório financeiro:",
+      error,
+    );
     throw error;
   }
 
-  console.log('✅ [PDF] OS marcada com relatório financeiro');
+  console.log("✅ [PDF] OS marcada com relatório financeiro");
 };

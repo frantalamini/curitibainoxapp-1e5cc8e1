@@ -2,7 +2,12 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
   prefix: "",
   theme: {
     container: {
@@ -15,36 +20,44 @@ export default {
     extend: {
       // Font Family - Inter / SF Pro
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: [
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "SF Pro Display",
+          "Segoe UI",
+          "Roboto",
+          "sans-serif",
+        ],
       },
       // Custom widths
       width: {
-        '70': '280px',
-        '22.5': '90px',
+        "70": "280px",
+        "22.5": "90px",
       },
       // Spacing for cards
       spacing: {
-        'card': '1rem',
-        'card-lg': '1.25rem',
-        'safe-top': 'var(--safe-area-top)',
-        'safe-bottom': 'var(--safe-area-bottom)',
-        'mobile-header': 'var(--mobile-header-height)',
+        card: "1rem",
+        "card-lg": "1.25rem",
+        "safe-top": "var(--safe-area-top)",
+        "safe-bottom": "var(--safe-area-bottom)",
+        "mobile-header": "var(--mobile-header-height)",
       },
       // Min height with dynamic viewport
       minHeight: {
-        'screen-dvh': '100dvh',
-        'screen-svh': '100svh',
-        'screen-fill': '-webkit-fill-available',
+        "screen-dvh": "100dvh",
+        "screen-svh": "100svh",
+        "screen-fill": "-webkit-fill-available",
       },
       // Height with dynamic viewport
       height: {
-        'screen-dvh': '100dvh',
-        'screen-svh': '100svh',
-        'screen-fill': '-webkit-fill-available',
+        "screen-dvh": "100dvh",
+        "screen-svh": "100svh",
+        "screen-fill": "-webkit-fill-available",
       },
       // Transition durations
       transitionDuration: {
-        '250': '250ms',
+        "250": "250ms",
       },
       // Colors using CSS variables
       colors: {
@@ -110,9 +123,11 @@ export default {
       },
       // Box Shadows
       boxShadow: {
-        'card': '0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04)',
-        'card-hover': '0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04)',
-        'elevated': '0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06)',
+        card: "0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04)",
+        "card-hover":
+          "0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04)",
+        elevated:
+          "0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06)",
       },
       // Keyframes
       keyframes: {

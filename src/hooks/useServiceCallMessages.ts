@@ -3,15 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
-export type MessageCategory = 
-  | 'part_request' 
-  | 'quote_pending' 
-  | 'approval_needed' 
-  | 'info_needed' 
-  | 'schedule_change' 
-  | 'other';
+export type MessageCategory =
+  | "part_request"
+  | "quote_pending"
+  | "approval_needed"
+  | "info_needed"
+  | "schedule_change"
+  | "other";
 
-export type MessagePriority = 'low' | 'normal' | 'high' | 'urgent';
+export type MessagePriority = "low" | "normal" | "high" | "urgent";
 
 export interface ServiceCallMessage {
   id: string;
@@ -55,7 +55,7 @@ export interface MessageAttachment {
   message_id: string;
   file_url: string;
   file_name: string;
-  file_type: 'image' | 'document' | 'audio';
+  file_type: "image" | "document" | "audio";
   file_size: number | null;
   file_path?: string | null;
   created_at: string;
@@ -72,7 +72,7 @@ export interface CreateMessageInput {
   attachments?: {
     file_url: string;
     file_name: string;
-    file_type: 'image' | 'document' | 'audio';
+    file_type: "image" | "document" | "audio";
     file_size?: number;
     file_path?: string;
   }[];
@@ -97,27 +97,30 @@ export const useServiceCallMessages = (serviceCallId: string | undefined) => {
       if (error) throw error;
 
       // Fetch author profiles
-      const authorIds = [...new Set(messages.map(m => m.author_id))];
+      const authorIds = [...new Set(messages.map((m) => m.author_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name, phone")
         .in("user_id", authorIds);
 
       // Fetch mentions
-      const messageIds = messages.map(m => m.id);
+      const messageIds = messages.map((m) => m.id);
       const { data: mentions } = await supabase
         .from("service_call_message_mentions")
         .select("*")
         .in("message_id", messageIds);
 
       // Fetch mentioned user profiles
-      const mentionedUserIds = [...new Set((mentions || []).map(m => m.mentioned_user_id))];
-      const { data: mentionedProfiles } = mentionedUserIds.length > 0
-        ? await supabase
-            .from("profiles")
-            .select("user_id, full_name, phone")
-            .in("user_id", mentionedUserIds)
-        : { data: [] };
+      const mentionedUserIds = [
+        ...new Set((mentions || []).map((m) => m.mentioned_user_id)),
+      ];
+      const { data: mentionedProfiles } =
+        mentionedUserIds.length > 0
+          ? await supabase
+              .from("profiles")
+              .select("user_id, full_name, phone")
+              .in("user_id", mentionedUserIds)
+          : { data: [] };
 
       // Fetch attachments
       const { data: attachments } = await supabase
@@ -126,24 +129,28 @@ export const useServiceCallMessages = (serviceCallId: string | undefined) => {
         .in("message_id", messageIds);
 
       // Combine data
-      return messages.map((msg): ServiceCallMessage => ({
-        ...msg,
-        priority: msg.priority as MessagePriority,
-        category: msg.category as MessageCategory | null,
-        author: profiles?.find(p => p.user_id === msg.author_id),
-        mentions: (mentions || [])
-          .filter(m => m.message_id === msg.id)
-          .map(m => ({
-            ...m,
-            user: mentionedProfiles?.find(p => p.user_id === m.mentioned_user_id),
-          })),
-        attachments: (attachments || [])
-          .filter(a => a.message_id === msg.id)
-          .map(a => ({
-            ...a,
-            file_type: a.file_type as 'image' | 'document' | 'audio',
-          })),
-      }));
+      return messages.map(
+        (msg): ServiceCallMessage => ({
+          ...msg,
+          priority: msg.priority as MessagePriority,
+          category: msg.category as MessageCategory | null,
+          author: profiles?.find((p) => p.user_id === msg.author_id),
+          mentions: (mentions || [])
+            .filter((m) => m.message_id === msg.id)
+            .map((m) => ({
+              ...m,
+              user: mentionedProfiles?.find(
+                (p) => p.user_id === m.mentioned_user_id,
+              ),
+            })),
+          attachments: (attachments || [])
+            .filter((a) => a.message_id === msg.id)
+            .map((a) => ({
+              ...a,
+              file_type: a.file_type as "image" | "document" | "audio",
+            })),
+        }),
+      );
     },
     enabled: !!serviceCallId,
   });
@@ -155,16 +162,18 @@ export const useServiceCallMessages = (serviceCallId: string | undefined) => {
     const channel = supabase
       .channel(`service-call-messages-${serviceCallId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'service_call_messages',
+          event: "*",
+          schema: "public",
+          table: "service_call_messages",
           filter: `service_call_id=eq.${serviceCallId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ["service-call-messages", serviceCallId] });
-        }
+          queryClient.invalidateQueries({
+            queryKey: ["service-call-messages", serviceCallId],
+          });
+        },
       )
       .subscribe();
 
@@ -182,7 +191,9 @@ export const useCreateMessage = () => {
 
   return useMutation({
     mutationFn: async (input: CreateMessageInput) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       // Create message
@@ -193,7 +204,7 @@ export const useCreateMessage = () => {
           author_id: user.id,
           content: input.content,
           category: input.category || null,
-          priority: input.priority || 'normal',
+          priority: input.priority || "normal",
           requires_action: input.requires_action || false,
           due_date: input.due_date || null,
         })
@@ -204,7 +215,7 @@ export const useCreateMessage = () => {
 
       // Create mentions
       if (input.mentioned_user_ids && input.mentioned_user_ids.length > 0) {
-        const mentionsToInsert = input.mentioned_user_ids.map(userId => ({
+        const mentionsToInsert = input.mentioned_user_ids.map((userId) => ({
           message_id: message.id,
           mentioned_user_id: userId,
         }));
@@ -213,14 +224,15 @@ export const useCreateMessage = () => {
           .from("service_call_message_mentions")
           .insert(mentionsToInsert);
 
-        if (mentionsError) console.error("Erro ao criar menções:", mentionsError);
+        if (mentionsError)
+          console.error("Erro ao criar menções:", mentionsError);
       }
 
       // Create attachments
       if (input.attachments && input.attachments.length > 0) {
-        const attachmentsToInsert = input.attachments.map(att => ({
+        const attachmentsToInsert = input.attachments.map((att) => ({
           message_id: message.id,
-          file_url: att.file_url || '',
+          file_url: att.file_url || "",
           file_name: att.file_name,
           file_type: att.file_type,
           file_size: att.file_size || null,
@@ -237,7 +249,9 @@ export const useCreateMessage = () => {
       return message;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["service-call-messages", variables.service_call_id] });
+      queryClient.invalidateQueries({
+        queryKey: ["service-call-messages", variables.service_call_id],
+      });
       queryClient.invalidateQueries({ queryKey: ["pending-actions"] });
     },
     onError: (error: any) => {
@@ -255,14 +269,16 @@ export const useResolveMessage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      messageId, 
-      resolutionNotes 
-    }: { 
-      messageId: string; 
+    mutationFn: async ({
+      messageId,
+      resolutionNotes,
+    }: {
+      messageId: string;
       resolutionNotes?: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       const { error } = await supabase

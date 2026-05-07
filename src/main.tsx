@@ -3,6 +3,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App.tsx";
+import "./styles/tokens.css";
 import "./index.css";
 
 // Registra o Service Worker com atualização automática
@@ -24,5 +25,5 @@ registerSW({
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );

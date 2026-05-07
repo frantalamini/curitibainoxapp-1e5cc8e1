@@ -1,13 +1,30 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Image as ImageIcon, Save, Loader2, Palette } from "lucide-react";
+import {
+  Upload,
+  Image as ImageIcon,
+  Save,
+  Loader2,
+  Palette,
+  Shield,
+  Settings2,
+  ChevronRight,
+} from "lucide-react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { useColorPalette } from "@/hooks/useColorPalette";
+import { useCurrentUserProfilePermissions } from "@/hooks/useAccessProfiles";
 import { ColorCard } from "@/components/settings/ColorCard";
 import { LogoPaletteExtractor } from "@/components/settings/LogoPaletteExtractor";
 import { PaletteSuggestionModal } from "@/components/settings/PaletteSuggestionModal";
@@ -28,19 +45,33 @@ interface CompanyFormData {
 }
 
 const Settings = () => {
+  const navigate = useNavigate();
   const { settings, isLoading, updateSettings } = useSystemSettings();
-  const { colors, isLoading: isLoadingColors, updateColor, applyPalette } = useColorPalette();
+  const {
+    colors,
+    isLoading: isLoadingColors,
+    updateColor,
+    applyPalette,
+  } = useColorPalette();
+  const { data: profilePerms } = useCurrentUserProfilePermissions();
+  const isGerencial = profilePerms?.isGerencial ?? false;
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingReportLogo, setUploadingReportLogo] = useState(false);
   const [previewLogoUrl, setPreviewLogoUrl] = useState<string | null>(null);
-  const [previewReportLogoUrl, setPreviewReportLogoUrl] = useState<string | null>(null);
-  
+  const [previewReportLogoUrl, setPreviewReportLogoUrl] = useState<
+    string | null
+  >(null);
+
   // State for palette extraction
   const [suggestedColors, setSuggestedColors] = useState<ExtractedColor[]>([]);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const { register, handleSubmit, formState: { isSubmitting } } = useForm<CompanyFormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<CompanyFormData>({
     values: {
       company_name: settings?.company_name || "",
       company_cnpj: settings?.company_cnpj || "",
@@ -54,7 +85,7 @@ const Settings = () => {
 
   const handleLogoUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
-    type: "logo" | "report"
+    type: "logo" | "report",
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -69,8 +100,10 @@ const Settings = () => {
       return;
     }
 
-    const setUploading = type === "logo" ? setUploadingLogo : setUploadingReportLogo;
-    const setPreview = type === "logo" ? setPreviewLogoUrl : setPreviewReportLogoUrl;
+    const setUploading =
+      type === "logo" ? setUploadingLogo : setUploadingReportLogo;
+    const setPreview =
+      type === "logo" ? setPreviewLogoUrl : setPreviewReportLogoUrl;
     const fieldName = type === "logo" ? "logo_url" : "report_logo";
 
     setUploading(true);
@@ -89,16 +122,19 @@ const Settings = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from("service-call-attachments")
-        .createSignedUrl(filePath, 31536000);
+      const { data: signedUrlData, error: signedUrlError } =
+        await supabase.storage
+          .from("service-call-attachments")
+          .createSignedUrl(filePath, 31536000);
 
       if (signedUrlError || !signedUrlData) {
         throw new Error("Não foi possível gerar URL de acesso à logo");
       }
 
-      await updateSettings.mutateAsync({ [fieldName]: signedUrlData.signedUrl });
-      
+      await updateSettings.mutateAsync({
+        [fieldName]: signedUrlData.signedUrl,
+      });
+
       setPreview(signedUrlData.signedUrl);
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
@@ -121,20 +157,24 @@ const Settings = () => {
     setShowSuggestionModal(true);
   };
 
-  const handleApplyExtractedPalette = async (colorsToApply: ExtractedColor[]) => {
+  const handleApplyExtractedPalette = async (
+    colorsToApply: ExtractedColor[],
+  ) => {
     try {
       // Map extracted colors to database updates
       const roleToDbRole: Record<string, string> = {
-        primary: 'primary',
-        secondary: 'secondary',
-        accent: 'accent',
-        success: 'success',
-        warning: 'warning',
-        destructive: 'destructive',
+        primary: "primary",
+        secondary: "secondary",
+        accent: "accent",
+        success: "success",
+        warning: "warning",
+        destructive: "destructive",
       };
 
       for (const extractedColor of colorsToApply) {
-        const existingColor = colors?.find(c => c.role === roleToDbRole[extractedColor.role]);
+        const existingColor = colors?.find(
+          (c) => c.role === roleToDbRole[extractedColor.role],
+        );
         if (existingColor) {
           await updateColor.mutateAsync({
             id: existingColor.id,
@@ -155,7 +195,7 @@ const Settings = () => {
 
       // Apply palette to CSS
       applyPalette();
-      
+
       toast.success("Paleta aplicada com sucesso!");
     } catch (error) {
       console.error("Error applying palette:", error);
@@ -210,6 +250,51 @@ const Settings = () => {
           </p>
         </div>
 
+        {/* Atalhos para Perfis e Permissões (somente Gerencial) */}
+        {isGerencial && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow border-primary/20"
+              onClick={() => navigate("/settings/perfis-acesso")}
+            >
+              <CardContent className="flex items-center justify-between p-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Shield className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Perfis de Acesso</p>
+                    <p className="text-xs text-muted-foreground">
+                      Criar e gerenciar perfis de usuários
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow border-primary/20"
+              onClick={() => navigate("/settings/permissoes")}
+            >
+              <CardContent className="flex items-center justify-between p-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Settings2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Permissões</p>
+                    <p className="text-xs text-muted-foreground">
+                      Matriz de permissões por perfil e módulo
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Logos Section */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Logo do Sistema */}
@@ -249,7 +334,9 @@ const Settings = () => {
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => document.getElementById("logo-upload")?.click()}
+                  onClick={() =>
+                    document.getElementById("logo-upload")?.click()
+                  }
                   disabled={uploadingLogo}
                 >
                   <Upload className="h-4 w-4 mr-2" />
@@ -297,7 +384,9 @@ const Settings = () => {
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => document.getElementById("report-logo-upload")?.click()}
+                  onClick={() =>
+                    document.getElementById("report-logo-upload")?.click()
+                  }
                   disabled={uploadingReportLogo}
                 >
                   <Upload className="h-4 w-4 mr-2" />
@@ -319,7 +408,8 @@ const Settings = () => {
               Paleta de Cores
             </CardTitle>
             <CardDescription>
-              Personalize as cores do aplicativo. Edite cada cor nos formatos HEX, RGB, HSL ou CMYK.
+              Personalize as cores do aplicativo. Edite cada cor nos formatos
+              HEX, RGB, HSL ou CMYK.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -335,18 +425,16 @@ const Settings = () => {
                       key={color.id}
                       color={color}
                       onSave={(data) => updateColor.mutate(data)}
-                      onDelete={() => {/* Colors are fixed, no delete */}}
+                      onDelete={() => {
+                        /* Colors are fixed, no delete */
+                      }}
                       isSaving={updateColor.isPending}
                     />
                   ))}
                 </div>
 
                 <div className="pt-4 border-t">
-                  <Button
-                    onClick={applyPalette}
-                    className="w-full"
-                    size="lg"
-                  >
+                  <Button onClick={applyPalette} className="w-full" size="lg">
                     <Palette className="h-4 w-4 mr-2" />
                     Aplicar Paleta ao App
                   </Button>
@@ -365,7 +453,10 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmitCompanyData)} className="space-y-4">
+            <form
+              onSubmit={handleSubmit(onSubmitCompanyData)}
+              className="space-y-4"
+            >
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
                   <Label htmlFor="company_name">Nome da Empresa</Label>

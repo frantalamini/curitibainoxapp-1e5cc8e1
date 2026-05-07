@@ -1,5 +1,10 @@
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ChevronRight, Clock, User, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -79,7 +84,8 @@ const ScheduleEventCard = ({
   showTechnician = true,
   onClick,
 }: ScheduleEventCardProps) => {
-  const clientName = call.clients?.company_name || call.clients?.full_name || "Cliente";
+  const clientName =
+    call.clients?.company_name || call.clients?.full_name || "Cliente";
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -97,7 +103,7 @@ const ScheduleEventCard = ({
               onClick={handleClick}
               className={cn(
                 "w-full text-left text-xs p-1.5 rounded border-l-4 bg-muted/50 hover:bg-muted cursor-pointer transition-colors min-w-0 active:bg-muted/80",
-                getStatusColor(call.status)
+                getStatusColor(call.status),
               )}
             >
               <div className="flex items-center justify-between gap-1">
@@ -118,7 +124,9 @@ const ScheduleEventCard = ({
               <div>
                 <div className="font-semibold">{clientName}</div>
                 {call.clients?.phone && (
-                  <div className="text-sm text-muted-foreground">{call.clients.phone}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {call.clients.phone}
+                  </div>
                 )}
               </div>
               <div>
@@ -137,7 +145,10 @@ const ScheduleEventCard = ({
                   <div className="text-sm">{call.notes}</div>
                 </div>
               )}
-              <Badge variant="outline" className={getStatusBadgeVariant(call.status)}>
+              <Badge
+                variant="outline"
+                className={getStatusBadgeVariant(call.status)}
+              >
                 {getStatusLabel(call.status)}
               </Badge>
             </div>
@@ -154,7 +165,7 @@ const ScheduleEventCard = ({
       onClick={handleClick}
       className={cn(
         "w-full text-left p-3 rounded-lg border-l-4 bg-card border hover:shadow-md cursor-pointer transition-all min-w-0 active:bg-muted/50",
-        getStatusColor(call.status)
+        getStatusColor(call.status),
       )}
     >
       <div className="flex items-center gap-2">
@@ -163,7 +174,9 @@ const ScheduleEventCard = ({
           <div className="flex items-start gap-2 min-w-0">
             <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
-              <span className="font-semibold text-sm">{call.scheduled_time}</span>
+              <span className="font-semibold text-sm">
+                {call.scheduled_time}
+              </span>
               <span className="mx-2 text-muted-foreground">-</span>
               <span className="font-medium break-words">{clientName}</span>
             </div>
@@ -181,18 +194,23 @@ const ScheduleEventCard = ({
           {showTechnician && technicianName && (
             <div className="flex items-start gap-2 min-w-0">
               <User className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-              <span className="text-sm break-words min-w-0">{technicianName}</span>
+              <span className="text-sm break-words min-w-0">
+                {technicianName}
+              </span>
             </div>
           )}
 
           {/* Status Badge */}
           <div className="flex items-center gap-2 flex-wrap mt-1">
-            <Badge variant="outline" className={cn("text-xs", getStatusBadgeVariant(call.status))}>
+            <Badge
+              variant="outline"
+              className={cn("text-xs", getStatusBadgeVariant(call.status))}
+            >
               {getStatusLabel(call.status)}
             </Badge>
           </div>
         </div>
-        
+
         {/* Chevron indicator for mobile */}
         <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 sm:hidden" />
       </div>

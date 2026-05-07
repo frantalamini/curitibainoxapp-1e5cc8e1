@@ -3,10 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Json, Database } from "@/integrations/supabase/types";
 
-type TransactionDirection = Database["public"]["Enums"]["transaction_direction"];
+type TransactionDirection =
+  Database["public"]["Enums"]["transaction_direction"];
 type TransactionOrigin = Database["public"]["Enums"]["transaction_origin"];
 
-export type SaleStatus = "QUOTE" | "APPROVED" | "SALE" | "INVOICED" | "CANCELLED";
+export type SaleStatus =
+  | "QUOTE"
+  | "APPROVED"
+  | "SALE"
+  | "INVOICED"
+  | "CANCELLED";
 
 export interface Sale {
   id: string;
@@ -87,12 +93,17 @@ export interface SalesFilters {
 export const useSales = (filters?: SalesFilters) => {
   const queryClient = useQueryClient();
 
-  const { data: sales, isLoading, error } = useQuery({
+  const {
+    data: sales,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["sales", filters],
     queryFn: async () => {
       let query = supabase
         .from("sales")
-        .select(`
+        .select(
+          `
           *,
           clients (
             id,
@@ -105,7 +116,8 @@ export const useSales = (filters?: SalesFilters) => {
             user_id,
             full_name
           )
-        `)
+        `,
+        )
         .order("created_at", { ascending: false });
 
       if (filters?.status && filters.status !== "ALL") {
@@ -156,9 +168,9 @@ export const useSales = (filters?: SalesFilters) => {
     mutationFn: async ({ id, ...updates }: SaleUpdate) => {
       // Remove undefined values to avoid type issues
       const cleanUpdates = Object.fromEntries(
-        Object.entries(updates).filter(([_, v]) => v !== undefined)
+        Object.entries(updates).filter(([_, v]) => v !== undefined),
       );
-      
+
       const { data, error } = await supabase
         .from("sales")
         .update(cleanUpdates)
@@ -181,10 +193,7 @@ export const useSales = (filters?: SalesFilters) => {
 
   const deleteSale = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("sales")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("sales").delete().eq("id", id);
 
       if (error) throw error;
     },
@@ -260,7 +269,7 @@ export const useSales = (filters?: SalesFilters) => {
 
       // 2. Check stock for all items with product_id
       const itemsWithProduct = (sale.sale_items || []).filter(
-        (item: any) => item.product_id && !item.stock_deducted
+        (item: any) => item.product_id && !item.stock_deducted,
       );
 
       if (itemsWithProduct.length > 0) {
@@ -275,14 +284,18 @@ export const useSales = (filters?: SalesFilters) => {
 
         // Check if all items have sufficient stock
         for (const item of itemsWithProduct) {
-          const balance = stockBalances?.find((b: any) => b.product_id === item.product_id)?.balance || 0;
+          const balance =
+            stockBalances?.find((b: any) => b.product_id === item.product_id)
+              ?.balance || 0;
           if (balance < item.qty) {
             const { data: product } = await supabase
               .from("products")
               .select("name")
               .eq("id", item.product_id)
               .single();
-            throw new Error(`Estoque insuficiente para: ${product?.name || "Produto"} (disponível: ${balance}, necessário: ${item.qty})`);
+            throw new Error(
+              `Estoque insuficiente para: ${product?.name || "Produto"} (disponível: ${balance}, necessário: ${item.qty})`,
+            );
           }
         }
 
@@ -344,7 +357,9 @@ export const useSales = (filters?: SalesFilters) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
       queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
-      toast.success("Venda finalizada com sucesso! Estoque atualizado e financeiro gerado.");
+      toast.success(
+        "Venda finalizada com sucesso! Estoque atualizado e financeiro gerado.",
+      );
     },
     onError: (error: Error) => {
       console.error("Error finalizing sale:", error);
@@ -355,7 +370,8 @@ export const useSales = (filters?: SalesFilters) => {
   // Count by status for tabs
   const quotes = sales?.filter((s) => s.status === "QUOTE") || [];
   const approved = sales?.filter((s) => s.status === "APPROVED") || [];
-  const completed = sales?.filter((s) => s.status === "SALE" || s.status === "INVOICED") || [];
+  const completed =
+    sales?.filter((s) => s.status === "SALE" || s.status === "INVOICED") || [];
   const cancelled = sales?.filter((s) => s.status === "CANCELLED") || [];
 
   return {
@@ -383,7 +399,8 @@ export const useSale = (id?: string) => {
 
       const { data, error } = await supabase
         .from("sales")
-        .select(`
+        .select(
+          `
           *,
           clients (
             id,
@@ -399,7 +416,8 @@ export const useSale = (id?: string) => {
             user_id,
             full_name
           )
-        `)
+        `,
+        )
         .eq("id", id)
         .maybeSingle();
 

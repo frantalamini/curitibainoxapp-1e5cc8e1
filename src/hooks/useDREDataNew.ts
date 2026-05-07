@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryBudgets } from "./useCategoryBudgets";
-import { startOfMonth, endOfMonth, startOfYear, endOfYear, format } from "date-fns";
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  format,
+} from "date-fns";
 import { DRE_GROUPS, DREGroup } from "@/lib/dreConstants";
 
 interface CategoryWithDRE {
@@ -38,9 +44,16 @@ export interface DRESectionTotals {
 }
 
 export const useDREDataNew = (month: number, year: number) => {
-  const { getBudget, getYearBudget, isLoading: budgetsLoading } = useCategoryBudgets(year);
+  const {
+    getBudget,
+    getYearBudget,
+    isLoading: budgetsLoading,
+  } = useCategoryBudgets(year);
 
-  const monthStart = format(startOfMonth(new Date(year, month - 1)), "yyyy-MM-dd");
+  const monthStart = format(
+    startOfMonth(new Date(year, month - 1)),
+    "yyyy-MM-dd",
+  );
   const monthEnd = format(endOfMonth(new Date(year, month - 1)), "yyyy-MM-dd");
   const yearStart = format(startOfYear(new Date(year, 0)), "yyyy-MM-dd");
   const yearEnd = format(endOfYear(new Date(year, 0)), "yyyy-MM-dd");
@@ -80,7 +93,7 @@ export const useDREDataNew = (month: number, year: number) => {
   // Calculate data per category
   const categoryData: DRECategoryData[] = categories.map((category) => {
     const categoryTransactions = transactions.filter(
-      (t) => t.category_id === category.id
+      (t) => t.category_id === category.id,
     );
 
     // Monthly realized (PAID with paid_at in month)
@@ -114,7 +127,9 @@ export const useDREDataNew = (month: number, year: number) => {
 
   // Group data by DRE group
   const getCategoriesByGroup = (groups: DREGroup[]): DRECategoryData[] => {
-    return categoryData.filter((c) => c.dreGroup && groups.includes(c.dreGroup));
+    return categoryData.filter(
+      (c) => c.dreGroup && groups.includes(c.dreGroup),
+    );
   };
 
   const getSectionTotals = (groups: DREGroup[]): DRESectionTotals => {
@@ -128,12 +143,20 @@ export const useDREDataNew = (month: number, year: number) => {
   };
 
   // Calculate section totals
-  const faturamento = getSectionTotals([DRE_GROUPS.RECEITAS_VENDAS, DRE_GROUPS.RECEITAS_SERVICOS]);
-  const cmv = getSectionTotals([DRE_GROUPS.CMV_MERCADORIAS, DRE_GROUPS.CMV_SERVICOS]);
+  const faturamento = getSectionTotals([
+    DRE_GROUPS.RECEITAS_VENDAS,
+    DRE_GROUPS.RECEITAS_SERVICOS,
+  ]);
+  const cmv = getSectionTotals([
+    DRE_GROUPS.CMV_MERCADORIAS,
+    DRE_GROUPS.CMV_SERVICOS,
+  ]);
   const despesasVariaveis = getSectionTotals([DRE_GROUPS.DESPESAS_VARIAVEIS]);
   const despesasFixas = getSectionTotals([DRE_GROUPS.DESPESAS_FIXAS]);
   const amortizacoes = getSectionTotals([DRE_GROUPS.AMORTIZACOES]);
-  const parcelamentoImpostos = getSectionTotals([DRE_GROUPS.PARCELAMENTO_IMPOSTOS]);
+  const parcelamentoImpostos = getSectionTotals([
+    DRE_GROUPS.PARCELAMENTO_IMPOSTOS,
+  ]);
 
   // Calculated totals
   const totalVariaveis: DRESectionTotals = {
@@ -151,49 +174,82 @@ export const useDREDataNew = (month: number, year: number) => {
   };
 
   const margemContribuicaoPct = {
-    budgetMonth: faturamento.budgetMonth > 0 
-      ? (margemContribuicao.budgetMonth / faturamento.budgetMonth) * 100 
-      : 0,
-    realizedMonth: faturamento.realizedMonth > 0 
-      ? (margemContribuicao.realizedMonth / faturamento.realizedMonth) * 100 
-      : 0,
-    budgetYear: faturamento.budgetYear > 0 
-      ? (margemContribuicao.budgetYear / faturamento.budgetYear) * 100 
-      : 0,
-    realizedYear: faturamento.realizedYear > 0 
-      ? (margemContribuicao.realizedYear / faturamento.realizedYear) * 100 
-      : 0,
+    budgetMonth:
+      faturamento.budgetMonth > 0
+        ? (margemContribuicao.budgetMonth / faturamento.budgetMonth) * 100
+        : 0,
+    realizedMonth:
+      faturamento.realizedMonth > 0
+        ? (margemContribuicao.realizedMonth / faturamento.realizedMonth) * 100
+        : 0,
+    budgetYear:
+      faturamento.budgetYear > 0
+        ? (margemContribuicao.budgetYear / faturamento.budgetYear) * 100
+        : 0,
+    realizedYear:
+      faturamento.realizedYear > 0
+        ? (margemContribuicao.realizedYear / faturamento.realizedYear) * 100
+        : 0,
   };
 
   const resultadoOperacional: DRESectionTotals = {
     budgetMonth: margemContribuicao.budgetMonth - despesasFixas.budgetMonth,
-    realizedMonth: margemContribuicao.realizedMonth - despesasFixas.realizedMonth,
+    realizedMonth:
+      margemContribuicao.realizedMonth - despesasFixas.realizedMonth,
     budgetYear: margemContribuicao.budgetYear - despesasFixas.budgetYear,
     realizedYear: margemContribuicao.realizedYear - despesasFixas.realizedYear,
   };
 
   const resultadoGlobal: DRESectionTotals = {
-    budgetMonth: resultadoOperacional.budgetMonth - amortizacoes.budgetMonth - parcelamentoImpostos.budgetMonth,
-    realizedMonth: resultadoOperacional.realizedMonth - amortizacoes.realizedMonth - parcelamentoImpostos.realizedMonth,
-    budgetYear: resultadoOperacional.budgetYear - amortizacoes.budgetYear - parcelamentoImpostos.budgetYear,
-    realizedYear: resultadoOperacional.realizedYear - amortizacoes.realizedYear - parcelamentoImpostos.realizedYear,
+    budgetMonth:
+      resultadoOperacional.budgetMonth -
+      amortizacoes.budgetMonth -
+      parcelamentoImpostos.budgetMonth,
+    realizedMonth:
+      resultadoOperacional.realizedMonth -
+      amortizacoes.realizedMonth -
+      parcelamentoImpostos.realizedMonth,
+    budgetYear:
+      resultadoOperacional.budgetYear -
+      amortizacoes.budgetYear -
+      parcelamentoImpostos.budgetYear,
+    realizedYear:
+      resultadoOperacional.realizedYear -
+      amortizacoes.realizedYear -
+      parcelamentoImpostos.realizedYear,
   };
 
   // Ponto de equilíbrio (Break-even point)
   // Fórmula: Despesas Fixas / Margem de Contribuição %
   const pontoEquilibrio = {
-    budgetMonth: margemContribuicaoPct.budgetMonth > 0 
-      ? (despesasFixas.budgetMonth + amortizacoes.budgetMonth + parcelamentoImpostos.budgetMonth) / (margemContribuicaoPct.budgetMonth / 100)
-      : 0,
-    realizedMonth: margemContribuicaoPct.realizedMonth > 0 
-      ? (despesasFixas.realizedMonth + amortizacoes.realizedMonth + parcelamentoImpostos.realizedMonth) / (margemContribuicaoPct.realizedMonth / 100)
-      : 0,
-    budgetYear: margemContribuicaoPct.budgetYear > 0 
-      ? (despesasFixas.budgetYear + amortizacoes.budgetYear + parcelamentoImpostos.budgetYear) / (margemContribuicaoPct.budgetYear / 100)
-      : 0,
-    realizedYear: margemContribuicaoPct.realizedYear > 0 
-      ? (despesasFixas.realizedYear + amortizacoes.realizedYear + parcelamentoImpostos.realizedYear) / (margemContribuicaoPct.realizedYear / 100)
-      : 0,
+    budgetMonth:
+      margemContribuicaoPct.budgetMonth > 0
+        ? (despesasFixas.budgetMonth +
+            amortizacoes.budgetMonth +
+            parcelamentoImpostos.budgetMonth) /
+          (margemContribuicaoPct.budgetMonth / 100)
+        : 0,
+    realizedMonth:
+      margemContribuicaoPct.realizedMonth > 0
+        ? (despesasFixas.realizedMonth +
+            amortizacoes.realizedMonth +
+            parcelamentoImpostos.realizedMonth) /
+          (margemContribuicaoPct.realizedMonth / 100)
+        : 0,
+    budgetYear:
+      margemContribuicaoPct.budgetYear > 0
+        ? (despesasFixas.budgetYear +
+            amortizacoes.budgetYear +
+            parcelamentoImpostos.budgetYear) /
+          (margemContribuicaoPct.budgetYear / 100)
+        : 0,
+    realizedYear:
+      margemContribuicaoPct.realizedYear > 0
+        ? (despesasFixas.realizedYear +
+            amortizacoes.realizedYear +
+            parcelamentoImpostos.realizedYear) /
+          (margemContribuicaoPct.realizedYear / 100)
+        : 0,
   };
 
   return {

@@ -5,22 +5,62 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { useRecurringTransactions, RecurringTransactionInput } from "@/hooks/useRecurringTransactions";
+import {
+  useRecurringTransactions,
+  RecurringTransactionInput,
+} from "@/hooks/useRecurringTransactions";
 import { useFinancialCategories } from "@/hooks/useFinancialCategories";
 import { useCostCenters } from "@/hooks/useCostCenters";
 import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, RefreshCw, Calendar, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  RefreshCw,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  Zap,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -36,7 +76,7 @@ export default function DespesasRecorrentes() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [generateMonth, setGenerateMonth] = useState<string>(
-    format(new Date(), "yyyy-MM")
+    format(new Date(), "yyyy-MM"),
   );
 
   const [formData, setFormData] = useState<RecurringTransactionInput>({
@@ -62,8 +102,12 @@ export default function DespesasRecorrentes() {
   const { costCenters } = useCostCenters();
   const { accounts } = useFinancialAccounts();
 
-  const expenseCategories = categories.filter(c => c.type === "expense" && c.is_active);
-  const revenueCategories = categories.filter(c => c.type === "income" && c.is_active);
+  const expenseCategories = categories.filter(
+    (c) => c.type === "expense" && c.is_active,
+  );
+  const revenueCategories = categories.filter(
+    (c) => c.type === "income" && c.is_active,
+  );
 
   const handleOpenNew = () => {
     setEditingId(null);
@@ -78,7 +122,7 @@ export default function DespesasRecorrentes() {
     setIsDialogOpen(true);
   };
 
-  const handleEdit = (item: typeof transactions[0]) => {
+  const handleEdit = (item: (typeof transactions)[0]) => {
     setEditingId(item.id);
     setFormData({
       description: item.description,
@@ -133,10 +177,20 @@ export default function DespesasRecorrentes() {
   };
 
   // Summary calculations
-  const activeExpenses = transactions.filter(t => t.is_active && t.direction === "PAY");
-  const activeRevenues = transactions.filter(t => t.is_active && t.direction === "RECEIVE");
-  const totalMonthlyExpenses = activeExpenses.reduce((sum, t) => sum + t.amount, 0);
-  const totalMonthlyRevenues = activeRevenues.reduce((sum, t) => sum + t.amount, 0);
+  const activeExpenses = transactions.filter(
+    (t) => t.is_active && t.direction === "PAY",
+  );
+  const activeRevenues = transactions.filter(
+    (t) => t.is_active && t.direction === "RECEIVE",
+  );
+  const totalMonthlyExpenses = activeExpenses.reduce(
+    (sum, t) => sum + t.amount,
+    0,
+  );
+  const totalMonthlyRevenues = activeRevenues.reduce(
+    (sum, t) => sum + t.amount,
+    0,
+  );
 
   if (isLoading) {
     return (
@@ -153,7 +207,11 @@ export default function DespesasRecorrentes() {
 
   return (
     <PageContainer>
-      <PageHeader title="Lançamentos Recorrentes" actionLabel="Novo" onAction={handleOpenNew} />
+      <PageHeader
+        title="Lançamentos Recorrentes"
+        actionLabel="Novo"
+        onAction={handleOpenNew}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -164,9 +222,15 @@ export default function DespesasRecorrentes() {
                 <TrendingDown className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Despesas Mensais</p>
-                <p className="text-xl font-bold text-red-600">{formatCurrency(totalMonthlyExpenses)}</p>
-                <p className="text-xs text-muted-foreground">{activeExpenses.length} ativos</p>
+                <p className="text-sm text-muted-foreground">
+                  Despesas Mensais
+                </p>
+                <p className="text-xl font-bold text-red-600">
+                  {formatCurrency(totalMonthlyExpenses)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {activeExpenses.length} ativos
+                </p>
               </div>
             </div>
           </CardContent>
@@ -179,9 +243,15 @@ export default function DespesasRecorrentes() {
                 <TrendingUp className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Receitas Mensais</p>
-                <p className="text-xl font-bold text-green-600">{formatCurrency(totalMonthlyRevenues)}</p>
-                <p className="text-xs text-muted-foreground">{activeRevenues.length} ativos</p>
+                <p className="text-sm text-muted-foreground">
+                  Receitas Mensais
+                </p>
+                <p className="text-xl font-bold text-green-600">
+                  {formatCurrency(totalMonthlyRevenues)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {activeRevenues.length} ativos
+                </p>
               </div>
             </div>
           </CardContent>
@@ -190,12 +260,18 @@ export default function DespesasRecorrentes() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${totalMonthlyRevenues - totalMonthlyExpenses >= 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-orange-100 dark:bg-orange-900/30"}`}>
-                <Calendar className={`h-5 w-5 ${totalMonthlyRevenues - totalMonthlyExpenses >= 0 ? "text-blue-600" : "text-orange-600"}`} />
+              <div
+                className={`p-2 rounded-lg ${totalMonthlyRevenues - totalMonthlyExpenses >= 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-orange-100 dark:bg-orange-900/30"}`}
+              >
+                <Calendar
+                  className={`h-5 w-5 ${totalMonthlyRevenues - totalMonthlyExpenses >= 0 ? "text-blue-600" : "text-orange-600"}`}
+                />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Saldo Mensal</p>
-                <p className={`text-xl font-bold ${totalMonthlyRevenues - totalMonthlyExpenses >= 0 ? "text-blue-600" : "text-orange-600"}`}>
+                <p
+                  className={`text-xl font-bold ${totalMonthlyRevenues - totalMonthlyExpenses >= 0 ? "text-blue-600" : "text-orange-600"}`}
+                >
                   {formatCurrency(totalMonthlyRevenues - totalMonthlyExpenses)}
                 </p>
               </div>
@@ -223,15 +299,18 @@ export default function DespesasRecorrentes() {
                 className="w-40"
               />
             </div>
-            <Button 
-              onClick={handleGenerate} 
+            <Button
+              onClick={handleGenerate}
               disabled={generateForMonth.isPending}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${generateForMonth.isPending ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${generateForMonth.isPending ? "animate-spin" : ""}`}
+              />
               {generateForMonth.isPending ? "Gerando..." : "Gerar Lançamentos"}
             </Button>
             <p className="text-sm text-muted-foreground">
-              Gera transações em Contas a Pagar/Receber para todos os lançamentos recorrentes ativos.
+              Gera transações em Contas a Pagar/Receber para todos os
+              lançamentos recorrentes ativos.
             </p>
           </div>
         </CardContent>
@@ -255,16 +334,28 @@ export default function DespesasRecorrentes() {
             <TableBody>
               {transactions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     Nenhum lançamento recorrente cadastrado
                   </TableCell>
                 </TableRow>
               ) : (
                 transactions.map((item) => (
-                  <TableRow key={item.id} className={!item.is_active ? "opacity-50" : ""}>
-                    <TableCell className="font-medium">{item.description}</TableCell>
+                  <TableRow
+                    key={item.id}
+                    className={!item.is_active ? "opacity-50" : ""}
+                  >
+                    <TableCell className="font-medium">
+                      {item.description}
+                    </TableCell>
                     <TableCell>
-                      <Badge variant={item.direction === "PAY" ? "destructive" : "default"}>
+                      <Badge
+                        variant={
+                          item.direction === "PAY" ? "destructive" : "default"
+                        }
+                      >
                         {item.direction === "PAY" ? "Despesa" : "Receita"}
                       </Badge>
                     </TableCell>
@@ -278,17 +369,28 @@ export default function DespesasRecorrentes() {
                     <TableCell>
                       <Switch
                         checked={item.is_active}
-                        onCheckedChange={(checked) => 
-                          toggleActive.mutate({ id: item.id, is_active: checked })
+                        onCheckedChange={(checked) =>
+                          toggleActive.mutate({
+                            id: item.id,
+                            is_active: checked,
+                          })
                         }
                       />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(item)}
+                        >
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(item.id)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteId(item.id)}
+                        >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
@@ -306,7 +408,9 @@ export default function DespesasRecorrentes() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? "Editar Lançamento Recorrente" : "Novo Lançamento Recorrente"}
+              {editingId
+                ? "Editar Lançamento Recorrente"
+                : "Novo Lançamento Recorrente"}
             </DialogTitle>
           </DialogHeader>
 
@@ -315,7 +419,9 @@ export default function DespesasRecorrentes() {
               <Label>Descrição *</Label>
               <Input
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Ex: Aluguel, Salário, Mensalidade..."
               />
             </div>
@@ -325,7 +431,13 @@ export default function DespesasRecorrentes() {
                 <Label>Tipo *</Label>
                 <Select
                   value={formData.direction}
-                  onValueChange={(v) => setFormData({ ...formData, direction: v as "PAY" | "RECEIVE", category_id: undefined })}
+                  onValueChange={(v) =>
+                    setFormData({
+                      ...formData,
+                      direction: v as "PAY" | "RECEIVE",
+                      category_id: undefined,
+                    })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -344,7 +456,12 @@ export default function DespesasRecorrentes() {
                   step="0.01"
                   min="0"
                   value={formData.amount || ""}
-                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      amount: parseFloat(e.target.value) || 0,
+                    })
+                  }
                   placeholder="0,00"
                 />
               </div>
@@ -355,7 +472,9 @@ export default function DespesasRecorrentes() {
                 <Label>Dia do Vencimento *</Label>
                 <Select
                   value={formData.day_of_month.toString()}
-                  onValueChange={(v) => setFormData({ ...formData, day_of_month: parseInt(v) })}
+                  onValueChange={(v) =>
+                    setFormData({ ...formData, day_of_month: parseInt(v) })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -374,14 +493,22 @@ export default function DespesasRecorrentes() {
                 <Label>Categoria</Label>
                 <Select
                   value={formData.category_id || "__none__"}
-                  onValueChange={(v) => setFormData({ ...formData, category_id: v === "__none__" ? null : v })}
+                  onValueChange={(v) =>
+                    setFormData({
+                      ...formData,
+                      category_id: v === "__none__" ? null : v,
+                    })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sem categoria</SelectItem>
-                    {(formData.direction === "PAY" ? expenseCategories : revenueCategories).map((cat) => (
+                    {(formData.direction === "PAY"
+                      ? expenseCategories
+                      : revenueCategories
+                    ).map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
                       </SelectItem>
@@ -396,18 +523,25 @@ export default function DespesasRecorrentes() {
                 <Label>Centro de Custo</Label>
                 <Select
                   value={formData.cost_center_id || "__none__"}
-                  onValueChange={(v) => setFormData({ ...formData, cost_center_id: v === "__none__" ? null : v })}
+                  onValueChange={(v) =>
+                    setFormData({
+                      ...formData,
+                      cost_center_id: v === "__none__" ? null : v,
+                    })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Nenhum</SelectItem>
-                    {costCenters.filter(cc => cc.is_active).map((cc) => (
-                      <SelectItem key={cc.id} value={cc.id}>
-                        {cc.name}
-                      </SelectItem>
-                    ))}
+                    {costCenters
+                      .filter((cc) => cc.is_active)
+                      .map((cc) => (
+                        <SelectItem key={cc.id} value={cc.id}>
+                          {cc.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -416,18 +550,25 @@ export default function DespesasRecorrentes() {
                 <Label>Conta Financeira</Label>
                 <Select
                   value={formData.financial_account_id || "__none__"}
-                  onValueChange={(v) => setFormData({ ...formData, financial_account_id: v === "__none__" ? null : v })}
+                  onValueChange={(v) =>
+                    setFormData({
+                      ...formData,
+                      financial_account_id: v === "__none__" ? null : v,
+                    })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Nenhuma</SelectItem>
-                    {accounts.filter(a => a.is_active).map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>
-                        {acc.name}
-                      </SelectItem>
-                    ))}
+                    {accounts
+                      .filter((a) => a.is_active)
+                      .map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -439,7 +580,9 @@ export default function DespesasRecorrentes() {
                 <Input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, start_date: e.target.value })
+                  }
                 />
               </div>
 
@@ -448,7 +591,12 @@ export default function DespesasRecorrentes() {
                 <Input
                   type="date"
                   value={formData.end_date || ""}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value || null })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      end_date: e.target.value || null,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -457,7 +605,9 @@ export default function DespesasRecorrentes() {
               <Label>Observações</Label>
               <Textarea
                 value={formData.notes || ""}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
                 placeholder="Notas adicionais..."
                 rows={2}
               />
@@ -468,9 +618,11 @@ export default function DespesasRecorrentes() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={handleSave}
-              disabled={createTransaction.isPending || updateTransaction.isPending}
+              disabled={
+                createTransaction.isPending || updateTransaction.isPending
+              }
             >
               {editingId ? "Salvar" : "Criar"}
             </Button>
@@ -484,12 +636,16 @@ export default function DespesasRecorrentes() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir lançamento recorrente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Os lançamentos já gerados não serão afetados.
+              Esta ação não pode ser desfeita. Os lançamentos já gerados não
+              serão afetados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

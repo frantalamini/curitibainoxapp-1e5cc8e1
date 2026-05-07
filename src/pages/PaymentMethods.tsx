@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Plus, Pencil, Trash2, Search, CreditCard } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PaymentMethodMobileCard } from "@/components/mobile/PaymentMethodMobileCard";
@@ -33,13 +34,16 @@ import {
 export default function PaymentMethods() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { canCreate, canEdit, canDelete } =
+    useModulePermissions("payment_methods");
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { paymentMethods, isLoading, deletePaymentMethod, toggleActive } = usePaymentMethods();
+  const { paymentMethods, isLoading, deletePaymentMethod, toggleActive } =
+    usePaymentMethods();
 
   const filteredMethods = paymentMethods.filter((pm) =>
-    pm.name.toLowerCase().includes(search.toLowerCase())
+    pm.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleDelete = async () => {
@@ -69,10 +73,12 @@ export default function PaymentMethods() {
     <MainLayout>
       <PageContainer>
         <PageHeader title="Formas de Pagamento">
-          <Button onClick={() => navigate("/payment-methods/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Forma
-          </Button>
+          {canCreate && (
+            <Button onClick={() => navigate("/payment-methods/new")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Forma
+            </Button>
+          )}
         </PageHeader>
 
         {/* Search */}
@@ -99,9 +105,17 @@ export default function PaymentMethods() {
                 <PaymentMethodMobileCard
                   key={pm.id}
                   paymentMethod={pm}
-                  onEdit={() => navigate(`/payment-methods/edit/${pm.id}`)}
-                  onDelete={() => setDeleteId(pm.id)}
-                  onToggleActive={() => handleToggleActive(pm.id, pm.active)}
+                  onEdit={
+                    canEdit
+                      ? () => navigate(`/payment-methods/edit/${pm.id}`)
+                      : undefined
+                  }
+                  onDelete={canDelete ? () => setDeleteId(pm.id) : undefined}
+                  onToggleActive={
+                    canEdit
+                      ? () => handleToggleActive(pm.id, pm.active)
+                      : undefined
+                  }
                 />
               ))
             )}
@@ -121,7 +135,10 @@ export default function PaymentMethods() {
               <TableBody>
                 {filteredMethods.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={4}
+                      className="text-center py-8 text-muted-foreground"
+                    >
                       Nenhuma forma de pagamento encontrada
                     </TableCell>
                   </TableRow>
@@ -135,27 +152,40 @@ export default function PaymentMethods() {
                       <TableCell className="text-center">
                         <Switch
                           checked={pm.active}
-                          onCheckedChange={() => handleToggleActive(pm.id, pm.active)}
+                          onCheckedChange={
+                            canEdit
+                              ? () => handleToggleActive(pm.id, pm.active)
+                              : undefined
+                          }
+                          disabled={!canEdit}
                         />
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/payment-methods/edit/${pm.id}`)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteId(pm.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {(canEdit || canDelete) && (
+                        <TableCell>
+                          <div className="flex gap-1 justify-end">
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  navigate(`/payment-methods/edit/${pm.id}`)
+                                }
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteId(pm.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}
@@ -170,12 +200,16 @@ export default function PaymentMethods() {
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir esta forma de pagamento? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir esta forma de pagamento? Esta
+                ação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
                 Excluir
               </AlertDialogAction>
             </AlertDialogFooter>

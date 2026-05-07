@@ -68,12 +68,14 @@ export function usePayables(filters?: PayablesFilters) {
     queryFn: async () => {
       let query = supabase
         .from("financial_transactions")
-        .select(`
+        .select(
+          `
           *,
           supplier:clients(full_name, cpf_cnpj),
           category:financial_categories(name),
           cost_center:cost_centers(name)
-        `)
+        `,
+        )
         .eq("direction", "PAY")
         .order("due_date", { ascending: true });
 
@@ -84,7 +86,10 @@ export function usePayables(filters?: PayablesFilters) {
         query = query.lte("due_date", filters.endDate);
       }
       if (filters?.status && filters.status !== "all") {
-        query = query.eq("status", filters.status as "OPEN" | "PAID" | "CANCELED" | "PARTIAL");
+        query = query.eq(
+          "status",
+          filters.status as "OPEN" | "PAID" | "CANCELED" | "PARTIAL",
+        );
       }
       if (filters?.supplierId) {
         query = query.eq("client_id", filters.supplierId);
@@ -135,7 +140,13 @@ export function usePayables(filters?: PayablesFilters) {
   });
 
   const updatePayable = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<PayableInsert> }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<PayableInsert>;
+    }) => {
       const { error } = await supabase
         .from("financial_transactions")
         .update({

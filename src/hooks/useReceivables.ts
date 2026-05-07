@@ -65,11 +65,13 @@ export function useReceivables(filters?: ReceivablesFilters) {
     queryFn: async () => {
       let query = supabase
         .from("financial_transactions")
-        .select(`
+        .select(
+          `
           *,
           client:clients(full_name, cpf_cnpj),
           service_call:service_calls(os_number, equipment_description)
-        `)
+        `,
+        )
         .eq("direction", "RECEIVE")
         .order("due_date", { ascending: true });
 
@@ -80,7 +82,10 @@ export function useReceivables(filters?: ReceivablesFilters) {
         query = query.lte("due_date", filters.endDate);
       }
       if (filters?.status && filters.status !== "all") {
-        query = query.eq("status", filters.status as "OPEN" | "PAID" | "CANCELED" | "PARTIAL");
+        query = query.eq(
+          "status",
+          filters.status as "OPEN" | "PAID" | "CANCELED" | "PARTIAL",
+        );
       }
       if (filters?.clientId) {
         query = query.eq("client_id", filters.clientId);
@@ -94,7 +99,7 @@ export function useReceivables(filters?: ReceivablesFilters) {
       if (filters?.osNumber) {
         const osNum = parseInt(filters.osNumber, 10);
         if (!isNaN(osNum)) {
-          result = result.filter(r => r.service_call?.os_number === osNum);
+          result = result.filter((r) => r.service_call?.os_number === osNum);
         }
       }
 
@@ -132,7 +137,13 @@ export function useReceivables(filters?: ReceivablesFilters) {
   });
 
   const updateReceivable = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<ReceivableInsert> }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<ReceivableInsert>;
+    }) => {
       const { error } = await supabase
         .from("financial_transactions")
         .update({
@@ -235,8 +246,14 @@ export function useReceivables(filters?: ReceivablesFilters) {
   // Calculate summary
   const openReceivables = receivables.filter((r) => r.status === "OPEN");
   const paidReceivables = receivables.filter((r) => r.status === "PAID");
-  const totalOpen = openReceivables.reduce((sum, r) => sum + Number(r.amount), 0);
-  const totalPaid = paidReceivables.reduce((sum, r) => sum + Number(r.amount), 0);
+  const totalOpen = openReceivables.reduce(
+    (sum, r) => sum + Number(r.amount),
+    0,
+  );
+  const totalPaid = paidReceivables.reduce(
+    (sum, r) => sum + Number(r.amount),
+    0,
+  );
   const totalAll = receivables
     .filter((r) => r.status !== "CANCELED")
     .reduce((sum, r) => sum + Number(r.amount), 0);

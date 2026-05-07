@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfMonth, endOfMonth, subMonths, format, startOfYear, endOfYear } from "date-fns";
+import {
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  format,
+  startOfYear,
+  endOfYear,
+} from "date-fns";
 
 interface MonthlyData {
   month: string;
@@ -43,7 +50,8 @@ export const useDashboardFinanceiro = () => {
   // Calculate current month KPIs (realized - PAID)
   const currentMonthIncome = transactions
     .filter((t) => {
-      if (t.status !== "PAID" || !t.paid_at || t.direction !== "RECEIVE") return false;
+      if (t.status !== "PAID" || !t.paid_at || t.direction !== "RECEIVE")
+        return false;
       const paidDate = t.paid_at.split("T")[0];
       return paidDate >= currentMonthStart && paidDate <= currentMonthEnd;
     })
@@ -51,21 +59,24 @@ export const useDashboardFinanceiro = () => {
 
   const currentMonthExpense = transactions
     .filter((t) => {
-      if (t.status !== "PAID" || !t.paid_at || t.direction !== "PAY") return false;
+      if (t.status !== "PAID" || !t.paid_at || t.direction !== "PAY")
+        return false;
       const paidDate = t.paid_at.split("T")[0];
       return paidDate >= currentMonthStart && paidDate <= currentMonthEnd;
     })
     .reduce((sum, t) => sum + t.amount, 0);
 
   const currentMonthProfit = currentMonthIncome - currentMonthExpense;
-  const currentMonthMargin = currentMonthIncome > 0 
-    ? (currentMonthProfit / currentMonthIncome) * 100 
-    : 0;
+  const currentMonthMargin =
+    currentMonthIncome > 0
+      ? (currentMonthProfit / currentMonthIncome) * 100
+      : 0;
 
   // Calculate YTD KPIs
   const ytdIncome = transactions
     .filter((t) => {
-      if (t.status !== "PAID" || !t.paid_at || t.direction !== "RECEIVE") return false;
+      if (t.status !== "PAID" || !t.paid_at || t.direction !== "RECEIVE")
+        return false;
       const paidDate = t.paid_at.split("T")[0];
       return paidDate >= yearStart && paidDate <= currentMonthEnd;
     })
@@ -73,7 +84,8 @@ export const useDashboardFinanceiro = () => {
 
   const ytdExpense = transactions
     .filter((t) => {
-      if (t.status !== "PAID" || !t.paid_at || t.direction !== "PAY") return false;
+      if (t.status !== "PAID" || !t.paid_at || t.direction !== "PAY")
+        return false;
       const paidDate = t.paid_at.split("T")[0];
       return paidDate >= yearStart && paidDate <= currentMonthEnd;
     })
@@ -93,7 +105,8 @@ export const useDashboardFinanceiro = () => {
 
     const income = transactions
       .filter((t) => {
-        if (t.status !== "PAID" || !t.paid_at || t.direction !== "RECEIVE") return false;
+        if (t.status !== "PAID" || !t.paid_at || t.direction !== "RECEIVE")
+          return false;
         const paidDate = t.paid_at.split("T")[0];
         return paidDate >= monthStart && paidDate <= monthEnd;
       })
@@ -101,7 +114,8 @@ export const useDashboardFinanceiro = () => {
 
     const expense = transactions
       .filter((t) => {
-        if (t.status !== "PAID" || !t.paid_at || t.direction !== "PAY") return false;
+        if (t.status !== "PAID" || !t.paid_at || t.direction !== "PAY")
+          return false;
         const paidDate = t.paid_at.split("T")[0];
         return paidDate >= monthStart && paidDate <= monthEnd;
       })
@@ -118,19 +132,37 @@ export const useDashboardFinanceiro = () => {
 
   // Accounts status
   const todayStr = format(today, "yyyy-MM-dd");
-  
+
   const accountsStatus: AccountsStatus = {
     receivableOpen: transactions
-      .filter((t) => t.direction === "RECEIVE" && t.status === "OPEN" && t.due_date >= todayStr)
+      .filter(
+        (t) =>
+          t.direction === "RECEIVE" &&
+          t.status === "OPEN" &&
+          t.due_date >= todayStr,
+      )
       .reduce((sum, t) => sum + t.amount, 0),
     receivableOverdue: transactions
-      .filter((t) => t.direction === "RECEIVE" && t.status === "OPEN" && t.due_date < todayStr)
+      .filter(
+        (t) =>
+          t.direction === "RECEIVE" &&
+          t.status === "OPEN" &&
+          t.due_date < todayStr,
+      )
       .reduce((sum, t) => sum + t.amount, 0),
     payableOpen: transactions
-      .filter((t) => t.direction === "PAY" && t.status === "OPEN" && t.due_date >= todayStr)
+      .filter(
+        (t) =>
+          t.direction === "PAY" &&
+          t.status === "OPEN" &&
+          t.due_date >= todayStr,
+      )
       .reduce((sum, t) => sum + t.amount, 0),
     payableOverdue: transactions
-      .filter((t) => t.direction === "PAY" && t.status === "OPEN" && t.due_date < todayStr)
+      .filter(
+        (t) =>
+          t.direction === "PAY" && t.status === "OPEN" && t.due_date < todayStr,
+      )
       .reduce((sum, t) => sum + t.amount, 0),
   };
 
@@ -141,7 +173,8 @@ export const useDashboardFinanceiro = () => {
 
   const prevMonthIncome = transactions
     .filter((t) => {
-      if (t.status !== "PAID" || !t.paid_at || t.direction !== "RECEIVE") return false;
+      if (t.status !== "PAID" || !t.paid_at || t.direction !== "RECEIVE")
+        return false;
       const paidDate = t.paid_at.split("T")[0];
       return paidDate >= prevMonthStart && paidDate <= prevMonthEnd;
     })
@@ -149,18 +182,21 @@ export const useDashboardFinanceiro = () => {
 
   const prevMonthExpense = transactions
     .filter((t) => {
-      if (t.status !== "PAID" || !t.paid_at || t.direction !== "PAY") return false;
+      if (t.status !== "PAID" || !t.paid_at || t.direction !== "PAY")
+        return false;
       const paidDate = t.paid_at.split("T")[0];
       return paidDate >= prevMonthStart && paidDate <= prevMonthEnd;
     })
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const incomeChange = prevMonthIncome > 0 
-    ? ((currentMonthIncome - prevMonthIncome) / prevMonthIncome) * 100 
-    : 0;
-  const expenseChange = prevMonthExpense > 0 
-    ? ((currentMonthExpense - prevMonthExpense) / prevMonthExpense) * 100 
-    : 0;
+  const incomeChange =
+    prevMonthIncome > 0
+      ? ((currentMonthIncome - prevMonthIncome) / prevMonthIncome) * 100
+      : 0;
+  const expenseChange =
+    prevMonthExpense > 0
+      ? ((currentMonthExpense - prevMonthExpense) / prevMonthExpense) * 100
+      : 0;
 
   return {
     isLoading: transactionsLoading,

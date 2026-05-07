@@ -24,10 +24,12 @@ export const useMessageTemplates = () => {
 
       if (error) throw error;
 
-      return data.map((t): MessageTemplate => ({
-        ...t,
-        category: t.category as MessageCategory | null,
-      }));
+      return data.map(
+        (t): MessageTemplate => ({
+          ...t,
+          category: t.category as MessageCategory | null,
+        }),
+      );
     },
   });
 };

@@ -2,11 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Check, CheckCheck, Calendar, Clock, AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotifications, Notification } from "@/hooks/useNotifications";
-import { useMentionNotifications, MentionNotification } from "@/hooks/useMentionNotifications";
+import {
+  useMentionNotifications,
+  MentionNotification,
+} from "@/hooks/useMentionNotifications";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -19,7 +28,12 @@ interface NotificationItemProps {
   onNavigate: () => void;
 }
 
-const NotificationItem = ({ notification, isRead, onMarkAsRead, onNavigate }: NotificationItemProps) => {
+const NotificationItem = ({
+  notification,
+  isRead,
+  onMarkAsRead,
+  onNavigate,
+}: NotificationItemProps) => {
   const handleClick = () => {
     if (!isRead) {
       onMarkAsRead();
@@ -32,15 +46,17 @@ const NotificationItem = ({ notification, isRead, onMarkAsRead, onNavigate }: No
       onClick={handleClick}
       className={cn(
         "p-3 rounded-lg border cursor-pointer transition-colors",
-        isRead 
-          ? "bg-muted/30 border-border/50" 
-          : "bg-primary/5 border-primary/20 hover:bg-primary/10"
+        isRead
+          ? "bg-muted/30 border-border/50"
+          : "bg-primary/5 border-primary/20 hover:bg-primary/10",
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm">OS #{notification.os_number}</span>
+            <span className="font-semibold text-sm">
+              OS #{notification.os_number}
+            </span>
             <span
               className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
               style={{ backgroundColor: notification.status_color }}
@@ -54,7 +70,9 @@ const NotificationItem = ({ notification, isRead, onMarkAsRead, onNavigate }: No
           <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              {format(parseLocalDate(notification.scheduled_date), "dd/MM", { locale: ptBR })}
+              {format(parseLocalDate(notification.scheduled_date), "dd/MM", {
+                locale: ptBR,
+              })}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -86,9 +104,13 @@ interface MentionNotificationItemProps {
   onMarkAsRead: () => void;
 }
 
-const MentionNotificationItem = ({ notification, onNavigate, onMarkAsRead }: MentionNotificationItemProps) => {
+const MentionNotificationItem = ({
+  notification,
+  onNavigate,
+  onMarkAsRead,
+}: MentionNotificationItemProps) => {
   const isRead = !!notification.read_at;
-  
+
   const handleClick = () => {
     if (!isRead) {
       onMarkAsRead();
@@ -101,9 +123,9 @@ const MentionNotificationItem = ({ notification, onNavigate, onMarkAsRead }: Men
       onClick={handleClick}
       className={cn(
         "p-3 rounded-lg border cursor-pointer transition-colors",
-        isRead 
-          ? "bg-muted/30 border-border/50" 
-          : "bg-blue-500/5 border-blue-500/20 hover:bg-blue-500/10"
+        isRead
+          ? "bg-muted/30 border-border/50"
+          : "bg-blue-500/5 border-blue-500/20 hover:bg-blue-500/10",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -111,16 +133,14 @@ const MentionNotificationItem = ({ notification, onNavigate, onMarkAsRead }: Men
           <div className="flex items-center gap-2">
             <AtSign className="h-4 w-4 text-blue-500" />
             <span className="font-medium text-sm">
-              OS #{notification.metadata?.os_number || '?'}
+              OS #{notification.metadata?.os_number || "?"}
             </span>
           </div>
-          <p className="text-sm text-foreground/80 mt-1">
-            {notification.body}
-          </p>
+          <p className="text-sm text-foreground/80 mt-1">{notification.body}</p>
           <p className="text-xs text-muted-foreground mt-1.5">
             {formatDistanceToNow(new Date(notification.created_at), {
               addSuffix: true,
-              locale: ptBR
+              locale: ptBR,
             })}
           </p>
         </div>
@@ -146,15 +166,15 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("os");
-  
+
   // OS notifications (existing)
-  const { 
-    notifications: osNotifications, 
-    unreadCount: osUnreadCount, 
-    isLoading: osLoading, 
-    markAsRead: osMarkAsRead, 
-    markAllAsRead: osMarkAllAsRead, 
-    isRead: osIsRead 
+  const {
+    notifications: osNotifications,
+    unreadCount: osUnreadCount,
+    isLoading: osLoading,
+    markAsRead: osMarkAsRead,
+    markAllAsRead: osMarkAllAsRead,
+    isRead: osIsRead,
   } = useNotifications();
 
   // Mention notifications (new)
@@ -199,8 +219,8 @@ export function NotificationBell() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0">
-            <TabsTrigger 
-              value="os" 
+            <TabsTrigger
+              value="os"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3 px-4"
             >
               Ordens de Serviço
@@ -210,8 +230,8 @@ export function NotificationBell() {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger 
-              value="mentions" 
+            <TabsTrigger
+              value="mentions"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3 px-4"
             >
               Menções

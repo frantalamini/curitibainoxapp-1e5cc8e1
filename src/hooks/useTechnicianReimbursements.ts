@@ -52,16 +52,22 @@ interface ReimbursementsFilters {
 export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
   const queryClient = useQueryClient();
 
-  const { data: reimbursements = [], isLoading, error } = useQuery({
+  const {
+    data: reimbursements = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["technician-reimbursements", filters],
     queryFn: async () => {
       let query = supabase
         .from("technician_reimbursements")
-        .select(`
+        .select(
+          `
           *,
           technician:technicians(full_name, phone),
           service_call:service_calls(os_number, equipment_description, clients(full_name))
-        `)
+        `,
+        )
         .order("requested_at", { ascending: false });
 
       if (filters?.serviceCallId) {
@@ -115,7 +121,9 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
 
   const approveReimbursement = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       // 1. Approve the reimbursement
       const { data: reimbursementData, error } = await supabase
@@ -150,7 +158,9 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
       if (txError) {
         console.error("Erro ao criar conta a pagar:", txError);
         // Don't throw - reimbursement was already approved
-        toast.warning("Reembolso aprovado, mas houve erro ao criar a conta a pagar");
+        toast.warning(
+          "Reembolso aprovado, mas houve erro ao criar a conta a pagar",
+        );
       }
     },
     onSuccess: () => {
@@ -185,7 +195,13 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
   });
 
   const markAsPaid = useMutation({
-    mutationFn: async ({ id, paymentProofUrl }: { id: string; paymentProofUrl: string }) => {
+    mutationFn: async ({
+      id,
+      paymentProofUrl,
+    }: {
+      id: string;
+      paymentProofUrl: string;
+    }) => {
       // 1. Mark reimbursement as paid
       const { data: reimbursementData, error } = await supabase
         .from("technician_reimbursements")
@@ -244,13 +260,26 @@ export function useTechnicianReimbursements(filters?: ReimbursementsFilters) {
   });
 
   // Calculate summary from ALL reimbursements (not filtered by status)
-  const pendingReimbursements = reimbursements.filter(r => r.status === "PENDING");
-  const approvedReimbursements = reimbursements.filter(r => r.status === "APPROVED");
-  const paidReimbursements = reimbursements.filter(r => r.status === "PAID");
-  
-  const totalPending = pendingReimbursements.reduce((sum, r) => sum + Number(r.amount), 0);
-  const totalApproved = approvedReimbursements.reduce((sum, r) => sum + Number(r.amount), 0);
-  const totalPaid = paidReimbursements.reduce((sum, r) => sum + Number(r.amount), 0);
+  const pendingReimbursements = reimbursements.filter(
+    (r) => r.status === "PENDING",
+  );
+  const approvedReimbursements = reimbursements.filter(
+    (r) => r.status === "APPROVED",
+  );
+  const paidReimbursements = reimbursements.filter((r) => r.status === "PAID");
+
+  const totalPending = pendingReimbursements.reduce(
+    (sum, r) => sum + Number(r.amount),
+    0,
+  );
+  const totalApproved = approvedReimbursements.reduce(
+    (sum, r) => sum + Number(r.amount),
+    0,
+  );
+  const totalPaid = paidReimbursements.reduce(
+    (sum, r) => sum + Number(r.amount),
+    0,
+  );
 
   return {
     reimbursements,

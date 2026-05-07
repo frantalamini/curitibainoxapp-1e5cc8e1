@@ -28,15 +28,19 @@ export const useMentionNotifications = () => {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const previousNotificationsRef = useRef<string[]>([]);
 
-  // Get current user ID
+  // Get current user ID (getSession lê do localStorage — sem network call)
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setUserId(session?.user?.id || null);
     };
     getUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_, session) => {
       setUserId(session?.user?.id || null);
     });
 
@@ -55,18 +59,18 @@ export const useMentionNotifications = () => {
     const channel = supabase
       .channel(`mention-notifications-${userId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'in_app_notifications',
-          filter: `user_id=eq.${userId}`
+          event: "INSERT",
+          schema: "public",
+          table: "in_app_notifications",
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           const newNotification = payload.new as MentionNotification;
-          
+
           // Show toast for new mention
-          if (newNotification.type === 'mention') {
+          if (newNotification.type === "mention") {
             toast({
               title: newNotification.title,
               description: newNotification.body || undefined,
@@ -75,9 +79,9 @@ export const useMentionNotifications = () => {
 
           // Invalidate cache to update list
           queryClient.invalidateQueries({
-            queryKey: ['mention-notifications', userId]
+            queryKey: ["mention-notifications", userId],
           });
-        }
+        },
       )
       .subscribe();
 
@@ -89,7 +93,9 @@ export const useMentionNotifications = () => {
         channelRef.current = null;
       }
     };
-  }, [userId, queryClient, navigate]);
+    // navigate é estável no react-router-dom v6 mas não pertence a este effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, queryClient]);
 
   // Query notifications
   const { data: notifications = [], isLoading } = useQuery({
@@ -127,35 +133,38 @@ export const useMentionNotifications = () => {
       }));
     },
     enabled: !!userId,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000, // Fallback polling every minute
+    staleTime: 60 * 1000, // 1 min — alinhado ao refetchInterval, evita refetch redundante
+    refetchInterval: 2 * 60 * 1000, // Polling a cada 2min (realtime é o canal principal)
   });
 
   // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.read_at).length;
+  const unreadCount = notifications.filter((n) => !n.read_at).length;
 
   // Mark single notification as read
-  const markAsRead = useCallback(async (notificationId: string) => {
-    if (!userId) return;
+  const markAsRead = useCallback(
+    async (notificationId: string) => {
+      if (!userId) return;
 
-    const { error } = await supabase
-      .from("in_app_notifications")
-      .update({ read_at: new Date().toISOString() })
-      .eq("id", notificationId)
-      .eq("user_id", userId);
+      const { error } = await supabase
+        .from("in_app_notifications")
+        .update({ read_at: new Date().toISOString() })
+        .eq("id", notificationId)
+        .eq("user_id", userId);
 
-    if (!error) {
-      queryClient.invalidateQueries({
-        queryKey: ['mention-notifications', userId]
-      });
-    }
-  }, [userId, queryClient]);
+      if (!error) {
+        queryClient.invalidateQueries({
+          queryKey: ["mention-notifications", userId],
+        });
+      }
+    },
+    [userId, queryClient],
+  );
 
   // Mark all as read
   const markAllAsRead = useCallback(async () => {
     if (!userId) return;
 
-    const unreadIds = notifications.filter(n => !n.read_at).map(n => n.id);
+    const unreadIds = notifications.filter((n) => !n.read_at).map((n) => n.id);
     if (unreadIds.length === 0) return;
 
     const { error } = await supabase
@@ -166,20 +175,23 @@ export const useMentionNotifications = () => {
 
     if (!error) {
       queryClient.invalidateQueries({
-        queryKey: ['mention-notifications', userId]
+        queryKey: ["mention-notifications", userId],
       });
     }
   }, [userId, notifications, queryClient]);
 
   // Navigate to notification link
-  const goToNotification = useCallback((notification: MentionNotification) => {
-    if (!notification.read_at) {
-      markAsRead(notification.id);
-    }
-    if (notification.link) {
-      navigate(notification.link);
-    }
-  }, [markAsRead, navigate]);
+  const goToNotification = useCallback(
+    (notification: MentionNotification) => {
+      if (!notification.read_at) {
+        markAsRead(notification.id);
+      }
+      if (notification.link) {
+        navigate(notification.link);
+      }
+    },
+    [markAsRead, navigate],
+  );
 
   return {
     notifications,

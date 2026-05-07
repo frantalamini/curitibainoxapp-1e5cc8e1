@@ -9,7 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CreditCard, Plus, Trash2, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  CreditCard,
+  Plus,
+  Trash2,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 import { OSPaymentEntry, PaymentMethodType } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -52,18 +58,16 @@ export const PaymentMethodsSection = ({
   };
 
   const handleRemoveMethod = (id: string) => {
-    onMethodsChange(methods.filter(m => m.id !== id));
+    onMethodsChange(methods.filter((m) => m.id !== id));
   };
 
   const handleMethodChange = (
     id: string,
     field: keyof OSPaymentEntry,
-    value: string | number
+    value: string | number,
   ) => {
     onMethodsChange(
-      methods.map(m => 
-        m.id === id ? { ...m, [field]: value } : m
-      )
+      methods.map((m) => (m.id === id ? { ...m, [field]: value } : m)),
     );
   };
 
@@ -75,11 +79,11 @@ export const PaymentMethodsSection = ({
   // Auto-fill remaining amount for last method
   const handleAutoFill = (id: string) => {
     const otherMethodsTotal = methods
-      .filter(m => m.id !== id)
+      .filter((m) => m.id !== id)
       .reduce((sum, m) => sum + m.amount, 0);
-    
+
     const remaining = total - otherMethodsTotal;
-    handleMethodChange(id, 'amount', Math.max(0, remaining));
+    handleMethodChange(id, "amount", Math.max(0, remaining));
   };
 
   return (
@@ -127,17 +131,25 @@ export const PaymentMethodsSection = ({
                   <Label className="text-xs">Forma</Label>
                   <Select
                     value={method.method}
-                    onValueChange={(v) => handleMethodChange(method.id, 'method', v as PaymentMethodType)}
+                    onValueChange={(v) =>
+                      handleMethodChange(
+                        method.id,
+                        "method",
+                        v as PaymentMethodType,
+                      )
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(Object.keys(methodLabels) as PaymentMethodType[]).map((key) => (
-                        <SelectItem key={key} value={key}>
-                          {methodLabels[key]}
-                        </SelectItem>
-                      ))}
+                      {(Object.keys(methodLabels) as PaymentMethodType[]).map(
+                        (key) => (
+                          <SelectItem key={key} value={key}>
+                            {methodLabels[key]}
+                          </SelectItem>
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -149,7 +161,13 @@ export const PaymentMethodsSection = ({
                       step="0.01"
                       min="0"
                       value={method.amount}
-                      onChange={(e) => handleMethodChange(method.id, 'amount', Number(e.target.value))}
+                      onChange={(e) =>
+                        handleMethodChange(
+                          method.id,
+                          "amount",
+                          Number(e.target.value),
+                        )
+                      }
                     />
                     {methods.length > 1 && (
                       <Button
@@ -169,7 +187,9 @@ export const PaymentMethodsSection = ({
                   <Input
                     placeholder="Chave PIX, banco, etc."
                     value={method.details || ""}
-                    onChange={(e) => handleMethodChange(method.id, 'details', e.target.value)}
+                    onChange={(e) =>
+                      handleMethodChange(method.id, "details", e.target.value)
+                    }
                   />
                 </div>
                 <div className="flex items-end">
@@ -194,7 +214,7 @@ export const PaymentMethodsSection = ({
               "flex items-center gap-2 p-3 rounded-lg",
               isValid
                 ? "bg-green-500/10 border border-green-500/30"
-                : "bg-destructive/10 border border-destructive/30"
+                : "bg-destructive/10 border border-destructive/30",
             )}
           >
             {isValid ? (
@@ -208,13 +228,16 @@ export const PaymentMethodsSection = ({
               <>
                 <AlertCircle className="h-4 w-4 text-destructive" />
                 <span className="text-sm text-destructive">
-                  Diferença: {formatCurrency(difference)} {difference > 0 ? '(falta)' : '(excede)'}
+                  Diferença: {formatCurrency(difference)}{" "}
+                  {difference > 0 ? "(falta)" : "(excede)"}
                 </span>
               </>
             )}
             <div className="ml-auto text-sm">
               <span className="text-muted-foreground">Soma: </span>
-              <span className="font-semibold">{formatCurrency(methodsTotal)}</span>
+              <span className="font-semibold">
+                {formatCurrency(methodsTotal)}
+              </span>
               <span className="text-muted-foreground"> / Total: </span>
               <span className="font-semibold">{formatCurrency(total)}</span>
             </div>

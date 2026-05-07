@@ -5,8 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MapPin, Truck, Route, Navigation, User, Package } from "lucide-react";
-import { usePendingDeliveries, useSaleDeliveryTripsMutations } from "@/hooks/useSaleDeliveryTrips";
+import {
+  Loader2,
+  MapPin,
+  Truck,
+  Route,
+  Navigation,
+  User,
+  Package,
+} from "lucide-react";
+import {
+  usePendingDeliveries,
+  useSaleDeliveryTripsMutations,
+} from "@/hooks/useSaleDeliveryTrips";
 import { getCurrentPosition, type GeoCoordinates } from "@/lib/geoUtils";
 import { optimizeRoute, type DeliveryStop } from "@/lib/routeOptimizer";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +32,7 @@ export default function SaleDeliveries() {
   const [isCalculating, setIsCalculating] = useState(false);
 
   const toggleSelect = (id: string) => {
-    setSelected(prev => {
+    setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -34,12 +45,15 @@ export default function SaleDeliveries() {
     if (selected.size === pendingSales.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(pendingSales.map(s => s.id)));
+      setSelected(new Set(pendingSales.map((s) => s.id)));
     }
   };
 
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
 
   const handleCalculateRoute = useCallback(async () => {
     if (selected.size === 0) {
@@ -54,7 +68,8 @@ export default function SaleDeliveries() {
       const driverPos = await getCurrentPosition();
 
       // 2. Geocode all selected client addresses
-      const selectedSales = pendingSales?.filter(s => selected.has(s.id)) || [];
+      const selectedSales =
+        pendingSales?.filter((s) => selected.has(s.id)) || [];
       const stops: DeliveryStop[] = [];
 
       for (const sale of selectedSales) {
@@ -63,7 +78,9 @@ export default function SaleDeliveries() {
 
         const hasAddress = client.street || client.city || client.cep;
         if (!hasAddress) {
-          toast.warning(`Cliente "${client.full_name}" sem endereço cadastrado, será ignorado`);
+          toast.warning(
+            `Cliente "${client.full_name}" sem endereço cadastrado, será ignorado`,
+          );
           continue;
         }
 
@@ -118,59 +135,71 @@ export default function SaleDeliveries() {
       toast.success(`Rota otimizada com ${stops.length} entregas criada!`);
       navigate(`/vendas/entregas/${routeGroupId}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao calcular rota");
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao calcular rota",
+      );
     } finally {
       setIsCalculating(false);
     }
   }, [selected, pendingSales, createTrips, navigate]);
 
   // Single delivery (no route optimization)
-  const handleSingleDelivery = useCallback(async (saleId: string) => {
-    const sale = pendingSales?.find(s => s.id === saleId);
-    if (!sale) return;
+  const handleSingleDelivery = useCallback(
+    async (saleId: string) => {
+      const sale = pendingSales?.find((s) => s.id === saleId);
+      if (!sale) return;
 
-    setIsCalculating(true);
-    try {
-      const routeGroupId = crypto.randomUUID();
-      
-      let destLat: number | undefined;
-      let destLng: number | undefined;
+      setIsCalculating(true);
+      try {
+        const routeGroupId = crypto.randomUUID();
 
-      const client = sale.clients;
-      if (client && (client.street || client.city || client.cep)) {
-        try {
-          const { data } = await supabase.functions.invoke("geocode-address", {
-            body: {
-              street: client.street,
-              number: client.number,
-              neighborhood: client.neighborhood,
-              city: client.city,
-              state: client.state,
-              cep: client.cep,
-            },
-          });
-          if (data?.success) {
-            destLat = data.lat;
-            destLng = data.lng;
-          }
-        } catch {}
+        let destLat: number | undefined;
+        let destLng: number | undefined;
+
+        const client = sale.clients;
+        if (client && (client.street || client.city || client.cep)) {
+          try {
+            const { data } = await supabase.functions.invoke(
+              "geocode-address",
+              {
+                body: {
+                  street: client.street,
+                  number: client.number,
+                  neighborhood: client.neighborhood,
+                  city: client.city,
+                  state: client.state,
+                  cep: client.cep,
+                },
+              },
+            );
+            if (data?.success) {
+              destLat = data.lat;
+              destLng = data.lng;
+            }
+          } catch {}
+        }
+
+        await createTrips.mutateAsync([
+          {
+            sale_id: saleId,
+            route_group_id: routeGroupId,
+            route_order: 1,
+            status: "pending",
+            ...(destLat
+              ? { destination_lat: destLat, destination_lng: destLng }
+              : {}),
+          },
+        ]);
+
+        navigate(`/vendas/entregas/${routeGroupId}`);
+      } catch (error) {
+        toast.error("Erro ao iniciar entrega");
+      } finally {
+        setIsCalculating(false);
       }
-
-      await createTrips.mutateAsync([{
-        sale_id: saleId,
-        route_group_id: routeGroupId,
-        route_order: 1,
-        status: "pending",
-        ...(destLat ? { destination_lat: destLat, destination_lng: destLng } : {}),
-      }]);
-
-      navigate(`/vendas/entregas/${routeGroupId}`);
-    } catch (error) {
-      toast.error("Erro ao iniciar entrega");
-    } finally {
-      setIsCalculating(false);
-    }
-  }, [pendingSales, createTrips, navigate]);
+    },
+    [pendingSales, createTrips, navigate],
+  );
 
   return (
     <MainLayout>
@@ -217,7 +246,9 @@ export default function SaleDeliveries() {
               checked={selected.size === pendingSales?.length}
               onCheckedChange={selectAll}
             />
-            <span className="text-sm text-muted-foreground">Selecionar todas</span>
+            <span className="text-sm text-muted-foreground">
+              Selecionar todas
+            </span>
           </div>
         )}
 
@@ -230,14 +261,21 @@ export default function SaleDeliveries() {
             <CardContent className="py-12 text-center text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="font-medium">Nenhuma entrega pendente</p>
-              <p className="text-sm">Todas as vendas finalizadas já foram entregues.</p>
+              <p className="text-sm">
+                Todas as vendas finalizadas já foram entregues.
+              </p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
             {pendingSales.map((sale) => {
               const client = sale.clients;
-              const address = [client?.street, client?.number, client?.neighborhood, client?.city]
+              const address = [
+                client?.street,
+                client?.number,
+                client?.neighborhood,
+                client?.city,
+              ]
                 .filter(Boolean)
                 .join(", ");
 
@@ -259,7 +297,9 @@ export default function SaleDeliveries() {
                         </div>
                         <div className="flex items-center gap-1.5 text-sm">
                           <User className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="truncate">{client?.full_name || "—"}</span>
+                          <span className="truncate">
+                            {client?.full_name || "—"}
+                          </span>
                         </div>
                         {address && (
                           <div className="flex items-start gap-1.5 text-sm text-muted-foreground mt-1">

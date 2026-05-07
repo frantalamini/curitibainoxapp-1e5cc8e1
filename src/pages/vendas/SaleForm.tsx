@@ -68,8 +68,12 @@ export default function SaleForm() {
   // Form state
   const [clientId, setClientId] = useState<string>("");
   const [notes, setNotes] = useState("");
-  const [quoteValidUntil, setQuoteValidUntil] = useState<Date>(addDays(new Date(), 15));
-  const [discountType, setDiscountType] = useState<"value" | "percent">("value");
+  const [quoteValidUntil, setQuoteValidUntil] = useState<Date>(
+    addDays(new Date(), 15),
+  );
+  const [discountType, setDiscountType] = useState<"value" | "percent">(
+    "value",
+  );
   const [discountValue, setDiscountValue] = useState(0);
   const [commissionPercent, setCommissionPercent] = useState(0);
 
@@ -83,7 +87,9 @@ export default function SaleForm() {
     if (existingSale) {
       setClientId(existingSale.client_id);
       setNotes(existingSale.notes || "");
-      setDiscountType(existingSale.discount_type as "value" | "percent" || "value");
+      setDiscountType(
+        (existingSale.discount_type as "value" | "percent") || "value",
+      );
       setDiscountValue(existingSale.discount_value || 0);
       setCommissionPercent(existingSale.commission_percent || 0);
       if (existingSale.quote_valid_until) {
@@ -104,7 +110,7 @@ export default function SaleForm() {
           discount_type: item.discount_type,
           discount_value: item.discount_value,
           total: item.total,
-        }))
+        })),
       );
     }
   }, [existingItems]);
@@ -114,11 +120,11 @@ export default function SaleForm() {
     (p) =>
       p.active &&
       (p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(productSearch.toLowerCase()))
+        p.sku?.toLowerCase().includes(productSearch.toLowerCase())),
   );
 
   // Add product to items
-  const addProduct = (product: typeof products[0]) => {
+  const addProduct = (product: (typeof products)[0]) => {
     const newItem: LocalItem = {
       id: crypto.randomUUID(),
       product_id: product.id,
@@ -165,7 +171,7 @@ export default function SaleForm() {
           itemTotal -= updated.discount_value;
         }
         return { ...updated, total: Math.max(0, itemTotal) };
-      })
+      }),
     );
   };
 
@@ -204,7 +210,9 @@ export default function SaleForm() {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       if (isEditing && id) {
@@ -239,7 +247,9 @@ export default function SaleForm() {
           total: item.total,
         }));
 
-        const { error: itemsError } = await supabase.from("sale_items").insert(itemsToInsert);
+        const { error: itemsError } = await supabase
+          .from("sale_items")
+          .insert(itemsToInsert);
         if (itemsError) throw itemsError;
 
         toast.success("Orçamento atualizado!");
@@ -274,7 +284,9 @@ export default function SaleForm() {
           total: item.total,
         }));
 
-        const { error: itemsError } = await supabase.from("sale_items").insert(itemsToInsert);
+        const { error: itemsError } = await supabase
+          .from("sale_items")
+          .insert(itemsToInsert);
         if (itemsError) throw itemsError;
 
         navigate("/vendas");
@@ -290,7 +302,9 @@ export default function SaleForm() {
       <MainLayout>
         <PageContainer>
           <div className="flex items-center justify-center h-64">
-            <div className="animate-pulse text-muted-foreground">Carregando...</div>
+            <div className="animate-pulse text-muted-foreground">
+              Carregando...
+            </div>
           </div>
         </PageContainer>
       </MainLayout>
@@ -301,7 +315,11 @@ export default function SaleForm() {
     <MainLayout>
       <PageContainer>
         <PageHeader
-          title={isEditing ? `Orçamento #${existingSale?.sale_number}` : "Novo Orçamento"}
+          title={
+            isEditing
+              ? `Orçamento #${existingSale?.sale_number}`
+              : "Novo Orçamento"
+          }
           showBackButton
           backTo="/vendas"
         />
@@ -328,7 +346,10 @@ export default function SaleForm() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Itens</CardTitle>
                 <div className="flex gap-2">
-                  <Popover open={showProductSearch} onOpenChange={setShowProductSearch}>
+                  <Popover
+                    open={showProductSearch}
+                    onOpenChange={setShowProductSearch}
+                  >
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm">
                         <Search className="h-4 w-4 mr-2" />
@@ -353,7 +374,9 @@ export default function SaleForm() {
                               <div className="font-medium">{product.name}</div>
                               <div className="text-muted-foreground text-xs flex justify-between">
                                 <span>{product.sku || "Sem SKU"}</span>
-                                <span>{formatCurrency(product.sale_price || 0)}</span>
+                                <span>
+                                  {formatCurrency(product.sale_price || 0)}
+                                </span>
                               </div>
                             </div>
                           ))}
@@ -381,15 +404,21 @@ export default function SaleForm() {
                         <TableHead className="w-[80px]">Qtd</TableHead>
                         <TableHead className="w-[120px]">Preço Un.</TableHead>
                         <TableHead className="w-[100px]">Desc.</TableHead>
-                        <TableHead className="w-[120px] text-right">Total</TableHead>
+                        <TableHead className="w-[120px] text-right">
+                          Total
+                        </TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {items.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                            Nenhum item adicionado. Use os botões acima para adicionar produtos.
+                          <TableCell
+                            colSpan={6}
+                            className="h-24 text-center text-muted-foreground"
+                          >
+                            Nenhum item adicionado. Use os botões acima para
+                            adicionar produtos.
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -398,7 +427,11 @@ export default function SaleForm() {
                             <TableCell>
                               <Input
                                 value={item.description}
-                                onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                                onChange={(e) =>
+                                  updateItem(item.id, {
+                                    description: e.target.value,
+                                  })
+                                }
                                 placeholder="Descrição do item"
                                 className="h-8"
                               />
@@ -407,7 +440,11 @@ export default function SaleForm() {
                               <Input
                                 type="number"
                                 value={item.qty}
-                                onChange={(e) => updateItem(item.id, { qty: parseFloat(e.target.value) || 0 })}
+                                onChange={(e) =>
+                                  updateItem(item.id, {
+                                    qty: parseFloat(e.target.value) || 0,
+                                  })
+                                }
                                 min={0}
                                 step={1}
                                 className="h-8 w-16"
@@ -417,7 +454,11 @@ export default function SaleForm() {
                               <Input
                                 type="number"
                                 value={item.unit_price}
-                                onChange={(e) => updateItem(item.id, { unit_price: parseFloat(e.target.value) || 0 })}
+                                onChange={(e) =>
+                                  updateItem(item.id, {
+                                    unit_price: parseFloat(e.target.value) || 0,
+                                  })
+                                }
                                 min={0}
                                 step={0.01}
                                 className="h-8"
@@ -427,7 +468,12 @@ export default function SaleForm() {
                               <Input
                                 type="number"
                                 value={item.discount_value}
-                                onChange={(e) => updateItem(item.id, { discount_value: parseFloat(e.target.value) || 0 })}
+                                onChange={(e) =>
+                                  updateItem(item.id, {
+                                    discount_value:
+                                      parseFloat(e.target.value) || 0,
+                                  })
+                                }
                                 min={0}
                                 step={0.01}
                                 className="h-8"
@@ -485,10 +531,14 @@ export default function SaleForm() {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={cn("w-full justify-start text-left font-normal")}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                        )}
                       >
                         <Calendar className="mr-2 h-4 w-4" />
-                        {format(quoteValidUntil, "dd/MM/yyyy", { locale: ptBR })}
+                        {format(quoteValidUntil, "dd/MM/yyyy", {
+                          locale: ptBR,
+                        })}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -514,7 +564,12 @@ export default function SaleForm() {
                 <div className="space-y-2">
                   <Label className="text-sm">Desconto Geral</Label>
                   <div className="flex gap-2">
-                    <Select value={discountType} onValueChange={(v) => setDiscountType(v as "value" | "percent")}>
+                    <Select
+                      value={discountType}
+                      onValueChange={(v) =>
+                        setDiscountType(v as "value" | "percent")
+                      }
+                    >
                       <SelectTrigger className="w-20">
                         <SelectValue />
                       </SelectTrigger>
@@ -526,7 +581,9 @@ export default function SaleForm() {
                     <Input
                       type="number"
                       value={discountValue}
-                      onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                      onChange={(e) =>
+                        setDiscountValue(parseFloat(e.target.value) || 0)
+                      }
                       min={0}
                       step={discountType === "percent" ? 1 : 0.01}
                       className="flex-1"
@@ -555,7 +612,9 @@ export default function SaleForm() {
                   <Input
                     type="number"
                     value={commissionPercent}
-                    onChange={(e) => setCommissionPercent(parseFloat(e.target.value) || 0)}
+                    onChange={(e) =>
+                      setCommissionPercent(parseFloat(e.target.value) || 0)
+                    }
                     min={0}
                     max={100}
                     step={0.5}

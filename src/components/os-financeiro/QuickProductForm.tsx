@@ -51,7 +51,7 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
   const { isAdmin, isTechnician } = useUserRole();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
@@ -109,7 +109,7 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
       toast({ title: "Produto criado com sucesso" });
       setIsOpen(false);
       resetForm();
-      
+
       // Call the callback with the created product
       if (result) {
         onSuccess(result as Product);
@@ -153,7 +153,9 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
             <Input
               id="quick-name"
               value={formData.name}
-              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
+              }
               placeholder="Nome do produto"
               autoFocus
             />
@@ -165,7 +167,9 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
               <Input
                 id="quick-sku"
                 value={formData.sku}
-                onChange={(e) => setFormData((prev) => ({ ...prev, sku: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, sku: e.target.value }))
+                }
                 placeholder="Código"
               />
             </div>
@@ -174,7 +178,9 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
               <Label htmlFor="quick-unit">Unidade</Label>
               <Select
                 value={formData.unit}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, unit: value }))}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, unit: value }))
+                }
               >
                 <SelectTrigger id="quick-unit">
                   <SelectValue />
@@ -194,7 +200,9 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
             <Label htmlFor="quick-type">Tipo</Label>
             <Select
               value={formData.type}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, type: value }))
+              }
             >
               <SelectTrigger id="quick-type">
                 <SelectValue placeholder="Selecione..." />
@@ -261,7 +269,8 @@ export const QuickProductForm = ({ onSuccess }: QuickProductFormProps) => {
               placeholder="Automático"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Preço de venda calculado automaticamente com base no custo e markup
+              Preço de venda calculado automaticamente com base no custo e
+              markup
             </p>
           </div>
 

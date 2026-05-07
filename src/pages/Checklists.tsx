@@ -2,6 +2,7 @@ import { useState } from "react";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { useChecklists } from "@/hooks/useChecklists";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -30,6 +31,7 @@ const Checklists = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { checklists, isLoading, deleteChecklist } = useChecklists();
+  const { canCreate, canEdit, canDelete } = useModulePermissions("checklists");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleDelete = () => {
@@ -51,11 +53,11 @@ const Checklists = () => {
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
-        <PageHeader 
-          title="Checklists" 
-          actionLabel="Novo Checklist"
-          onAction={() => navigate("/checklists/new")}
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
+        <PageHeader
+          title="Checklists"
+          actionLabel={canCreate ? "Novo Checklist" : undefined}
+          onAction={canCreate ? () => navigate("/checklists/new") : undefined}
         />
 
         {!checklists || checklists.length === 0 ? (
@@ -68,8 +70,14 @@ const Checklists = () => {
               <ChecklistMobileCard
                 key={checklist.id}
                 checklist={checklist}
-                onEdit={() => navigate(`/checklists/edit/${checklist.id}`)}
-                onDelete={() => setDeleteId(checklist.id)}
+                onEdit={
+                  canEdit
+                    ? () => navigate(`/checklists/edit/${checklist.id}`)
+                    : undefined
+                }
+                onDelete={
+                  canDelete ? () => setDeleteId(checklist.id) : undefined
+                }
               />
             ))}
           </div>
@@ -87,25 +95,38 @@ const Checklists = () => {
               <TableBody>
                 {checklists.map((checklist) => (
                   <TableRow key={checklist.id}>
-                    <TableCell className="font-medium">{checklist.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {checklist.name}
+                    </TableCell>
                     <TableCell>{checklist.description || "-"}</TableCell>
-                    <TableCell>{Array.isArray(checklist.items) ? checklist.items.length : 0} itens</TableCell>
+                    <TableCell>
+                      {Array.isArray(checklist.items)
+                        ? checklist.items.length
+                        : 0}{" "}
+                      itens
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate(`/checklists/edit/${checklist.id}`)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(checklist.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              navigate(`/checklists/edit/${checklist.id}`)
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteId(checklist.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -121,12 +142,15 @@ const Checklists = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este checklist? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este checklist? Esta ação não pode
+              ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

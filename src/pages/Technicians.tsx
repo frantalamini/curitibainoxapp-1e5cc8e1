@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTechnicians } from "@/hooks/useTechnicians";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,37 +22,28 @@ import { TechnicianMobileCard } from "@/components/mobile/TechnicianMobileCard";
 const Technicians = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { isAdmin } = useUserRole();
+  const { canCreate, canEdit } = useModulePermissions("technicians");
   const { technicians, isLoading } = useTechnicians();
   const [search, setSearch] = useState("");
-
-  if (!isAdmin) {
-    return (
-      <MainLayout>
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Você não tem permissão para acessar esta página.</p>
-        </div>
-      </MainLayout>
-    );
-  }
 
   const filteredTechnicians = technicians?.filter((tech) => {
     const searchLower = search.toLowerCase();
     return (
       tech.full_name.toLowerCase().includes(searchLower) ||
       tech.phone.includes(search) ||
-      (tech.specialty_refrigeration && "refrigeração comercial".includes(searchLower)) ||
+      (tech.specialty_refrigeration &&
+        "refrigeração comercial".includes(searchLower)) ||
       (tech.specialty_cooking && "cocção".includes(searchLower))
     );
   });
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-4 sm:pl-3 sm:pr-6 lg:pr-8 py-6 space-y-6">
-        <PageHeader 
-          title="Técnicos" 
-          actionLabel="Novo Técnico"
-          onAction={() => navigate("/technicians/new")}
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
+        <PageHeader
+          title="Técnicos"
+          actionLabel={canCreate ? "Novo Técnico" : undefined}
+          onAction={canCreate ? () => navigate("/technicians/new") : undefined}
         />
 
         <SearchBar
@@ -76,7 +67,11 @@ const Technicians = () => {
               <TechnicianMobileCard
                 key={tech.id}
                 technician={tech}
-                onEdit={() => navigate(`/technicians/${tech.id}/edit`)}
+                onEdit={
+                  canEdit
+                    ? () => navigate(`/technicians/${tech.id}/edit`)
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -90,50 +85,80 @@ const Technicians = () => {
                   <TableHead className="w-24">Telefone</TableHead>
                   <TableHead className="w-28">Especialidades</TableHead>
                   <TableHead className="w-16">Status</TableHead>
-                  <TableHead className="text-right w-12">Ações</TableHead>
+                  {canEdit && (
+                    <TableHead className="text-right w-12">Ações</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTechnicians?.map((tech) => {
                   const specialties = [];
-                  if (tech.specialty_refrigeration) specialties.push("Refrigeração Comercial");
+                  if (tech.specialty_refrigeration)
+                    specialties.push("Refrigeração Comercial");
                   if (tech.specialty_cooking) specialties.push("Cocção");
 
-                  const formattedPhone = tech.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+                  const formattedPhone = tech.phone.replace(
+                    /(\d{2})(\d{5})(\d{4})/,
+                    "($1) $2-$3",
+                  );
 
                   return (
                     <TableRow key={tech.id}>
-                      <TableCell className="font-mono text-xs w-10">#{tech.technician_number}</TableCell>
-                      <TableCell className="font-medium text-sm truncate max-w-[112px]" title={tech.full_name}>{tech.full_name}</TableCell>
-                      <TableCell className="text-sm text-nowrap">{formattedPhone}</TableCell>
+                      <TableCell className="font-mono text-xs w-10">
+                        #{tech.technician_number}
+                      </TableCell>
+                      <TableCell
+                        className="font-medium text-sm truncate max-w-[112px]"
+                        title={tech.full_name}
+                      >
+                        {tech.full_name}
+                      </TableCell>
+                      <TableCell className="text-sm text-nowrap">
+                        {formattedPhone}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           {specialties.length > 0 ? (
                             specialties.map((spec, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">
-                                {spec === "Refrigeração Comercial" ? "Refrig." : spec}
+                              <Badge
+                                key={idx}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {spec === "Refrigeração Comercial"
+                                  ? "Refrig."
+                                  : spec}
                               </Badge>
                             ))
                           ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
+                            <span className="text-muted-foreground text-sm">
+                              -
+                            </span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={tech.active ? "default" : "secondary"} className="text-xs">
+                        <Badge
+                          variant={tech.active ? "default" : "secondary"}
+                          className="text-xs"
+                        >
                           {tech.active ? "Ativo" : "Inativo"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => navigate(`/technicians/${tech.id}/edit`)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
+                      {canEdit && (
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() =>
+                              navigate(`/technicians/${tech.id}/edit`)
+                            }
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}

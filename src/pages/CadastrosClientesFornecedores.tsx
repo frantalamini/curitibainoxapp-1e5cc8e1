@@ -3,8 +3,22 @@ import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CadastrosTabs } from "@/components/CadastrosTabs";
 import { CadastrosTable } from "@/components/CadastrosTable";
@@ -12,32 +26,36 @@ import { CadastrosMobileCard } from "@/components/CadastrosMobileCard";
 import { CadastrosPagination } from "@/components/CadastrosPagination";
 import { CadastrosEmptyState } from "@/components/CadastrosEmptyState";
 import { useCadastros, CadastroTipo } from "@/hooks/useCadastros";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Plus, Printer, MoreVertical, Search } from "lucide-react";
 
 export default function CadastrosClientesFornecedores() {
   const navigate = useNavigate();
-  
+  const { canCreate, canEdit, canDelete } = useModulePermissions("clients");
+
   // Estados de filtros
-  const [activeTab, setActiveTab] = useState<CadastroTipo | 'todos'>('todos');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<CadastroTipo | "todos">("todos");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [orderBy, setOrderBy] = useState<'full_name' | 'created_at'>('full_name');
-  const [orderDirection, setOrderDirection] = useState<'asc' | 'desc'>('asc');
-  
+  const [orderBy, setOrderBy] = useState<"full_name" | "created_at">(
+    "full_name",
+  );
+  const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("asc");
+
   // Estados de seleção
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Hook de dados
-  const { 
-    cadastros, 
-    count, 
-    totalPages, 
+  const {
+    cadastros,
+    count,
+    totalPages,
     currentPage,
-    counters, 
+    counters,
     isLoading,
-    deleteCadastro 
+    deleteCadastro,
   } = useCadastros({
     tipo: activeTab,
     search: debouncedSearch,
@@ -65,14 +83,14 @@ export default function CadastrosClientesFornecedores() {
   useEffect(() => {
     setSelectedIds([]);
     setDeleteId(null);
-    document.body.classList.remove('overflow-hidden');
-    document.body.style.removeProperty('pointer-events');
+    document.body.classList.remove("overflow-hidden");
+    document.body.style.removeProperty("pointer-events");
   }, []);
 
   // Handlers de seleção
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(cadastros.map(c => c.id));
+      setSelectedIds(cadastros.map((c) => c.id));
     } else {
       setSelectedIds([]);
     }
@@ -82,7 +100,7 @@ export default function CadastrosClientesFornecedores() {
     if (checked) {
       setSelectedIds([...selectedIds, id]);
     } else {
-      setSelectedIds(selectedIds.filter(i => i !== id));
+      setSelectedIds(selectedIds.filter((i) => i !== id));
     }
   };
 
@@ -92,48 +110,52 @@ export default function CadastrosClientesFornecedores() {
       deleteCadastro.mutate(deleteId, {
         onSuccess: () => {
           setDeleteId(null);
-          setSelectedIds(selectedIds.filter(id => id !== deleteId));
+          setSelectedIds(selectedIds.filter((id) => id !== deleteId));
         },
       });
     }
   };
 
-  const handleSort = (field: 'full_name' | 'created_at') => {
+  const handleSort = (field: "full_name" | "created_at") => {
     if (orderBy === field) {
-      setOrderDirection(orderDirection === 'asc' ? 'desc' : 'asc');
+      setOrderDirection(orderDirection === "asc" ? "desc" : "asc");
     } else {
       setOrderBy(field);
-      setOrderDirection('asc');
+      setOrderDirection("asc");
     }
   };
 
   const handleResetFilters = () => {
-    setSearchTerm('');
-    setActiveTab('todos');
+    setSearchTerm("");
+    setActiveTab("todos");
     setPage(1);
   };
 
   return (
     <MainLayout>
-      <div className="w-full max-w-[1400px] mr-auto pl-1 pr-4 sm:pl-2 sm:pr-6 py-6 space-y-6">
+      <div className="w-full max-w-[1400px] mr-auto pl-2 pr-6 sm:pl-3 sm:pr-8 lg:pl-4 lg:pr-10 py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Clientes e Fornecedores</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Clientes e Fornecedores
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {count} {count === 1 ? 'registro' : 'registros'}
+              {count} {count === 1 ? "registro" : "registros"}
             </p>
           </div>
-          
+
           <div className="flex items-center gap-2 flex-wrap">
             <Button variant="outline" size="sm">
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
             </Button>
-            <Button size="sm" onClick={() => navigate('/cadastros/novo')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Incluir Cadastro
-            </Button>
+            {canCreate && (
+              <Button size="sm" onClick={() => navigate("/cadastros/novo")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Incluir Cadastro
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -156,24 +178,24 @@ export default function CadastrosClientesFornecedores() {
 
         {/* Sticky header: Busca + Abas */}
         <div className="sticky top-0 z-10 bg-background pb-4 space-y-4 border-b">
-        {/* Barra de busca */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Pesquise por nome, código, fantasia, e-mail ou CPF/CNPJ"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+          {/* Barra de busca */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquise por nome, código, fantasia, e-mail ou CPF/CNPJ"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Abas de filtro */}
+          <CadastrosTabs
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab as CadastroTipo | "todos")}
+            counters={counters}
           />
         </div>
-
-        {/* Abas de filtro */}
-        <CadastrosTabs
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as CadastroTipo | 'todos')}
-          counters={counters}
-        />
-      </div>
 
         {/* Conteúdo principal */}
         {isLoading ? (
@@ -184,7 +206,9 @@ export default function CadastrosClientesFornecedores() {
           </div>
         ) : cadastros.length === 0 ? (
           <CadastrosEmptyState
-            type={searchTerm || activeTab !== 'todos' ? 'no-results' : 'no-data'}
+            type={
+              searchTerm || activeTab !== "todos" ? "no-results" : "no-data"
+            }
             searchTerm={searchTerm}
             onReset={handleResetFilters}
           />
@@ -197,9 +221,13 @@ export default function CadastrosClientesFornecedores() {
                 selectedIds={selectedIds}
                 onSelectAll={handleSelectAll}
                 onSelectOne={handleSelectOne}
-                onEdit={(id) => navigate(`/cadastros/clientes/${id}/editar`)}
+                onEdit={
+                  canEdit
+                    ? (id) => navigate(`/cadastros/clientes/${id}/editar`)
+                    : undefined
+                }
                 onView={(id) => navigate(`/cadastros/clientes/${id}`)}
-                onDelete={(id) => setDeleteId(id)}
+                onDelete={canDelete ? (id) => setDeleteId(id) : undefined}
                 orderBy={orderBy}
                 orderDirection={orderDirection}
                 onSort={handleSort}
@@ -214,9 +242,13 @@ export default function CadastrosClientesFornecedores() {
                   cadastro={cadastro}
                   isSelected={selectedIds.includes(cadastro.id)}
                   onSelect={(checked) => handleSelectOne(cadastro.id, checked)}
-                  onEdit={(id) => navigate(`/cadastros/clientes/${id}/editar`)}
+                  onEdit={
+                    canEdit
+                      ? (id) => navigate(`/cadastros/clientes/${id}/editar`)
+                      : undefined
+                  }
                   onView={(id) => navigate(`/cadastros/clientes/${id}`)}
-                  onDelete={(id) => setDeleteId(id)}
+                  onDelete={canDelete ? (id) => setDeleteId(id) : undefined}
                 />
               ))}
             </div>
@@ -234,17 +266,24 @@ export default function CadastrosClientesFornecedores() {
         )}
 
         {/* Modal de confirmação de exclusão */}
-        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialog
+          open={!!deleteId}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir este cadastro? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir este cadastro? Esta ação não pode
+                ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
                 Excluir
               </AlertDialogAction>
             </AlertDialogFooter>

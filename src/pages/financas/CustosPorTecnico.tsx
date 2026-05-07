@@ -19,9 +19,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useTechnicianCostsReport } from "@/hooks/useTechnicianCostsReport";
-import { 
-  Users, 
-  Receipt, 
+import {
+  Users,
+  Receipt,
   Fuel,
   Route,
   TrendingDown,
@@ -134,7 +134,9 @@ export default function CustosPorTecnico() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Custo Total</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Custo Total
+              </p>
               <TrendingDown className="h-5 w-5 text-red-500" />
             </div>
             {isLoading ? (
@@ -150,7 +152,9 @@ export default function CustosPorTecnico() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Reembolsos</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Reembolsos
+              </p>
               <Receipt className="h-5 w-5 text-amber-500" />
             </div>
             {isLoading ? (
@@ -166,7 +170,9 @@ export default function CustosPorTecnico() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Combustível (Est.)</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Combustível (Est.)
+              </p>
               <Fuel className="h-5 w-5 text-blue-500" />
             </div>
             {isLoading ? (
@@ -182,7 +188,9 @@ export default function CustosPorTecnico() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Km Rodados</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Km Rodados
+              </p>
               <Route className="h-5 w-5 text-green-500" />
             </div>
             {isLoading ? (
@@ -306,7 +314,7 @@ export default function CustosPorTecnico() {
                           "text-right font-medium",
                           tech.costPerServiceCall > 100
                             ? "text-red-600"
-                            : "text-green-600"
+                            : "text-green-600",
                         )}
                       >
                         {formatCurrency(tech.costPerServiceCall)}
@@ -317,7 +325,10 @@ export default function CustosPorTecnico() {
                   <TableRow className="bg-muted/50 font-bold">
                     <TableCell>TOTAL</TableCell>
                     <TableCell className="text-center">
-                      {summaries.reduce((sum, s) => sum + s.serviceCallsCount, 0)}
+                      {summaries.reduce(
+                        (sum, s) => sum + s.serviceCallsCount,
+                        0,
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       {summaries.reduce((sum, s) => sum + s.tripsCount, 0)}

@@ -49,14 +49,19 @@ export interface SaleItemUpdate {
 export const useSaleItems = (saleId?: string) => {
   const queryClient = useQueryClient();
 
-  const { data: items, isLoading, error } = useQuery({
+  const {
+    data: items,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["sale-items", saleId],
     queryFn: async () => {
       if (!saleId) return [];
 
       const { data, error } = await supabase
         .from("sale_items")
-        .select(`
+        .select(
+          `
           *,
           products (
             id,
@@ -65,7 +70,8 @@ export const useSaleItems = (saleId?: string) => {
             sale_price,
             cost_price
           )
-        `)
+        `,
+        )
         .eq("sale_id", saleId)
         .order("created_at");
 
@@ -137,10 +143,7 @@ export const useSaleItems = (saleId?: string) => {
 
   const deleteItem = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("sale_items")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("sale_items").delete().eq("id", id);
 
       if (error) throw error;
     },

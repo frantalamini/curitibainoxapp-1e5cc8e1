@@ -1,11 +1,25 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Phone, Mail, MapPin, FileText, Building2, User } from "lucide-react";
+import {
+  Pencil,
+  Phone,
+  Mail,
+  MapPin,
+  FileText,
+  Building2,
+  User,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { parseTipos } from "@/lib/parseTipos";
 
 type CadastroViewSheetProps = {
   cadastroId: string | null;
@@ -14,20 +28,20 @@ type CadastroViewSheetProps = {
   onEdit: (id: string) => void;
 };
 
-export const CadastroViewSheet = ({ 
-  cadastroId, 
-  open, 
+export const CadastroViewSheet = ({
+  cadastroId,
+  open,
   onOpenChange,
-  onEdit 
+  onEdit,
 }: CadastroViewSheetProps) => {
   const { data: cadastro, isLoading } = useQuery({
-    queryKey: ['cadastro', cadastroId],
+    queryKey: ["cadastro", cadastroId],
     queryFn: async () => {
       if (!cadastroId) return null;
       const { data } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', cadastroId)
+        .from("clients")
+        .select("*")
+        .eq("id", cadastroId)
         .maybeSingle();
       return data;
     },
@@ -36,11 +50,11 @@ export const CadastroViewSheet = ({
 
   const getTipoLabel = (tipo: string) => {
     const labels: Record<string, string> = {
-      cliente: 'Cliente',
-      fornecedor: 'Fornecedor',
-      transportador: 'Transportador',
-      colaborador: 'Colaborador',
-      outro: 'Outro',
+      cliente: "Cliente",
+      fornecedor: "Fornecedor",
+      transportador: "Transportador",
+      colaborador: "Colaborador",
+      outro: "Outro",
     };
     return labels[tipo] || tipo;
   };
@@ -51,8 +65,8 @@ export const CadastroViewSheet = ({
         <SheetHeader>
           <div className="flex items-center justify-between">
             <SheetTitle>Visualizar Cadastro</SheetTitle>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={() => {
                 if (cadastroId) {
                   onEdit(cadastroId);
@@ -82,27 +96,36 @@ export const CadastroViewSheet = ({
               </div>
               <div className="space-y-2 pl-6">
                 <div>
-                  <span className="text-sm font-medium text-muted-foreground">Nome:</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Nome:
+                  </span>
                   <p className="text-sm">{cadastro.full_name}</p>
                 </div>
                 {cadastro.nome_fantasia && (
                   <div>
-                    <span className="text-sm font-medium text-muted-foreground">Nome Fantasia:</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Nome Fantasia:
+                    </span>
                     <p className="text-sm">{cadastro.nome_fantasia}</p>
                   </div>
                 )}
-                {cadastro.tipos && cadastro.tipos.length > 0 && (
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Tipo de Cadastro:</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {cadastro.tipos.map((tipo) => (
-                        <Badge key={tipo} variant="secondary">
-                          {getTipoLabel(tipo)}
-                        </Badge>
-                      ))}
+                {(() => {
+                  const tiposList = parseTipos(cadastro.tipos);
+                  return tiposList.length > 0 ? (
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Tipo de Cadastro:
+                      </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {tiposList.map((tipo) => (
+                          <Badge key={tipo} variant="secondary">
+                            {getTipoLabel(tipo)}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : null;
+                })()}
               </div>
             </div>
 
@@ -158,11 +181,14 @@ export const CadastroViewSheet = ({
                     )}
                     {cadastro.city && (
                       <p className="text-sm">
-                        {cadastro.city}{cadastro.state && ` - ${cadastro.state}`}
+                        {cadastro.city}
+                        {cadastro.state && ` - ${cadastro.state}`}
                       </p>
                     )}
                     {cadastro.cep && (
-                      <p className="text-sm text-muted-foreground">CEP: {cadastro.cep}</p>
+                      <p className="text-sm text-muted-foreground">
+                        CEP: {cadastro.cep}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -182,14 +208,16 @@ export const CadastroViewSheet = ({
                     {cadastro.cpf_cnpj && (
                       <div>
                         <span className="text-sm font-medium text-muted-foreground">
-                          {cadastro.cpf_cnpj.length <= 14 ? 'CPF:' : 'CNPJ:'}
+                          {cadastro.cpf_cnpj.length <= 14 ? "CPF:" : "CNPJ:"}
                         </span>
                         <p className="text-sm">{cadastro.cpf_cnpj}</p>
                       </div>
                     )}
                     {cadastro.state_registration && (
                       <div>
-                        <span className="text-sm font-medium text-muted-foreground">Inscrição Estadual:</span>
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Inscrição Estadual:
+                        </span>
                         <p className="text-sm">{cadastro.state_registration}</p>
                       </div>
                     )}
@@ -199,7 +227,9 @@ export const CadastroViewSheet = ({
             )}
 
             {/* Responsáveis */}
-            {(cadastro.responsible_financial || cadastro.responsible_technical || cadastro.responsible_legal) && (
+            {(cadastro.responsible_financial ||
+              cadastro.responsible_technical ||
+              cadastro.responsible_legal) && (
               <>
                 <Separator />
                 <div className="space-y-3">
@@ -208,36 +238,53 @@ export const CadastroViewSheet = ({
                     Responsáveis
                   </div>
                   <div className="space-y-3 pl-6">
-                    {cadastro.responsible_financial && (cadastro.responsible_financial as any).name && (
-                      <div>
-                        <p className="text-sm font-medium">Financeiro</p>
-                        <p className="text-sm text-muted-foreground">{(cadastro.responsible_financial as any).name}</p>
-                        {(cadastro.responsible_financial as any).phone && (
-                          <p className="text-sm text-muted-foreground">{(cadastro.responsible_financial as any).phone}</p>
-                        )}
-                      </div>
-                    )}
-                    {cadastro.responsible_technical && (cadastro.responsible_technical as any).name && (
-                      <div>
-                        <p className="text-sm font-medium">Técnico</p>
-                        <p className="text-sm text-muted-foreground">{(cadastro.responsible_technical as any).name}</p>
-                        {(cadastro.responsible_technical as any).phone && (
-                          <p className="text-sm text-muted-foreground">{(cadastro.responsible_technical as any).phone}</p>
-                        )}
-                      </div>
-                    )}
-                    {cadastro.responsible_legal && (cadastro.responsible_legal as any).name && (
-                      <div>
-                        <p className="text-sm font-medium">Legal</p>
-                        <p className="text-sm text-muted-foreground">{(cadastro.responsible_legal as any).name}</p>
-                        {(cadastro.responsible_legal as any).phone && (
-                          <p className="text-sm text-muted-foreground">{(cadastro.responsible_legal as any).phone}</p>
-                        )}
-                        {(cadastro.responsible_legal as any).email && (
-                          <p className="text-sm text-muted-foreground">{(cadastro.responsible_legal as any).email}</p>
-                        )}
-                      </div>
-                    )}
+                    {cadastro.responsible_financial &&
+                      (cadastro.responsible_financial as any).name && (
+                        <div>
+                          <p className="text-sm font-medium">Financeiro</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(cadastro.responsible_financial as any).name}
+                          </p>
+                          {(cadastro.responsible_financial as any).phone && (
+                            <p className="text-sm text-muted-foreground">
+                              {(cadastro.responsible_financial as any).phone}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    {cadastro.responsible_technical &&
+                      (cadastro.responsible_technical as any).name && (
+                        <div>
+                          <p className="text-sm font-medium">Técnico</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(cadastro.responsible_technical as any).name}
+                          </p>
+                          {(cadastro.responsible_technical as any).phone && (
+                            <p className="text-sm text-muted-foreground">
+                              {(cadastro.responsible_technical as any).phone}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    {cadastro.responsible_legal &&
+                      (cadastro.responsible_legal as any).name && (
+                        <div>
+                          <p className="text-sm font-medium">Legal</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(cadastro.responsible_legal as any).name}
+                          </p>
+                          {(cadastro.responsible_legal as any).phone && (
+                            <p className="text-sm text-muted-foreground">
+                              {(cadastro.responsible_legal as any).phone}
+                            </p>
+                          )}
+                          {(cadastro.responsible_legal as any).email && (
+                            <p className="text-sm text-muted-foreground">
+                              {(cadastro.responsible_legal as any).email}
+                            </p>
+                          )}
+                        </div>
+                      )}
                   </div>
                 </div>
               </>
@@ -252,7 +299,9 @@ export const CadastroViewSheet = ({
                     <FileText className="h-4 w-4 text-muted-foreground" />
                     Observações
                   </div>
-                  <p className="text-sm pl-6 whitespace-pre-wrap">{cadastro.notes}</p>
+                  <p className="text-sm pl-6 whitespace-pre-wrap">
+                    {cadastro.notes}
+                  </p>
                 </div>
               </>
             )}

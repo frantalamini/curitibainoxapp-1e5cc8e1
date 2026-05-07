@@ -1,18 +1,46 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useVehicles } from "@/hooks/useVehicles";
-import { Car, MapPin, Loader2, AlertCircle, Navigation } from "lucide-react";
-import { getCurrentPosition, haversineDistance, formatDistance, type GeoCoordinates, type ClientAddress } from "@/lib/geoUtils";
+import {
+  Car,
+  MapPin,
+  Loader2,
+  AlertCircle,
+  Navigation,
+  Building2,
+} from "lucide-react";
+import {
+  getCurrentPosition,
+  haversineDistance,
+  formatDistance,
+  type GeoCoordinates,
+  type ClientAddress,
+} from "@/lib/geoUtils";
 import { supabase } from "@/integrations/supabase/client";
 
+type TripType = "deslocamento" | "interno";
+
 interface StartTripData {
-  vehicleId: string;
-  originLat: number;
-  originLng: number;
+  tripType: TripType;
+  vehicleId: string | null;
+  originLat: number | null;
+  originLng: number | null;
   destinationLat: number | null;
   destinationLng: number | null;
   estimatedDistanceKm: number | null;
@@ -26,30 +54,37 @@ interface StartTripModalProps {
   isLoading?: boolean;
 }
 
-export const StartTripModal = ({ 
-  open, 
-  onOpenChange, 
-  onConfirm, 
+export const StartTripModal = ({
+  open,
+  onOpenChange,
+  onConfirm,
   clientAddress,
-  isLoading 
+  isLoading,
 }: StartTripModalProps) => {
   const { vehicles } = useVehicles();
+  const [tripType, setTripType] = useState<TripType>("deslocamento");
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
-  const [gpsStatus, setGpsStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [gpsStatus, setGpsStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [gpsError, setGpsError] = useState<string>("");
   const [originCoords, setOriginCoords] = useState<GeoCoordinates | null>(null);
-  const [destinationCoords, setDestinationCoords] = useState<GeoCoordinates | null>(null);
-  const [estimatedDistance, setEstimatedDistance] = useState<number | null>(null);
+  const [destinationCoords, setDestinationCoords] =
+    useState<GeoCoordinates | null>(null);
+  const [estimatedDistance, setEstimatedDistance] = useState<number | null>(
+    null,
+  );
   const [isGeocoding, setIsGeocoding] = useState(false);
 
-  const activeVehicles = vehicles?.filter(v => v.status === 'ativo') || [];
+  const isInterno = tripType === "interno";
+  const activeVehicles = vehicles?.filter((v) => v.status === "ativo") || [];
 
-  // Buscar GPS ao abrir o modal
+  // Buscar GPS ao abrir o modal (apenas para deslocamento)
   useEffect(() => {
-    if (open) {
+    if (open && !isInterno) {
       captureGPS();
     }
-  }, [open]);
+  }, [open, isInterno]);
 
   // Geocodificar endereço do cliente quando coordenadas de origem estiverem prontas
   useEffect(() => {
@@ -61,47 +96,53 @@ export const StartTripModal = ({
   const captureGPS = async () => {
     setGpsStatus("loading");
     setGpsError("");
-    
+
     try {
       const coords = await getCurrentPosition();
       setOriginCoords(coords);
       setGpsStatus("success");
     } catch (error) {
       setGpsStatus("error");
-      setGpsError(error instanceof Error ? error.message : "Erro ao obter localização");
+      setGpsError(
+        error instanceof Error ? error.message : "Erro ao obter localização",
+      );
     }
   };
 
   const geocodeDestination = async () => {
     if (!clientAddress) return;
-    
+
     // Verifica se tem dados suficientes para geocodificar
-    const hasAddress = clientAddress.street || clientAddress.city || clientAddress.cep;
+    const hasAddress =
+      clientAddress.street || clientAddress.city || clientAddress.cep;
     if (!hasAddress) {
       console.log("Endereço insuficiente para geocodificação");
       return;
     }
-    
+
     setIsGeocoding(true);
-    
+
     try {
-      const { data, error } = await supabase.functions.invoke("geocode-address", {
-        body: clientAddress,
-      });
-      
+      const { data, error } = await supabase.functions.invoke(
+        "geocode-address",
+        {
+          body: clientAddress,
+        },
+      );
+
       if (error) throw error;
-      
+
       if (data?.success && data.lat && data.lng) {
         const destCoords = { lat: data.lat, lng: data.lng };
         setDestinationCoords(destCoords);
-        
+
         // Calcular distância se temos origem
         if (originCoords) {
           const distance = haversineDistance(
             originCoords.lat,
             originCoords.lng,
             destCoords.lat,
-            destCoords.lng
+            destCoords.lng,
           );
           setEstimatedDistance(distance);
         }
@@ -115,18 +156,35 @@ export const StartTripModal = ({
   };
 
   const handleConfirm = () => {
-    if (!selectedVehicleId || !originCoords) return;
-    
-    onConfirm({
-      vehicleId: selectedVehicleId,
-      originLat: originCoords.lat,
-      originLng: originCoords.lng,
-      destinationLat: destinationCoords?.lat || null,
-      destinationLng: destinationCoords?.lng || null,
-      estimatedDistanceKm: estimatedDistance,
-    });
-    
+    if (isInterno) {
+      onConfirm({
+        tripType: "interno",
+        vehicleId: null,
+        originLat: null,
+        originLng: null,
+        destinationLat: null,
+        destinationLng: null,
+        estimatedDistanceKm: null,
+      });
+    } else {
+      if (!selectedVehicleId || !originCoords) return;
+      onConfirm({
+        tripType: "deslocamento",
+        vehicleId: selectedVehicleId,
+        originLat: originCoords.lat,
+        originLng: originCoords.lng,
+        destinationLat: destinationCoords?.lat || null,
+        destinationLng: destinationCoords?.lng || null,
+        estimatedDistanceKm: estimatedDistance,
+      });
+    }
+
     // Reset state
+    resetState();
+  };
+
+  const resetState = () => {
+    setTripType("deslocamento");
     setSelectedVehicleId("");
     setOriginCoords(null);
     setDestinationCoords(null);
@@ -135,15 +193,12 @@ export const StartTripModal = ({
   };
 
   const handleCancel = () => {
-    setSelectedVehicleId("");
-    setOriginCoords(null);
-    setDestinationCoords(null);
-    setEstimatedDistance(null);
-    setGpsStatus("idle");
+    resetState();
     onOpenChange(false);
   };
 
-  const canConfirm = selectedVehicleId && gpsStatus === "success" && originCoords;
+  const canConfirm =
+    isInterno || (selectedVehicleId && gpsStatus === "success" && originCoords);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -156,83 +211,132 @@ export const StartTripModal = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Status GPS */}
+          {/* Tipo de serviço */}
           <div className="space-y-2">
-            <Label>Localização GPS</Label>
-            
-            {gpsStatus === "loading" && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-sm">Obtendo sua localização...</span>
-              </div>
-            )}
-            
-            {gpsStatus === "success" && originCoords && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
-                <MapPin className="h-4 w-4" />
-                <span className="text-sm">
-                  Localização capturada ({originCoords.lat.toFixed(4)}, {originCoords.lng.toFixed(4)})
-                </span>
-              </div>
-            )}
-            
-            {gpsStatus === "error" && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="ml-2">
-                  {gpsError}
-                  <Button
-                    variant="link"
-                    className="ml-2 p-0 h-auto"
-                    onClick={captureGPS}
-                  >
-                    Tentar novamente
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
+            <Label>Tipo de Atendimento</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={tripType === "deslocamento" ? "default" : "outline"}
+                className="flex items-center gap-2 h-12"
+                onClick={() => {
+                  setTripType("deslocamento");
+                  setGpsStatus("idle");
+                }}
+              >
+                <Car className="h-4 w-4" />
+                <span className="text-sm">Deslocamento</span>
+              </Button>
+              <Button
+                type="button"
+                variant={tripType === "interno" ? "default" : "outline"}
+                className="flex items-center gap-2 h-12"
+                onClick={() => setTripType("interno")}
+              >
+                <Building2 className="h-4 w-4" />
+                <span className="text-sm">Serviço Interno</span>
+              </Button>
+            </div>
           </div>
 
-          {/* Distância estimada */}
-          {estimatedDistance !== null && (
-            <div className="rounded-lg bg-primary/10 p-3">
-              <div className="flex items-center gap-2">
-                <Navigation className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Distância estimada</span>
-              </div>
-              <p className="text-2xl font-bold text-primary mt-1">
-                {formatDistance(estimatedDistance)}
+          {isInterno ? (
+            /* Serviço Interno — sem GPS, sem veículo */
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950 p-4 text-center">
+              <Building2 className="h-8 w-8 mx-auto text-amber-600 dark:text-amber-400 mb-2" />
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                Serviço realizado na base
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Distância em linha reta até o cliente
+                Sem deslocamento — GPS e veículo não serão registrados
               </p>
             </div>
-          )}
-          
-          {isGeocoding && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Calculando distância...</span>
-            </div>
-          )}
+          ) : (
+            <>
+              {/* Status GPS */}
+              <div className="space-y-2">
+                <Label>Localização GPS</Label>
 
-          {/* Seleção de veículo */}
-          <div className="space-y-2">
-            <Label htmlFor="vehicle">Veículo *</Label>
-            <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
-              <SelectTrigger id="vehicle">
-                <SelectValue placeholder="Selecione um veículo" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeVehicles.map((vehicle) => (
-                  <SelectItem key={vehicle.id} value={vehicle.id}>
-                    {vehicle.name} - {vehicle.plate}
-                    {vehicle.brand && ` (${vehicle.brand})`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                {gpsStatus === "loading" && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm">Obtendo sua localização...</span>
+                  </div>
+                )}
+
+                {gpsStatus === "success" && originCoords && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-sm">
+                      Localização capturada ({originCoords.lat.toFixed(4)},{" "}
+                      {originCoords.lng.toFixed(4)})
+                    </span>
+                  </div>
+                )}
+
+                {gpsStatus === "error" && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="ml-2">
+                      {gpsError}
+                      <Button
+                        variant="link"
+                        className="ml-2 p-0 h-auto"
+                        onClick={captureGPS}
+                      >
+                        Tentar novamente
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              {/* Distância estimada */}
+              {estimatedDistance !== null && (
+                <div className="rounded-lg bg-primary/10 p-3">
+                  <div className="flex items-center gap-2">
+                    <Navigation className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">
+                      Distância estimada
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold text-primary mt-1">
+                    {formatDistance(estimatedDistance)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Distância em linha reta até o cliente
+                  </p>
+                </div>
+              )}
+
+              {isGeocoding && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Calculando distância...</span>
+                </div>
+              )}
+
+              {/* Seleção de veículo */}
+              <div className="space-y-2">
+                <Label htmlFor="vehicle">Veículo *</Label>
+                <Select
+                  value={selectedVehicleId}
+                  onValueChange={setSelectedVehicleId}
+                >
+                  <SelectTrigger id="vehicle">
+                    <SelectValue placeholder="Selecione um veículo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeVehicles.map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        {vehicle.name} - {vehicle.plate}
+                        {vehicle.brand && ` (${vehicle.brand})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
@@ -249,7 +353,11 @@ export const StartTripModal = ({
             onClick={handleConfirm}
             disabled={!canConfirm || isLoading}
           >
-            {isLoading ? "Iniciando..." : "Iniciar Deslocamento"}
+            {isLoading
+              ? "Iniciando..."
+              : isInterno
+                ? "Iniciar Serviço Interno"
+                : "Iniciar Deslocamento"}
           </Button>
         </DialogFooter>
       </DialogContent>

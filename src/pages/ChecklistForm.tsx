@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useChecklists, ChecklistItem } from "@/hooks/useChecklists";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Plus, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,8 +18,9 @@ import { toTitleCase } from "@/lib/utils";
 const ChecklistForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { createChecklist, updateChecklist } = useChecklists();
   const isEditMode = !!id;
+  const { canCreate, canEdit } = useModulePermissions("checklists");
+  const { createChecklist, updateChecklist } = useChecklists();
   const { toast } = useToast();
 
   const [name, setName] = useState("");
@@ -38,7 +40,7 @@ const ChecklistForm = () => {
       if (error) throw error;
       return {
         ...data,
-        items: data.items as unknown as ChecklistItem[]
+        items: data.items as unknown as ChecklistItem[],
       };
     },
     enabled: isEditMode,
@@ -67,22 +69,43 @@ const ChecklistForm = () => {
     setItems(items.filter((item) => item.id !== itemId));
   };
 
-  const updateItem = (itemId: string, field: keyof ChecklistItem, value: any) => {
+  const updateItem = (
+    itemId: string,
+    field: keyof ChecklistItem,
+    value: any,
+  ) => {
     setItems(
       items.map((item) =>
-        item.id === itemId ? { ...item, [field]: value } : item
-      )
+        item.id === itemId ? { ...item, [field]: value } : item,
+      ),
     );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isEditMode && !canEdit) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para editar checklists.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!isEditMode && !canCreate) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para criar checklists.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!name.trim()) {
       toast({
         title: "Campo Obrigatório",
         description: "Nome do checklist é obrigatório",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -91,7 +114,7 @@ const ChecklistForm = () => {
       toast({
         title: "Atenção",
         description: "Adicione pelo menos um item ao checklist",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -100,7 +123,7 @@ const ChecklistForm = () => {
       toast({
         title: "Campos Incompletos",
         description: "Todos os itens devem ter um texto",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -185,7 +208,8 @@ const ChecklistForm = () => {
             <CardContent>
               {items.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  Nenhum item adicionado. Clique em "Adicionar Item" para começar.
+                  Nenhum item adicionado. Clique em "Adicionar Item" para
+                  começar.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -215,7 +239,10 @@ const ChecklistForm = () => {
                               updateItem(item.id, "required", checked)
                             }
                           />
-                          <Label htmlFor={`required-${item.id}`} className="text-sm">
+                          <Label
+                            htmlFor={`required-${item.id}`}
+                            className="text-sm"
+                          >
                             Item obrigatório
                           </Label>
                         </div>

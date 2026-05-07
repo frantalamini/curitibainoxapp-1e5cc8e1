@@ -11,10 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Loader2 } from "lucide-react";
-import { 
-  CATEGORY_LABELS, 
+import {
+  CATEGORY_LABELS,
   CATEGORY_ICONS,
-  ServiceCallMessage 
+  ServiceCallMessage,
 } from "@/hooks/useServiceCallMessages";
 
 interface ResolveMessageModalProps {
@@ -58,12 +58,11 @@ export const ResolveMessageModal = ({
         <div className="space-y-4 py-4">
           {/* Info */}
           <div className="flex items-center gap-2 flex-wrap">
-            {osNumber && (
-              <Badge variant="outline">OS #{osNumber}</Badge>
-            )}
+            {osNumber && <Badge variant="outline">OS #{osNumber}</Badge>}
             {message.category && (
               <Badge variant="secondary">
-                {CATEGORY_ICONS[message.category]} {CATEGORY_LABELS[message.category]}
+                {CATEGORY_ICONS[message.category]}{" "}
+                {CATEGORY_LABELS[message.category]}
               </Badge>
             )}
           </div>

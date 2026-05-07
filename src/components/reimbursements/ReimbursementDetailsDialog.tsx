@@ -1,7 +1,22 @@
 import { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, XCircle, DollarSign, ExternalLink, Loader2, Upload, Camera } from "lucide-react";
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  DollarSign,
+  ExternalLink,
+  Loader2,
+  Upload,
+  Camera,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -20,7 +35,14 @@ interface ReimbursementDetailsDialogProps {
   reimbursementId: string | null;
 }
 
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ElementType }> = {
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+    icon: React.ElementType;
+  }
+> = {
   PENDING: { label: "Pendente", variant: "secondary", icon: Clock },
   APPROVED: { label: "Aprovado", variant: "default", icon: CheckCircle },
   PAID: { label: "Pago", variant: "default", icon: DollarSign },
@@ -33,14 +55,18 @@ export function ReimbursementDetailsDialog({
   reimbursementId,
 }: ReimbursementDetailsDialogProps) {
   const { isAdmin } = useUserRole();
-  const { approveReimbursement, rejectReimbursement, markAsPaid } = useTechnicianReimbursements();
+  const { approveReimbursement, rejectReimbursement, markAsPaid } =
+    useTechnicianReimbursements();
 
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectNotes, setRejectNotes] = useState("");
   const [showPayForm, setShowPayForm] = useState(false);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [isUploadingProof, setIsUploadingProof] = useState(false);
-  const [ocrResult, setOcrResult] = useState<{ amount: number; matches: boolean } | null>(null);
+  const [ocrResult, setOcrResult] = useState<{
+    amount: number;
+    matches: boolean;
+  } | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,10 +74,11 @@ export function ReimbursementDetailsDialog({
     queryKey: ["reimbursement-details", reimbursementId],
     queryFn: async () => {
       if (!reimbursementId) return null;
-      
+
       const { data, error } = await supabase
         .from("technician_reimbursements")
-        .select(`
+        .select(
+          `
           *,
           service_calls (
             os_number,
@@ -60,7 +87,8 @@ export function ReimbursementDetailsDialog({
               full_name
             )
           )
-        `)
+        `,
+        )
         .eq("id", reimbursementId)
         .single();
 
@@ -70,7 +98,9 @@ export function ReimbursementDetailsDialog({
     enabled: open && !!reimbursementId,
   });
 
-  const status = reimbursement ? (statusConfig[reimbursement.status] || statusConfig.PENDING) : statusConfig.PENDING;
+  const status = reimbursement
+    ? statusConfig[reimbursement.status] || statusConfig.PENDING
+    : statusConfig.PENDING;
   const StatusIcon = status.icon;
 
   const handleApprove = () => {
@@ -81,38 +111,53 @@ export function ReimbursementDetailsDialog({
 
   const handleReject = () => {
     if (!reimbursementId) return;
-    rejectReimbursement.mutate({ id: reimbursementId, notes: rejectNotes || undefined });
+    rejectReimbursement.mutate({
+      id: reimbursementId,
+      notes: rejectNotes || undefined,
+    });
     setShowRejectForm(false);
     setRejectNotes("");
     onOpenChange(false);
   };
 
-  const handlePaymentFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePaymentFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file || !reimbursement) return;
     setPaymentProofFile(file);
-    
+
     // Run OCR on payment proof
     setIsExtracting(true);
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        const { data, error } = await supabase.functions.invoke("extract-receipt-amount", {
-          body: { imageBase64: base64 }
-        });
+        const { data, error } = await supabase.functions.invoke(
+          "extract-receipt-amount",
+          {
+            body: { imageBase64: base64 },
+          },
+        );
 
         if (!error && data?.success && data?.data?.amount) {
           const extractedAmount = data.data.amount;
-          const matches = Math.abs(extractedAmount - Number(reimbursement.amount)) < 0.01;
+          const matches =
+            Math.abs(extractedAmount - Number(reimbursement.amount)) < 0.01;
           setOcrResult({ amount: extractedAmount, matches });
           if (matches) {
-            toast.success(`Valor do comprovante (R$ ${extractedAmount.toFixed(2).replace(".", ",")}) confere com o reembolso!`);
+            toast.success(
+              `Valor do comprovante (R$ ${extractedAmount.toFixed(2).replace(".", ",")}) confere com o reembolso!`,
+            );
           } else {
-            toast.warning(`Valor do comprovante: R$ ${extractedAmount.toFixed(2).replace(".", ",")} — diverge do reembolso (R$ ${Number(reimbursement.amount).toFixed(2).replace(".", ",")})`);
+            toast.warning(
+              `Valor do comprovante: R$ ${extractedAmount.toFixed(2).replace(".", ",")} — diverge do reembolso (R$ ${Number(reimbursement.amount).toFixed(2).replace(".", ",")})`,
+            );
           }
         } else {
-          toast.info("Não foi possível ler o valor do comprovante automaticamente.");
+          toast.info(
+            "Não foi possível ler o valor do comprovante automaticamente.",
+          );
           setOcrResult(null);
         }
         setIsExtracting(false);
@@ -169,7 +214,13 @@ export function ReimbursementDetailsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) resetState(); onOpenChange(o); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) resetState();
+        onOpenChange(o);
+      }}
+    >
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Detalhes do Reembolso</DialogTitle>
@@ -227,7 +278,9 @@ export function ReimbursementDetailsDialog({
             {/* Descrição */}
             {reimbursement.description && (
               <div>
-                <span className="text-sm text-muted-foreground block mb-1">Descrição</span>
+                <span className="text-sm text-muted-foreground block mb-1">
+                  Descrição
+                </span>
                 <p className="text-sm bg-muted p-2 rounded">
                   {reimbursement.description}
                 </p>
@@ -236,18 +289,24 @@ export function ReimbursementDetailsDialog({
 
             {/* Foto do comprovante */}
             <div>
-              <span className="text-sm text-muted-foreground block mb-1">Comprovante</span>
+              <span className="text-sm text-muted-foreground block mb-1">
+                Comprovante
+              </span>
               <img
                 src={reimbursement.receipt_photo_url}
                 alt="Comprovante"
                 className="w-full max-h-64 object-contain rounded-md border cursor-pointer"
-                onClick={() => window.open(reimbursement.receipt_photo_url, "_blank")}
+                onClick={() =>
+                  window.open(reimbursement.receipt_photo_url, "_blank")
+                }
               />
               <Button
                 variant="ghost"
                 size="sm"
                 className="mt-1 w-full"
-                onClick={() => window.open(reimbursement.receipt_photo_url, "_blank")}
+                onClick={() =>
+                  window.open(reimbursement.receipt_photo_url, "_blank")
+                }
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Abrir em nova aba
@@ -257,16 +316,31 @@ export function ReimbursementDetailsDialog({
             {/* Datas */}
             <div className="border-t pt-4 space-y-2 text-sm text-muted-foreground">
               <p>
-                Solicitado em: {format(new Date(reimbursement.requested_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                Solicitado em:{" "}
+                {format(
+                  new Date(reimbursement.requested_at),
+                  "dd/MM/yyyy 'às' HH:mm",
+                  { locale: ptBR },
+                )}
               </p>
               {reimbursement.approved_at && (
                 <p>
-                  Aprovado em: {format(new Date(reimbursement.approved_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  Aprovado em:{" "}
+                  {format(
+                    new Date(reimbursement.approved_at),
+                    "dd/MM/yyyy 'às' HH:mm",
+                    { locale: ptBR },
+                  )}
                 </p>
               )}
               {reimbursement.paid_at && (
                 <p>
-                  Pago em: {format(new Date(reimbursement.paid_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  Pago em:{" "}
+                  {format(
+                    new Date(reimbursement.paid_at),
+                    "dd/MM/yyyy 'às' HH:mm",
+                    { locale: ptBR },
+                  )}
                 </p>
               )}
             </div>
@@ -274,7 +348,9 @@ export function ReimbursementDetailsDialog({
             {/* Observações admin */}
             {reimbursement.notes && (
               <div className="border-t pt-4">
-                <span className="text-sm text-muted-foreground block mb-1">Observações</span>
+                <span className="text-sm text-muted-foreground block mb-1">
+                  Observações
+                </span>
                 <p className="text-sm bg-muted p-2 rounded">
                   {reimbursement.notes}
                 </p>
@@ -284,12 +360,16 @@ export function ReimbursementDetailsDialog({
             {/* Comprovante de pagamento */}
             {reimbursement.payment_proof_url && (
               <div>
-                <span className="text-sm text-muted-foreground block mb-1">Comprovante de Pagamento</span>
+                <span className="text-sm text-muted-foreground block mb-1">
+                  Comprovante de Pagamento
+                </span>
                 <img
                   src={reimbursement.payment_proof_url}
                   alt="Comprovante de Pagamento"
                   className="w-full max-h-48 object-contain rounded-md border cursor-pointer"
-                  onClick={() => window.open(reimbursement.payment_proof_url!, "_blank")}
+                  onClick={() =>
+                    window.open(reimbursement.payment_proof_url!, "_blank")
+                  }
                 />
               </div>
             )}
@@ -299,18 +379,29 @@ export function ReimbursementDetailsDialog({
               <div className="border-t pt-4 space-y-2">
                 {reimbursement.status === "PENDING" && (
                   <div className="flex gap-2">
-                    <Button className="flex-1" onClick={handleApprove} disabled={approveReimbursement.isPending}>
+                    <Button
+                      className="flex-1"
+                      onClick={handleApprove}
+                      disabled={approveReimbursement.isPending}
+                    >
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Aprovar
                     </Button>
-                    <Button variant="destructive" className="flex-1" onClick={() => setShowRejectForm(true)}>
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => setShowRejectForm(true)}
+                    >
                       <XCircle className="h-4 w-4 mr-2" />
                       Rejeitar
                     </Button>
                   </div>
                 )}
                 {reimbursement.status === "APPROVED" && (
-                  <Button className="w-full" onClick={() => setShowPayForm(true)}>
+                  <Button
+                    className="w-full"
+                    onClick={() => setShowPayForm(true)}
+                  >
                     <DollarSign className="h-4 w-4 mr-2" />
                     Dar Baixa (Anexar Comprovante)
                   </Button>
@@ -329,10 +420,19 @@ export function ReimbursementDetailsDialog({
                   rows={3}
                 />
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setShowRejectForm(false)}>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowRejectForm(false)}
+                  >
                     Cancelar
                   </Button>
-                  <Button variant="destructive" className="flex-1" onClick={handleReject} disabled={rejectReimbursement.isPending}>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={handleReject}
+                    disabled={rejectReimbursement.isPending}
+                  >
                     Confirmar Rejeição
                   </Button>
                 </div>
@@ -368,7 +468,10 @@ export function ReimbursementDetailsDialog({
                       if (fileInputRef.current) {
                         fileInputRef.current.removeAttribute("capture");
                         fileInputRef.current.click();
-                        fileInputRef.current.setAttribute("capture", "environment");
+                        fileInputRef.current.setAttribute(
+                          "capture",
+                          "environment",
+                        );
                       }
                     }}
                   >
@@ -391,16 +494,25 @@ export function ReimbursementDetailsDialog({
                 )}
 
                 {ocrResult && (
-                  <div className={`text-sm p-2 rounded ${ocrResult.matches ? "bg-green-500/10 text-green-700" : "bg-yellow-500/10 text-yellow-700"}`}>
+                  <div
+                    className={`text-sm p-2 rounded ${ocrResult.matches ? "bg-green-500/10 text-green-700" : "bg-yellow-500/10 text-yellow-700"}`}
+                  >
                     {ocrResult.matches
                       ? `✅ Valor confere: R$ ${ocrResult.amount.toFixed(2).replace(".", ",")}`
-                      : `⚠️ Valor divergente: R$ ${ocrResult.amount.toFixed(2).replace(".", ",")} (esperado: R$ ${Number(reimbursement.amount).toFixed(2).replace(".", ",")})`
-                    }
+                      : `⚠️ Valor divergente: R$ ${ocrResult.amount.toFixed(2).replace(".", ",")} (esperado: R$ ${Number(reimbursement.amount).toFixed(2).replace(".", ",")})`}
                   </div>
                 )}
 
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => { setShowPayForm(false); setPaymentProofFile(null); setOcrResult(null); }}>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowPayForm(false);
+                      setPaymentProofFile(null);
+                      setOcrResult(null);
+                    }}
+                  >
                     Cancelar
                   </Button>
                   <Button
@@ -409,7 +521,10 @@ export function ReimbursementDetailsDialog({
                     disabled={isUploadingProof || !paymentProofFile}
                   >
                     {isUploadingProof ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Enviando...</>
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Enviando...
+                      </>
                     ) : (
                       "Confirmar Pagamento"
                     )}

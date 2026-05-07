@@ -2,12 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-export type CadastroTipo = 
-  | 'cliente' 
-  | 'fornecedor' 
-  | 'transportador' 
-  | 'colaborador' 
-  | 'outro';
+export type CadastroTipo =
+  | "cliente"
+  | "fornecedor"
+  | "transportador"
+  | "colaborador"
+  | "outro";
 
 export type Cadastro = {
   id: string;
@@ -33,61 +33,67 @@ export type Cadastro = {
   state_registration?: string;
   address?: string;
   notes?: string;
-  responsible_financial?: { name?: string; phone?: string; } | null;
-  responsible_technical?: { name?: string; phone?: string; } | null;
-  responsible_legal?: { name?: string; phone?: string; email?: string; } | null;
+  responsible_financial?: { name?: string; phone?: string } | null;
+  responsible_technical?: { name?: string; phone?: string } | null;
+  responsible_legal?: { name?: string; phone?: string; email?: string } | null;
   created_by: string;
 };
 
 type UseCadastrosParams = {
-  tipo?: CadastroTipo | 'todos';
+  tipo?: CadastroTipo | "todos";
   search?: string;
   page?: number;
   perPage?: number;
-  orderBy?: 'full_name' | 'created_at';
-  orderDirection?: 'asc' | 'desc';
+  orderBy?: "full_name" | "created_at";
+  orderDirection?: "asc" | "desc";
 };
 
 export const useCadastros = (params: UseCadastrosParams = {}) => {
   const queryClient = useQueryClient();
-  
+
   const {
-    tipo = 'todos',
-    search = '',
+    tipo = "todos",
+    search = "",
     page = 1,
     perPage = 10,
-    orderBy = 'full_name',
-    orderDirection = 'asc'
+    orderBy = "full_name",
+    orderDirection = "asc",
   } = params;
 
   // Query para dados paginados
   const { data, isLoading } = useQuery({
-    queryKey: ['cadastros', tipo, search, page, perPage, orderBy, orderDirection],
+    queryKey: [
+      "cadastros",
+      tipo,
+      search,
+      page,
+      perPage,
+      orderBy,
+      orderDirection,
+    ],
     queryFn: async () => {
       const from = (page - 1) * perPage;
       const to = from + perPage - 1;
 
-      let query = supabase
-        .from('clients')
-        .select('*', { count: 'exact' });
+      let query = supabase.from("clients").select("*", { count: "exact" });
 
       // Filtro por tipo (usando array contains)
-      if (tipo !== 'todos') {
-        query = query.contains('tipos', [tipo]);
+      if (tipo !== "todos") {
+        query = query.contains("tipos", [tipo]);
       }
 
       // Busca geral (nome, email, cpf_cnpj, nome_fantasia)
       if (search) {
         query = query.or(
           `full_name.ilike.%${search}%,` +
-          `nome_fantasia.ilike.%${search}%,` +
-          `email.ilike.%${search}%,` +
-          `cpf_cnpj.ilike.%${search}%`
+            `nome_fantasia.ilike.%${search}%,` +
+            `email.ilike.%${search}%,` +
+            `cpf_cnpj.ilike.%${search}%`,
         );
       }
 
       // Ordenação
-      query = query.order(orderBy, { ascending: orderDirection === 'asc' });
+      query = query.order(orderBy, { ascending: orderDirection === "asc" });
 
       // Paginação
       query = query.range(from, to);
@@ -101,52 +107,59 @@ export const useCadastros = (params: UseCadastrosParams = {}) => {
         count: count || 0,
         page,
         perPage,
-        totalPages: Math.ceil((count || 0) / perPage)
+        totalPages: Math.ceil((count || 0) / perPage),
       };
     },
   });
 
   // Query para contadores por tipo (sem paginação)
   const { data: counters } = useQuery({
-    queryKey: ['cadastros-counters'],
+    queryKey: ["cadastros-counters"],
     queryFn: async () => {
       const types: CadastroTipo[] = [
-        'cliente',
-        'fornecedor',
-        'transportador',
-        'colaborador',
-        'outro'
+        "cliente",
+        "fornecedor",
+        "transportador",
+        "colaborador",
+        "outro",
       ];
 
       const results = await Promise.all(
         types.map(async (t) => {
           const { count } = await supabase
-            .from('clients')
-            .select('*', { count: 'exact', head: true })
-            .contains('tipos', [t]);
+            .from("clients")
+            .select("*", { count: "exact", head: true })
+            .contains("tipos", [t]);
           return { tipo: t, count: count || 0 };
-        })
+        }),
       );
 
       const totalCount = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true });
+        .from("clients")
+        .select("*", { count: "exact", head: true });
 
       return {
         todos: totalCount.count || 0,
-        ...Object.fromEntries(results.map(r => [r.tipo, r.count]))
+        ...Object.fromEntries(results.map((r) => [r.tipo, r.count])),
       };
     },
   });
 
   // Mutations
   const createCadastro = useMutation({
-    mutationFn: async (cadastro: Omit<Cadastro, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+    mutationFn: async (
+      cadastro: Omit<
+        Cadastro,
+        "id" | "created_at" | "updated_at" | "created_by"
+      >,
+    ) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
-        .from('clients')
+        .from("clients")
         .insert([{ ...cadastro, created_by: user.id }])
         .select()
         .single();
@@ -155,8 +168,8 @@ export const useCadastros = (params: UseCadastrosParams = {}) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cadastros'] });
-      queryClient.invalidateQueries({ queryKey: ['cadastros-counters'] });
+      queryClient.invalidateQueries({ queryKey: ["cadastros"] });
+      queryClient.invalidateQueries({ queryKey: ["cadastros-counters"] });
       toast({ title: "Cadastro criado com sucesso!" });
     },
     onError: (error: Error) => {
@@ -169,11 +182,14 @@ export const useCadastros = (params: UseCadastrosParams = {}) => {
   });
 
   const updateCadastro = useMutation({
-    mutationFn: async ({ id, ...cadastro }: Partial<Cadastro> & { id: string }) => {
+    mutationFn: async ({
+      id,
+      ...cadastro
+    }: Partial<Cadastro> & { id: string }) => {
       const { data, error } = await supabase
-        .from('clients')
+        .from("clients")
         .update(cadastro)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -181,8 +197,8 @@ export const useCadastros = (params: UseCadastrosParams = {}) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cadastros'] });
-      queryClient.invalidateQueries({ queryKey: ['cadastros-counters'] });
+      queryClient.invalidateQueries({ queryKey: ["cadastros"] });
+      queryClient.invalidateQueries({ queryKey: ["cadastros-counters"] });
       toast({ title: "Cadastro atualizado com sucesso!" });
     },
     onError: (error: Error) => {
@@ -196,16 +212,13 @@ export const useCadastros = (params: UseCadastrosParams = {}) => {
 
   const deleteCadastro = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("clients").delete().eq("id", id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cadastros'] });
-      queryClient.invalidateQueries({ queryKey: ['cadastros-counters'] });
+      queryClient.invalidateQueries({ queryKey: ["cadastros"] });
+      queryClient.invalidateQueries({ queryKey: ["cadastros-counters"] });
       toast({ title: "Cadastro excluído com sucesso!" });
     },
     onError: (error: Error) => {

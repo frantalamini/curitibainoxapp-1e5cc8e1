@@ -36,7 +36,7 @@ export interface CreditCardUpdate extends Partial<CreditCardInsert> {
 export function calculateStatementDate(
   purchaseDate: Date,
   closingDay: number,
-  dueDay: number
+  dueDay: number,
 ): Date {
   const purchaseDay = purchaseDate.getDate();
   const purchaseMonth = purchaseDate.getMonth();
@@ -74,7 +74,7 @@ export function calculateStatementDate(
  */
 export function getStatementPeriod(
   statementDueDate: Date,
-  closingDay: number
+  closingDay: number,
 ): { start: Date; end: Date } {
   // O mês de compras é o mês anterior ao vencimento
   let purchaseMonth = statementDueDate.getMonth() - 1;
@@ -93,12 +93,24 @@ export function getStatementPeriod(
   }
   const startDay = closingDay + 1;
   const lastDayOfStartMonth = new Date(startYear, startMonth + 1, 0).getDate();
-  
-  const start = new Date(startYear, startMonth, Math.min(startDay, lastDayOfStartMonth));
-  
+
+  const start = new Date(
+    startYear,
+    startMonth,
+    Math.min(startDay, lastDayOfStartMonth),
+  );
+
   // Fim: dia do corte do mês de compras
-  const lastDayOfPurchaseMonth = new Date(purchaseYear, purchaseMonth + 1, 0).getDate();
-  const end = new Date(purchaseYear, purchaseMonth, Math.min(closingDay, lastDayOfPurchaseMonth));
+  const lastDayOfPurchaseMonth = new Date(
+    purchaseYear,
+    purchaseMonth + 1,
+    0,
+  ).getDate();
+  const end = new Date(
+    purchaseYear,
+    purchaseMonth,
+    Math.min(closingDay, lastDayOfPurchaseMonth),
+  );
 
   return { start, end };
 }
@@ -106,7 +118,11 @@ export function getStatementPeriod(
 export function useCreditCards() {
   const queryClient = useQueryClient();
 
-  const { data: creditCards = [], isLoading, error } = useQuery({
+  const {
+    data: creditCards = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["credit-cards"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -148,7 +164,10 @@ export function useCreditCards() {
   });
 
   const updateCreditCard = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & CreditCardUpdate) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & CreditCardUpdate) => {
       const { data, error } = await supabase
         .from("credit_cards")
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -187,7 +206,13 @@ export function useCreditCards() {
   });
 
   const toggleActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
       const { error } = await supabase
         .from("credit_cards")
         .update({ is_active, updated_at: new Date().toISOString() })

@@ -2,52 +2,103 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>Curitiba Inox App</title>
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    
+
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#18487A" />
+    <meta name="theme-color" content="#1A3A6B" />
     <meta name="mobile-web-app-capable" content="yes" />
-    
+
     <!-- iOS PWA Meta Tags (CRÍTICO) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Curitiba Inox App" />
-    
+
     <!-- Apple Touch Icons - Todos os tamanhos necessários -->
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png" />
-    
+
     <!-- Splash Screen iOS -->
     <meta name="apple-touch-startup-image" href="/pwa-512x512.png" />
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="/pwa-192x192.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/pwa-192x192.png" />
-    
+
+    <!-- Meta Pixel Code -->
+    <script>
+      !(function (f, b, e, v, n, t, s) {
+        if (f.fbq) return;
+        n = f.fbq = function () {
+          n.callMethod
+            ? n.callMethod.apply(n, arguments)
+            : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n;
+        n.loaded = !0;
+        n.version = "2.0";
+        n.queue = [];
+        t = b.createElement(e);
+        t.async = !0;
+        t.src = v;
+        s = b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t, s);
+      })(
+        window,
+        document,
+        "script",
+        "https://connect.facebook.net/en_US/fbevents.js",
+      );
+      fbq("init", "2988705001312043");
+      fbq("track", "PageView");
+    </script>
+    <!-- End Meta Pixel Code -->
+
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Sistema de Ordens de Serviço - Curitiba Inox Assistência Técnica">
+    <meta
+      name="description"
+      content="Sistema de Ordens de Serviço - Curitiba Inox Assistência Técnica"
+    />
     <meta name="author" content="Curitiba Inox" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Curitiba Inox App" />
-    <meta property="og:description" content="Sistema de Ordens de Serviço - Curitiba Inox Assistência Técnica" />
+    <meta
+      property="og:description"
+      content="Sistema de Ordens de Serviço - Curitiba Inox Assistência Técnica"
+    />
     <meta property="og:image" content="/pwa-512x512.png" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Curitiba Inox App" />
-    <meta name="twitter:description" content="Sistema de Ordens de Serviço - Curitiba Inox Assistência Técnica" />
+    <meta
+      name="twitter:description"
+      content="Sistema de Ordens de Serviço - Curitiba Inox Assistência Técnica"
+    />
     <meta name="twitter:image" content="/pwa-512x512.png" />
-</head>
+  </head>
 
   <body>
+    <!-- Meta Pixel noscript fallback (must be in body per HTML5 spec) -->
+    <noscript>
+      <img
+        height="1"
+        width="1"
+        style="display: none"
+        src="https://www.facebook.com/tr?id=2988705001312043&ev=PageView&noscript=1"
+      />
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

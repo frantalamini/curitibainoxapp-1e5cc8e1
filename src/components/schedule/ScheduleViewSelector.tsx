@@ -8,7 +8,10 @@ interface ScheduleViewSelectorProps {
   onChange: (value: ViewMode) => void;
 }
 
-const ScheduleViewSelector = ({ value, onChange }: ScheduleViewSelectorProps) => {
+const ScheduleViewSelector = ({
+  value,
+  onChange,
+}: ScheduleViewSelectorProps) => {
   return (
     <ToggleGroup
       type="single"

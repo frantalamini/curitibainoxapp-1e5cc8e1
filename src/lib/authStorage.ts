@@ -58,12 +58,12 @@ export function getCurrentPathForRedirect(location: {
  */
 export function sanitizeRedirectPath(redirect: string | null): string {
   if (!redirect) return "/";
-  
+
   // Must be internal path (starts with /)
   if (!redirect.startsWith("/")) return "/";
-  
+
   // Avoid redirect loops to /auth
   if (redirect.startsWith("/auth")) return "/";
-  
+
   return redirect;
 }

@@ -23,7 +23,15 @@ import {
 } from "@/components/ui/accordion";
 import { useProducts } from "@/hooks/useProducts";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Package, Save, DollarSign, FileText, Box } from "lucide-react";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
+import {
+  ArrowLeft,
+  Package,
+  Save,
+  DollarSign,
+  FileText,
+  Box,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const PRODUCT_TYPES = [
@@ -104,6 +112,7 @@ export default function ProductForm() {
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
 
   const isEditMode = Boolean(id);
+  const { canCreate, canEdit } = useModulePermissions("products");
 
   // Load product data if editing
   useEffect(() => {
@@ -160,6 +169,23 @@ export default function ProductForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isEditMode && !canEdit) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para editar produtos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!isEditMode && !canCreate) {
+      toast({
+        title: "Sem permissão",
+        description: "Você não tem permissão para criar produtos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!formData.name.trim()) {
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return;
@@ -207,7 +233,9 @@ export default function ProductForm() {
     } catch (error) {
       console.error(error);
       toast({
-        title: isEditMode ? "Erro ao atualizar produto" : "Erro ao criar produto",
+        title: isEditMode
+          ? "Erro ao atualizar produto"
+          : "Erro ao criar produto",
         variant: "destructive",
       });
     } finally {
@@ -234,7 +262,11 @@ export default function ProductForm() {
       <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/products")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/products")}
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
@@ -243,7 +275,9 @@ export default function ProductForm() {
               {isEditMode ? "Editar Produto" : "Novo Produto"}
             </h1>
             <p className="text-muted-foreground text-sm">
-              {isEditMode ? "Atualize as informações do produto" : "Cadastre um novo produto no catálogo"}
+              {isEditMode
+                ? "Atualize as informações do produto"
+                : "Cadastre um novo produto no catálogo"}
             </p>
           </div>
         </div>
@@ -266,7 +300,10 @@ export default function ProductForm() {
                 <span className="hidden sm:inline">Fiscal</span>
                 <span className="sm:hidden">Fiscal</span>
               </TabsTrigger>
-              <TabsTrigger value="estoque" className="flex items-center gap-1.5">
+              <TabsTrigger
+                value="estoque"
+                className="flex items-center gap-1.5"
+              >
                 <Box className="w-4 h-4" />
                 <span className="hidden sm:inline">Estoque</span>
                 <span className="sm:hidden">Est.</span>
@@ -365,7 +402,9 @@ export default function ProductForm() {
                       <Textarea
                         id="description"
                         value={formData.description}
-                        onChange={(e) => updateField("description", e.target.value)}
+                        onChange={(e) =>
+                          updateField("description", e.target.value)
+                        }
                         placeholder="Descrição detalhada do produto..."
                         rows={3}
                       />
@@ -394,7 +433,7 @@ export default function ProductForm() {
                         onChange={(e) =>
                           updateField(
                             "cost_price",
-                            e.target.value ? Number(e.target.value) : null
+                            e.target.value ? Number(e.target.value) : null,
                           )
                         }
                         placeholder="0,00"
@@ -412,7 +451,7 @@ export default function ProductForm() {
                         onChange={(e) =>
                           updateField(
                             "sale_price",
-                            e.target.value ? Number(e.target.value) : null
+                            e.target.value ? Number(e.target.value) : null,
                           )
                         }
                         placeholder="0,00"
@@ -420,21 +459,23 @@ export default function ProductForm() {
                     </div>
                   </div>
 
-                  {formData.cost_price && formData.sale_price && formData.sale_price > 0 && (
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        Margem de lucro:{" "}
-                        <span className="font-medium text-foreground">
-                          {(
-                            ((formData.sale_price - formData.cost_price) /
-                              formData.sale_price) *
-                            100
-                          ).toFixed(1)}
-                          %
-                        </span>
-                      </p>
-                    </div>
-                  )}
+                  {formData.cost_price &&
+                    formData.sale_price &&
+                    formData.sale_price > 0 && (
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          Margem de lucro:{" "}
+                          <span className="font-medium text-foreground">
+                            {(
+                              ((formData.sale_price - formData.cost_price) /
+                                formData.sale_price) *
+                              100
+                            ).toFixed(1)}
+                            %
+                          </span>
+                        </p>
+                      </div>
+                    )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -505,7 +546,9 @@ export default function ProductForm() {
                               onChange={(e) =>
                                 updateField(
                                   "tax_icms",
-                                  e.target.value ? Number(e.target.value) : null
+                                  e.target.value
+                                    ? Number(e.target.value)
+                                    : null,
                                 )
                               }
                               placeholder="0,00"
@@ -524,7 +567,9 @@ export default function ProductForm() {
                               onChange={(e) =>
                                 updateField(
                                   "tax_pis",
-                                  e.target.value ? Number(e.target.value) : null
+                                  e.target.value
+                                    ? Number(e.target.value)
+                                    : null,
                                 )
                               }
                               placeholder="0,00"
@@ -543,7 +588,9 @@ export default function ProductForm() {
                               onChange={(e) =>
                                 updateField(
                                   "tax_cofins",
-                                  e.target.value ? Number(e.target.value) : null
+                                  e.target.value
+                                    ? Number(e.target.value)
+                                    : null,
                                 )
                               }
                               placeholder="0,00"
@@ -576,7 +623,9 @@ export default function ProductForm() {
                     <Switch
                       id="track_stock"
                       checked={formData.track_stock}
-                      onCheckedChange={(checked) => updateField("track_stock", checked)}
+                      onCheckedChange={(checked) =>
+                        updateField("track_stock", checked)
+                      }
                     />
                   </div>
 
@@ -593,7 +642,7 @@ export default function ProductForm() {
                             onChange={(e) =>
                               updateField(
                                 "min_stock",
-                                e.target.value ? Number(e.target.value) : null
+                                e.target.value ? Number(e.target.value) : null,
                               )
                             }
                             placeholder="0"
@@ -606,7 +655,9 @@ export default function ProductForm() {
 
                       <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="dimensions">
-                          <AccordionTrigger>Dimensões do Produto</AccordionTrigger>
+                          <AccordionTrigger>
+                            Dimensões do Produto
+                          </AccordionTrigger>
                           <AccordionContent>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
                               <div>
@@ -620,7 +671,9 @@ export default function ProductForm() {
                                   onChange={(e) =>
                                     updateField(
                                       "weight_kg",
-                                      e.target.value ? Number(e.target.value) : null
+                                      e.target.value
+                                        ? Number(e.target.value)
+                                        : null,
                                     )
                                   }
                                   placeholder="0,00"
@@ -628,7 +681,9 @@ export default function ProductForm() {
                               </div>
 
                               <div>
-                                <Label htmlFor="length_cm">Comprimento (cm)</Label>
+                                <Label htmlFor="length_cm">
+                                  Comprimento (cm)
+                                </Label>
                                 <Input
                                   id="length_cm"
                                   type="number"
@@ -638,7 +693,9 @@ export default function ProductForm() {
                                   onChange={(e) =>
                                     updateField(
                                       "length_cm",
-                                      e.target.value ? Number(e.target.value) : null
+                                      e.target.value
+                                        ? Number(e.target.value)
+                                        : null,
                                     )
                                   }
                                   placeholder="0"
@@ -656,7 +713,9 @@ export default function ProductForm() {
                                   onChange={(e) =>
                                     updateField(
                                       "width_cm",
-                                      e.target.value ? Number(e.target.value) : null
+                                      e.target.value
+                                        ? Number(e.target.value)
+                                        : null,
                                     )
                                   }
                                   placeholder="0"
@@ -674,7 +733,9 @@ export default function ProductForm() {
                                   onChange={(e) =>
                                     updateField(
                                       "height_cm",
-                                      e.target.value ? Number(e.target.value) : null
+                                      e.target.value
+                                        ? Number(e.target.value)
+                                        : null,
                                     )
                                   }
                                   placeholder="0"
@@ -693,12 +754,20 @@ export default function ProductForm() {
 
           {/* Submit Button */}
           <div className="flex justify-end gap-3 mt-6">
-            <Button type="button" variant="outline" onClick={() => navigate("/products")}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/products")}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
               <Save className="w-4 h-4 mr-2" />
-              {isLoading ? "Salvando..." : isEditMode ? "Salvar Alterações" : "Criar Produto"}
+              {isLoading
+                ? "Salvando..."
+                : isEditMode
+                  ? "Salvar Alterações"
+                  : "Criar Produto"}
             </Button>
           </div>
         </form>
