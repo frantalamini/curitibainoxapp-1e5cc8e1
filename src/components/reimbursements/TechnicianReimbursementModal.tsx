@@ -1,16 +1,44 @@
 import { useState, useRef, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Camera, Check, ChevronsUpDown, Loader2, Scan, Upload, X } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Camera,
+  Check,
+  ChevronsUpDown,
+  Loader2,
+  Scan,
+  Upload,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useTechnicianReimbursements, CreateReimbursementInput } from "@/hooks/useTechnicianReimbursements";
+import {
+  useTechnicianReimbursements,
+  CreateReimbursementInput,
+} from "@/hooks/useTechnicianReimbursements";
 import { useQuery } from "@tanstack/react-query";
 
 interface TechnicianReimbursementModalProps {
@@ -23,6 +51,7 @@ interface OpenServiceCall {
   id: string;
   os_number: number;
   equipment_description: string;
+  status: string;
   clients: {
     full_name: string;
   } | null;
@@ -35,8 +64,9 @@ export function TechnicianReimbursementModal({
 }: TechnicianReimbursementModalProps) {
   const { createReimbursement } = useTechnicianReimbursements();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const [selectedServiceCallId, setSelectedServiceCallId] = useState<string>("");
+
+  const [selectedServiceCallId, setSelectedServiceCallId] =
+    useState<string>("");
   const [osPopoverOpen, setOsPopoverOpen] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -46,22 +76,24 @@ export function TechnicianReimbursementModal({
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Buscar OS abertas do técnico
   const { data: openServiceCalls, isLoading: isLoadingCalls } = useQuery({
-    queryKey: ["technician-open-service-calls", technicianId],
+    queryKey: ["technician-service-calls", technicianId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_calls")
-        .select(`
+        .select(
+          `
           id,
           os_number,
           equipment_description,
+          status,
           clients (
             full_name
           )
-        `)
+        `,
+        )
         .eq("technician_id", technicianId)
-        .not("status", "in", "(completed,cancelled)")
+        .not("status", "eq", "cancelled")
         .order("os_number", { ascending: false });
 
       if (error) throw error;
@@ -102,10 +134,13 @@ export function TechnicianReimbursementModal({
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        
-        const { data, error } = await supabase.functions.invoke("extract-receipt-amount", {
-          body: { imageBase64: base64 }
-        });
+
+        const { data, error } = await supabase.functions.invoke(
+          "extract-receipt-amount",
+          {
+            body: { imageBase64: base64 },
+          },
+        );
 
         if (error) {
           console.error("OCR error:", error);
@@ -120,7 +155,9 @@ export function TechnicianReimbursementModal({
           if (data.data.description && !description) {
             setDescription(data.data.description);
           }
-          toast.success(`Valor detectado: R$ ${data.data.amount.toFixed(2).replace(".", ",")}`);
+          toast.success(
+            `Valor detectado: R$ ${data.data.amount.toFixed(2).replace(".", ",")}`,
+          );
         } else {
           toast.info("Não foi possível detectar o valor. Digite manualmente.");
         }
@@ -153,7 +190,9 @@ export function TechnicianReimbursementModal({
       return;
     }
 
-    const numericAmount = parseFloat(amount.replace(/\./g, "").replace(",", "."));
+    const numericAmount = parseFloat(
+      amount.replace(/\./g, "").replace(",", "."),
+    );
     if (isNaN(numericAmount) || numericAmount <= 0) {
       toast.error("Valor inválido");
       return;
@@ -186,7 +225,7 @@ export function TechnicianReimbursementModal({
       };
 
       await createReimbursement.mutateAsync(input);
-      
+
       toast.success("Solicitação enviada com sucesso!");
       onOpenChange(false);
     } catch (error) {
@@ -218,17 +257,23 @@ export function TechnicianReimbursementModal({
                 >
                   {selectedServiceCallId
                     ? (() => {
-                        const sc = openServiceCalls?.find(s => s.id === selectedServiceCallId);
-                        return sc ? `OS #${sc.os_number} - ${sc.clients?.full_name || ""}` : "Selecione a OS";
+                        const sc = openServiceCalls?.find(
+                          (s) => s.id === selectedServiceCallId,
+                        );
+                        return sc
+                          ? `OS #${sc.os_number} - ${sc.clients?.full_name || ""}`
+                          : "Selecione a OS";
                       })()
                     : isLoadingCalls
                       ? "Carregando..."
-                      : "Selecione a OS"
-                  }
+                      : "Selecione a OS"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+              >
                 <Command>
                   <CommandInput placeholder="Buscar por nº da OS ou cliente..." />
                   <CommandList>
@@ -243,11 +288,24 @@ export function TechnicianReimbursementModal({
                             setOsPopoverOpen(false);
                           }}
                         >
-                          <Check className={cn("mr-2 h-4 w-4", selectedServiceCallId === sc.id ? "opacity-100" : "opacity-0")} />
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedServiceCallId === sc.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
                           <div className="flex flex-col">
-                            <span className="font-medium">OS #{sc.os_number}</span>
+                            <span className="font-medium">
+                              OS #{sc.os_number}
+                              {sc.status === "completed" && (
+                                <span className="ml-2 text-xs text-orange-600 font-normal">(Faturada)</span>
+                              )}
+                            </span>
                             <span className="text-xs text-muted-foreground">
-                              {sc.clients?.full_name} • {sc.equipment_description}
+                              {sc.clients?.full_name} •{" "}
+                              {sc.equipment_description}
                             </span>
                           </div>
                         </CommandItem>
@@ -270,7 +328,7 @@ export function TechnicianReimbursementModal({
               onChange={handleFileSelect}
               className="hidden"
             />
-            
+
             {photoPreview ? (
               <div className="relative mt-2">
                 <img
@@ -315,7 +373,10 @@ export function TechnicianReimbursementModal({
                     if (fileInputRef.current) {
                       fileInputRef.current.removeAttribute("capture");
                       fileInputRef.current.click();
-                      fileInputRef.current.setAttribute("capture", "environment");
+                      fileInputRef.current.setAttribute(
+                        "capture",
+                        "environment",
+                      );
                     }
                   }}
                 >
@@ -343,9 +404,15 @@ export function TechnicianReimbursementModal({
               value={amount}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, "");
-                if (!raw) { setAmount(""); return; }
+                if (!raw) {
+                  setAmount("");
+                  return;
+                }
                 const cents = parseInt(raw, 10);
-                const formatted = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const formatted = (cents / 100).toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                });
                 setAmount(formatted);
               }}
               className="mt-1"
@@ -369,9 +436,11 @@ export function TechnicianReimbursementModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isSubmitting || !photoFile || !amount || !selectedServiceCallId}
+          <Button
+            onClick={handleSubmit}
+            disabled={
+              isSubmitting || !photoFile || !amount || !selectedServiceCallId
+            }
           >
             {isSubmitting ? (
               <>

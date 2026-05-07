@@ -1,17 +1,51 @@
 import { useState, useRef, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Camera, Check, ChevronsUpDown, Loader2, Scan, Upload, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Camera,
+  Check,
+  ChevronsUpDown,
+  Loader2,
+  Scan,
+  Upload,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useTechnicianReimbursements, CreateReimbursementInput } from "@/hooks/useTechnicianReimbursements";
+import {
+  useTechnicianReimbursements,
+  CreateReimbursementInput,
+} from "@/hooks/useTechnicianReimbursements";
 import { useQuery } from "@tanstack/react-query";
 import { useTechnicians } from "@/hooks/useTechnicians";
 
@@ -25,6 +59,7 @@ interface OpenServiceCall {
   os_number: number;
   equipment_description: string;
   technician_id: string;
+  status: string;
   clients: {
     full_name: string;
   } | null;
@@ -37,9 +72,10 @@ export function AdminReimbursementModal({
   const { createReimbursement } = useTechnicianReimbursements();
   const { technicians, isLoading: isLoadingTechnicians } = useTechnicians();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("");
-  const [selectedServiceCallId, setSelectedServiceCallId] = useState<string>("");
+  const [selectedServiceCallId, setSelectedServiceCallId] =
+    useState<string>("");
   const [osPopoverOpen, setOsPopoverOpen] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -49,22 +85,24 @@ export function AdminReimbursementModal({
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Buscar OS abertas (todas para admin)
   const { data: allServiceCalls, isLoading: isLoadingCalls } = useQuery({
-    queryKey: ["admin-open-service-calls"],
+    queryKey: ["admin-service-calls"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_calls")
-        .select(`
+        .select(
+          `
           id,
           os_number,
           equipment_description,
           technician_id,
+          status,
           clients (
             full_name
           )
-        `)
-        .not("status", "in", "(completed,cancelled)")
+        `,
+        )
+        .not("status", "eq", "cancelled")
         .order("os_number", { ascending: false });
 
       if (error) throw error;
@@ -75,7 +113,7 @@ export function AdminReimbursementModal({
 
   // Filtrar OS pelo técnico selecionado
   const filteredServiceCalls = selectedTechnicianId
-    ? allServiceCalls?.filter(sc => sc.technician_id === selectedTechnicianId)
+    ? allServiceCalls?.filter((sc) => sc.technician_id === selectedTechnicianId)
     : allServiceCalls;
 
   // Limpar form quando fechar
@@ -115,10 +153,13 @@ export function AdminReimbursementModal({
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
-        
-        const { data, error } = await supabase.functions.invoke("extract-receipt-amount", {
-          body: { imageBase64: base64 }
-        });
+
+        const { data, error } = await supabase.functions.invoke(
+          "extract-receipt-amount",
+          {
+            body: { imageBase64: base64 },
+          },
+        );
 
         if (error) {
           console.error("OCR error:", error);
@@ -133,7 +174,9 @@ export function AdminReimbursementModal({
           if (data.data.description && !description) {
             setDescription(data.data.description);
           }
-          toast.success(`Valor detectado: R$ ${data.data.amount.toFixed(2).replace(".", ",")}`);
+          toast.success(
+            `Valor detectado: R$ ${data.data.amount.toFixed(2).replace(".", ",")}`,
+          );
         } else {
           toast.info("Não foi possível detectar o valor. Digite manualmente.");
         }
@@ -170,7 +213,9 @@ export function AdminReimbursementModal({
       return;
     }
 
-    const numericAmount = parseFloat(amount.replace(/\./g, "").replace(",", "."));
+    const numericAmount = parseFloat(
+      amount.replace(/\./g, "").replace(",", "."),
+    );
     if (isNaN(numericAmount) || numericAmount <= 0) {
       toast.error("Valor inválido");
       return;
@@ -202,7 +247,7 @@ export function AdminReimbursementModal({
       };
 
       await createReimbursement.mutateAsync(input);
-      
+
       toast.success("Solicitação registrada com sucesso!");
       onOpenChange(false);
     } catch (error) {
@@ -213,7 +258,7 @@ export function AdminReimbursementModal({
     }
   };
 
-  const activeTechnicians = technicians?.filter(t => t.active) || [];
+  const activeTechnicians = technicians?.filter((t) => t.active) || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,12 +271,18 @@ export function AdminReimbursementModal({
           {/* Technician Selector */}
           <div>
             <Label>Técnico *</Label>
-            <Select 
-              value={selectedTechnicianId} 
+            <Select
+              value={selectedTechnicianId}
               onValueChange={setSelectedTechnicianId}
             >
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder={isLoadingTechnicians ? "Carregando..." : "Selecione o técnico"} />
+                <SelectValue
+                  placeholder={
+                    isLoadingTechnicians
+                      ? "Carregando..."
+                      : "Selecione o técnico"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {activeTechnicians.map((tech) => (
@@ -259,17 +310,23 @@ export function AdminReimbursementModal({
                     ? "Selecione um técnico primeiro"
                     : selectedServiceCallId
                       ? (() => {
-                          const sc = filteredServiceCalls?.find(s => s.id === selectedServiceCallId);
-                          return sc ? `OS #${sc.os_number} - ${sc.clients?.full_name || ""}` : "Selecione a OS";
+                          const sc = filteredServiceCalls?.find(
+                            (s) => s.id === selectedServiceCallId,
+                          );
+                          return sc
+                            ? `OS #${sc.os_number} - ${sc.clients?.full_name || ""}`
+                            : "Selecione a OS";
                         })()
                       : isLoadingCalls
                         ? "Carregando..."
-                        : "Selecione a OS"
-                  }
+                        : "Selecione a OS"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+              >
                 <Command>
                   <CommandInput placeholder="Buscar por nº da OS ou cliente..." />
                   <CommandList>
@@ -284,11 +341,24 @@ export function AdminReimbursementModal({
                             setOsPopoverOpen(false);
                           }}
                         >
-                          <Check className={cn("mr-2 h-4 w-4", selectedServiceCallId === sc.id ? "opacity-100" : "opacity-0")} />
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedServiceCallId === sc.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
                           <div className="flex flex-col">
-                            <span className="font-medium">OS #{sc.os_number}</span>
+                            <span className="font-medium">
+                              OS #{sc.os_number}
+                              {sc.status === "completed" && (
+                                <span className="ml-2 text-xs text-orange-600 font-normal">(Faturada)</span>
+                              )}
+                            </span>
                             <span className="text-xs text-muted-foreground">
-                              {sc.clients?.full_name} • {sc.equipment_description}
+                              {sc.clients?.full_name} •{" "}
+                              {sc.equipment_description}
                             </span>
                           </div>
                         </CommandItem>
@@ -311,7 +381,7 @@ export function AdminReimbursementModal({
               onChange={handleFileSelect}
               className="hidden"
             />
-            
+
             {photoPreview ? (
               <div className="relative mt-2">
                 <img
@@ -356,7 +426,10 @@ export function AdminReimbursementModal({
                     if (fileInputRef.current) {
                       fileInputRef.current.removeAttribute("capture");
                       fileInputRef.current.click();
-                      fileInputRef.current.setAttribute("capture", "environment");
+                      fileInputRef.current.setAttribute(
+                        "capture",
+                        "environment",
+                      );
                     }
                   }}
                 >
@@ -384,9 +457,15 @@ export function AdminReimbursementModal({
               value={amount}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, "");
-                if (!raw) { setAmount(""); return; }
+                if (!raw) {
+                  setAmount("");
+                  return;
+                }
                 const cents = parseInt(raw, 10);
-                const formatted = (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const formatted = (cents / 100).toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                });
                 setAmount(formatted);
               }}
               className="mt-1"
@@ -410,9 +489,15 @@ export function AdminReimbursementModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isSubmitting || !photoFile || !amount || !selectedServiceCallId || !selectedTechnicianId}
+          <Button
+            onClick={handleSubmit}
+            disabled={
+              isSubmitting ||
+              !photoFile ||
+              !amount ||
+              !selectedServiceCallId ||
+              !selectedTechnicianId
+            }
           >
             {isSubmitting ? (
               <>
