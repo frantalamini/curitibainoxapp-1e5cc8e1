@@ -58,7 +58,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const formatCurrency = (value: number) =>
@@ -459,7 +459,7 @@ export default function ContasAReceber() {
                                 : "1/1"}
                             </TableCell>
                             <TableCell className="text-xs">
-                              {format(new Date(r.due_date), "dd/MM/yy", {
+                              {format(parseISO(r.due_date), "dd/MM/yy", {
                                 locale: ptBR,
                               })}
                             </TableCell>

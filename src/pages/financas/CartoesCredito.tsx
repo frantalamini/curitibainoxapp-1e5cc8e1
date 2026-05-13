@@ -53,6 +53,7 @@ import {
   startOfMonth,
   endOfMonth,
   isWithinInterval,
+  parseISO,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -126,7 +127,7 @@ export default function CartoesCredito() {
       const nextTransactions: StatementTransaction[] = [];
 
       cardTransactions.forEach((t) => {
-        const transactionDate = new Date(t.due_date);
+        const transactionDate = parseISO(t.due_date);
 
         if (
           isWithinInterval(transactionDate, {
@@ -450,7 +451,7 @@ export default function CartoesCredito() {
                                 <p className="text-xs text-muted-foreground">
                                   {t.supplier?.full_name ||
                                     "Fornecedor não informado"}{" "}
-                                  • {format(new Date(t.due_date), "dd/MM")}
+                                  • {format(parseISO(t.due_date), "dd/MM")}
                                 </p>
                               </div>
                               <span className="font-medium text-destructive">

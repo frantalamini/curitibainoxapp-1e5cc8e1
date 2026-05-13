@@ -203,38 +203,63 @@ export const usePurchaseInvoices = (filters?: InvoicesFilters) => {
       if (invoice.financial_generated)
         throw new Error("Financeiro já gerado para esta NF");
 
-      // 2. Parsear condições de pagamento para gerar parcelas
-      const paymentTerms =
-        invoice.purchase_orders?.payment_terms ||
-        (invoice as any).payment_terms ||
-        "";
-      const installments = parsePaymentTerms(
-        paymentTerms,
-        invoice.total,
-        invoice.issue_date,
-      );
+      // 2. Extrair duplicatas do XML (fonte mais confiável) ou fallback para payment_terms
+      let installments: { amount: number; dueDate: string }[] = [];
+      const xmlDuplicatas = parseDuplicatasFromXml(invoice.xml_content);
+
+      if (xmlDuplicatas.length > 0) {
+        installments = xmlDuplicatas;
+      } else {
+        const paymentTerms =
+          invoice.purchase_orders?.payment_terms ||
+          (invoice as any).payment_terms ||
+          "";
+        installments = parsePaymentTerms(
+          paymentTerms,
+          invoice.total,
+          invoice.issue_date,
+        );
+      }
 
       // 3. Gerar grupo de parcelas
       const groupId = crypto.randomUUID();
 
       // 4. Criar transações financeiras (contas a pagar)
-      const transactions = installments.map((inst, idx) => ({
-        direction: "PAY" as const,
-        origin: "PURCHASE_ORDER" as const,
-        status: "OPEN" as const,
-        client_id: invoice.supplier_id,
-        amount: inst.amount,
-        due_date: inst.dueDate,
-        description: `NF ${invoice.invoice_number} - ${installments.length > 1 ? `Parcela ${idx + 1}/${installments.length}` : "À vista"}`,
-        notes: `Pedido #${invoice.purchase_orders?.order_number || "N/A"}`,
-        category_id: categoryId || null,
-        cost_center_id: costCenterId || null,
-        financial_account_id: financialAccountId || null,
-        installment_number: installments.length > 1 ? idx + 1 : null,
-        installments_total:
-          installments.length > 1 ? installments.length : null,
-        installments_group_id: installments.length > 1 ? groupId : null,
-      }));
+      const transactions = installments.map((inst, idx) => {
+        const isAvista =
+          installments.length === 1 && inst.dueDate === invoice.issue_date;
+        let descSuffix: string;
+        if (installments.length > 1) {
+          descSuffix = `Parcela ${idx + 1}/${installments.length}`;
+        } else if (isAvista) {
+          descSuffix = "À vista";
+        } else {
+          const diffDays = Math.round(
+            (new Date(inst.dueDate + "T12:00:00").getTime() -
+              new Date(invoice.issue_date + "T12:00:00").getTime()) /
+              86400000,
+          );
+          descSuffix = `${diffDays} dias`;
+        }
+
+        return {
+          direction: "PAY" as const,
+          origin: "PURCHASE_ORDER" as const,
+          status: "OPEN" as const,
+          client_id: invoice.supplier_id,
+          amount: inst.amount,
+          due_date: inst.dueDate,
+          description: `NF ${invoice.invoice_number} - ${descSuffix}`,
+          notes: `Pedido #${invoice.purchase_orders?.order_number || "N/A"}`,
+          category_id: categoryId || null,
+          cost_center_id: costCenterId || null,
+          financial_account_id: financialAccountId || null,
+          installment_number: installments.length > 1 ? idx + 1 : null,
+          installments_total:
+            installments.length > 1 ? installments.length : null,
+          installments_group_id: installments.length > 1 ? groupId : null,
+        };
+      });
 
       const { error: ftError } = await supabase
         .from("financial_transactions")
@@ -297,7 +322,48 @@ export const usePurchaseInvoices = (filters?: InvoicesFilters) => {
   };
 };
 
-// Utilitário: parsear payment_terms ("30/60/90" ou "À vista") em parcelas
+// Extrai duplicatas (faturas) diretamente do XML da NFe
+function parseDuplicatasFromXml(
+  xmlContent: string | null,
+): { amount: number; dueDate: string }[] {
+  if (!xmlContent) return [];
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlContent, "text/xml");
+    const dups = doc.getElementsByTagNameNS(
+      "http://www.portalfiscal.inf.br/nfe",
+      "dup",
+    );
+    if (dups.length === 0) return [];
+
+    const result: { amount: number; dueDate: string }[] = [];
+    for (let i = 0; i < dups.length; i++) {
+      const dup = dups[i];
+      const dVenc =
+        dup
+          .getElementsByTagNameNS(
+            "http://www.portalfiscal.inf.br/nfe",
+            "dVenc",
+          )[0]
+          ?.textContent?.trim() || "";
+      const vDup =
+        dup
+          .getElementsByTagNameNS(
+            "http://www.portalfiscal.inf.br/nfe",
+            "vDup",
+          )[0]
+          ?.textContent?.trim() || "0";
+      if (dVenc) {
+        result.push({ amount: parseFloat(vDup), dueDate: dVenc });
+      }
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
+// Fallback: parsear payment_terms ("30/60/90") em parcelas quando não há XML
 function parsePaymentTerms(
   terms: string,
   total: number,
@@ -321,11 +387,14 @@ function parsePaymentTerms(
     Math.round((total - installmentAmount * days.length) * 100) / 100;
 
   return days.map((d, idx) => {
-    const date = new Date(issueDate);
+    const date = new Date(issueDate + "T12:00:00");
     date.setDate(date.getDate() + d);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return {
       amount: idx === 0 ? installmentAmount + remainder : installmentAmount,
-      dueDate: date.toISOString().split("T")[0],
+      dueDate: `${y}-${m}-${day}`,
     };
   });
 }

@@ -464,7 +464,7 @@ export default function ContasAPagar() {
                         <TableCell>{p.supplier?.full_name || "-"}</TableCell>
                         <TableCell>{p.category?.name || "-"}</TableCell>
                         <TableCell>
-                          {format(new Date(p.due_date), "dd/MM/yyyy", {
+                          {format(parseISO(p.due_date), "dd/MM/yyyy", {
                             locale: ptBR,
                           })}
                         </TableCell>

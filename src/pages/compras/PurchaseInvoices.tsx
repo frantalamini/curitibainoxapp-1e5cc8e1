@@ -6,6 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -31,6 +39,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Search,
   MoreHorizontal,
   Edit,
@@ -43,8 +59,12 @@ import {
   usePurchaseInvoices,
   type InvoiceStatus,
 } from "@/hooks/usePurchaseInvoices";
+import { useFinancialCategories } from "@/hooks/useFinancialCategories";
+import { useCostCenters } from "@/hooks/useCostCenters";
+import { useFinancialAccounts } from "@/hooks/useFinancialAccounts";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DRE_GROUP_LABELS } from "@/lib/dreConstants";
 
 const STATUS_MAP: Record<
   InvoiceStatus,
@@ -65,14 +85,31 @@ export default function PurchaseInvoices() {
   const [activeTab, setActiveTab] = useState<InvoiceStatus | "ALL">("ALL");
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
-    type: "book" | "cancel" | "delete";
+    type: "cancel" | "delete";
     id: string;
   } | null>(null);
+  const [bookDialog, setBookDialog] = useState<{
+    open: boolean;
+    invoiceId: string;
+    invoiceNumber: string;
+    supplierName: string;
+    total: number;
+  } | null>(null);
+  const [bookForm, setBookForm] = useState({
+    categoryId: "",
+    costCenterId: "",
+    financialAccountId: "",
+  });
 
   const filters =
     activeTab !== "ALL" ? { status: activeTab as InvoiceStatus } : undefined;
   const { invoices, isLoading, bookInvoice, cancelInvoice, deleteInvoice } =
     usePurchaseInvoices(filters);
+  const { expenseCategories } = useFinancialCategories();
+  const { costCenters } = useCostCenters();
+  const { accounts } = useFinancialAccounts();
+  const activeAccounts = (accounts || []).filter((a: any) => a.is_active);
+  const activeCostCenters = (costCenters || []).filter((c: any) => c.is_active);
 
   const filteredInvoices = invoices.filter((inv) => {
     if (!search) return true;
@@ -84,12 +121,37 @@ export default function PurchaseInvoices() {
     );
   });
 
+  const openBookDialog = (inv: (typeof invoices)[0]) => {
+    setBookForm({ categoryId: "", costCenterId: "", financialAccountId: "" });
+    setBookDialog({
+      open: true,
+      invoiceId: inv.id,
+      invoiceNumber: inv.invoice_number,
+      supplierName: inv.supplier?.full_name || "—",
+      total: Number(inv.total),
+    });
+  };
+
+  const handleBook = async () => {
+    if (!bookDialog || !bookForm.categoryId) return;
+    try {
+      await bookInvoice.mutateAsync({
+        invoiceId: bookDialog.invoiceId,
+        categoryId: bookForm.categoryId,
+        costCenterId: bookForm.costCenterId || undefined,
+        financialAccountId: bookForm.financialAccountId || undefined,
+      });
+    } catch (e) {
+      /* handled */
+    }
+    setBookDialog(null);
+  };
+
   const confirmAction = async () => {
     if (!confirmDialog) return;
     const { type, id } = confirmDialog;
     try {
-      if (type === "book") await bookInvoice.mutateAsync({ invoiceId: id });
-      else if (type === "cancel") await cancelInvoice.mutateAsync(id);
+      if (type === "cancel") await cancelInvoice.mutateAsync(id);
       else if (type === "delete") await deleteInvoice.mutateAsync(id);
     } catch (e) {
       /* handled */
@@ -206,13 +268,7 @@ export default function PurchaseInvoices() {
                                 size="sm"
                                 variant="outline"
                                 className="text-xs"
-                                onClick={() =>
-                                  setConfirmDialog({
-                                    open: true,
-                                    type: "book",
-                                    id: inv.id,
-                                  })
-                                }
+                                onClick={() => openBookDialog(inv)}
                               >
                                 <BookOpen className="mr-1 h-3 w-3" />
                                 Escriturar
@@ -240,13 +296,7 @@ export default function PurchaseInvoices() {
                                   inv.status,
                                 ) && (
                                   <DropdownMenuItem
-                                    onClick={() =>
-                                      setConfirmDialog({
-                                        open: true,
-                                        type: "book",
-                                        id: inv.id,
-                                      })
-                                    }
+                                    onClick={() => openBookDialog(inv)}
                                   >
                                     <BookOpen className="mr-2 h-4 w-4" />{" "}
                                     Escriturar (gerar financeiro)
@@ -294,6 +344,135 @@ export default function PurchaseInvoices() {
           </TabsContent>
         </Tabs>
 
+        {/* Dialog de Escrituração com classificação */}
+        <Dialog
+          open={bookDialog?.open}
+          onOpenChange={(open) => !open && setBookDialog(null)}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                Escriturar NF {bookDialog?.invoiceNumber}
+              </DialogTitle>
+              <DialogDescription>
+                {bookDialog?.supplierName} —{" "}
+                {bookDialog?.total?.toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>
+                  Categoria <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={bookForm.categoryId}
+                  onValueChange={(v) =>
+                    setBookForm({ ...bookForm, categoryId: v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(
+                      expenseCategories.reduce(
+                        (acc, cat) => {
+                          const group = cat.dre_group
+                            ? DRE_GROUP_LABELS[cat.dre_group] || cat.dre_group
+                            : "Sem grupo";
+                          if (!acc[group]) acc[group] = [];
+                          acc[group].push(cat);
+                          return acc;
+                        },
+                        {} as Record<string, typeof expenseCategories>,
+                      ),
+                    ).map(([group, cats]) => (
+                      <div key={group}>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                          {group}
+                        </div>
+                        {cats.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Centro de Custo</Label>
+                <Select
+                  value={bookForm.costCenterId}
+                  onValueChange={(v) =>
+                    setBookForm({
+                      ...bookForm,
+                      costCenterId: v === "__none__" ? "" : v,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Nenhum" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
+                    {activeCostCenters.map((cc: any) => (
+                      <SelectItem key={cc.id} value={cc.id}>
+                        {cc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Conta Bancária</Label>
+                <Select
+                  value={bookForm.financialAccountId}
+                  onValueChange={(v) =>
+                    setBookForm({
+                      ...bookForm,
+                      financialAccountId: v === "__none__" ? "" : v,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Nenhuma" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
+                    {activeAccounts.map((acc: any) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.name}
+                        {acc.bank_name ? ` (${acc.bank_name})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBookDialog(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleBook}
+                disabled={!bookForm.categoryId || bookInvoice.isPending}
+              >
+                {bookInvoice.isPending ? "Escriturando..." : "Escriturar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Cancel/Delete */}
         <AlertDialog
           open={confirmDialog?.open}
           onOpenChange={(open) => !open && setConfirmDialog(null)}
@@ -301,20 +480,16 @@ export default function PurchaseInvoices() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {confirmDialog?.type === "book"
-                  ? "Escriturar NF"
-                  : confirmDialog?.type === "cancel"
-                    ? "Cancelar NF"
-                    : "Excluir NF"}
+                {confirmDialog?.type === "cancel"
+                  ? "Cancelar NF"
+                  : "Excluir NF"}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {confirmDialog?.type === "book"
-                  ? "Ao escriturar, as contas a pagar serão geradas automaticamente conforme as condições de pagamento do pedido."
-                  : "Tem certeza que deseja prosseguir?"}
+                Tem certeza que deseja prosseguir?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel>Voltar</AlertDialogCancel>
               <AlertDialogAction onClick={confirmAction}>
                 Confirmar
               </AlertDialogAction>

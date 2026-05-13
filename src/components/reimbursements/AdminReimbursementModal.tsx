@@ -353,7 +353,9 @@ export function AdminReimbursementModal({
                             <span className="font-medium">
                               OS #{sc.os_number}
                               {sc.status === "completed" && (
-                                <span className="ml-2 text-xs text-orange-600 font-normal">(Faturada)</span>
+                                <span className="ml-2 text-xs text-orange-600 font-normal">
+                                  (Faturada)
+                                </span>
                               )}
                             </span>
                             <span className="text-xs text-muted-foreground">
