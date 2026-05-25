@@ -306,7 +306,9 @@ const App = () => (
                   path="/clients"
                   element={
                     <ProtectedRoute>
-                      <Clients />
+                      <RoutePermissionGuard module="clients" action="can_view">
+                        <Clients />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -314,7 +316,9 @@ const App = () => (
                   path="/cadastros/clientes"
                   element={
                     <ProtectedRoute>
-                      <CadastrosClientesFornecedores />
+                      <RoutePermissionGuard module="clients" action="can_view">
+                        <CadastrosClientesFornecedores />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -322,7 +326,12 @@ const App = () => (
                   path="/cadastros/novo"
                   element={
                     <ProtectedRoute>
-                      <ClientForm />
+                      <RoutePermissionGuard
+                        module="clients"
+                        action="can_create"
+                      >
+                        <ClientForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -330,7 +339,9 @@ const App = () => (
                   path="/cadastros/clientes/:id"
                   element={
                     <ProtectedRoute>
-                      <CadastroDetail />
+                      <RoutePermissionGuard module="clients" action="can_view">
+                        <CadastroDetail />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -338,7 +349,9 @@ const App = () => (
                   path="/cadastros/clientes/:id/editar"
                   element={
                     <ProtectedRoute>
-                      <ClientForm />
+                      <RoutePermissionGuard module="clients" action="can_edit">
+                        <ClientForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -346,7 +359,9 @@ const App = () => (
                   path="/cadastros/:id"
                   element={
                     <ProtectedRoute>
-                      <CadastroRedirect />
+                      <RoutePermissionGuard module="clients" action="can_view">
+                        <CadastroRedirect />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -354,7 +369,12 @@ const App = () => (
                   path="/clients/new"
                   element={
                     <ProtectedRoute>
-                      <ClientForm />
+                      <RoutePermissionGuard
+                        module="clients"
+                        action="can_create"
+                      >
+                        <ClientForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -362,7 +382,9 @@ const App = () => (
                   path="/clients/:id/edit"
                   element={
                     <ProtectedRoute>
-                      <ClientForm />
+                      <RoutePermissionGuard module="clients" action="can_edit">
+                        <ClientForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -370,7 +392,12 @@ const App = () => (
                   path="/equipment"
                   element={
                     <ProtectedRoute>
-                      <Equipment />
+                      <RoutePermissionGuard
+                        module="equipment"
+                        action="can_view"
+                      >
+                        <Equipment />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -378,7 +405,12 @@ const App = () => (
                   path="/equipment/new"
                   element={
                     <ProtectedRoute>
-                      <EquipmentForm />
+                      <RoutePermissionGuard
+                        module="equipment"
+                        action="can_create"
+                      >
+                        <EquipmentForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -386,7 +418,12 @@ const App = () => (
                   path="/equipment/:id/edit"
                   element={
                     <ProtectedRoute>
-                      <EquipmentForm />
+                      <RoutePermissionGuard
+                        module="equipment"
+                        action="can_edit"
+                      >
+                        <EquipmentForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -394,7 +431,9 @@ const App = () => (
                   path="/products"
                   element={
                     <ProtectedRoute>
-                      <Products />
+                      <RoutePermissionGuard module="products" action="can_view">
+                        <Products />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -402,7 +441,12 @@ const App = () => (
                   path="/products/new"
                   element={
                     <ProtectedRoute>
-                      <ProductForm />
+                      <RoutePermissionGuard
+                        module="products"
+                        action="can_create"
+                      >
+                        <ProductForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -410,7 +454,9 @@ const App = () => (
                   path="/products/:id/edit"
                   element={
                     <ProtectedRoute>
-                      <ProductForm />
+                      <RoutePermissionGuard module="products" action="can_edit">
+                        <ProductForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -418,7 +464,12 @@ const App = () => (
                   path="/technicians"
                   element={
                     <ProtectedRoute>
-                      <Technicians />
+                      <RoutePermissionGuard
+                        module="technicians"
+                        action="can_view"
+                      >
+                        <Technicians />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -426,7 +477,12 @@ const App = () => (
                   path="/technicians/new"
                   element={
                     <ProtectedRoute>
-                      <TechnicianForm />
+                      <RoutePermissionGuard
+                        module="technicians"
+                        action="can_create"
+                      >
+                        <TechnicianForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -434,7 +490,12 @@ const App = () => (
                   path="/technicians/:id/edit"
                   element={
                     <ProtectedRoute>
-                      <TechnicianForm />
+                      <RoutePermissionGuard
+                        module="technicians"
+                        action="can_edit"
+                      >
+                        <TechnicianForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -442,7 +503,13 @@ const App = () => (
                   path="/service-calls"
                   element={
                     <ProtectedRoute>
-                      <ServiceCalls />
+                      <RoutePermissionGuard
+                        module="service_calls"
+                        action="can_view"
+                        allowRoles={["technician"]}
+                      >
+                        <ServiceCalls />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -450,7 +517,13 @@ const App = () => (
                   path="/service-calls/:id"
                   element={
                     <ProtectedRoute>
-                      <ServiceCallForm />
+                      <RoutePermissionGuard
+                        module="service_calls"
+                        action="can_view"
+                        allowRoles={["technician"]}
+                      >
+                        <ServiceCallForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -458,7 +531,12 @@ const App = () => (
                   path="/service-calls/new"
                   element={
                     <ProtectedRoute>
-                      <ServiceCallForm />
+                      <RoutePermissionGuard
+                        module="service_calls"
+                        action="can_create"
+                      >
+                        <ServiceCallForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -466,7 +544,13 @@ const App = () => (
                   path="/service-calls/edit/:id"
                   element={
                     <ProtectedRoute>
-                      <ServiceCallForm />
+                      <RoutePermissionGuard
+                        module="service_calls"
+                        action="can_edit"
+                        allowRoles={["technician"]}
+                      >
+                        <ServiceCallForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -474,7 +558,12 @@ const App = () => (
                   path="/service-types"
                   element={
                     <ProtectedRoute>
-                      <ServiceTypes />
+                      <RoutePermissionGuard
+                        module="service_types"
+                        action="can_view"
+                      >
+                        <ServiceTypes />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -482,7 +571,12 @@ const App = () => (
                   path="/service-types/new"
                   element={
                     <ProtectedRoute>
-                      <ServiceTypeForm />
+                      <RoutePermissionGuard
+                        module="service_types"
+                        action="can_create"
+                      >
+                        <ServiceTypeForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -490,7 +584,12 @@ const App = () => (
                   path="/service-types/:id/edit"
                   element={
                     <ProtectedRoute>
-                      <ServiceTypeForm />
+                      <RoutePermissionGuard
+                        module="service_types"
+                        action="can_edit"
+                      >
+                        <ServiceTypeForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -498,7 +597,12 @@ const App = () => (
                   path="/service-call-statuses"
                   element={
                     <ProtectedRoute>
-                      <ServiceCallStatuses />
+                      <RoutePermissionGuard
+                        module="service_statuses"
+                        action="can_view"
+                      >
+                        <ServiceCallStatuses />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -506,7 +610,12 @@ const App = () => (
                   path="/service-call-statuses/new"
                   element={
                     <ProtectedRoute>
-                      <ServiceCallStatusForm />
+                      <RoutePermissionGuard
+                        module="service_statuses"
+                        action="can_create"
+                      >
+                        <ServiceCallStatusForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -514,7 +623,12 @@ const App = () => (
                   path="/service-call-statuses/:id/edit"
                   element={
                     <ProtectedRoute>
-                      <ServiceCallStatusForm />
+                      <RoutePermissionGuard
+                        module="service_statuses"
+                        action="can_edit"
+                      >
+                        <ServiceCallStatusForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -522,7 +636,9 @@ const App = () => (
                   path="/vehicles"
                   element={
                     <ProtectedRoute>
-                      <Vehicles />
+                      <RoutePermissionGuard module="vehicles" action="can_view">
+                        <Vehicles />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -530,7 +646,12 @@ const App = () => (
                   path="/vehicles/new"
                   element={
                     <ProtectedRoute>
-                      <VehicleForm />
+                      <RoutePermissionGuard
+                        module="vehicles"
+                        action="can_create"
+                      >
+                        <VehicleForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -538,7 +659,9 @@ const App = () => (
                   path="/vehicles/:id/edit"
                   element={
                     <ProtectedRoute>
-                      <VehicleForm />
+                      <RoutePermissionGuard module="vehicles" action="can_edit">
+                        <VehicleForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -624,7 +747,7 @@ const App = () => (
                     <ProtectedRoute>
                       <RoutePermissionGuard
                         module="checklists"
-                        action="can_view"
+                        action="can_create"
                       >
                         <ChecklistForm />
                       </RoutePermissionGuard>
@@ -637,7 +760,7 @@ const App = () => (
                     <ProtectedRoute>
                       <RoutePermissionGuard
                         module="checklists"
-                        action="can_view"
+                        action="can_edit"
                       >
                         <ChecklistForm />
                       </RoutePermissionGuard>
@@ -683,7 +806,7 @@ const App = () => (
                     <ProtectedRoute>
                       <RoutePermissionGuard
                         module="payment_methods"
-                        action="can_view"
+                        action="can_create"
                       >
                         <PaymentMethodForm />
                       </RoutePermissionGuard>
@@ -696,7 +819,7 @@ const App = () => (
                     <ProtectedRoute>
                       <RoutePermissionGuard
                         module="payment_methods"
-                        action="can_view"
+                        action="can_edit"
                       >
                         <PaymentMethodForm />
                       </RoutePermissionGuard>
@@ -894,7 +1017,7 @@ const App = () => (
                   path="/vendas/novo"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="vendas" action="can_view">
+                      <RoutePermissionGuard module="vendas" action="can_create">
                         <SaleForm />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -904,7 +1027,7 @@ const App = () => (
                   path="/vendas/:id/editar"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="vendas" action="can_view">
+                      <RoutePermissionGuard module="vendas" action="can_edit">
                         <SaleForm />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -1184,7 +1307,9 @@ const App = () => (
                   path="/qr-code"
                   element={
                     <ProtectedRoute>
-                      <QRCodeHome />
+                      <RoutePermissionGuard module="products" action="can_view">
+                        <QRCodeHome />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -1192,7 +1317,9 @@ const App = () => (
                   path="/qr-code/produtos"
                   element={
                     <ProtectedRoute>
-                      <QRProducts />
+                      <RoutePermissionGuard module="products" action="can_view">
+                        <QRProducts />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -1200,7 +1327,12 @@ const App = () => (
                   path="/qr-code/produtos/novo"
                   element={
                     <ProtectedRoute>
-                      <QRProductForm />
+                      <RoutePermissionGuard
+                        module="products"
+                        action="can_create"
+                      >
+                        <QRProductForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -1208,7 +1340,9 @@ const App = () => (
                   path="/qr-code/produtos/:id"
                   element={
                     <ProtectedRoute>
-                      <QRProductForm />
+                      <RoutePermissionGuard module="products" action="can_edit">
+                        <QRProductForm />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -1216,7 +1350,9 @@ const App = () => (
                   path="/qr-code/templates"
                   element={
                     <ProtectedRoute>
-                      <QRTemplates />
+                      <RoutePermissionGuard module="products" action="can_view">
+                        <QRTemplates />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -1224,7 +1360,12 @@ const App = () => (
                   path="/qr-code/templates/novo"
                   element={
                     <ProtectedRoute>
-                      <QRTemplateEditor />
+                      <RoutePermissionGuard
+                        module="products"
+                        action="can_create"
+                      >
+                        <QRTemplateEditor />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -1232,7 +1373,9 @@ const App = () => (
                   path="/qr-code/templates/:id"
                   element={
                     <ProtectedRoute>
-                      <QRTemplateEditor />
+                      <RoutePermissionGuard module="products" action="can_edit">
+                        <QRTemplateEditor />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -1240,7 +1383,9 @@ const App = () => (
                   path="/qr-code/fabricados"
                   element={
                     <ProtectedRoute>
-                      <QRGenerateFabricated />
+                      <RoutePermissionGuard module="products" action="can_view">
+                        <QRGenerateFabricated />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -1248,7 +1393,9 @@ const App = () => (
                   path="/qr-code/assistencia"
                   element={
                     <ProtectedRoute>
-                      <QRGenerateAssistance />
+                      <RoutePermissionGuard module="products" action="can_view">
+                        <QRGenerateAssistance />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />
@@ -1256,7 +1403,9 @@ const App = () => (
                   path="/qr-code/configuracoes"
                   element={
                     <ProtectedRoute>
-                      <QRSettings />
+                      <RoutePermissionGuard module="settings" action="can_view">
+                        <QRSettings />
+                      </RoutePermissionGuard>
                     </ProtectedRoute>
                   }
                 />

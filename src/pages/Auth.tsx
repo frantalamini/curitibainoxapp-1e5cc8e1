@@ -24,7 +24,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { sanitizeRedirectPath } from "@/lib/authStorage";
-import { pixel } from "@/lib/pixel";
 
 // Schema de validação para login (aceita username ou email)
 const loginSchema = z.object({
@@ -44,38 +43,6 @@ const loginSchema = z.object({
     .max(100, "Senha muito longa"),
 });
 
-// Schema de validação para cadastro (não herda do login, tem email próprio)
-const signupSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .email("Email inválido")
-    .max(255, "Email muito longo"),
-  password: z
-    .string()
-    .min(8, "Senha deve ter no mínimo 8 caracteres")
-    .regex(/[A-Z]/, "Senha deve conter ao menos 1 letra maiúscula")
-    .regex(
-      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
-      "Senha deve conter ao menos 1 caractere especial",
-    )
-    .max(100, "Senha muito longa"),
-  fullName: z
-    .string()
-    .trim()
-    .min(3, "Nome deve ter no mínimo 3 caracteres")
-    .max(100, "Nome muito longo")
-    .regex(/^[A-Za-zÀ-ÿ\s]+$/, "Nome deve conter apenas letras"),
-  phone: z
-    .string()
-    .regex(
-      /^\(\d{2}\) \d{4,5}-\d{4}$/,
-      "Telefone inválido. Use: (11) 99999-9999",
-    )
-    .optional()
-    .or(z.literal("")),
-});
-
 // Schema de validação para recuperação de senha
 const forgotPasswordSchema = z.object({
   email: z
@@ -86,11 +53,9 @@ const forgotPasswordSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
-type SignupFormData = z.infer<typeof signupSchema>;
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -104,24 +69,16 @@ const Auth = () => {
     return sanitizeRedirectPath(redirect);
   }, [location.search]);
 
-  const form = useForm<LoginFormData | SignupFormData | ForgotPasswordFormData>(
-    {
-      resolver: zodResolver(
-        isForgotPassword
-          ? forgotPasswordSchema
-          : isLogin
-            ? loginSchema
-            : signupSchema,
-      ),
-      defaultValues: {
-        usernameOrEmail: "",
-        email: "",
-        password: "",
-        fullName: "",
-        phone: "",
-      },
+  const form = useForm<LoginFormData | ForgotPasswordFormData>({
+    resolver: zodResolver(
+      isForgotPassword ? forgotPasswordSchema : loginSchema,
+    ),
+    defaultValues: {
+      usernameOrEmail: "",
+      email: "",
+      password: "",
     },
-  );
+  });
 
   useEffect(() => {
     // Check if user is already logged in
@@ -132,9 +89,7 @@ const Auth = () => {
     });
   }, [navigate, redirectTarget]);
 
-  const handleAuth = async (
-    values: LoginFormData | SignupFormData | ForgotPasswordFormData,
-  ) => {
+  const handleAuth = async (values: LoginFormData | ForgotPasswordFormData) => {
     try {
       if (isForgotPassword) {
         const forgotValues = values as ForgotPasswordFormData;
@@ -154,9 +109,8 @@ const Auth = () => {
         });
 
         setIsForgotPassword(false);
-        setIsLogin(true);
         form.reset();
-      } else if (isLogin) {
+      } else {
         const loginValues = values as LoginFormData;
 
         // Call the login-with-username edge function
@@ -190,37 +144,12 @@ const Auth = () => {
           if (sessionError) throw sessionError;
         }
 
-        pixel.loginApp();
         toast({
           title: "Login realizado com sucesso!",
           description: "Redirecionando...",
         });
 
         navigate(redirectTarget, { replace: true });
-      } else {
-        const signupValues = values as SignupFormData;
-        const { error } = await supabase.auth.signUp({
-          email: signupValues.email,
-          password: signupValues.password,
-          options: {
-            data: {
-              full_name: signupValues.fullName,
-              phone: signupValues.phone || "",
-            },
-            emailRedirectTo: `${window.location.origin}/`,
-          },
-        });
-
-        if (error) throw error;
-
-        pixel.completeRegistration();
-        toast({
-          title: "Cadastro realizado!",
-          description: "Você já pode fazer login.",
-        });
-
-        setIsLogin(true);
-        form.reset();
       }
     } catch (error: any) {
       toast({
@@ -236,18 +165,12 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>
-            {isForgotPassword
-              ? "Recuperar Senha"
-              : isLogin
-                ? "Login"
-                : "Cadastro"}
+            {isForgotPassword ? "Recuperar Senha" : "Login"}
           </CardTitle>
           <CardDescription>
             {isForgotPassword
               ? "Digite seu email para receber instruções"
-              : isLogin
-                ? "Entre com suas credenciais"
-                : "Crie sua conta para começar"}
+              : "Entre com suas credenciais"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -256,38 +179,21 @@ const Auth = () => {
               onSubmit={form.handleSubmit(handleAuth)}
               className="space-y-4"
             >
-              {!isLogin && !isForgotPassword && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome Completo</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="João da Silva" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefone (opcional)</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="(11) 99999-9999" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-
-              {isLogin ? (
+              {isForgotPassword ? (
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
                 <FormField
                   control={form.control}
                   name="usernameOrEmail"
@@ -299,20 +205,6 @@ const Auth = () => {
                           {...field}
                           placeholder="Digite seu username ou email"
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -352,12 +244,6 @@ const Auth = () => {
                         </div>
                       </FormControl>
                       <FormMessage />
-                      {!isLogin && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Mínimo 8 caracteres, com maiúscula, minúscula, número
-                          e caractere especial
-                        </p>
-                      )}
                     </FormItem>
                   )}
                 />
@@ -372,48 +258,29 @@ const Auth = () => {
                   ? "Carregando..."
                   : isForgotPassword
                     ? "Enviar link de recuperação"
-                    : isLogin
-                      ? "Entrar"
-                      : "Cadastrar"}
+                    : "Entrar"}
               </Button>
             </form>
           </Form>
 
           <div className="mt-4 text-center text-sm space-y-2">
             {!isForgotPassword && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    form.reset();
-                  }}
-                  className="text-primary hover:underline block w-full"
-                >
-                  {isLogin
-                    ? "Não tem conta? Cadastre-se"
-                    : "Já tem conta? Faça login"}
-                </button>
-                {isLogin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsForgotPassword(true);
-                      form.reset();
-                    }}
-                    className="text-primary hover:underline block w-full"
-                  >
-                    Esqueci minha senha
-                  </button>
-                )}
-              </>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(true);
+                  form.reset();
+                }}
+                className="text-primary hover:underline block w-full"
+              >
+                Esqueci minha senha
+              </button>
             )}
             {isForgotPassword && (
               <button
                 type="button"
                 onClick={() => {
                   setIsForgotPassword(false);
-                  setIsLogin(true);
                   form.reset();
                 }}
                 className="text-primary hover:underline block w-full"

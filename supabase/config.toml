@@ -14,3 +14,18 @@ verify_jwt = true
 
 [functions.geocode-address]
 verify_jwt = true
+
+[functions.extract-receipt-amount]
+verify_jwt = true
+
+[functions.login-with-username]
+verify_jwt = false
+
+[functions.create-user]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.reset-user-password]
+verify_jwt = true

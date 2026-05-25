@@ -9,9 +9,19 @@ import fs from "fs";
 import path from "path";
 import { OSReport } from "./src/components/pdf/OSReport";
 
-const SUPABASE_URL = "https://www.curitibainoxapp.com/supabase";
-const SERVICE_ROLE_KEY =
-  "***REDACTED_SERVICE_ROLE_KEY***";
+const SUPABASE_URL =
+  process.env.SUPABASE_URL || "https://www.curitibainoxapp.com/supabase";
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SERVICE_ROLE_KEY) {
+  console.error(
+    "ERRO: Defina SUPABASE_SERVICE_ROLE_KEY como variável de ambiente.",
+  );
+  console.error(
+    "Uso: SUPABASE_SERVICE_ROLE_KEY=sua_chave npx tsx backup-os-pdfs.tsx",
+  );
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
