@@ -87,25 +87,23 @@ serve(async (req) => {
       "MB (base64)",
     );
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY not configured");
     }
 
-    console.log(
-      "Processing audio for transcription with Lovable AI (Gemini)...",
-    );
+    console.log("Processing audio for transcription with Gemini...");
 
     const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${GEMINI_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: "gemini-2.5-pro",
           messages: [
             {
               role: "user",
@@ -130,7 +128,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Lovable AI error:", response.status, errorText);
+      console.error("Gemini AI error:", response.status, errorText);
 
       if (response.status === 429) {
         throw new Error(
@@ -143,7 +141,7 @@ serve(async (req) => {
         );
       }
 
-      throw new Error(`Lovable AI error: ${response.status}`);
+      throw new Error(`Gemini AI error: ${response.status}`);
     }
 
     const result = await response.json();

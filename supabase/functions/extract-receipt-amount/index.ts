@@ -2,8 +2,8 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+const GEMINI_AI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -99,15 +99,14 @@ Deno.serve(async (req) => {
       };
     }
 
-    // Call Lovable AI (Gemini Vision) to extract receipt information
-    const response = await fetch(LOVABLE_AI_URL, {
+    const response = await fetch(GEMINI_AI_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${GEMINI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gemini-2.5-flash",
         messages: [
           {
             role: "user",
@@ -143,7 +142,7 @@ Priorize extrair o valor total corretamente. Valores em R$ (reais brasileiros).`
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Lovable AI error:", errorText);
+      console.error("Gemini AI error:", errorText);
       return new Response(
         JSON.stringify({
           error: "Failed to process image",
