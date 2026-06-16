@@ -3,7 +3,7 @@ import {
   StatusType,
 } from "@/hooks/useServiceCallStatuses";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useCurrentUserPermissions } from "@/hooks/useUserPermissions";
+import { useCurrentUserProfilePermissions } from "@/hooks/useAccessProfiles";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
@@ -42,8 +42,8 @@ export function StatusSelectField({
 }: StatusSelectFieldProps) {
   const { statuses, isLoading: statusesLoading } = useServiceCallStatuses();
   const { isAdmin, isTechnician, loading: rolesLoading } = useUserRole();
-  const { data: permissionsData, isLoading: permissionsLoading } =
-    useCurrentUserPermissions();
+  const { data: profilePerms, isLoading: permissionsLoading } =
+    useCurrentUserProfilePermissions();
 
   const isLoading = statusesLoading || rolesLoading || permissionsLoading;
 
@@ -55,13 +55,9 @@ export function StatusSelectField({
   const selectedStatus = statuses?.find((s) => s.id === value);
 
   // Verificar permissões
-  const profileType = permissionsData?.profileType;
-  const isGerencial = profileType === "gerencial";
-  const isAdm = profileType === "adm";
+  const isGerencial = profilePerms?.isGerencial ?? false;
+  const isAdm = profilePerms?.isAdm ?? false;
 
-  // Lógica de permissão:
-  // Status Técnico: Técnicos, ADM e Gerencial podem alterar
-  // Status Comercial: Apenas ADM e Gerencial podem alterar
   const canEditTechnicalStatus =
     isAdmin || isTechnician || isGerencial || isAdm;
   const canEditCommercialStatus = isAdmin || isGerencial || isAdm;

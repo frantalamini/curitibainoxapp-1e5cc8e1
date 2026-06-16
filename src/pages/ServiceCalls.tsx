@@ -21,10 +21,7 @@ import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { useServiceCallMarkers } from "@/hooks/useServiceCallMarkers";
 import { useCommercialStatusCounts } from "@/hooks/useCommercialStatusCounts";
 import { useUserRole } from "@/hooks/useUserRole";
-import {
-  useCurrentUserPermissions,
-  checkPermission,
-} from "@/hooks/useUserPermissions";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
 import { ServiceCallsTable } from "@/components/ServiceCallsTable";
@@ -61,12 +58,8 @@ const ServiceCalls = () => {
   const { data: newCallsCount = 0 } = useNewServiceCallsCount();
   const { data: commercialCounts } = useCommercialStatusCounts();
   const { isAdmin } = useUserRole();
-  const { data: currentUserPerms } = useCurrentUserPermissions();
-  const canViewFinancial = checkPermission(
-    currentUserPerms?.permissions ?? [],
-    "finances",
-    "view",
-  );
+  const { canView: canViewFinancial } =
+    useModulePermissions("os_aba_financeiro");
 
   const technicalStatuses =
     statuses?.filter((s) => s.status_type === "tecnico") || [];

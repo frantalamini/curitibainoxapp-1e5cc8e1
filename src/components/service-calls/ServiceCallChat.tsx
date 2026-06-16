@@ -28,7 +28,7 @@ import {
   ServiceCallMessage,
 } from "@/hooks/useServiceCallMessages";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useCurrentUserPermissions } from "@/hooks/useUserPermissions";
+import { useCurrentUserProfilePermissions } from "@/hooks/useAccessProfiles";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { ResolveMessageModal } from "./ResolveMessageModal";
@@ -59,7 +59,7 @@ export const ServiceCallChat = ({
   const resolveMessage = useResolveMessage();
   const deleteMessage = useDeleteMessage();
   const { isAdmin } = useUserRole();
-  const { data: userPermissions } = useCurrentUserPermissions();
+  const { data: profilePerms } = useCurrentUserProfilePermissions();
 
   // Get current user ID
   useEffect(() => {
@@ -81,7 +81,7 @@ export const ServiceCallChat = ({
   ).length;
 
   // Check if user is gerencial (can delete)
-  const isGerencial = userPermissions?.profileType === "gerencial";
+  const isGerencial = profilePerms?.isGerencial ?? false;
 
   const handleResolve = (messageId: string) => {
     const msg = messages.find((m) => m.id === messageId);

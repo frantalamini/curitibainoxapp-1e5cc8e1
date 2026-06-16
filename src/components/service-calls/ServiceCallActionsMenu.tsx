@@ -26,7 +26,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useCurrentUserPermissions } from "@/hooks/useUserPermissions";
+import { useCurrentUserProfilePermissions } from "@/hooks/useAccessProfiles";
 import type { ServiceCallMarker } from "@/hooks/useServiceCallMarkers";
 
 interface ServiceCallActionsMenuProps {
@@ -62,11 +62,10 @@ export function ServiceCallActionsMenu({
 
   // Permissões
   const { isAdmin, isTechnician, loading: roleLoading } = useUserRole();
-  const { data: permissionsData, isLoading: permissionsLoading } =
-    useCurrentUserPermissions();
-  const profileType = permissionsData?.profileType;
-  const isGerencial = profileType === "gerencial";
-  const isAdm = profileType === "adm";
+  const { data: profilePerms, isLoading: permissionsLoading } =
+    useCurrentUserProfilePermissions();
+  const isGerencial = profilePerms?.isGerencial ?? false;
+  const isAdm = profilePerms?.isAdm ?? false;
 
   // Enquanto carrega, considerar que PODE ter permissão (evita flickering/sumiço dos menus)
   // Após carregar, usar a lógica real. Se não tiver permissão, RLS bloqueia no backend.

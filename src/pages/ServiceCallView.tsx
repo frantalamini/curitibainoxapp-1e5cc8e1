@@ -39,10 +39,7 @@ import {
 } from "@/hooks/useServiceCalls";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { useUserRole } from "@/hooks/useUserRole";
-import {
-  useCurrentUserPermissions,
-  checkPermission,
-} from "@/hooks/useUserPermissions";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useChecklists } from "@/hooks/useChecklists";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { SendReportModal } from "@/components/SendReportModal";
@@ -111,12 +108,8 @@ const ServiceCallView = () => {
   const [sendWhatsAppModalOpen, setSendWhatsAppModalOpen] = useState(false);
   const [sendEmailModalOpen, setSendEmailModalOpen] = useState(false);
   const { isAdmin, isTechnician } = useUserRole();
-  const { data: permissionsData } = useCurrentUserPermissions();
-  const canViewFinancial = checkPermission(
-    permissionsData?.permissions ?? [],
-    "finances",
-    "view",
-  );
+  const { canView: canViewFinancial } =
+    useModulePermissions("os_aba_financeiro");
   const { checklists } = useChecklists();
   const { settings: systemSettings } = useSystemSettings();
 
