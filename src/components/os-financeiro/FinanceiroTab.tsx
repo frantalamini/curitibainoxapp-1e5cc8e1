@@ -2016,30 +2016,12 @@ export const FinanceiroTab = ({
                                   </div>
                                 ) : t.status === "OPEN" ? (
                                   <div className="flex gap-0.5">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6"
-                                      title="Pago"
-                                      onClick={() =>
-                                        markAsPaid.mutateAsync(t.id)
-                                      }
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs text-orange-600 border-orange-300"
                                     >
-                                      <Check className="h-3 w-3 text-green-600" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6"
-                                      title="Cancelar"
-                                      onClick={() =>
-                                        cancelTransaction.mutateAsync(t.id)
-                                      }
-                                    >
-                                      <X className="h-3 w-3 text-destructive" />
-                                    </Button>
+                                      Aberto
+                                    </Badge>
                                     <Button
                                       type="button"
                                       variant="ghost"
