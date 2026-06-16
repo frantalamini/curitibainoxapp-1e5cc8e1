@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/tooltip";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { BANK_RECONCILIATION_ENABLED } from "@/lib/constants";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
@@ -484,20 +485,25 @@ export default function ContasAReceber() {
                               <div className="flex gap-1 justify-end">
                                 {r.status === "OPEN" && (
                                   <>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 px-2"
-                                      onClick={() => {
-                                        setPayDialog({ open: true, id: r.id });
-                                        setPayDate(
-                                          format(new Date(), "yyyy-MM-dd"),
-                                        );
-                                        setPayAccountId("");
-                                      }}
-                                    >
-                                      <Check className="h-4 w-4" />
-                                    </Button>
+                                    {!BANK_RECONCILIATION_ENABLED && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 px-2"
+                                        onClick={() => {
+                                          setPayDialog({
+                                            open: true,
+                                            id: r.id,
+                                          });
+                                          setPayDate(
+                                            format(new Date(), "yyyy-MM-dd"),
+                                          );
+                                          setPayAccountId("");
+                                        }}
+                                      >
+                                        <Check className="h-4 w-4" />
+                                      </Button>
+                                    )}
                                     {!isFromOS && (
                                       <Button
                                         size="sm"

@@ -80,6 +80,7 @@ import { Label } from "@/components/ui/label";
 import { format, startOfMonth, endOfMonth, parseISO, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { BANK_RECONCILIATION_ENABLED } from "@/lib/constants";
 import { DRE_GROUP_OPTIONS } from "@/lib/dreConstants";
 import {
   ReceiptOCRCapture,
@@ -1213,20 +1214,25 @@ export default function ContasAPagar() {
                               <div className="flex gap-1 justify-end">
                                 {p.status === "OPEN" && (
                                   <>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 px-2"
-                                      onClick={() => {
-                                        setPayDialog({ open: true, id: p.id });
-                                        setPayDate(
-                                          format(new Date(), "yyyy-MM-dd"),
-                                        );
-                                        setPayAccountId("");
-                                      }}
-                                    >
-                                      <Check className="h-4 w-4" />
-                                    </Button>
+                                    {!BANK_RECONCILIATION_ENABLED && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 px-2"
+                                        onClick={() => {
+                                          setPayDialog({
+                                            open: true,
+                                            id: p.id,
+                                          });
+                                          setPayDate(
+                                            format(new Date(), "yyyy-MM-dd"),
+                                          );
+                                          setPayAccountId("");
+                                        }}
+                                      >
+                                        <Check className="h-4 w-4" />
+                                      </Button>
+                                    )}
                                     <Button
                                       size="sm"
                                       variant="ghost"
