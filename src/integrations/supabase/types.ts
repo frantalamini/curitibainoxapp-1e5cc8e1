@@ -483,10 +483,12 @@ export type Database = {
           description: string | null;
           direction: Database["public"]["Enums"]["transaction_direction"];
           discount: number | null;
+          document_number: string | null;
           due_date: string;
           financial_account_id: string | null;
           id: string;
           installment_number: number | null;
+          issue_date: string | null;
           installments_group_id: string | null;
           installments_total: number | null;
           interest: number | null;
@@ -512,10 +514,12 @@ export type Database = {
           description?: string | null;
           direction: Database["public"]["Enums"]["transaction_direction"];
           discount?: number | null;
+          document_number?: string | null;
           due_date: string;
           financial_account_id?: string | null;
           id?: string;
           installment_number?: number | null;
+          issue_date?: string | null;
           installments_group_id?: string | null;
           installments_total?: number | null;
           interest?: number | null;
@@ -541,10 +545,12 @@ export type Database = {
           description?: string | null;
           direction?: Database["public"]["Enums"]["transaction_direction"];
           discount?: number | null;
+          document_number?: string | null;
           due_date?: string;
           financial_account_id?: string | null;
           id?: string;
           installment_number?: number | null;
+          issue_date?: string | null;
           installments_group_id?: string | null;
           installments_total?: number | null;
           interest?: number | null;

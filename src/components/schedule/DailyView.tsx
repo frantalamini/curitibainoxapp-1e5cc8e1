@@ -1,13 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useState, lazy, Suspense } from "react";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ScheduleEventCard from "./ScheduleEventCard";
 import { Technician } from "@/hooks/useTechnicians";
-import { CalendarX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarX, Route } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
+
+const RouteMapDialog = lazy(() => import("./RouteMapDialog"));
 
 interface ServiceCall {
   id: string;
+  os_number: number;
   scheduled_date: string;
   scheduled_time: string;
   status: string;
@@ -19,6 +23,13 @@ interface ServiceCall {
     full_name: string;
     company_name?: string;
     phone?: string;
+    street?: string;
+    number?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    cep?: string;
+    nome_fantasia?: string;
   } | null;
 }
 
@@ -37,6 +48,15 @@ const DailyView = ({
   selectedTechnicianId,
   onCallClick,
 }: DailyViewProps) => {
+  const [routeDialogOpen, setRouteDialogOpen] = useState(false);
+
+  const selectedTechName = useMemo(() => {
+    if (selectedTechnicianId === "all") return "";
+    return (
+      technicians?.find((t) => t.id === selectedTechnicianId)?.full_name || ""
+    );
+  }, [selectedTechnicianId, technicians]);
+
   // Filter service calls for the current day
   const dayCalls = useMemo(() => {
     const filtered = serviceCalls.filter((call) => {
@@ -85,16 +105,32 @@ const DailyView = ({
     <div className="bg-card rounded-lg border overflow-hidden">
       {/* Day Header */}
       <div className="px-4 py-4 border-b bg-muted/30">
-        <h2 className="text-lg font-semibold capitalize">
-          {format(currentDate, "EEEE", { locale: ptBR })}
-        </h2>
-        <p className="text-muted-foreground">
-          {format(currentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-        </p>
-        <p className="text-sm text-primary mt-1">
-          {dayCalls.length} chamado{dayCalls.length !== 1 ? "s" : ""} agendado
-          {dayCalls.length !== 1 ? "s" : ""}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold capitalize">
+              {format(currentDate, "EEEE", { locale: ptBR })}
+            </h2>
+            <p className="text-muted-foreground">
+              {format(currentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </p>
+            <p className="text-sm text-primary mt-1">
+              {dayCalls.length} chamado{dayCalls.length !== 1 ? "s" : ""}{" "}
+              agendado
+              {dayCalls.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          {selectedTechnicianId !== "all" && dayCalls.length >= 2 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRouteDialogOpen(true)}
+              className="shrink-0"
+            >
+              <Route className="h-4 w-4 mr-2" />
+              Traçar Rota
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Events List */}
@@ -115,6 +151,16 @@ const DailyView = ({
           );
         })}
       </div>
+      {selectedTechnicianId !== "all" && dayCalls.length >= 2 && (
+        <Suspense fallback={null}>
+          <RouteMapDialog
+            open={routeDialogOpen}
+            onOpenChange={setRouteDialogOpen}
+            serviceCalls={dayCalls}
+            technicianName={selectedTechName}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

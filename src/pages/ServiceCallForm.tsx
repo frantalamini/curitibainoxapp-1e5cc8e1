@@ -394,6 +394,77 @@ const ServiceCallForm = () => {
     resolve();
   }, [currentTechSignature?.image_url, currentClientSignature?.image_url]);
 
+  // Re-assina URLs de storage expiradas quando uma OS existente é carregada
+  useEffect(() => {
+    if (!isEditMode || !existingCall) return;
+
+    const resolveStorageUrl = async (
+      url: string | null | undefined,
+    ): Promise<string | null> => {
+      if (!url) return null;
+      if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+      const match = url.match(/\/service-call-attachments\/([^?]+)/);
+      if (match) {
+        const { data } = await supabase.storage
+          .from("service-call-attachments")
+          .createSignedUrl(decodeURIComponent(match[1]), 3600);
+        return data?.signedUrl || url;
+      }
+      if (!url.startsWith("http")) {
+        const { data } = await supabase.storage
+          .from("service-call-attachments")
+          .createSignedUrl(url, 3600);
+        return data?.signedUrl || url;
+      }
+      return url;
+    };
+
+    const resolveAll = async () => {
+      const mediaUrls = existingCall.media_urls || [];
+      const photosBefore = existingCall.photos_before_urls || [];
+      const photosAfter = existingCall.photos_after_urls || [];
+      const audioUrl = existingCall.audio_url || null;
+      const techAudioUrl = existingCall.technical_diagnosis_audio_url || null;
+      const videoBefore = existingCall.video_before_url || null;
+      const videoAfter = existingCall.video_after_url || null;
+
+      const [
+        resolvedMedia,
+        resolvedPhotosBefore,
+        resolvedPhotosAfter,
+        resolvedAudio,
+        resolvedTechAudio,
+        resolvedVideoBefore,
+        resolvedVideoAfter,
+      ] = await Promise.all([
+        Promise.all(mediaUrls.map((u) => resolveStorageUrl(u))),
+        Promise.all(photosBefore.map((u) => resolveStorageUrl(u))),
+        Promise.all(photosAfter.map((u) => resolveStorageUrl(u))),
+        resolveStorageUrl(audioUrl),
+        resolveStorageUrl(techAudioUrl),
+        resolveStorageUrl(videoBefore),
+        resolveStorageUrl(videoAfter),
+      ]);
+
+      setExistingMediaUrls(
+        resolvedMedia.filter((u): u is string => u !== null),
+      );
+      setExistingPhotosBeforeUrls(
+        resolvedPhotosBefore.filter((u): u is string => u !== null),
+      );
+      setExistingPhotosAfterUrls(
+        resolvedPhotosAfter.filter((u): u is string => u !== null),
+      );
+      setExistingAudioUrl(resolvedAudio);
+      setExistingTechnicalAudioUrl(resolvedTechAudio);
+      setExistingVideoBeforeUrl(resolvedVideoBefore);
+      setExistingVideoAfterUrl(resolvedVideoAfter);
+    };
+
+    resolveAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingCall?.id]);
+
   // Função helper para construir endereço completo
   const buildFullAddress = (client: any) => {
     if (!client) return "";

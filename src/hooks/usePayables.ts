@@ -7,7 +7,7 @@ export interface Payable {
   direction: "PAY";
   origin: "MANUAL";
   status: "OPEN" | "PAID" | "CANCELED" | "PARTIAL";
-  client_id: string | null; // Supplier (client with tipo='fornecedor')
+  client_id: string | null;
   due_date: string;
   amount: number;
   discount: number | null;
@@ -20,7 +20,13 @@ export interface Payable {
   financial_account_id: string | null;
   description: string | null;
   created_at: string | null;
-  // Joined data
+  issue_date: string | null;
+  document_number: string | null;
+  installment_number: number | null;
+  installments_total: number | null;
+  installments_group_id: string | null;
+  credit_card_id: string | null;
+  credit_card_statement_date: string | null;
   supplier?: {
     full_name: string;
     cpf_cnpj: string | null;
@@ -45,6 +51,19 @@ export interface PayableInsert {
   notes?: string | null;
   credit_card_id?: string | null;
   credit_card_statement_date?: string | null;
+  issue_date?: string | null;
+  document_number?: string | null;
+}
+
+export interface InstallmentRow {
+  due_date: string;
+  amount: number;
+  credit_card_statement_date?: string | null;
+}
+
+export interface PayableInsertWithInstallments extends PayableInsert {
+  purchase_type: "avista" | "parcelada";
+  installments?: InstallmentRow[];
 }
 
 interface PayablesFilters {
@@ -109,25 +128,52 @@ export function usePayables(filters?: PayablesFilters) {
   });
 
   const createPayable = useMutation({
-    mutationFn: async (data: PayableInsert) => {
-      const { error } = await supabase.from("financial_transactions").insert({
+    mutationFn: async (data: PayableInsertWithInstallments) => {
+      const baseRow = {
         direction: "PAY" as const,
         origin: "MANUAL" as const,
         status: "OPEN" as const,
         client_id: data.client_id || null,
         description: data.description,
-        due_date: data.due_date,
-        amount: data.amount,
         category_id: data.category_id || null,
         cost_center_id: data.cost_center_id || null,
         financial_account_id: data.financial_account_id || null,
         payment_method: data.payment_method || null,
         notes: data.notes || null,
         credit_card_id: data.credit_card_id || null,
-        credit_card_statement_date: data.credit_card_statement_date || null,
-      });
+        issue_date: data.issue_date || null,
+        document_number: data.document_number || null,
+      };
 
-      if (error) throw error;
+      if (
+        data.purchase_type === "parcelada" &&
+        data.installments &&
+        data.installments.length > 1
+      ) {
+        const groupId = crypto.randomUUID();
+        const rows = data.installments.map((inst, idx) => ({
+          ...baseRow,
+          due_date: inst.due_date,
+          amount: inst.amount,
+          installments_group_id: groupId,
+          installment_number: idx + 1,
+          installments_total: data.installments!.length,
+          credit_card_statement_date: inst.credit_card_statement_date || null,
+        }));
+
+        const { error } = await supabase
+          .from("financial_transactions")
+          .insert(rows);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("financial_transactions").insert({
+          ...baseRow,
+          due_date: data.due_date,
+          amount: data.amount,
+          credit_card_statement_date: data.credit_card_statement_date || null,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payables"] });
@@ -161,6 +207,8 @@ export function usePayables(filters?: PayablesFilters) {
           notes: data.notes,
           credit_card_id: data.credit_card_id,
           credit_card_statement_date: data.credit_card_statement_date,
+          issue_date: data.issue_date,
+          document_number: data.document_number,
         })
         .eq("id", id);
 
@@ -245,7 +293,6 @@ export function usePayables(filters?: PayablesFilters) {
     },
   });
 
-  // Calculate summary
   const openPayables = payables.filter((p) => p.status === "OPEN");
   const paidPayables = payables.filter((p) => p.status === "PAID");
   const totalOpen = openPayables.reduce((sum, p) => sum + Number(p.amount), 0);
