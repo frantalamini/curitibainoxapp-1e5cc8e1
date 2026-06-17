@@ -23,6 +23,7 @@ import { useCommercialStatusCounts } from "@/hooks/useCommercialStatusCounts";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { supabase } from "@/integrations/supabase/client";
+import { computeOSGrandTotal, type OSItemLite } from "@/lib/osTotals";
 import { ServiceCallMobileCard } from "@/components/mobile/ServiceCallMobileCard";
 import { ServiceCallsTable } from "@/components/ServiceCallsTable";
 import { CadastrosPagination } from "@/components/CadastrosPagination";
@@ -178,19 +179,36 @@ const ServiceCalls = () => {
     queryKey: ["service-call-totals", serviceCallIds],
     queryFn: async () => {
       if (serviceCallIds.length === 0) return {};
-      const { data, error } = await supabase
-        .from("service_call_items")
-        .select("service_call_id, total")
-        .in("service_call_id", serviceCallIds);
-      if (error) throw error;
-      return (data || []).reduce(
-        (acc, item) => {
-          acc[item.service_call_id] =
-            (acc[item.service_call_id] || 0) + Number(item.total);
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
+      // Total da OS COM desconto: precisa dos itens (por tipo) + dos descontos
+      // da própria OS. Cálculo centralizado em computeOSGrandTotal (mesmo do PDF).
+      const [itemsRes, osRes] = await Promise.all([
+        supabase
+          .from("service_call_items")
+          .select("service_call_id, type, total")
+          .in("service_call_id", serviceCallIds),
+        supabase
+          .from("service_calls")
+          .select(
+            "id, discount_parts_type, discount_parts_value, discount_services_type, discount_services_value, discount_total_type, discount_total_value",
+          )
+          .in("id", serviceCallIds),
+      ]);
+      if (itemsRes.error) throw itemsRes.error;
+      if (osRes.error) throw osRes.error;
+
+      const itemsByOS: Record<string, OSItemLite[]> = {};
+      for (const item of itemsRes.data || []) {
+        (itemsByOS[item.service_call_id] ||= []).push({
+          type: item.type,
+          total: item.total,
+        });
+      }
+
+      const result: Record<string, number> = {};
+      for (const os of osRes.data || []) {
+        result[os.id] = computeOSGrandTotal(itemsByOS[os.id] || [], os);
+      }
+      return result;
     },
     enabled: canViewFinancial && serviceCallIds.length > 0,
   });
