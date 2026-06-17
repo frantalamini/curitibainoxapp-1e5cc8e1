@@ -26,7 +26,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useCurrentUserProfilePermissions } from "@/hooks/useAccessProfiles";
+import {
+  useCurrentUserProfilePermissions,
+  hasProfilePermission,
+} from "@/hooks/useAccessProfiles";
 import type { ServiceCallMarker } from "@/hooks/useServiceCallMarkers";
 
 interface ServiceCallActionsMenuProps {
@@ -61,21 +64,23 @@ export function ServiceCallActionsMenu({
   const queryClient = useQueryClient();
 
   // Permissões
-  const { isAdmin, isTechnician, loading: roleLoading } = useUserRole();
+  const { isTechnician, loading: roleLoading } = useUserRole();
   const { data: profilePerms, isLoading: permissionsLoading } =
     useCurrentUserProfilePermissions();
-  const isGerencial = profilePerms?.isGerencial ?? false;
-  const isAdm = profilePerms?.isAdm ?? false;
 
   // Enquanto carrega, considerar que PODE ter permissão (evita flickering/sumiço dos menus)
   // Após carregar, usar a lógica real. Se não tiver permissão, RLS bloqueia no backend.
   const isLoadingPermissions = roleLoading || permissionsLoading;
 
-  // Permissões para alteração de status
+  // Permissões para alteração de status (data-driven via matriz de perfis)
+  // Status Técnico  → aba técnica da OS (+ técnico legado); Status Comercial → aba financeira
   const canEditTechnicalStatus =
-    isLoadingPermissions || isAdmin || isTechnician || isGerencial || isAdm;
+    isLoadingPermissions ||
+    isTechnician ||
+    hasProfilePermission(profilePerms, "os_aba_tecnico", "can_edit");
   const canEditCommercialStatus =
-    isLoadingPermissions || isAdmin || isGerencial || isAdm;
+    isLoadingPermissions ||
+    hasProfilePermission(profilePerms, "os_aba_financeiro", "can_edit");
 
   // Filtrar status por tipo
   const technicalStatuses =
@@ -84,7 +89,8 @@ export function ServiceCallActionsMenu({
     statuses?.filter((s) => s.active && s.status_type === "comercial") || [];
 
   // Verificar se a OS está faturada (bloqueio de edição)
-  // Gerencial pode alterar status mesmo quando faturado
+  // Quem edita a aba financeira (Gerencial/Financeiro/Adm) pode alterar
+  // o status mesmo quando faturado; os demais ficam bloqueados.
   const isStatusFaturado =
     !!currentCommercialStatusId &&
     statuses?.some(
@@ -92,7 +98,9 @@ export function ServiceCallActionsMenu({
         s.id === currentCommercialStatusId &&
         s.name.toLowerCase() === "faturado",
     );
-  const isFaturado = isStatusFaturado && !isGerencial;
+  const isFaturado =
+    isStatusFaturado &&
+    !hasProfilePermission(profilePerms, "os_aba_financeiro", "can_edit");
 
   const handleAddMarker = async () => {
     if (!newMarkerText.trim()) return;

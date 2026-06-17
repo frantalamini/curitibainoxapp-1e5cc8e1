@@ -3,7 +3,10 @@ import {
   StatusType,
 } from "@/hooks/useServiceCallStatuses";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useCurrentUserProfilePermissions } from "@/hooks/useAccessProfiles";
+import {
+  useCurrentUserProfilePermissions,
+  hasProfilePermission,
+} from "@/hooks/useAccessProfiles";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
@@ -41,7 +44,7 @@ export function StatusSelectField({
   className,
 }: StatusSelectFieldProps) {
   const { statuses, isLoading: statusesLoading } = useServiceCallStatuses();
-  const { isAdmin, isTechnician, loading: rolesLoading } = useUserRole();
+  const { isTechnician, loading: rolesLoading } = useUserRole();
   const { data: profilePerms, isLoading: permissionsLoading } =
     useCurrentUserProfilePermissions();
 
@@ -54,13 +57,17 @@ export function StatusSelectField({
   // Status selecionado atualmente
   const selectedStatus = statuses?.find((s) => s.id === value);
 
-  // Verificar permissões
-  const isGerencial = profilePerms?.isGerencial ?? false;
-  const isAdm = profilePerms?.isAdm ?? false;
-
+  // Verificar permissões (data-driven via matriz de perfis)
+  // Status Técnico  → quem pode editar a aba técnica da OS (+ técnico legado)
+  // Status Comercial → quem pode editar a aba financeira da OS (faturamento)
   const canEditTechnicalStatus =
-    isAdmin || isTechnician || isGerencial || isAdm;
-  const canEditCommercialStatus = isAdmin || isGerencial || isAdm;
+    isTechnician ||
+    hasProfilePermission(profilePerms, "os_aba_tecnico", "can_edit");
+  const canEditCommercialStatus = hasProfilePermission(
+    profilePerms,
+    "os_aba_financeiro",
+    "can_edit",
+  );
 
   const canEdit =
     statusType === "tecnico" ? canEditTechnicalStatus : canEditCommercialStatus;
