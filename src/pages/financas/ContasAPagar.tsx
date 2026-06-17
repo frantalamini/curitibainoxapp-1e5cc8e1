@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { MainLayout } from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Navigate, Link } from "react-router-dom";
 import {
   Loader2,
@@ -624,7 +624,9 @@ function NewCategoryDialog({
 // ===========================================
 export default function ContasAPagar() {
   const queryClient = useQueryClient();
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { canView, isLoading: roleLoading } = useModulePermissions(
+    "financas_contas_pagar",
+  );
   const { accounts } = useFinancialAccounts();
   const { expenseCategories } = useFinancialCategories();
   const { costCenters } = useCostCenters();
@@ -981,7 +983,7 @@ export default function ContasAPagar() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canView) {
     return <Navigate to="/inicio" replace />;
   }
 

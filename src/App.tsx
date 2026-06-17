@@ -845,7 +845,10 @@ const App = () => (
                   path="/financas/contas-a-pagar"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_contas_pagar"
+                        action="can_view"
+                      >
                         <ContasAPagar />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -855,7 +858,10 @@ const App = () => (
                   path="/financas/contas-a-receber"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_contas_receber"
+                        action="can_view"
+                      >
                         <ContasAReceber />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -865,7 +871,10 @@ const App = () => (
                   path="/financas/fluxo-de-caixa"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_fluxo"
+                        action="can_view"
+                      >
                         <FluxoDeCaixa />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -875,7 +884,10 @@ const App = () => (
                   path="/financas/configuracoes"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_config"
+                        action="can_view"
+                      >
                         <ConfiguracoesFinanceiras />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -885,7 +897,10 @@ const App = () => (
                   path="/financas/cartoes"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_cartoes"
+                        action="can_view"
+                      >
                         <CartoesCredito />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -895,7 +910,10 @@ const App = () => (
                   path="/financas/dre"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_dre"
+                        action="can_view"
+                      >
                         <DRE />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -905,7 +923,10 @@ const App = () => (
                   path="/financas/rentabilidade-os"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_rentabilidade"
+                        action="can_view"
+                      >
                         <RentabilidadeOS />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -915,7 +936,10 @@ const App = () => (
                   path="/financas/centro-de-custo"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_centro_custo"
+                        action="can_view"
+                      >
                         <RelatorioCentroCusto />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -925,7 +949,10 @@ const App = () => (
                   path="/financas/custos-por-tecnico"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_custos_tecnico"
+                        action="can_view"
+                      >
                         <CustosPorTecnico />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -935,7 +962,10 @@ const App = () => (
                   path="/financas/custos-por-veiculo"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_custos_veiculo"
+                        action="can_view"
+                      >
                         <CustosPorVeiculo />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -945,7 +975,10 @@ const App = () => (
                   path="/technical-indicators"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="reports" action="can_view">
+                      <RoutePermissionGuard
+                        module="relatorios_indicadores"
+                        action="can_view"
+                      >
                         <SatisfacaoTecnicos />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -955,7 +988,10 @@ const App = () => (
                   path="/financas/conciliacao-bancaria"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_conciliacao"
+                        action="can_view"
+                      >
                         <ConciliacaoBancaria />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -965,7 +1001,10 @@ const App = () => (
                   path="/financas/orcamento-mensal"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_orcamento"
+                        action="can_view"
+                      >
                         <OrcamentoMensal />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
@@ -975,7 +1014,10 @@ const App = () => (
                   path="/financas/despesas-recorrentes"
                   element={
                     <ProtectedRoute>
-                      <RoutePermissionGuard module="finances" action="can_view">
+                      <RoutePermissionGuard
+                        module="financas_recorrentes"
+                        action="can_view"
+                      >
                         <DespesasRecorrentes />
                       </RoutePermissionGuard>
                     </ProtectedRoute>

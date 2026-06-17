@@ -1,6 +1,6 @@
 import { MainLayout } from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Navigate } from "react-router-dom";
 import {
   Loader2,
@@ -98,7 +98,8 @@ const MONTH_NAMES = [
 ];
 
 export default function FluxoDeCaixa() {
-  const { isAdmin, loading } = useUserRole();
+  const { canView, isLoading: loading } =
+    useModulePermissions("financas_fluxo");
 
   const [mainTab, setMainTab] = useState<"historico" | "projecao">("projecao");
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
@@ -227,7 +228,7 @@ export default function FluxoDeCaixa() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canView) {
     return <Navigate to="/inicio" replace />;
   }
 

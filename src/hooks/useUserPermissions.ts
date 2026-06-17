@@ -66,6 +66,10 @@ export type SystemModule =
   | "relatorios_deslocamentos"
   // IA
   | "ia"
+  // QR Code
+  | "qrcode"
+  // Notas de Serviço
+  | "service_notes"
   // Configurações
   | "settings";
 
@@ -107,6 +111,7 @@ export const MENU_TREE: MenuGroup[] = [
       { key: "os_aba_geral", label: "Aba Geral", sublevel: true },
       { key: "os_aba_tecnico", label: "Aba Técnico", sublevel: true },
       { key: "os_aba_financeiro", label: "Aba Financeiro", sublevel: true },
+      { key: "service_notes", label: "Notas de Serviço" },
       { key: "reimbursements", label: "Reembolso Técnico" },
       { key: "pendencias", label: "Pendências" },
       { key: "contracts", label: "Contratos" },
@@ -173,10 +178,47 @@ export const MENU_TREE: MenuGroup[] = [
     items: [{ key: "ia", label: "Base de Conhecimento" }],
   },
   {
+    group: "QR Code",
+    items: [{ key: "qrcode", label: "Acesso ao Módulo QR Code" }],
+  },
+  {
     group: "Configurações",
     items: [{ key: "settings", label: "Acesso às Configurações" }],
   },
 ];
+
+// ============================================================
+// Mapa de módulo-pai (umbrella) → granularidade
+// Marcar o módulo-pai (ex: "finances") concede acesso a todos os
+// filhos automaticamente (compatível com o comportamento legado).
+// Marcar só um filho (ex: "financas_dre") concede acesso apenas a ele.
+// Resolvido centralmente em hasProfilePermission.
+// ============================================================
+
+export const MODULE_PARENT: Partial<Record<SystemModule, SystemModule>> = {
+  // Finanças
+  financas_contas_pagar: "finances",
+  financas_contas_receber: "finances",
+  financas_cartoes: "finances",
+  financas_fluxo: "finances",
+  financas_dre: "finances",
+  financas_rentabilidade: "finances",
+  financas_centro_custo: "finances",
+  financas_custos_tecnico: "finances",
+  financas_custos_veiculo: "finances",
+  financas_conciliacao: "finances",
+  financas_orcamento: "finances",
+  financas_recorrentes: "finances",
+  financas_config: "finances",
+  // Compras
+  compras_solicitacoes: "compras",
+  compras_cotacoes: "compras",
+  compras_pedidos: "compras",
+  compras_recebimentos: "compras",
+  compras_nf_entrada: "compras",
+  // Vendas
+  vendas_entregas: "vendas",
+};
 
 // Lista plana derivada da árvore — usada no upsert do banco
 export const ALL_MODULES: { key: SystemModule; label: string }[] =
@@ -284,9 +326,13 @@ export const useSaveUserPermissions = () => {
             profileType === "gerencial" ? true : (perm?.can_delete ?? false),
         };
       });
+      // LEGADO/DEPRECADO: grava na tabela antiga user_permissions, cujo
+      // module é o enum system_module (15 valores). O sistema atual usa
+      // useSaveProfilePermissions (profile_permissions). Cast evita o erro
+      // de tipo causado pelos módulos novos fora do enum legado.
       const { error: insertError } = await supabase
         .from("user_permissions")
-        .insert(permissionsToInsert);
+        .insert(permissionsToInsert as never);
       if (insertError) throw insertError;
     },
     onSuccess: (_, variables) => {

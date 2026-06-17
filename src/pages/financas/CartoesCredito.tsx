@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { PageContainer } from "@/components/ui/page-container";
 import { PageHeader } from "@/components/ui/page-header";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Navigate } from "react-router-dom";
 import {
   Loader2,
@@ -67,7 +67,8 @@ interface StatementTransaction {
 }
 
 export default function CartoesCredito() {
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { canView, isLoading: roleLoading } =
+    useModulePermissions("financas_cartoes");
   const { creditCards, isLoading: cardsLoading } = useCreditCards();
   const { payables, isLoading: payablesLoading } = usePayables();
 
@@ -194,7 +195,7 @@ export default function CartoesCredito() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canView) {
     return <Navigate to="/inicio" replace />;
   }
 

@@ -1,7 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { SystemModule, ALL_MODULES } from "@/hooks/useUserPermissions";
+import {
+  SystemModule,
+  ALL_MODULES,
+  MODULE_PARENT,
+} from "@/hooks/useUserPermissions";
 
 // ============================================================
 // TIPOS
@@ -41,9 +45,20 @@ export const hasProfilePermission = (
 ): boolean => {
   if (!data) return false;
   if (data.isGerencial) return true;
+
+  // Permissão direta no próprio módulo
   const perm = data.permissions.find((p) => p.module === module);
-  if (!perm) return false;
-  return perm[action] === true;
+  if (perm && perm[action] === true) return true;
+
+  // Permissão herdada do módulo-pai (umbrella):
+  // ter a ação no pai (ex: "finances") concede a mesma ação a todos os filhos.
+  const parent = MODULE_PARENT[module];
+  if (parent) {
+    const parentPerm = data.permissions.find((p) => p.module === parent);
+    if (parentPerm && parentPerm[action] === true) return true;
+  }
+
+  return false;
 };
 
 // ============================================================

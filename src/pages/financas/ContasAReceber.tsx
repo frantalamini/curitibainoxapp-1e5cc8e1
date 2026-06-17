@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { PageHeader } from "@/components/ui/page-header";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { Navigate, useNavigate } from "react-router-dom";
 import {
   Loader2,
@@ -122,7 +122,9 @@ const emptyForm: ReceivableInsert = {
 };
 
 export default function ContasAReceber() {
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { canView, isLoading: roleLoading } = useModulePermissions(
+    "financas_contas_receber",
+  );
   const { accounts } = useFinancialAccounts();
   const { incomeCategories } = useFinancialCategories();
   const { clients } = useClients();
@@ -229,7 +231,7 @@ export default function ContasAReceber() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canView) {
     return <Navigate to="/inicio" replace />;
   }
 

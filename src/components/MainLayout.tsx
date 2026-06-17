@@ -15,6 +15,7 @@ import {
   useCurrentUserProfilePermissions,
   hasProfilePermission,
 } from "@/hooks/useAccessProfiles";
+import type { SystemModule } from "@/hooks/useUserPermissions";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { useNewServiceCallsCount } from "@/hooks/useNewServiceCallsCount";
 import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
@@ -50,10 +51,140 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const { isAdmin, isTechnician } = useUserRole();
   const { data: profilePerms } = useCurrentUserProfilePermissions();
   const isGerencial = profilePerms?.isGerencial ?? false;
-  const canSeeFin =
-    isGerencial || hasProfilePermission(profilePerms, "finances", "can_view");
-  const canSeeVendas = isGerencial || isAdmin;
-  const canSeeConfig = isGerencial;
+  // Helper único — Gerencial é sempre liberado dentro de hasProfilePermission,
+  // e módulos-pai (umbrella) liberam os filhos automaticamente.
+  const canSee = (m: SystemModule) =>
+    hasProfilePermission(profilePerms, m, "can_view");
+  const canSeeVendas = canSee("vendas");
+  const canSeeConfig = canSee("settings");
+  const canSeeQrCode = canSee("qrcode");
+  const canSeeIA = canSee("ia");
+
+  // Itens granulares do menu Finanças — cada um gateado pelo seu módulo.
+  // A seção só aparece se houver ao menos um item visível.
+  const financasItems: MenuItem[] = [
+    ...(canSee("finances")
+      ? [
+          {
+            icon: "relatorios" as IconName,
+            label: "Dashboard",
+            to: "/financas/dashboard",
+          },
+        ]
+      : []),
+    ...(canSee("financas_contas_pagar")
+      ? [
+          {
+            icon: "documentos" as IconName,
+            label: "Contas a Pagar",
+            to: "/financas/contas-a-pagar",
+          },
+        ]
+      : []),
+    ...(canSee("financas_contas_receber")
+      ? [
+          {
+            icon: "financeiro" as IconName,
+            label: "Contas a Receber",
+            to: "/financas/contas-a-receber",
+          },
+        ]
+      : []),
+    ...(canSee("financas_cartoes")
+      ? [
+          {
+            icon: "agenda" as IconName,
+            label: "Cartões de Crédito",
+            to: "/financas/cartoes",
+          },
+        ]
+      : []),
+    ...(canSee("financas_fluxo")
+      ? [
+          {
+            icon: "relatorios" as IconName,
+            label: "Fluxo de Caixa",
+            to: "/financas/fluxo-de-caixa",
+          },
+        ]
+      : []),
+    ...(canSee("financas_dre")
+      ? [{ icon: "atividade" as IconName, label: "DRE", to: "/financas/dre" }]
+      : []),
+    ...(canSee("financas_rentabilidade")
+      ? [
+          {
+            icon: "servicos" as IconName,
+            label: "Rentabilidade OS",
+            to: "/financas/rentabilidade-os",
+          },
+        ]
+      : []),
+    ...(canSee("financas_centro_custo")
+      ? [
+          {
+            icon: "usuarios" as IconName,
+            label: "Centro de Custo",
+            to: "/financas/centro-de-custo",
+          },
+        ]
+      : []),
+    ...(canSee("financas_custos_tecnico")
+      ? [
+          {
+            icon: "usuarios" as IconName,
+            label: "Custos por Técnico",
+            to: "/financas/custos-por-tecnico",
+          },
+        ]
+      : []),
+    ...(canSee("financas_custos_veiculo")
+      ? [
+          {
+            icon: "veiculo" as IconName,
+            label: "Custos por Veículo",
+            to: "/financas/custos-por-veiculo",
+          },
+        ]
+      : []),
+    ...(canSee("financas_conciliacao")
+      ? [
+          {
+            icon: "financeiro" as IconName,
+            label: "Conciliação Bancária",
+            to: "/financas/conciliacao-bancaria",
+          },
+        ]
+      : []),
+    ...(canSee("financas_orcamento")
+      ? [
+          {
+            icon: "agenda" as IconName,
+            label: "Orçamento Mensal",
+            to: "/financas/orcamento-mensal",
+          },
+        ]
+      : []),
+    ...(canSee("financas_recorrentes")
+      ? [
+          {
+            icon: "relatorios" as IconName,
+            label: "Despesas Recorrentes",
+            to: "/financas/despesas-recorrentes",
+          },
+        ]
+      : []),
+    ...(canSee("financas_config")
+      ? [
+          {
+            icon: "configuracoes" as IconName,
+            label: "Configurações",
+            to: "/financas/configuracoes",
+          },
+        ]
+      : []),
+  ];
+  const canSeeFin = financasItems.length > 0;
 
   // Permissões granulares por item do menu Relatórios
   const canSeeDashboard =
@@ -288,16 +419,24 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               },
             ]
           : []),
-        {
-          icon: "chamadosTecnicos" as IconName,
-          label: "Ordens de Serviço",
-          to: "/service-calls",
-        },
-        {
-          icon: "checklist" as IconName,
-          label: "Notas de Serviço",
-          to: "/service-notes",
-        },
+        ...(canSee("service_calls")
+          ? [
+              {
+                icon: "chamadosTecnicos" as IconName,
+                label: "Ordens de Serviço",
+                to: "/service-calls",
+              },
+            ]
+          : []),
+        ...(canSee("service_notes")
+          ? [
+              {
+                icon: "checklist" as IconName,
+                label: "Notas de Serviço",
+                to: "/service-notes",
+              },
+            ]
+          : []),
         ...(isGerencial ||
         hasProfilePermission(profilePerms, "service_reports", "can_view")
           ? [
@@ -486,112 +625,49 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           : []),
       ],
     },
-    // Módulo Finanças — somente quem tem can_view em finances
+    // Módulo Finanças — itens granulares (cada item gateado pelo seu módulo)
     ...(canSeeFin
       ? [
           {
             title: "Finanças",
             icon: "financeiro" as IconName,
+            items: financasItems,
+          },
+        ]
+      : []),
+    // Módulo QR Code — controlado por permissão
+    ...(canSeeQrCode
+      ? [
+          {
+            title: "QR Code",
+            icon: "qrcode" as IconName,
             items: [
               {
-                icon: "dashboard" as IconName,
-                label: "Dashboard",
-                to: "/financas/dashboard",
+                icon: "qrcode" as IconName,
+                label: "Painel QR Code",
+                to: "/qr-code",
               },
               {
-                icon: "documentos" as IconName,
-                label: "Contas a Pagar",
-                to: "/financas/contas-a-pagar",
+                icon: "produtos" as IconName,
+                label: "Produtos / Modelos",
+                to: "/qr-code/produtos",
               },
               {
-                icon: "financeiro" as IconName,
-                label: "Contas a Receber",
-                to: "/financas/contas-a-receber",
-              },
-              {
-                icon: "agenda" as IconName,
-                label: "Cartões de Crédito",
-                to: "/financas/cartoes",
-              },
-              {
-                icon: "relatorios" as IconName,
-                label: "Fluxo de Caixa",
-                to: "/financas/fluxo-de-caixa",
-              },
-              {
-                icon: "atividade" as IconName,
-                label: "DRE",
-                to: "/financas/dre",
-              },
-              {
-                icon: "servicos" as IconName,
-                label: "Rentabilidade OS",
-                to: "/financas/rentabilidade-os",
-              },
-              {
-                icon: "usuarios" as IconName,
-                label: "Centro de Custo",
-                to: "/financas/centro-de-custo",
-              },
-              {
-                icon: "usuarios" as IconName,
-                label: "Custos por Técnico",
-                to: "/financas/custos-por-tecnico",
-              },
-              {
-                icon: "veiculo" as IconName,
-                label: "Custos por Veículo",
-                to: "/financas/custos-por-veiculo",
-              },
-              {
-                icon: "financeiro" as IconName,
-                label: "Conciliação Bancária",
-                to: "/financas/conciliacao-bancaria",
-              },
-              {
-                icon: "agenda" as IconName,
-                label: "Orçamento Mensal",
-                to: "/financas/orcamento-mensal",
-              },
-              {
-                icon: "relatorios" as IconName,
-                label: "Despesas Recorrentes",
-                to: "/financas/despesas-recorrentes",
+                icon: "categorias" as IconName,
+                label: "Templates",
+                to: "/qr-code/templates",
               },
               {
                 icon: "configuracoes" as IconName,
                 label: "Configurações",
-                to: "/financas/configuracoes",
+                to: "/qr-code/configuracoes",
               },
             ],
           },
         ]
       : []),
-    // Módulo QR Code
-    {
-      title: "QR Code",
-      icon: "qrcode" as IconName,
-      items: [
-        { icon: "qrcode" as IconName, label: "Painel QR Code", to: "/qr-code" },
-        {
-          icon: "produtos" as IconName,
-          label: "Produtos / Modelos",
-          to: "/qr-code/produtos",
-        },
-        {
-          icon: "categorias" as IconName,
-          label: "Templates",
-          to: "/qr-code/templates",
-        },
-        {
-          icon: "configuracoes" as IconName,
-          label: "Configurações",
-          to: "/qr-code/configuracoes",
-        },
-      ],
-    },
-    // Módulo IA — somente Gerencial
-    ...(isGerencial
+    // Módulo IA — controlado por permissão
+    ...(canSeeIA
       ? [
           {
             title: "IA",
