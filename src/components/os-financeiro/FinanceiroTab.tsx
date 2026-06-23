@@ -82,6 +82,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { OperationalCostsTab } from "./OperationalCostsTab";
+import { NFSeSection } from "./NFSeSection";
 
 interface FinanceiroTabProps {
   serviceCallId: string;
@@ -2128,6 +2129,13 @@ export const FinanceiroTab = ({
               {isSaving ? "Salvando..." : "Salvar Financeiro"}
             </Button>
           </div>
+
+          {/* Emissão de Nota Fiscal de Serviço (NFSe) */}
+          <NFSeSection
+            serviceCallId={serviceCallId}
+            clientCpfCnpj={serviceCall?.clients?.cpf_cnpj}
+            commercialStatusName={serviceCall?.commercial_status?.name}
+          />
 
           {/* Confirm Regenerate Dialog */}
           <AlertDialog
