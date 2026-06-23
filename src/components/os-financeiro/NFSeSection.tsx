@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileText, ExternalLink, AlertCircle, Loader2, Ban } from "lucide-react";
+import {
+  FileText,
+  ExternalLink,
+  AlertCircle,
+  Loader2,
+  Ban,
+} from "lucide-react";
 import { useFiscalInvoices } from "@/hooks/useFiscalInvoices";
 
 interface NFSeSectionProps {
@@ -27,7 +33,9 @@ interface NFSeSectionProps {
 const STATUS_LIBERA_EMISSAO = ["liberado p/ faturamento", "faturado"];
 
 const formatCurrency = (v?: number | null) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v ?? 0);
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    v ?? 0,
+  );
 
 const hasValidDoc = (doc?: string | null) => {
   const d = (doc || "").replace(/\D/g, "");
@@ -39,9 +47,24 @@ export const NFSeSection = ({
   clientCpfCnpj,
   commercialStatusName,
 }: NFSeSectionProps) => {
-  const { nfse, isLoading, emitirNFSe, cancelarNFSe } = useFiscalInvoices(serviceCallId);
+  const { nfse, isLoading, emitirNFSe, cancelarNFSe, consultarStatus } =
+    useFiscalInvoices(serviceCallId);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [justificativa, setJustificativa] = useState("");
+
+  // Enquanto a nota estiver "processando", sincroniza com o provedor a cada
+  // 5s (até 10x). Quando autorizar/falhar, o status muda e o intervalo para.
+  useEffect(() => {
+    if (nfse?.status !== "processando") return;
+    let tries = 0;
+    const id = setInterval(() => {
+      tries++;
+      if (!consultarStatus.isPending) consultarStatus.mutate();
+      if (tries >= 10) clearInterval(id);
+    }, 5000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nfse?.status, nfse?.id]);
 
   const statusOk = STATUS_LIBERA_EMISSAO.includes(
     (commercialStatusName || "").trim().toLowerCase(),
@@ -84,11 +107,16 @@ export const NFSeSection = ({
         {isAutorizada && (
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-muted-foreground">
-              Valor: <b className="text-foreground">{formatCurrency(nfse.valor)}</b>
+              Valor:{" "}
+              <b className="text-foreground">{formatCurrency(nfse.valor)}</b>
             </span>
             {nfse.url_danfse && (
               <Button variant="outline" size="sm" asChild>
-                <a href={nfse.url_danfse} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={nfse.url_danfse}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <ExternalLink className="w-4 h-4 mr-1" /> Ver PDF
                 </a>
               </Button>
@@ -108,7 +136,8 @@ export const NFSeSection = ({
         {isProcessando && (
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Nota enviada — aguardando autorização da prefeitura. Atualize em instantes.
+            Nota enviada — aguardando autorização da prefeitura. Atualize em
+            instantes.
           </p>
         )}
 
@@ -124,7 +153,9 @@ export const NFSeSection = ({
         {podeEmitir && !docOk && (
           <div className="text-sm text-amber-600 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>Preencha o CPF/CNPJ do cliente no cadastro antes de emitir a nota.</span>
+            <span>
+              Preencha o CPF/CNPJ do cliente no cadastro antes de emitir a nota.
+            </span>
           </div>
         )}
         {podeEmitir && docOk && !statusOk && (
@@ -159,8 +190,8 @@ export const NFSeSection = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar NFSe</AlertDialogTitle>
             <AlertDialogDescription>
-              O cancelamento é enviado direto à prefeitura. Informe o motivo (mínimo
-              15 caracteres). Sujeito às regras de prazo do município.
+              O cancelamento é enviado direto à prefeitura. Informe o motivo
+              (mínimo 15 caracteres). Sujeito às regras de prazo do município.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
@@ -176,7 +207,9 @@ export const NFSeSection = ({
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
-              disabled={justificativa.trim().length < 15 || cancelarNFSe.isPending}
+              disabled={
+                justificativa.trim().length < 15 || cancelarNFSe.isPending
+              }
               onClick={(e) => {
                 e.preventDefault();
                 cancelarNFSe.mutate(justificativa.trim(), {
@@ -187,7 +220,9 @@ export const NFSeSection = ({
                 });
               }}
             >
-              {cancelarNFSe.isPending ? "Cancelando..." : "Confirmar cancelamento"}
+              {cancelarNFSe.isPending
+                ? "Cancelando..."
+                : "Confirmar cancelamento"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

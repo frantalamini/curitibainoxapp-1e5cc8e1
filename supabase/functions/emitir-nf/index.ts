@@ -160,6 +160,73 @@ serve(async (req) => {
     const baseUrl = FOCUS_BASE[ambiente];
     const authBasic = "Basic " + btoa(`${token}:`);
 
+    // Mapeia o retorno do Focus (POST/GET) para as colunas e atualiza a nota.
+    // Reusado pela emissão (após o polling) e pela ação "consultar".
+    const applyFocusResult = async (invoiceId: string, final: any) => {
+      const st = String(final?.status || "processando");
+      if (st === "autorizado") {
+        await db
+          .from("fiscal_invoices")
+          .update({
+            status: "autorizado",
+            numero: final?.numero ? String(final.numero) : null,
+            codigo_verificacao: final?.codigo_verificacao || null,
+            url_danfse: final?.url || final?.url_danfse || null,
+            caminho_xml:
+              final?.caminho_xml_nota_fiscal || final?.caminho_xml || null,
+            focus_response: final,
+          })
+          .eq("id", invoiceId);
+        return {
+          status: "autorizado",
+          numero: final?.numero,
+          url_danfse: final?.url || final?.url_danfse,
+        };
+      }
+      if (st === "erro" || st === "erro_autorizacao") {
+        const erros = final?.erros;
+        const msg = Array.isArray(erros)
+          ? erros.map((e: any) => e.mensagem || e).join("; ")
+          : final?.mensagem || "Erro na autorização";
+        await db
+          .from("fiscal_invoices")
+          .update({ status: "erro", mensagem_erro: msg, focus_response: final })
+          .eq("id", invoiceId);
+        return { status: "erro", error: msg };
+      }
+      // ainda processando: guarda o último retorno
+      await db
+        .from("fiscal_invoices")
+        .update({ focus_response: final })
+        .eq("id", invoiceId);
+      return { status: st };
+    };
+
+    // =========================================================================
+    // AÇÃO: CONSULTAR — sincroniza uma nota "processando" com o provedor
+    // =========================================================================
+    if (action === "consultar") {
+      const { data: invoice } = await db
+        .from("fiscal_invoices")
+        .select("id, ref")
+        .eq("service_call_id", serviceCallId)
+        .eq("tipo", tipo)
+        .eq("status", "processando")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!invoice) return json({ success: true, status: "sem_pendencia" });
+
+      const g = await fetch(
+        `${baseUrl}/v2/nfse/${encodeURIComponent(invoice.ref)}`,
+        { headers: { Authorization: authBasic } },
+      );
+      const final = await g.json().catch(() => ({}));
+      const res = await applyFocusResult(invoice.id, final);
+      return json({ success: res.status !== "erro", ...res });
+    }
+
     // =========================================================================
     // AÇÃO: CANCELAR
     // =========================================================================
@@ -488,42 +555,23 @@ serve(async (req) => {
       finalStatus = String(final?.status || finalStatus);
     }
 
-    if (finalStatus === "autorizado") {
-      await db
-        .from("fiscal_invoices")
-        .update({
-          status: "autorizado",
-          numero: final?.numero ? String(final.numero) : null,
-          codigo_verificacao: final?.codigo_verificacao || null,
-          url_danfse: final?.url || final?.url_danfse || null,
-          caminho_xml: final?.caminho_xml || null,
-          focus_response: final,
-        })
-        .eq("id", invoiceId);
+    // Aplica o resultado (autorizado / erro / ainda processando) via helper
+    const res = await applyFocusResult(invoiceId, final);
+    if (res.status === "autorizado") {
       return json({
         success: true,
         status: "autorizado",
-        numero: final?.numero,
-        url_danfse: final?.url || final?.url_danfse,
+        numero: res.numero,
+        url_danfse: res.url_danfse,
       });
     }
-
-    if (finalStatus === "erro" || finalStatus === "erro_autorizacao") {
-      const erros = final?.erros || final?.erros;
-      const msg = Array.isArray(erros)
-        ? erros.map((e: any) => e.mensagem || e).join("; ")
-        : final?.mensagem || "Erro na autorização";
-      await db
-        .from("fiscal_invoices")
-        .update({ status: "erro", mensagem_erro: msg, focus_response: final })
-        .eq("id", invoiceId);
-      return json({ success: false, error: msg, provider: final }, 400);
+    if (res.status === "erro") {
+      return json({ success: false, error: res.error, provider: final }, 400);
     }
-
-    // Ainda processando após o polling — deixa o registro e informa
+    // Ainda processando após o polling — o front sincroniza depois (ação "consultar")
     return json({
       success: true,
-      status: finalStatus,
+      status: res.status,
       message:
         "Nota em processamento. Atualize em instantes para ver o resultado.",
     });

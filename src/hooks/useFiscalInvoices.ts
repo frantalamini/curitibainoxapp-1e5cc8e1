@@ -50,7 +50,9 @@ export const useFiscalInvoices = (serviceCallId?: string) => {
   // Nota "ativa" da NFSe: emitida ou em processamento (1 por OS, via índice único)
   const nfse =
     invoices?.find(
-      (i) => i.tipo === "nfse" && (i.status === "autorizado" || i.status === "processando"),
+      (i) =>
+        i.tipo === "nfse" &&
+        (i.status === "autorizado" || i.status === "processando"),
     ) ??
     invoices?.find((i) => i.tipo === "nfse") ??
     null;
@@ -58,12 +60,19 @@ export const useFiscalInvoices = (serviceCallId?: string) => {
   const emitirNFSe = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("emitir-nf", {
-        body: { action: "emitir", service_call_id: serviceCallId, tipo: "nfse" },
+        body: {
+          action: "emitir",
+          service_call_id: serviceCallId,
+          tipo: "nfse",
+        },
       });
       if (error) throw new Error(error.message || "Falha ao chamar a emissão");
       if (!data?.success) {
         // Mensagens amigáveis para os bloqueios conhecidos
-        if (data?.error === "CLIENT_SEM_DOC" || data?.error === "IBGE_TOMADOR_AUSENTE") {
+        if (
+          data?.error === "CLIENT_SEM_DOC" ||
+          data?.error === "IBGE_TOMADOR_AUSENTE"
+        ) {
           throw new Error(data.message || data.error);
         }
         throw new Error(data?.error || "Não foi possível emitir a nota");
@@ -73,12 +82,35 @@ export const useFiscalInvoices = (serviceCallId?: string) => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey });
       if (data.status === "autorizado") {
-        toast.success(`NFSe autorizada${data.numero ? ` (nº ${data.numero})` : ""}!`);
+        toast.success(
+          `NFSe autorizada${data.numero ? ` (nº ${data.numero})` : ""}!`,
+        );
       } else {
         toast.info(data.message || "Nota em processamento.");
       }
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Sincroniza uma nota "processando" com o provedor (quando a autorização
+  // demora mais que o tempo de emissão). Silenciosa: sem toast.
+  const consultarStatus = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("emitir-nf", {
+        body: {
+          action: "consultar",
+          service_call_id: serviceCallId,
+          tipo: "nfse",
+        },
+      });
+      if (error) throw new Error(error.message || "Falha ao consultar status");
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data?.status === "autorizado" || data?.status === "erro") {
+        queryClient.invalidateQueries({ queryKey });
+      }
+    },
   });
 
   const cancelarNFSe = useMutation({
@@ -91,8 +123,10 @@ export const useFiscalInvoices = (serviceCallId?: string) => {
           justificativa,
         },
       });
-      if (error) throw new Error(error.message || "Falha ao chamar o cancelamento");
-      if (!data?.success) throw new Error(data?.error || "Não foi possível cancelar a nota");
+      if (error)
+        throw new Error(error.message || "Falha ao chamar o cancelamento");
+      if (!data?.success)
+        throw new Error(data?.error || "Não foi possível cancelar a nota");
       return data;
     },
     onSuccess: () => {
@@ -102,5 +136,12 @@ export const useFiscalInvoices = (serviceCallId?: string) => {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return { invoices, nfse, isLoading, emitirNFSe, cancelarNFSe };
+  return {
+    invoices,
+    nfse,
+    isLoading,
+    emitirNFSe,
+    cancelarNFSe,
+    consultarStatus,
+  };
 };
