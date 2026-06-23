@@ -133,11 +133,8 @@ serve(async (req) => {
 
     if (!serviceCallId)
       return json({ success: false, error: "service_call_id ausente" }, 400);
-    if (tipo !== "nfse") {
-      return json(
-        { success: false, error: "Apenas NFSe é suportada na Fase 1" },
-        400,
-      );
+    if (tipo !== "nfse" && tipo !== "nfe") {
+      return json({ success: false, error: "Tipo de nota inválido" }, 400);
     }
 
     // ---- AUTORIZAÇÃO ---------------------------------------------------------
@@ -253,6 +250,8 @@ serve(async (req) => {
     }
     const baseUrl = FOCUS_BASE[ambiente];
     const authBasic = "Basic " + btoa(`${token}:`);
+    // Endpoint do provedor por tipo: NFSe (serviço) ou NFe (produto, modelo 55)
+    const endpoint = tipo === "nfe" ? "nfe" : "nfse";
 
     // Mapeia o retorno do Focus (POST/GET) para as colunas e atualiza a nota.
     // Reusado pela emissão (após o polling) e pela ação "consultar".
@@ -265,7 +264,10 @@ serve(async (req) => {
             status: "autorizado",
             numero: final?.numero ? String(final.numero) : null,
             codigo_verificacao: final?.codigo_verificacao || null,
-            url_danfse: final?.url_danfse || final?.url || null,
+            url_danfse:
+              final?.url_danfse ||
+              final?.url ||
+              (final?.caminho_danfe ? baseUrl + final.caminho_danfe : null),
             caminho_xml:
               final?.caminho_xml_nota_fiscal || final?.caminho_xml || null,
             focus_response: final,
@@ -274,7 +276,10 @@ serve(async (req) => {
         return {
           status: "autorizado",
           numero: final?.numero,
-          url_danfse: final?.url || final?.url_danfse,
+          url_danfse:
+            final?.url_danfse ||
+            final?.url ||
+            (final?.caminho_danfe ? baseUrl + final.caminho_danfe : null),
         };
       }
       if (st === "erro" || st === "erro_autorizacao") {
@@ -313,7 +318,7 @@ serve(async (req) => {
       if (!invoice) return json({ success: true, status: "sem_pendencia" });
 
       const g = await fetch(
-        `${baseUrl}/v2/nfse/${encodeURIComponent(invoice.ref)}`,
+        `${baseUrl}/v2/${endpoint}/${encodeURIComponent(invoice.ref)}`,
         { headers: { Authorization: authBasic } },
       );
       const final = await g.json().catch(() => ({}));
@@ -354,14 +359,17 @@ serve(async (req) => {
         );
       }
 
-      const cancelResp = await fetch(`${baseUrl}/v2/nfse/${invoice.ref}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: authBasic,
-          "Content-Type": "application/json",
+      const cancelResp = await fetch(
+        `${baseUrl}/v2/${endpoint}/${invoice.ref}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: authBasic,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ justificativa }),
         },
-        body: JSON.stringify({ justificativa }),
-      });
+      );
       const cancelData = await cancelResp.json().catch(() => ({}));
 
       if (!cancelResp.ok) {
@@ -435,7 +443,9 @@ serve(async (req) => {
 
     const { data: items } = await db
       .from("service_call_items")
-      .select("type, total")
+      .select(
+        "type, total, description, qty, unit_price, product_id, products(name, ncm, origin, unit)",
+      )
       .eq("service_call_id", serviceCallId);
 
     const all = items || [];
@@ -463,9 +473,15 @@ serve(async (req) => {
     );
     const subtotalOS = subtotalServices + subtotalParts;
 
-    if (subtotalServices <= 0) {
+    if (tipo === "nfse" && subtotalServices <= 0) {
       return json(
         { success: false, error: "OS não possui itens de serviço para a NFSe" },
+        400,
+      );
+    }
+    if (tipo === "nfe" && subtotalParts <= 0) {
+      return json(
+        { success: false, error: "OS não possui produtos para a NFe" },
         400,
       );
     }
@@ -479,7 +495,10 @@ serve(async (req) => {
         : Math.min(dgValue, subtotalOS);
     const rateioServico =
       subtotalOS > 0 ? osDiscount * (subtotalServices / subtotalOS) : 0;
+    const rateioProdutos =
+      subtotalOS > 0 ? osDiscount * (subtotalParts / subtotalOS) : 0;
     const valorServicos = round2(subtotalServices - rateioServico);
+    const valorProdutos = round2(subtotalParts - rateioProdutos);
 
     // ---- Resolve IBGE do tomador (grava no cliente se descobrir) -------------
     let ibgeTomador = digits(client.codigo_municipio_ibge);
@@ -505,7 +524,7 @@ serve(async (req) => {
         /* segue sem IBGE; erro tratado abaixo */
       }
     }
-    if (ibgeTomador.length !== 7) {
+    if (tipo === "nfse" && ibgeTomador.length !== 7) {
       return json(
         {
           success: false,
@@ -545,65 +564,144 @@ serve(async (req) => {
       .filter(Boolean)
       .join(" | ");
 
-    // ---- Monta payload validado (Pinhais/Focus) -----------------------------
+    // ---- Monta payload por tipo (NFSe Pinhais / NFe SEFAZ-PR) ---------------
     const tomadorDoc =
       docTomador.length === 14 ? { cnpj: docTomador } : { cpf: docTomador };
 
-    const payload: Record<string, unknown> = {
-      data_emissao: new Date().toISOString(),
-      natureza_operacao: 1,
-      prestador: {
-        cnpj: digits(ss?.company_cnpj || fs.cnpj),
-        inscricao_municipal: fs.inscricao_municipal,
-        codigo_municipio: Number(fs.codigo_municipio),
-      },
-      tomador: {
-        ...tomadorDoc,
-        razao_social: client.full_name,
-        email: client.email || undefined,
-        endereco: {
-          logradouro: client.street || "",
-          numero: client.number || "S/N",
-          complemento: client.complement || undefined,
-          bairro: client.neighborhood || "",
-          codigo_municipio: Number(ibgeTomador),
-          uf: client.state || "",
-          cep: digits(client.cep),
+    let payload: Record<string, unknown>;
+    let valorNota: number;
+
+    if (tipo === "nfse") {
+      valorNota = valorServicos;
+      payload = {
+        data_emissao: new Date().toISOString(),
+        natureza_operacao: 1,
+        prestador: {
+          cnpj: digits(ss?.company_cnpj || fs.cnpj),
+          inscricao_municipal: fs.inscricao_municipal,
+          codigo_municipio: Number(fs.codigo_municipio),
         },
-      },
-      servico: {
-        discriminacao,
-        valor_servicos: valorServicos,
-        aliquota: Number(fs.aliquota_iss),
-        item_lista_servico: fs.codigo_servico,
-        iss_retido: !!fs.iss_retido,
-      },
-    };
+        tomador: {
+          ...tomadorDoc,
+          razao_social: client.full_name,
+          email: client.email || undefined,
+          endereco: {
+            logradouro: client.street || "",
+            numero: client.number || "S/N",
+            complemento: client.complement || undefined,
+            bairro: client.neighborhood || "",
+            codigo_municipio: Number(ibgeTomador),
+            uf: client.state || "",
+            cep: digits(client.cep),
+          },
+        },
+        servico: {
+          discriminacao,
+          valor_servicos: valorServicos,
+          aliquota: Number(fs.aliquota_iss),
+          item_lista_servico: fs.codigo_servico,
+          iss_retido: !!fs.iss_retido,
+        },
+      };
+    } else {
+      // ---- NFe (produto, modelo 55) -----------------------------------------
+      valorNota = valorProdutos;
+      const produtos = all.filter((i: any) => i.type === "PRODUCT");
+
+      // Bloqueio: produto sem NCM (obrigatório na SEFAZ) — preenchimento sob demanda
+      const semNcm = produtos.filter(
+        (p: any) => digits(p.products?.ncm).length < 8,
+      );
+      if (semNcm.length) {
+        return json(
+          {
+            success: false,
+            error: "PRODUTO_SEM_NCM",
+            message:
+              "Preencha o NCM no cadastro destes produtos antes de emitir a NFe: " +
+              semNcm
+                .map((p: any) => p.products?.name || p.description)
+                .join(", "),
+          },
+          400,
+        );
+      }
+
+      const itemsNfe = produtos.map((p: any, idx: number) => {
+        const qtyN = Number(p.qty) || 1;
+        const totalItem = Number(p.total) || 0;
+        // rateio do desconto geral (parte produto) proporcional a cada item
+        const ratioItem =
+          subtotalParts > 0 ? rateioProdutos * (totalItem / subtotalParts) : 0;
+        const liquido = round2(totalItem - ratioItem);
+        const unit = round2(liquido / qtyN);
+        return {
+          numero_item: idx + 1,
+          codigo_produto: String(p.product_id || `item${idx + 1}`).slice(0, 60),
+          descricao: p.products?.name || p.description,
+          cfop: fs.cfop_padrao || "5102",
+          unidade_comercial: p.products?.unit || "UN",
+          quantidade_comercial: qtyN,
+          valor_unitario_comercial: unit,
+          valor_bruto: round2(unit * qtyN),
+          unidade_tributavel: p.products?.unit || "UN",
+          quantidade_tributavel: qtyN,
+          valor_unitario_tributavel: unit,
+          codigo_ncm: digits(p.products?.ncm),
+          icms_origem: Number(p.products?.origin ?? fs.origem_padrao ?? 0),
+          icms_situacao_tributaria: fs.csosn_padrao || "102",
+          pis_situacao_tributaria: fs.pis_cst || "49",
+          cofins_situacao_tributaria: fs.cofins_cst || "49",
+        };
+      });
+
+      payload = {
+        natureza_operacao: fs.natureza_operacao_nfe || "Venda de mercadoria",
+        data_emissao: new Date().toISOString(),
+        tipo_documento: 1, // 1 = saída
+        finalidade_emissao: 1, // 1 = normal
+        consumidor_final: 1,
+        presenca_comprador: 1,
+        modalidade_frete: 9, // sem frete
+        cnpj_emitente: digits(ss?.company_cnpj || fs.cnpj),
+        nome_destinatario: client.full_name,
+        ...(docTomador.length === 14
+          ? { cnpj_destinatario: docTomador }
+          : { cpf_destinatario: docTomador }),
+        indicador_inscricao_estadual_destinatario: 9, // 9 = não contribuinte
+        logradouro_destinatario: client.street || "",
+        numero_destinatario: client.number || "S/N",
+        bairro_destinatario: client.neighborhood || "",
+        municipio_destinatario: client.city || "",
+        uf_destinatario: client.state || "",
+        cep_destinatario: digits(client.cep),
+        items: itemsNfe,
+      };
+    }
 
     // ---- Registro local (status processando) — respeita anti-duplicação -----
-    const ref = `os${sc.os_number}-nfse-${Date.now()}`;
+    const ref = `os${sc.os_number}-${tipo}-${Date.now()}`;
     const { data: inserted, error: insErr } = await db
       .from("fiscal_invoices")
       .insert({
         service_call_id: serviceCallId,
-        tipo: "nfse",
+        tipo,
         ambiente,
         ref,
         status: "processando",
-        valor: valorServicos,
+        valor: valorNota,
         request_payload: payload,
       })
       .select("id")
       .single();
 
     if (insErr) {
-      // Violação do índice único = já existe nota ativa para a OS
+      // Violação do índice único = já existe nota ativa para a OS+tipo+ambiente
       if ((insErr as any).code === "23505") {
         return json(
           {
             success: false,
-            error:
-              "Esta OS já possui uma NFSe ativa (emitida ou em processamento)",
+            error: `Esta OS já possui uma ${tipo.toUpperCase()} ativa (emitida ou em processamento)`,
           },
           409,
         );
@@ -614,7 +712,7 @@ serve(async (req) => {
 
     // ---- Envia ao Focus ------------------------------------------------------
     const emitResp = await fetch(
-      `${baseUrl}/v2/nfse?ref=${encodeURIComponent(ref)}`,
+      `${baseUrl}/v2/${endpoint}?ref=${encodeURIComponent(ref)}`,
       {
         method: "POST",
         headers: {
