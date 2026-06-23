@@ -64,6 +64,58 @@ function describePayment(pc: any): string {
   return "";
 }
 
+// Normaliza a forma de pagamento (o banco tem grafias mistas: "boleto"/"Boleto",
+// "pix"/"PIX", "cartao_credito"/"Cartão de Crédito", etc.).
+const PAYMENT_LABELS: Record<string, string> = {
+  boleto: "Boleto",
+  pix: "PIX",
+  cartao_credito: "Cartão de Crédito",
+  "cartão de crédito": "Cartão de Crédito",
+  cartao_debito: "Cartão de Débito",
+  "cartão de débito": "Cartão de Débito",
+  dinheiro: "Dinheiro",
+  transferencia: "Transferência",
+  transferência: "Transferência",
+  marketplace: "Marketplace",
+  outros: "Outros",
+};
+const paymentLabel = (m?: string | null) => {
+  if (!m) return "";
+  const k = m.trim().toLowerCase();
+  return PAYMENT_LABELS[k] || m.trim();
+};
+const brDate = (iso?: string | null) => {
+  if (!iso) return "";
+  const [y, mo, d] = String(iso).split("T")[0].split("-");
+  return d && mo && y ? `${d}/${mo}/${y}` : String(iso);
+};
+const brMoney = (v: any) =>
+  "R$ " +
+  (Number(v) || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+// Texto das parcelas (forma de pagamento + vencimento + valor) p/ a NFSe.
+const buildPagamentoTexto = (parcelas: any[]): string => {
+  if (!parcelas?.length) return "";
+  if (parcelas.length === 1) {
+    const p = parcelas[0];
+    return `Pagamento: ${paymentLabel(p.payment_method)} - venc. ${brDate(
+      p.due_date,
+    )} - ${brMoney(p.amount)}`;
+  }
+  const itens = parcelas
+    .map(
+      (p, i) =>
+        `${p.installment_number || i + 1}/${parcelas.length} ${paymentLabel(
+          p.payment_method,
+        )} venc. ${brDate(p.due_date)} ${brMoney(p.amount)}`,
+    )
+    .join("; ");
+  return `Pagamento (${parcelas.length}x): ${itens}`;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -466,11 +518,26 @@ serve(async (req) => {
       equipamento: sc.equipment_description || "",
       forma_pagamento: describePayment(sc.payment_config),
     };
-    const discriminacao = fillTemplate(
-      fs.discriminacao_template ||
-        "Manutenção de {equipamento} - OS{os} OC{oc}",
-      tplVars,
-    );
+    // Parcelas a receber da OS (forma de pagamento, vencimento, valor) -> nota.
+    const { data: parcelas } = await db
+      .from("financial_transactions")
+      .select("installment_number, due_date, amount, payment_method")
+      .eq("service_call_id", serviceCallId)
+      .eq("direction", "RECEIVE")
+      .order("installment_number", { ascending: true });
+
+    const pagamentoTexto = buildPagamentoTexto(parcelas || []);
+
+    const discriminacao = [
+      fillTemplate(
+        fs.discriminacao_template ||
+          "Manutenção de {equipamento} - OS{os} OC{oc}",
+        tplVars,
+      ),
+      pagamentoTexto,
+    ]
+      .filter(Boolean)
+      .join(" | ");
 
     // ---- Monta payload validado (Pinhais/Focus) -----------------------------
     const tomadorDoc =
