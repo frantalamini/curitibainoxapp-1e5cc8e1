@@ -126,6 +126,42 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // =========================================================================
+    // AÇÃO: BAIXAR_PDF — proxy do DANFSe (PDF) para download dentro do app.
+    // Não depende de token (o PDF do provedor é público); retorna os bytes.
+    // O nome do arquivo é definido pelo front.
+    // =========================================================================
+    if (action === "baixar_pdf") {
+      const { data: invoice } = await db
+        .from("fiscal_invoices")
+        .select("url_danfse")
+        .eq("service_call_id", serviceCallId)
+        .eq("tipo", tipo)
+        .eq("status", "autorizado")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!invoice?.url_danfse) {
+        return json(
+          { success: false, error: "PDF da nota não disponível" },
+          404,
+        );
+      }
+      const pdfResp = await fetch(invoice.url_danfse);
+      if (!pdfResp.ok) {
+        return json(
+          { success: false, error: "Falha ao obter o PDF no provedor" },
+          502,
+        );
+      }
+      const bytes = new Uint8Array(await pdfResp.arrayBuffer());
+      return new Response(bytes, {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/pdf" },
+      });
+    }
+
     // ---- CONFIG FISCAL + EMISSOR --------------------------------------------
     const { data: fs } = await db
       .from("fiscal_settings")
@@ -171,7 +207,7 @@ serve(async (req) => {
             status: "autorizado",
             numero: final?.numero ? String(final.numero) : null,
             codigo_verificacao: final?.codigo_verificacao || null,
-            url_danfse: final?.url || final?.url_danfse || null,
+            url_danfse: final?.url_danfse || final?.url || null,
             caminho_xml:
               final?.caminho_xml_nota_fiscal || final?.caminho_xml || null,
             focus_response: final,

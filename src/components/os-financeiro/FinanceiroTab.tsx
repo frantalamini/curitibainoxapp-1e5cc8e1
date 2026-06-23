@@ -2135,6 +2135,9 @@ export const FinanceiroTab = ({
             serviceCallId={serviceCallId}
             clientCpfCnpj={serviceCall?.clients?.cpf_cnpj}
             commercialStatusName={serviceCall?.commercial_status?.name}
+            clientName={serviceCall?.clients?.full_name}
+            clientFantasia={serviceCall?.clients?.nome_fantasia}
+            osNumber={serviceCall?.os_number}
           />
 
           {/* Confirm Regenerate Dialog */}

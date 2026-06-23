@@ -20,14 +20,32 @@ import {
   AlertCircle,
   Loader2,
   Ban,
+  Download,
 } from "lucide-react";
 import { useFiscalInvoices } from "@/hooks/useFiscalInvoices";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface NFSeSectionProps {
   serviceCallId: string;
   clientCpfCnpj?: string | null;
   commercialStatusName?: string | null;
+  clientName?: string | null;
+  clientFantasia?: string | null;
+  osNumber?: number | null;
 }
+
+// Nome do arquivo no mesmo padrão do "PDF Completo": "{cliente} - OS{n} - NFSe.pdf"
+const buildPdfFileName = (
+  clientName?: string | null,
+  clientFantasia?: string | null,
+  osNumber?: number | null,
+) => {
+  const clientPart = clientFantasia
+    ? clientFantasia.split(" ").slice(0, 2).join(" ")
+    : clientName?.split(" ")[0] || "Cliente";
+  return `${clientPart} - OS${osNumber ?? ""} - NFSe.pdf`;
+};
 
 // Status comerciais nos quais a emissão é liberada (decisão do cliente).
 const STATUS_LIBERA_EMISSAO = ["liberado p/ faturamento", "faturado"];
@@ -46,11 +64,44 @@ export const NFSeSection = ({
   serviceCallId,
   clientCpfCnpj,
   commercialStatusName,
+  clientName,
+  clientFantasia,
+  osNumber,
 }: NFSeSectionProps) => {
   const { nfse, isLoading, emitirNFSe, cancelarNFSe, consultarStatus } =
     useFiscalInvoices(serviceCallId);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [justificativa, setJustificativa] = useState("");
+  const [baixando, setBaixando] = useState(false);
+
+  // Baixa o PDF da NFSe pelo app (proxy na edge, sem CORS) já com o nome certo.
+  const baixarPdf = async () => {
+    try {
+      setBaixando(true);
+      const { data, error } = await supabase.functions.invoke("emitir-nf", {
+        body: {
+          action: "baixar_pdf",
+          service_call_id: serviceCallId,
+          tipo: "nfse",
+        },
+      });
+      if (error) throw error;
+      const blob =
+        data instanceof Blob
+          ? data
+          : new Blob([data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = buildPdfFileName(clientName, clientFantasia, osNumber);
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Não foi possível baixar o PDF da nota.");
+    } finally {
+      setBaixando(false);
+    }
+  };
 
   // Enquanto a nota estiver "processando", sincroniza com o provedor a cada
   // 5s (até 10x). Quando autorizar/falhar, o status muda e o intervalo para.
@@ -110,14 +161,27 @@ export const NFSeSection = ({
               Valor:{" "}
               <b className="text-foreground">{formatCurrency(nfse.valor)}</b>
             </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={baixarPdf}
+              disabled={baixando}
+            >
+              {baixando ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-1" />
+              )}
+              Baixar PDF
+            </Button>
             {nfse.url_danfse && (
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="ghost" size="sm" asChild>
                 <a
                   href={nfse.url_danfse}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <ExternalLink className="w-4 h-4 mr-1" /> Ver PDF
+                  <ExternalLink className="w-4 h-4 mr-1" /> Abrir
                 </a>
               </Button>
             )}
