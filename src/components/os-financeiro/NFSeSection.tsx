@@ -75,21 +75,32 @@ export const NFSeSection = ({
   const [baixando, setBaixando] = useState(false);
 
   // Baixa o PDF da NFSe pelo app (proxy na edge, sem CORS) já com o nome certo.
+  // Usa fetch direto (não functions.invoke, que corrompe binário tratando-o
+  // como texto e gera PDF em branco) para preservar os bytes do PDF.
   const baixarPdf = async () => {
     try {
       setBaixando(true);
-      const { data, error } = await supabase.functions.invoke("emitir-nf", {
-        body: {
-          action: "baixar_pdf",
-          service_call_id: serviceCallId,
-          tipo: "nfse",
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/emitir-nf`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "baixar_pdf",
+            service_call_id: serviceCallId,
+            tipo: "nfse",
+          }),
         },
-      });
-      if (error) throw error;
-      const blob =
-        data instanceof Blob
-          ? data
-          : new Blob([data], { type: "application/pdf" });
+      );
+      if (!res.ok) throw new Error("Falha ao baixar o PDF");
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
