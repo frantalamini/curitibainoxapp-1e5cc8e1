@@ -418,7 +418,7 @@ serve(async (req) => {
       .from("clients")
       .select(
         "id, full_name, cpf_cnpj, email, street, number, complement, neighborhood, " +
-          "city, state, cep, codigo_municipio_ibge",
+          "city, state, cep, codigo_municipio_ibge, state_registration",
       )
       .eq("id", sc.client_id)
       .single();
@@ -655,20 +655,31 @@ serve(async (req) => {
         };
       });
 
+      // IE do destinatário: com IE = contribuinte (indicador 1 + IE);
+      // sem IE = não contribuinte (indicador 9, consumidor final).
+      const ieDest = digits(client.state_registration);
+      const ehContribuinte = ieDest.length >= 2;
+      // Em homologação a SEFAZ exige nome fixo no destinatário (sem valor fiscal).
+      const nomeDest =
+        ambiente === "homologacao"
+          ? "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL"
+          : client.full_name;
+
       payload = {
         natureza_operacao: fs.natureza_operacao_nfe || "Venda de mercadoria",
         data_emissao: new Date().toISOString(),
         tipo_documento: 1, // 1 = saída
         finalidade_emissao: 1, // 1 = normal
-        consumidor_final: 1,
+        consumidor_final: ehContribuinte ? 0 : 1,
         presenca_comprador: 1,
         modalidade_frete: 9, // sem frete
         cnpj_emitente: digits(ss?.company_cnpj || fs.cnpj),
-        nome_destinatario: client.full_name,
+        nome_destinatario: nomeDest,
         ...(docTomador.length === 14
           ? { cnpj_destinatario: docTomador }
           : { cpf_destinatario: docTomador }),
-        indicador_inscricao_estadual_destinatario: 9, // 9 = não contribuinte
+        indicador_inscricao_estadual_destinatario: ehContribuinte ? 1 : 9,
+        ...(ehContribuinte ? { inscricao_estadual_destinatario: ieDest } : {}),
         logradouro_destinatario: client.street || "",
         numero_destinatario: client.number || "S/N",
         bairro_destinatario: client.neighborhood || "",
