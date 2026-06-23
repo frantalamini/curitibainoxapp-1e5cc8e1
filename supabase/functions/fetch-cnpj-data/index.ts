@@ -20,6 +20,9 @@ interface CNPJData {
   state_registration?: string;
   phone?: string;
   email?: string;
+  cnae?: string;
+  cnae_descricao?: string;
+  codigo_municipio_ibge?: string;
 }
 
 interface BrasilAPIResponse {
@@ -35,6 +38,9 @@ interface BrasilAPIResponse {
   uf: string;
   ddd_telefone_1?: string;
   email?: string;
+  cnae_fiscal?: number;
+  cnae_fiscal_descricao?: string;
+  codigo_municipio_ibge?: number;
 }
 
 // Função para formatar logradouro com tipo de via em CAIXA ALTA
@@ -219,6 +225,11 @@ serve(async (req) => {
       state: brasilAPIData.uf,
       phone: formatPhone(brasilAPIData.ddd_telefone_1 || ""),
       email: brasilAPIData.email || "",
+      cnae: brasilAPIData.cnae_fiscal ? String(brasilAPIData.cnae_fiscal) : "",
+      cnae_descricao: brasilAPIData.cnae_fiscal_descricao || "",
+      codigo_municipio_ibge: brasilAPIData.codigo_municipio_ibge
+        ? String(brasilAPIData.codigo_municipio_ibge)
+        : "",
     };
 
     // Tentar buscar Inscrição Estadual via ReceitaWS

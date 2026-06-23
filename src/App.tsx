@@ -147,6 +147,9 @@ const PerfisAcesso = lazy(() => import("./pages/settings/PerfisAcesso"));
 const GerenciadorPermissoes = lazy(
   () => import("./pages/settings/GerenciadorPermissoes"),
 );
+const ConfiguracoesFiscais = lazy(
+  () => import("./pages/settings/ConfiguracoesFiscais"),
+);
 
 // Pendências
 const Pendencias = lazy(() => import("./pages/Pendencias"));
@@ -1040,6 +1043,16 @@ const App = () => (
                     <ProtectedRoute>
                       <RoutePermissionGuard module="settings" action="can_view">
                         <GerenciadorPermissoes />
+                      </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings/fiscal"
+                  element={
+                    <ProtectedRoute>
+                      <RoutePermissionGuard module="settings" action="can_view">
+                        <ConfiguracoesFiscais />
                       </RoutePermissionGuard>
                     </ProtectedRoute>
                   }

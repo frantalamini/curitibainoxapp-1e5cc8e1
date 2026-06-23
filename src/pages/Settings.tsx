@@ -21,6 +21,7 @@ import {
   Shield,
   Settings2,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { useColorPalette } from "@/hooks/useColorPalette";
@@ -286,6 +287,26 @@ const Settings = () => {
                     <p className="font-semibold">Permissões</p>
                     <p className="text-xs text-muted-foreground">
                       Matriz de permissões por perfil e módulo
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow border-primary/20"
+              onClick={() => navigate("/settings/fiscal")}
+            >
+              <CardContent className="flex items-center justify-between p-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Configurações Fiscais</p>
+                    <p className="text-xs text-muted-foreground">
+                      Emissor de NF: provedor, tokens, CNPJ, ISS e templates
                     </p>
                   </div>
                 </div>

@@ -17,6 +17,9 @@ export interface CNPJData {
   state_registration?: string;
   phone?: string;
   email?: string;
+  cnae?: string;
+  cnae_descricao?: string;
+  codigo_municipio_ibge?: string;
 }
 
 interface CNPJLookupResponse {
