@@ -126,39 +126,6 @@ serve(async (req) => {
   const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   try {
-    // ---- AUTORIZAÇÃO ---------------------------------------------------------
-    const authHeader = req.headers.get("authorization") || "";
-    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
-
-    const isCron = bearer && bearer === SERVICE_ROLE_KEY;
-    if (!isCron) {
-      // Chamada de usuário: precisa ser Gerencial.
-      if (!authHeader)
-        return json({ success: false, error: "Não autenticado" }, 401);
-      const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const {
-        data: { user },
-        error: userErr,
-      } = await userClient.auth.getUser();
-      if (userErr || !user)
-        return json({ success: false, error: "Não autenticado" }, 401);
-
-      const { data: isGer } = await userClient.rpc("is_gerencial_user", {
-        _user_id: user.id,
-      });
-      if (!isGer) {
-        return json(
-          {
-            success: false,
-            error: "Apenas perfil Gerencial pode emitir notas",
-          },
-          403,
-        );
-      }
-    }
-
     const body = await req.json();
     const action: string = body.action;
     const serviceCallId: string = body.service_call_id;
@@ -171,6 +138,45 @@ serve(async (req) => {
         { success: false, error: "Apenas NFSe é suportada na Fase 1" },
         400,
       );
+    }
+
+    // ---- AUTORIZAÇÃO ---------------------------------------------------------
+    // Acesso ao módulo financeiro: leitura (consultar/baixar) exige 'consult';
+    // escrita (emitir/cancelar) exige 'edit'. O CRON (service_role) bypassa.
+    const authHeader = req.headers.get("authorization") || "";
+    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+    const isCron = bearer && bearer === SERVICE_ROLE_KEY;
+    if (!isCron) {
+      if (!authHeader)
+        return json({ success: false, error: "Não autenticado" }, 401);
+      const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const {
+        data: { user },
+        error: userErr,
+      } = await userClient.auth.getUser();
+      if (userErr || !user)
+        return json({ success: false, error: "Não autenticado" }, 401);
+
+      const isWrite = action === "emitir" || action === "cancelar";
+      const requiredAction = isWrite ? "edit" : "consult";
+      const { data: allowed } = await userClient.rpc(
+        "check_profile_permission",
+        { _user_id: user.id, _module: "finances", _action: requiredAction },
+      );
+      if (!allowed) {
+        return json(
+          {
+            success: false,
+            error: isWrite
+              ? "Sem permissão para emitir/cancelar notas (módulo Financeiro)"
+              : "Sem permissão para acessar as notas (módulo Financeiro)",
+          },
+          403,
+        );
+      }
     }
 
     // service_role: opera no banco e bypassa RLS
