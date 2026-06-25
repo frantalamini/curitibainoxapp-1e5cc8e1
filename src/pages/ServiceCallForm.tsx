@@ -94,6 +94,8 @@ import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
 import { StatusSelectField } from "@/components/service-calls/StatusSelectField";
 import { WorkSessionTimer } from "@/components/service-calls/WorkSessionTimer";
 import { ServiceCallProfitCard } from "@/components/os-financeiro/ServiceCallProfitCard";
+import { AIFillOSButton } from "@/components/service-calls/AIFillOSButton";
+import type { AIFilledOSFields } from "@/hooks/useFillOSFromMedia";
 import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
 import {
   useCurrentUserProfilePermissions,
@@ -251,6 +253,37 @@ const ServiceCallForm = () => {
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
   const [equipmentSerialNumber, setEquipmentSerialNumber] = useState("");
+
+  // Aplica os campos sugeridos pela IA (áudio + fotos) aos campos da OS.
+  // Diagnóstico/defeito não têm campo próprio → vão para Observações.
+  const handleAIApply = (f: AIFilledOSFields) => {
+    if (f.problem_description)
+      setValue("problem_description", f.problem_description);
+    if (f.equipment_description)
+      setValue("equipment_description", f.equipment_description);
+    if (f.equipment_manufacturer)
+      setValue("equipment_manufacturer", f.equipment_manufacturer);
+    if (f.equipment_serial_number)
+      setEquipmentSerialNumber(f.equipment_serial_number);
+
+    const extra: string[] = [];
+    if (f.technical_diagnosis)
+      extra.push(`Diagnóstico técnico: ${f.technical_diagnosis}`);
+    if (f.defect_found) extra.push(`Defeito encontrado: ${f.defect_found}`);
+    if (f.notes) extra.push(f.notes);
+    if (extra.length > 0) {
+      const current = (watch("notes") || "").trim();
+      setValue(
+        "notes",
+        current ? `${current}\n${extra.join("\n")}` : extra.join("\n"),
+      );
+    }
+
+    toast({
+      title: "Campos preenchidos pela IA",
+      description: "Revise os dados e clique em Salvar para confirmar.",
+    });
+  };
   const [internalNotesText, setInternalNotesText] = useState("");
   const [defectFound, setDefectFound] = useState("");
 
@@ -1793,6 +1826,19 @@ const ServiceCallForm = () => {
                         {...register("purchase_order_number")}
                       />
                     </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AIFillOSButton
+                      audio={technicalAudioBlob}
+                      images={photosBeforeFiles}
+                      disabled={(isReadonly || isGeralReadonly) && isEditMode}
+                      onApply={handleAIApply}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      Usa o áudio gravado e as fotos para preencher a OS
+                      automaticamente.
+                    </span>
                   </div>
 
                   <div className="space-y-2">
