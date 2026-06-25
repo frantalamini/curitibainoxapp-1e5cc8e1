@@ -10,6 +10,7 @@ export type Technician = {
   specialty_refrigeration: boolean;
   specialty_cooking: boolean;
   additional_notes?: string;
+  cost_per_hour?: number | null;
   active: boolean;
   created_at: string;
   updated_at: string;

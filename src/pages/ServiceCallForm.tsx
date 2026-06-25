@@ -92,6 +92,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FinanceiroGuard } from "@/components/os-financeiro/FinanceiroGuard";
 import { ServiceCallChat } from "@/components/service-calls/ServiceCallChat";
 import { StatusSelectField } from "@/components/service-calls/StatusSelectField";
+import { WorkSessionTimer } from "@/components/service-calls/WorkSessionTimer";
+import { ServiceCallProfitCard } from "@/components/os-financeiro/ServiceCallProfitCard";
 import { useServiceCallStatuses } from "@/hooks/useServiceCallStatuses";
 import {
   useCurrentUserProfilePermissions,
@@ -2345,6 +2347,13 @@ const ServiceCallForm = () => {
                       isReadonly && isEditMode && "pointer-events-none",
                     )}
                   >
+                    {/* Registro de tempo de atendimento (cronômetro) */}
+                    <WorkSessionTimer
+                      serviceCallId={id}
+                      technicianId={selectedTechnicianId}
+                      disabled={isReadonly && isEditMode}
+                    />
+
                     {/* Defeito Encontrado */}
                     <div className="space-y-2">
                       <Label>Defeito Encontrado *</Label>
@@ -2593,6 +2602,7 @@ const ServiceCallForm = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <ServiceCallProfitCard serviceCallId={id!} />
                     <FinanceiroGuard
                       serviceCallId={id!}
                       clientId={selectedClientId}

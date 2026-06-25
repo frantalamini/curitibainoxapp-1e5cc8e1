@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfMonth, endOfMonth, format } from "date-fns";
 import { FUEL_COST_PER_KM } from "@/lib/constants";
+import { sumHours, type WorkSession } from "@/hooks/useWorkSessions";
+
+// Client "destipado" para a tabela de sessões (ainda não nos types gerados).
+const sb = supabase as unknown as { from: (table: string) => any };
 
 interface ServiceCallProfitability {
   id: string;
@@ -18,6 +21,8 @@ interface ServiceCallProfitability {
   productCosts: number;
   reimbursements: number;
   tripCosts: number;
+  laborHours: number;
+  laborCost: number;
   totalCosts: number;
   // Profit
   grossProfit: number;
@@ -45,8 +50,9 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
           os_number,
           scheduled_date,
           status,
+          technician_id,
           client:clients(full_name),
-          technician:technicians(full_name)
+          technician:technicians(full_name, cost_per_hour, collaborator:collaborators(cost_per_hour))
         `,
         )
         .gte("scheduled_date", startDate)
@@ -54,7 +60,7 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
         .order("scheduled_date", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 
@@ -115,6 +121,26 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
     enabled: serviceCalls.length > 0,
   });
 
+  // Fetch work sessions (for labor cost = hours worked × technician hourly cost)
+  const { data: workSessions = [], isLoading: sessionsLoading } = useQuery({
+    queryKey: ["os-profitability-work-sessions", startDate, endDate],
+    queryFn: async () => {
+      if (serviceCalls.length === 0) return [];
+
+      const osIds = serviceCalls.map((sc) => sc.id);
+      const { data, error } = await sb
+        .from("service_call_work_sessions")
+        .select(
+          "service_call_id, technician_id, session_type, started_at, ended_at",
+        )
+        .in("service_call_id", osIds);
+
+      if (error) throw error;
+      return (data ?? []) as WorkSession[];
+    },
+    enabled: serviceCalls.length > 0,
+  });
+
   // Fetch product costs (for margin calculation)
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ["os-profitability-products"],
@@ -133,6 +159,7 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
     itemsLoading ||
     reimbursementsLoading ||
     tripsLoading ||
+    sessionsLoading ||
     productsLoading;
 
   // Mapa product_id -> cost_price para lookup O(1)
@@ -146,6 +173,18 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
       (r) => r.service_call_id === sc.id,
     );
     const osTrips = trips.filter((t) => t.service_call_id === sc.id);
+    const osSessions = workSessions.filter((s) => s.service_call_id === sc.id);
+
+    // Técnico responsável (objeto ou array, dependendo do join)
+    const tech = Array.isArray(sc.technician)
+      ? sc.technician[0]
+      : sc.technician;
+    const technicianName = tech?.full_name ?? "N/A";
+    // Custo/hora vem do colaborador vinculado (fallback: campo antigo do técnico).
+    const collab = Array.isArray(tech?.collaborator)
+      ? tech?.collaborator[0]
+      : tech?.collaborator;
+    const costPerHour = collab?.cost_per_hour ?? tech?.cost_per_hour ?? 0;
 
     // Revenue
     const totalProducts = osItems
@@ -181,7 +220,13 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
     const totalKm = osTrips.reduce((sum, t) => sum + (t.distance_km || 0), 0);
     const tripCosts = totalKm * FUEL_COST_PER_KM;
 
-    const totalCosts = productCosts + reimbursementsCost + tripCosts;
+    // Mão de obra: horas das sessões de "trabalho" × custo/hora do técnico.
+    // Se o técnico não tiver custo/hora cadastrado, fica 0 (não inventamos valor).
+    const laborHours = sumHours(osSessions, "trabalho");
+    const laborCost = laborHours * costPerHour;
+
+    const totalCosts =
+      productCosts + reimbursementsCost + tripCosts + laborCost;
 
     // Profit
     const grossProfit = totalRevenue - totalCosts;
@@ -194,10 +239,7 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
       clientName: Array.isArray(sc.client)
         ? (sc.client[0]?.full_name ?? "N/A")
         : ((sc.client as { full_name?: string } | null)?.full_name ?? "N/A"),
-      technicianName: Array.isArray(sc.technician)
-        ? (sc.technician[0]?.full_name ?? "N/A")
-        : ((sc.technician as { full_name?: string } | null)?.full_name ??
-          "N/A"),
+      technicianName,
       scheduledDate: sc.scheduled_date,
       status: sc.status,
       totalProducts,
@@ -206,6 +248,8 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
       productCosts,
       reimbursements: reimbursementsCost,
       tripCosts,
+      laborHours,
+      laborCost,
       totalCosts,
       grossProfit,
       profitMargin,
@@ -240,3 +284,5 @@ export const useOSProfitability = (startDate: string, endDate: string) => {
     leastProfitable,
   };
 };
+
+export type { ServiceCallProfitability };

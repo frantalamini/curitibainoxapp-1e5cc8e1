@@ -38,6 +38,8 @@ const Equipment = lazy(() => import("./pages/Equipment"));
 const EquipmentForm = lazy(() => import("./pages/EquipmentForm"));
 const Technicians = lazy(() => import("./pages/Technicians"));
 const TechnicianForm = lazy(() => import("./pages/TechnicianForm"));
+const Collaborators = lazy(() => import("./pages/Collaborators"));
+const CollaboratorForm = lazy(() => import("./pages/CollaboratorForm"));
 const ServiceCalls = lazy(() => import("./pages/ServiceCalls"));
 const ServiceCallView = lazy(() => import("./pages/ServiceCallView"));
 const ServiceCallForm = lazy(() => import("./pages/ServiceCallForm"));
@@ -499,6 +501,30 @@ const App = () => (
                       >
                         <TechnicianForm />
                       </RoutePermissionGuard>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/collaborators"
+                  element={
+                    <ProtectedRoute>
+                      <Collaborators />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/collaborators/new"
+                  element={
+                    <ProtectedRoute>
+                      <CollaboratorForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/collaborators/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <CollaboratorForm />
                     </ProtectedRoute>
                   }
                 />

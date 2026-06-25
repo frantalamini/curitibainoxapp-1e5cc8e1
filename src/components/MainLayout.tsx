@@ -373,13 +373,12 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               },
             ]
           : []),
-        ...(isGerencial ||
-        hasProfilePermission(profilePerms, "technicians", "can_view")
+        ...(isGerencial
           ? [
               {
                 icon: "usuarios" as IconName,
-                label: "Técnicos",
-                to: "/technicians",
+                label: "Colaboradores",
+                to: "/collaborators",
               },
             ]
           : []),
