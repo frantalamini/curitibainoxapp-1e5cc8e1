@@ -192,6 +192,8 @@ export function usePayables(filters?: PayablesFilters) {
     }: {
       id: string;
       data: Partial<PayableInsert>;
+      /** Quando true, não exibe toast de sucesso (edição inline na tabela) */
+      silent?: boolean;
     }) => {
       const { error } = await supabase
         .from("financial_transactions")
@@ -214,9 +216,9 @@ export function usePayables(filters?: PayablesFilters) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["payables"] });
-      toast.success("Conta a pagar atualizada!");
+      if (!variables.silent) toast.success("Conta a pagar atualizada!");
     },
     onError: (error) => {
       console.error("Erro ao atualizar conta a pagar:", error);

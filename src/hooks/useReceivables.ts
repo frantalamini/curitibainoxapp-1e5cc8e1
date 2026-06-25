@@ -143,6 +143,8 @@ export function useReceivables(filters?: ReceivablesFilters) {
     }: {
       id: string;
       data: Partial<ReceivableInsert>;
+      /** Quando true, não exibe toast de sucesso (edição inline na tabela) */
+      silent?: boolean;
     }) => {
       const { error } = await supabase
         .from("financial_transactions")
@@ -160,10 +162,10 @@ export function useReceivables(filters?: ReceivablesFilters) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["receivables"] });
       queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
-      toast.success("Conta a receber atualizada!");
+      if (!variables.silent) toast.success("Conta a receber atualizada!");
     },
     onError: (error) => {
       console.error("Erro ao atualizar conta a receber:", error);

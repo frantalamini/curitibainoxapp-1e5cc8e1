@@ -49,7 +49,6 @@ import {
   parsePaymentConfig,
 } from "@/hooks/useFinancialCalculations";
 import { format, addDays, parse, isValid } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   Package,
   Wrench,
@@ -63,7 +62,6 @@ import {
   AlertCircle,
   CheckCircle,
   X,
-  Calendar as CalendarIcon,
   Check,
   ListOrdered,
   Trash,
@@ -74,15 +72,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { QuickProductForm } from "./QuickProductForm";
 import { DiscountType, PaymentMode } from "./types";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { OperationalCostsTab } from "./OperationalCostsTab";
 import { NFSeSection } from "./NFSeSection";
+import {
+  EditableDateCell,
+  EditableNumberCell,
+  EditableTextCell,
+} from "./EditableCells";
 
 interface FinanceiroTabProps {
   serviceCallId: string;
@@ -183,18 +180,12 @@ export const FinanceiroTab = ({
   // Confirm dialog for regenerating
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
-  // === NEW: Inline editing state for installments ===
-  const [editingTransactionId, setEditingTransactionId] = useState<
-    string | null
-  >(null);
-  const [editDueDate, setEditDueDate] = useState<Date | undefined>();
-  const [editAmount, setEditAmount] = useState(0);
-  const [editPaymentMethod, setEditPaymentMethod] = useState<string>("");
-  const [editNotes, setEditNotes] = useState<string>("");
-  const [editDays, setEditDays] = useState<number>(0);
-
   const [isSaving, setIsSaving] = useState(false);
   const [receiptObservation, setReceiptObservation] = useState("");
+
+  // Controla se há alterações não salvas no financeiro (botão Salvar)
+  const [isDirty, setIsDirty] = useState(false);
+  const markDirty = () => setIsDirty(true);
 
   // === Inline editing state for items (products/services) ===
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -292,10 +283,12 @@ export const FinanceiroTab = ({
   // === Payment Methods Handlers ===
   const handleAddPaymentMethod = () => {
     setSelectedPaymentMethods((prev) => [...prev, ""]);
+    markDirty();
   };
 
   const handleRemovePaymentMethod = (index: number) => {
     setSelectedPaymentMethods((prev) => prev.filter((_, i) => i !== index));
+    markDirty();
   };
 
   const handleChangePaymentMethod = (index: number, value: string) => {
@@ -304,6 +297,7 @@ export const FinanceiroTab = ({
       newMethods[index] = value;
       return newMethods;
     });
+    markDirty();
   };
 
   // Add product item
@@ -501,15 +495,19 @@ export const FinanceiroTab = ({
     const defaultMethod =
       selectedPaymentMethods.length > 0 ? selectedPaymentMethods[0] : null;
 
+    // Valor base de cada parcela (2 casas, arredondado pra baixo)
+    const baseAmount = Math.floor((grandTotal / installmentCount) * 100) / 100;
+
     // Generate installments
     const installmentsData = installmentDays.map((days, i) => {
       const dueDate = addDays(paymentStartDate, days);
+      // A última parcela absorve a sobra dos centavos pra soma bater o total exato
       const amount =
         i === installmentCount - 1
-          ? grandTotal -
-            (Math.floor((grandTotal / installmentCount) * 100) / 100) *
-              (installmentCount - 1)
-          : Math.floor((grandTotal / installmentCount) * 100) / 100;
+          ? Math.round(
+              (grandTotal - baseAmount * (installmentCount - 1)) * 100,
+            ) / 100
+          : baseAmount;
 
       return {
         direction: "RECEIVE" as const,
@@ -529,6 +527,7 @@ export const FinanceiroTab = ({
 
     try {
       await createManyTransactions.mutateAsync(installmentsData);
+      markDirty();
       toast({ title: "Parcelas geradas com sucesso" });
     } catch (error) {
       toast({ title: "Erro ao gerar parcelas", variant: "destructive" });
@@ -541,6 +540,7 @@ export const FinanceiroTab = ({
       for (const t of transactions) {
         await deleteTransaction.mutateAsync(t.id);
       }
+      markDirty();
       toast({ title: "Parcelas removidas" });
     } catch (error) {
       toast({ title: "Erro ao remover parcelas", variant: "destructive" });
@@ -574,85 +574,37 @@ export const FinanceiroTab = ({
           lastInstallment?.installments_group_id || crypto.randomUUID(),
         notes: null,
       });
+      markDirty();
       toast({ title: "Parcela adicionada" });
     } catch (error) {
       toast({ title: "Erro ao adicionar parcela", variant: "destructive" });
     }
   };
 
-  // === Inline edit handlers ===
-  const handleStartEditTransaction = async (t: any, index: number) => {
-    // Auto-save the current row before switching to another
-    if (
-      editingTransactionId &&
-      editingTransactionId !== t.id &&
-      editDueDate &&
-      editAmount > 0
-    ) {
-      try {
-        await updateTransaction.mutateAsync({
-          id: editingTransactionId,
-          amount: editAmount,
-          due_date: format(editDueDate, "yyyy-MM-dd"),
-          payment_method: editPaymentMethod || null,
-          notes: editNotes || null,
-        });
-      } catch {
-        toast({
-          title: "Erro ao salvar a parcela anterior",
-          variant: "destructive",
-        });
-      }
-    }
-    setEditingTransactionId(t.id);
-    setEditDueDate(new Date(t.due_date + "T12:00:00"));
-    setEditAmount(t.amount);
-    setEditPaymentMethod(t.payment_method || "");
-    setEditNotes(t.notes || "");
-    // Calculate days from payment start date
-    const currentDate = new Date(t.due_date + "T12:00:00");
-    const days = Math.round(
-      (currentDate.getTime() - paymentStartDate.getTime()) /
-        (1000 * 60 * 60 * 24),
-    );
-    setEditDays(days);
-  };
-
-  // When days change, recalculate due date from payment start date
-  const handleDaysChange = (newDays: number) => {
-    setEditDays(newDays);
-    const newDueDate = addDays(paymentStartDate, newDays);
-    setEditDueDate(newDueDate);
-  };
-
-  const handleSaveEditTransaction = async () => {
-    if (!editingTransactionId || !editDueDate) return;
-
-    if (!editAmount || editAmount <= 0) {
-      toast({
-        title: "O valor deve ser maior que zero",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // === Excel-like inline edit: salva um campo da parcela ao sair do campo ===
+  const handlePatchTransaction = async (
+    transactionId: string,
+    patch: Partial<{
+      amount: number;
+      due_date: string;
+      payment_method: string | null;
+      notes: string | null;
+    }>,
+  ) => {
     try {
-      await updateTransaction.mutateAsync({
-        id: editingTransactionId,
-        amount: editAmount,
-        due_date: format(editDueDate, "yyyy-MM-dd"),
-        payment_method: editPaymentMethod || null,
-        notes: editNotes || null,
-      });
-      setEditingTransactionId(null);
-      toast({ title: "Parcela atualizada" });
+      await updateTransaction.mutateAsync({ id: transactionId, ...patch });
+      markDirty();
     } catch (error) {
-      toast({ title: "Erro ao atualizar", variant: "destructive" });
+      toast({ title: "Erro ao atualizar parcela", variant: "destructive" });
     }
   };
 
-  const handleCancelEdit = () => {
-    setEditingTransactionId(null);
+  // Edita a coluna "Dias": recalcula a data de vencimento a partir da data início
+  const handleCommitDays = (transactionId: string, days: number) => {
+    const newDueDate = addDays(paymentStartDate, Math.round(days));
+    handlePatchTransaction(transactionId, {
+      due_date: format(newDueDate, "yyyy-MM-dd"),
+    });
   };
 
   // === Update payment method for a single transaction (inline select) ===
@@ -665,6 +617,7 @@ export const FinanceiroTab = ({
         id: transactionId,
         payment_method: method,
       });
+      markDirty();
     } catch (error) {
       toast({
         title: "Erro ao atualizar forma de pagamento",
@@ -683,6 +636,7 @@ export const FinanceiroTab = ({
         id: transactionId,
         notes: notes || null,
       });
+      markDirty();
     } catch (error) {
       toast({ title: "Erro ao atualizar observação", variant: "destructive" });
     }
@@ -758,6 +712,7 @@ export const FinanceiroTab = ({
       // but we call it again here for explicit clarity and safety
       // The cache invalidation happens in the hook mutations automatically
 
+      setIsDirty(false);
       toast({ title: "Contas a receber atualizadas" });
     } catch (error) {
       toast({ title: "Erro ao salvar", variant: "destructive" });
@@ -1517,9 +1472,10 @@ export const FinanceiroTab = ({
                     <div className="flex gap-1">
                       <Select
                         value={osDiscountType}
-                        onValueChange={(v) =>
-                          setOsDiscountType(v as DiscountType)
-                        }
+                        onValueChange={(v) => {
+                          setOsDiscountType(v as DiscountType);
+                          markDirty();
+                        }}
                       >
                         <SelectTrigger className="h-8 w-16 text-xs">
                           <SelectValue />
@@ -1539,9 +1495,10 @@ export const FinanceiroTab = ({
                         min="0"
                         className="h-8 text-xs w-20"
                         value={osDiscountValue}
-                        onChange={(e) =>
-                          setOsDiscountValue(Number(e.target.value))
-                        }
+                        onChange={(e) => {
+                          setOsDiscountValue(Number(e.target.value));
+                          markDirty();
+                        }}
                       />
                     </div>
                   </div>
@@ -1576,7 +1533,10 @@ export const FinanceiroTab = ({
             <CardContent className="p-3">
               <Textarea
                 value={receiptObservation}
-                onChange={(e) => setReceiptObservation(e.target.value)}
+                onChange={(e) => {
+                  setReceiptObservation(e.target.value);
+                  markDirty();
+                }}
                 placeholder="Observações sobre o recebimento..."
                 maxLength={300}
                 rows={3}
@@ -1665,7 +1625,10 @@ export const FinanceiroTab = ({
                   <Label className="text-xs">Condição</Label>
                   <Select
                     value={String(installmentCount)}
-                    onValueChange={(v) => setInstallmentCount(Number(v))}
+                    onValueChange={(v) => {
+                      setInstallmentCount(Number(v));
+                      markDirty();
+                    }}
                   >
                     <SelectTrigger className="h-8 text-xs mt-1">
                       <SelectValue />
@@ -1690,9 +1653,10 @@ export const FinanceiroTab = ({
                     placeholder="dd/mm/aaaa"
                     className="h-8 text-xs mt-1"
                     value={startDateInput}
-                    onChange={(e) =>
-                      setStartDateInput(formatDateInput(e.target.value))
-                    }
+                    onChange={(e) => {
+                      setStartDateInput(formatDateInput(e.target.value));
+                      markDirty();
+                    }}
                     maxLength={10}
                   />
                 </div>
@@ -1703,11 +1667,12 @@ export const FinanceiroTab = ({
                     min="1"
                     className="h-8 text-xs mt-1"
                     value={installmentInterval}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setInstallmentInterval(
                         e.target.value === "" ? 0 : Number(e.target.value),
-                      )
-                    }
+                      );
+                      markDirty();
+                    }}
                   />
                 </div>
                 <Button
@@ -1760,7 +1725,7 @@ export const FinanceiroTab = ({
                           <TableHead className="py-1 px-1 w-10 text-right">
                             Dias
                           </TableHead>
-                          <TableHead className="py-1 px-1 w-20">Data</TableHead>
+                          <TableHead className="py-1 px-1 w-24">Data</TableHead>
                           <TableHead className="py-1 px-1 w-20 text-right">
                             Valor
                           </TableHead>
@@ -1775,17 +1740,11 @@ export const FinanceiroTab = ({
                       </TableHeader>
                       <TableBody>
                         {transactions.map((t, index) => {
-                          const isEditing = editingTransactionId === t.id;
                           const days = calculateDays(t, index);
+                          const isOpen = t.status === "OPEN";
 
                           return (
-                            <TableRow
-                              key={t.id}
-                              className={cn(
-                                "text-xs",
-                                isEditing && "bg-muted/50",
-                              )}
-                            >
+                            <TableRow key={t.id} className="text-xs">
                               {/* Nº */}
                               <TableCell className="py-1 px-2 font-medium">
                                 {t.installments_total &&
@@ -1794,76 +1753,35 @@ export const FinanceiroTab = ({
                                   : "1x"}
                               </TableCell>
 
-                              {/* Dias - Editável */}
+                              {/* Dias - editável estilo planilha */}
                               <TableCell className="py-1 px-2 text-right">
-                                {isEditing ? (
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    className="h-7 text-xs w-16 text-right"
-                                    value={editDays}
-                                    onChange={(e) =>
-                                      handleDaysChange(Number(e.target.value))
-                                    }
+                                {isOpen ? (
+                                  <EditableNumberCell
+                                    value={days}
+                                    step="1"
+                                    className="w-14"
+                                    onCommit={(d) => handleCommitDays(t.id, d)}
                                   />
                                 ) : (
-                                  <span
-                                    className={cn(
-                                      "text-muted-foreground",
-                                      t.status === "OPEN" &&
-                                        "cursor-pointer hover:underline",
-                                    )}
-                                    onClick={() =>
-                                      t.status === "OPEN" &&
-                                      handleStartEditTransaction(t, index)
-                                    }
-                                  >
+                                  <span className="text-muted-foreground">
                                     {days}
                                   </span>
                                 )}
                               </TableCell>
 
-                              {/* Data */}
+                              {/* Data - editável estilo planilha */}
                               <TableCell className="py-1 px-2">
-                                {isEditing ? (
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-7 text-xs w-full justify-start"
-                                      >
-                                        <CalendarIcon className="h-3 w-3 mr-1" />
-                                        {editDueDate
-                                          ? format(editDueDate, "dd/MM/yyyy")
-                                          : "-"}
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                      className="w-auto p-0"
-                                      align="start"
-                                    >
-                                      <Calendar
-                                        mode="single"
-                                        selected={editDueDate}
-                                        onSelect={setEditDueDate}
-                                        locale={ptBR}
-                                        className="pointer-events-auto"
-                                      />
-                                    </PopoverContent>
-                                  </Popover>
-                                ) : (
-                                  <span
-                                    className={cn(
-                                      t.status === "OPEN" &&
-                                        "cursor-pointer hover:underline",
-                                    )}
-                                    onClick={() =>
-                                      t.status === "OPEN" &&
-                                      handleStartEditTransaction(t, index)
+                                {isOpen ? (
+                                  <EditableDateCell
+                                    value={t.due_date}
+                                    onCommit={(iso) =>
+                                      handlePatchTransaction(t.id, {
+                                        due_date: iso,
+                                      })
                                     }
-                                  >
+                                  />
+                                ) : (
+                                  <span>
                                     {format(
                                       new Date(t.due_date + "T12:00:00"),
                                       "dd/MM/yyyy",
@@ -1872,31 +1790,19 @@ export const FinanceiroTab = ({
                                 )}
                               </TableCell>
 
-                              {/* Valor */}
+                              {/* Valor - editável estilo planilha */}
                               <TableCell className="py-1 px-2 text-right">
-                                {isEditing ? (
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    className="h-7 text-xs w-full text-right"
-                                    value={editAmount}
-                                    onChange={(e) =>
-                                      setEditAmount(Number(e.target.value))
+                                {isOpen ? (
+                                  <EditableNumberCell
+                                    value={t.amount}
+                                    decimals={2}
+                                    className="w-full"
+                                    onCommit={(amount) =>
+                                      handlePatchTransaction(t.id, { amount })
                                     }
                                   />
                                 ) : (
-                                  <span
-                                    className={cn(
-                                      "font-medium",
-                                      t.status === "OPEN" &&
-                                        "cursor-pointer hover:underline",
-                                    )}
-                                    onClick={() =>
-                                      t.status === "OPEN" &&
-                                      handleStartEditTransaction(t, index)
-                                    }
-                                  >
+                                  <span className="font-medium">
                                     {formatCurrency(t.amount)}
                                   </span>
                                 )}
@@ -1904,27 +1810,7 @@ export const FinanceiroTab = ({
 
                               {/* Forma */}
                               <TableCell className="py-1 px-2">
-                                {isEditing ? (
-                                  <Select
-                                    value={editPaymentMethod}
-                                    onValueChange={setEditPaymentMethod}
-                                  >
-                                    <SelectTrigger className="h-7 text-xs w-28">
-                                      <SelectValue placeholder="Selecionar" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {activePaymentMethods.map((pm) => (
-                                        <SelectItem
-                                          key={pm.id}
-                                          value={pm.name}
-                                          className="text-xs"
-                                        >
-                                          {pm.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                ) : t.status === "OPEN" ? (
+                                {isOpen ? (
                                   <Select
                                     value={t.payment_method || ""}
                                     onValueChange={(v) =>
@@ -1956,34 +1842,17 @@ export const FinanceiroTab = ({
                                 )}
                               </TableCell>
 
-                              {/* Observação - Editável inline */}
+                              {/* Observação - editável estilo planilha */}
                               <TableCell className="py-1 px-2">
-                                {isEditing ? (
-                                  <Input
-                                    type="text"
+                                {isOpen ? (
+                                  <EditableTextCell
+                                    value={t.notes || ""}
                                     placeholder="Observação..."
-                                    className="h-7 text-xs w-full"
                                     maxLength={300}
-                                    value={editNotes}
-                                    onChange={(e) =>
-                                      setEditNotes(e.target.value)
+                                    className="w-full"
+                                    onCommit={(notes) =>
+                                      handleUpdateTransactionNotes(t.id, notes)
                                     }
-                                  />
-                                ) : t.status === "OPEN" ? (
-                                  <Input
-                                    type="text"
-                                    placeholder="Observação..."
-                                    className="h-7 text-xs w-full"
-                                    maxLength={300}
-                                    defaultValue={t.notes || ""}
-                                    onBlur={(e) => {
-                                      if (e.target.value !== (t.notes || "")) {
-                                        handleUpdateTransactionNotes(
-                                          t.id,
-                                          e.target.value,
-                                        );
-                                      }
-                                    }}
                                   />
                                 ) : (
                                   <span className="text-xs text-muted-foreground truncate">
@@ -1994,28 +1863,7 @@ export const FinanceiroTab = ({
 
                               {/* Ações */}
                               <TableCell className="py-1 px-2">
-                                {isEditing ? (
-                                  <div className="flex gap-1">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6"
-                                      onClick={handleSaveEditTransaction}
-                                    >
-                                      <Check className="h-3 w-3 text-green-600" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6"
-                                      onClick={handleCancelEdit}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : t.status === "OPEN" ? (
+                                {isOpen ? (
                                   <div className="flex gap-0.5">
                                     <Badge
                                       variant="outline"
@@ -2029,9 +1877,12 @@ export const FinanceiroTab = ({
                                       size="icon"
                                       className="h-6 w-6"
                                       title="Excluir"
-                                      onClick={() =>
-                                        deleteTransaction.mutateAsync(t.id)
-                                      }
+                                      onClick={async () => {
+                                        await deleteTransaction.mutateAsync(
+                                          t.id,
+                                        );
+                                        markDirty();
+                                      }}
                                     >
                                       <Trash2 className="h-3 w-3 text-muted-foreground" />
                                     </Button>
@@ -2122,11 +1973,23 @@ export const FinanceiroTab = ({
             <Button
               type="button"
               onClick={handleSaveFinancial}
-              disabled={isSaving}
-              className="min-w-[160px]"
+              disabled={isSaving || !isDirty}
+              className={cn(
+                "min-w-[160px]",
+                !isDirty &&
+                  "bg-primary/60 hover:bg-primary/60 disabled:opacity-100",
+              )}
             >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? "Salvando..." : "Salvar Financeiro"}
+              {!isDirty && !isSaving ? (
+                <CheckCircle className="h-4 w-4 mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {isSaving
+                ? "Salvando..."
+                : isDirty
+                  ? "Salvar Financeiro"
+                  : "Salvo"}
             </Button>
           </div>
 

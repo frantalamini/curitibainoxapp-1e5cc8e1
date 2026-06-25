@@ -61,6 +61,11 @@ import {
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BANK_RECONCILIATION_ENABLED } from "@/lib/constants";
+import {
+  EditableDateCell,
+  EditableNumberCell,
+  EditableTextCell,
+} from "@/components/os-financeiro/EditableCells";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
